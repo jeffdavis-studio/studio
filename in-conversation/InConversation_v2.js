@@ -68,7 +68,7 @@ let methods = {
       if ((shape === "Square" || shape === "Line") && nt < 3) nt = 3;
 
       // Grid: elements define the resolution, multiplier scales it
-      let multiplier = R.random_int(1, 4);
+      let multiplier = R.random_int(1, 2);
       let grid = nt * multiplier;
 
       // Place elements on the grid
@@ -122,7 +122,7 @@ let methods = {
       if (range === "full") {
         canvasUnits = grid;
       } else if (range === "inner") {
-        canvasUnits = grid + R.random_int(1, Math.max(1, Math.ceil(grid / 2)));
+        canvasUnits = grid + R.random_int(1, Math.max(1, Math.ceil(nt / 2))) * multiplier;
       } else {
         if (nt <= 2) {
           canvasUnits = grid;
@@ -142,7 +142,9 @@ let methods = {
       // Compute sizes as fractions of canvas
       let sizes = positions.map(p => p / canvasUnits);
 
-      print("Color Pattern:", alternate ? "Alternating" : "Gradient");
+      let reverseGradient = !alternate && R.random_bool(0.5);
+
+      print("Color Pattern:", alternate ? "Alternating" : "Gradient" + (reverseGradient ? " (reversed)" : ""));
       print("Outline:", outline ? "Yes" : "No");
       print("Corner Alignment:", corner ? "Yes" : "No");
       print("Elements:", nt, "| Grid:", nt + " × " + multiplier + " = " + grid + "u");
@@ -151,10 +153,12 @@ let methods = {
 
       for (let i = 0; i < nt; i++) {
         let sz = sizes[i];
+        let gt = reverseGradient ? (nt - 1 - i) / nt : i / (nt - 1);
+        let gt_outline = reverseGradient ? (nt - 1 - i) / nt : i / nt;
         if (alternate) {
           fill(i % 2 === 0 ? c1 : c2);
         } else {
-          fill(betterLerp(c1, c2, i / (nt - 1)));
+          fill(betterLerp(c1, c2, gt));
         }
 
         if (outline) {
@@ -173,7 +177,11 @@ let methods = {
           }
           translate(-sd / 2, -sd / 2);
           noFill();
-          stroke(c1);
+          if (alternate) {
+            stroke(i % 2 === 0 ? c1 : c2);
+          } else {
+            stroke(betterLerp(c1, c2, gt_outline));
+          }
           strokeWeight(sd / 120);
         }
 
@@ -688,14 +696,44 @@ function setup() {
     config = comp ? resolveConfig(comp, sub) : {};
   }
 
-  ci = R.random_int(0, colors.length - 1);
-  c1 = colors[ci][0];
-  c2 = colors[ci][1];
-  if (R.random_bool(0.5)) {
-    let temp = c1;
-    c1 = c2;
-    c2 = temp;
-  }
+  // --- Color selection: preset pairs (commented out, available for revert) ---
+  // ci = R.random_int(0, colors.length - 1);
+  // c1 = colors[ci][0];
+  // c2 = colors[ci][1];
+  // if (R.random_bool(0.5)) {
+  //   let temp = c1;
+  //   c1 = c2;
+  //   c2 = temp;
+  // }
+
+  // --- Color selection: random HSB with rejection ---
+  let hMin = 100;
+  let vMin = 40;
+  colorMode(HSB, 360, 100, 100);
+  let hdif, vdif;
+  do {
+    let colors_hsb = [];
+    for (let i = 0; i < 2; i++) {
+      let hu = R.random_bool(0.5) ? R.random_num(180, 420) % 360 : R.random_num(0, 360);
+      let gamut = cmykGamut(hu);
+      let maxSat = gamut[0], maxBr = gamut[1];
+      let sa, br;
+      if (R.random_bool(0.5) || hu < 120) {
+        sa = R.random_num(10, maxSat);
+        br = maxBr;
+      } else {
+        sa = maxSat;
+        br = R.random_num(25, maxBr);
+      }
+      colors_hsb.push({ h: hu, s: sa, b: br });
+    }
+    hdif = Math.abs(colors_hsb[0].h - colors_hsb[1].h);
+    hdif = Math.min(hdif, 360 - hdif);
+    vdif = (Math.abs(colors_hsb[0].s - colors_hsb[1].s) + Math.abs(colors_hsb[0].b - colors_hsb[1].b)) / 2;
+    c1 = color(colors_hsb[0].h, colors_hsb[0].s, colors_hsb[0].b);
+    c2 = color(colors_hsb[1].h, colors_hsb[1].s, colors_hsb[1].b);
+  } while (hdif < hMin && vdif < vMin);
+  colorMode(RGB);
 
   background(255);
   noStroke();
@@ -837,6 +875,24 @@ function labToRgb(a) {
   g = g * 255;
   b = b * 255;
   return color(Math.round(r), Math.round(g), Math.round(b));
+}
+
+function cmykGamut(hue) {
+  let stops = [
+    [0, 95, 90], [30, 95, 95], [60, 90, 98], [90, 75, 92],
+    [120, 65, 82], [160, 70, 82], [200, 88, 78], [250, 80, 72],
+    [280, 90, 82], [330, 95, 88], [360, 95, 90]
+  ];
+  for (let i = 0; i < stops.length - 1; i++) {
+    if (hue <= stops[i + 1][0]) {
+      let t = (hue - stops[i][0]) / (stops[i + 1][0] - stops[i][0]);
+      return [
+        stops[i][1] + t * (stops[i + 1][1] - stops[i][1]),
+        stops[i][2] + t * (stops[i + 1][2] - stops[i][2])
+      ];
+    }
+  }
+  return [stops[0][1], stops[0][2]];
 }
 
 function betterLerp(col1, col2, t) {
