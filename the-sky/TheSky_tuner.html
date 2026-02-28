@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Sky — Tuner</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { 
+      display: flex; 
+      height: 100vh; 
+      background: #111; 
+      font-family: 'SF Mono', 'Menlo', monospace;
+      color: #ccc;
+    }
+    #sky-container { 
+      flex: 1; 
+      position: relative;
+    }
+    #sky-container canvas { 
+      width: 100% !important; 
+      height: 100% !important; 
+    }
+    #condition-label {
+      position: absolute;
+      bottom: 16px;
+      left: 16px;
+      font-size: 11px;
+      color: rgba(255,255,255,0.5);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      pointer-events: none;
+    }
+    #controls {
+      width: 280px;
+      padding: 20px 16px;
+      overflow-y: auto;
+      border-left: 1px solid #222;
+      background: #0e0e0e;
+    }
+    h2 {
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #666;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #222;
+    }
+    .section {
+      margin-bottom: 20px;
+    }
+    .section-title {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.10em;
+      color: #555;
+      margin-bottom: 10px;
+    }
+    .row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+      gap: 8px;
+    }
+    label {
+      font-size: 11px;
+      color: #888;
+      width: 110px;
+      flex-shrink: 0;
+    }
+    input[type=range] {
+      flex: 1;
+      -webkit-appearance: none;
+      height: 2px;
+      background: #333;
+      outline: none;
+      border-radius: 1px;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #999;
+      cursor: pointer;
+    }
+    .value {
+      font-size: 10px;
+      color: #666;
+      width: 36px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .btn {
+      width: 100%;
+      padding: 8px;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      color: #888;
+      font-size: 11px;
+      font-family: inherit;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      margin-top: 4px;
+      border-radius: 2px;
+    }
+    .btn:hover { background: #222; color: #bbb; }
+    .btn-primary { border-color: #555; color: #bbb; }
+    .state-indicator {
+      font-size: 10px;
+      color: #555;
+      margin-top: 12px;
+      line-height: 1.6;
+      padding: 8px;
+      background: #0a0a0a;
+      border: 1px solid #1a1a1a;
+      border-radius: 2px;
+    }
+    .state-indicator span { color: #888; }
+    .divider { 
+      height: 1px; 
+      background: #1e1e1e; 
+      margin: 16px 0; 
+    }
+  </style>
+</head>
+<body>
+  <div id="sky-container">
+    <div id="condition-label">—</div>
+  </div>
+
+  <div id="controls">
+    <h2>The Sky — Tuner</h2>
+
+    <div class="section">
+      <div class="section-title">Transition</div>
+      <div class="row">
+        <label>Speed</label>
+        <input type="range" id="transitionSpeed" min="0.0001" max="0.01" step="0.0001" value="0.001">
+        <div class="value" id="transitionSpeed-val">0.001</div>
+      </div>
+      <div class="row">
+        <label>Dwell Min (frames)</label>
+        <input type="range" id="dwellMin" min="60" max="1200" step="30" value="300">
+        <div class="value" id="dwellMin-val">300</div>
+      </div>
+      <div class="row">
+        <label>Dwell Max (frames)</label>
+        <input type="range" id="dwellMax" min="120" max="2400" step="60" value="900">
+        <div class="value" id="dwellMax-val">900</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section">
+      <div class="section-title">Drift (within condition)</div>
+      <div class="row">
+        <label>Drift Speed</label>
+        <input type="range" id="driftSpeed" min="0" max="0.0003" step="0.00001" value="0.00008">
+        <div class="value" id="driftSpeed-val">0.00008</div>
+      </div>
+      <div class="row">
+        <label>Hue Range</label>
+        <input type="range" id="driftRange" min="0" max="40" step="1" value="12">
+        <div class="value" id="driftRange-val">12</div>
+      </div>
+      <div class="row">
+        <label>Sat Range</label>
+        <input type="range" id="driftRangeS" min="0" max="20" step="1" value="8">
+        <div class="value" id="driftRangeS-val">8</div>
+      </div>
+      <div class="row">
+        <label>Bri Range</label>
+        <input type="range" id="driftRangeB" min="0" max="15" step="1" value="6">
+        <div class="value" id="driftRangeB-val">6</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section">
+      <div class="section-title">Clouds &amp; Conditions</div>
+      <div class="row">
+        <label>Cloud Intensity</label>
+        <input type="range" id="cloudBandIntensity" min="0" max="1" step="0.05" value="1">
+        <div class="value" id="cloudBandIntensity-val">1.0</div>
+      </div>
+      <div class="row">
+        <label>Cloud Falloff</label>
+        <input type="range" id="cloudFalloff" min="0.01" max="0.20" step="0.005" value="0.06">
+        <div class="value" id="cloudFalloff-val">0.060</div>
+      </div>
+      <div class="row">
+        <label>Overcast %</label>
+        <input type="range" id="overcastProb" min="0" max="1" step="0.05" value="0.35">
+        <div class="value" id="overcastProb-val">35%</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section">
+      <button class="btn btn-primary" onclick="forceTransition()">Force Next Condition →</button>
+      <button class="btn" onclick="cycleToCondition('dawn')">→ Dawn</button>
+      <button class="btn" onclick="cycleToCondition('midday')">→ Midday</button>
+      <button class="btn" onclick="cycleToCondition('sunset')">→ Sunset</button>
+      <button class="btn" onclick="cycleToCondition('dusk')">→ Dusk</button>
+      <button class="btn" onclick="cycleToCondition('night')">→ Night</button>
+      <button class="btn" onclick="cycleToCondition('overcastDawn')">→ Overcast Dawn</button>
+      <button class="btn" onclick="cycleToCondition('overcastMidday')">→ Overcast Midday</button>
+      <button class="btn" onclick="cycleToCondition('overcastSunset')">→ Overcast Sunset</button>
+      <button class="btn" onclick="cycleToCondition('overcastDusk')">→ Overcast Dusk</button>
+      <button class="btn" onclick="cycleToCondition('overcastNight')">→ Overcast Night</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="state-indicator" id="state-indicator">
+      Phase: <span id="si-phase">—</span><br>
+      Current: <span id="si-current">—</span><br>
+      Target: <span id="si-target">—</span><br>
+      Progress: <span id="si-progress">—</span>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section">
+      <div class="section-title">Save</div>
+      <button class="btn" onclick="saveFrame()">Save Frame (S)</button>
+    </div>
+  </div>
+
+  <!-- The sky sketch is loaded here. Controls are wired after p5 is ready. -->
+  <script src="TheSky_v1.js"></script>
+
+  <script>
+    // Wire controls to the live global variables exposed in TheSky_v1.js
+    // This only works because p5 runs in global mode — all those vars are window-level.
+
+    function wireSlider(id, getter, setter, formatter) {
+      let el = document.getElementById(id);
+      let val = document.getElementById(id + '-val');
+      el.addEventListener('input', function() {
+        let v = parseFloat(el.value);
+        setter(v);
+        val.textContent = formatter ? formatter(v) : v;
+      });
+    }
+
+    window.addEventListener('load', function() {
+      wireSlider('transitionSpeed', null, v => { transitionSpeed = v; }, v => v.toFixed(4));
+      wireSlider('dwellMin', null, v => { dwellMinFrames = v; }, v => v);
+      wireSlider('dwellMax', null, v => { dwellMaxFrames = v; }, v => v);
+      wireSlider('driftSpeed', null, v => { driftSpeed = v; }, v => v.toFixed(5));
+      wireSlider('driftRange', null, v => { driftRange = v; }, v => v);
+      wireSlider('driftRangeS', null, v => { driftRangeS = v; }, v => v);
+      wireSlider('driftRangeB', null, v => { driftRangeB = v; }, v => v);
+      wireSlider('cloudBandIntensity', null, v => { cloudBandIntensity = v; }, v => v.toFixed(2));
+      wireSlider('cloudFalloff', null, v => { cloudFalloff = v; }, v => v.toFixed(3));
+      wireSlider('overcastProb', null, v => { overcastProbability = v; }, v => Math.round(v * 100) + '%');
+    });
+
+    // Update state indicator every 500ms
+    setInterval(function() {
+      if (typeof phase === 'undefined') return;
+      document.getElementById('si-phase').textContent = phase;
+      document.getElementById('si-current').textContent = currentConditionKey || '—';
+      document.getElementById('si-target').textContent = (targetInstance && targetInstance.conditionKey) || '—';
+      document.getElementById('si-progress').textContent = phase === 'TRANSITIONING'
+        ? (transitionT * 100).toFixed(1) + '%'
+        : 'dwelling (' + dwellFrames + ' frames left)';
+
+      let label = document.getElementById('condition-label');
+      if (typeof SKY_CONDITIONS !== 'undefined' && currentConditionKey) {
+        let cond = SKY_CONDITIONS[currentConditionKey];
+        label.textContent = cond ? cond.label : currentConditionKey;
+      }
+    }, 500);
+
+    function forceTransition() {
+      if (typeof phase === 'undefined') return;
+      // Force immediate transition by killing dwell timer
+      dwellFrames = 0;
+    }
+
+    function cycleToCondition(key) {
+      if (typeof phase === 'undefined' || typeof SKY_CONDITIONS === 'undefined') return;
+      if (!SKY_CONDITIONS[key]) return;
+      // Immediately set target to this condition and start transitioning
+      targetInstance = instantiateCondition(key);
+      transitionT = 0;
+      phase = 'TRANSITIONING';
+    }
+
+    function saveFrame() {
+      if (typeof saveCanvas !== 'undefined') {
+        saveCanvas('the-sky-tuner', 'png');
+      }
+    }
+  </script>
+</body>
+</html>
