@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Sky v2 — Condition Catalog</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #111;
+    color: #ccc;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 12px;
+    padding: 32px;
+  }
+
+  h1 {
+    color: #eee;
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .subtitle {
+    color: #666;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    margin-bottom: 32px;
+  }
+
+  .column-headers {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 12px;
+    max-width: 760px;
+  }
+
+  .col-label {
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #555;
+    text-align: center;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    max-width: 760px;
+  }
+
+  .card {
+    border: 1px solid #222;
+  }
+
+  .sky-canvas {
+    display: block;
+    width: 100%;
+    height: 200px;
+  }
+
+  .card-info {
+    padding: 10px 12px 12px;
+    background: #161616;
+    border-top: 1px solid #222;
+  }
+
+  .card-label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #bbb;
+    margin-bottom: 6px;
+  }
+
+  .color-swatches {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .swatch-group {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .swatch-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .swatch {
+    width: 28px;
+    height: 14px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  .swatch-label {
+    font-size: 10px;
+    color: #555;
+    letter-spacing: 0.04em;
+  }
+
+  .swatch-hex {
+    font-size: 10px;
+    color: #444;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .swatch-range {
+    display: flex;
+    gap: 3px;
+    align-items: center;
+  }
+
+  .swatch-min, .swatch-max {
+    width: 20px;
+    height: 12px;
+    border-radius: 1px;
+    flex-shrink: 0;
+  }
+
+  .divider {
+    color: #333;
+    font-size: 9px;
+  }
+
+  .hsb-values {
+    font-size: 9px;
+    color: #3a3a3a;
+    margin-top: 5px;
+    line-height: 1.5;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .time-slot-label {
+    font-size: 9px;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: #444;
+    margin-bottom: 4px;
+  }
+
+  /* Row labels for time slots */
+  .full-grid {
+    max-width: 900px;
+  }
+
+  .grid-row {
+    display: grid;
+    grid-template-columns: 80px 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+    align-items: stretch;
+  }
+
+  .row-label-cell {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 8px;
+  }
+
+  .row-label {
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #444;
+    writing-mode: horizontal-tb;
+    text-align: right;
+  }
+
+  .header-row {
+    display: grid;
+    grid-template-columns: 80px 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 8px;
+  }
+
+  .header-spacer { }
+
+  .meta-section {
+    margin-top: 40px;
+    max-width: 900px;
+    padding-top: 24px;
+    border-top: 1px solid #222;
+  }
+
+  .meta-title {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #555;
+    margin-bottom: 16px;
+  }
+
+  .sequence-diagram {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .seq-slot {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    align-items: center;
+  }
+
+  .seq-pair {
+    display: flex;
+    gap: 3px;
+  }
+
+  .seq-dot {
+    width: 32px;
+    height: 32px;
+    border-radius: 2px;
+  }
+
+  .seq-name {
+    font-size: 9px;
+    color: #444;
+    text-align: center;
+    letter-spacing: 0.04em;
+  }
+
+  .seq-arrow {
+    color: #333;
+    font-size: 16px;
+    align-self: center;
+    margin-bottom: 12px;
+  }
+
+  .legend-note {
+    font-size: 10px;
+    color: #444;
+    margin-top: 16px;
+    line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+
+<h1>The Sky v2 — Condition Catalog</h1>
+<p class="subtitle">10 conditions · 5 time slots · clear + overcast variants · midpoint colors · Lab interpolation</p>
+
+<div class="header-row">
+  <div class="header-spacer"></div>
+  <div class="col-label">Clear</div>
+  <div class="col-label">Overcast</div>
+</div>
+
+<div id="catalog" class="full-grid"></div>
+
+<div class="meta-section">
+  <div class="meta-title">Time Sequence (forward-only)</div>
+  <div id="sequence-diagram" class="sequence-diagram"></div>
+  <p class="legend-note">
+    Each condition can transition to the other variant in the same time slot, or either variant in the next slot.<br>
+    Colors shown are HSB midpoints — actual renders pick randomly within each range.
+  </p>
+</div>
+
+<script>
+// ============================================================================
+// COLOR DATA — copied directly from TheSky_v2.js SKY_CONDITIONS
+// ============================================================================
+
+const SKY_CONDITIONS = {
+  dawn: {
+    label: 'Dawn',
+    topColor: { h: [212, 228], s: [65, 75], b: [31, 39] },
+    botColor: { h: [10, 26],  s: [50, 60], b: [86, 94] },
+  },
+  midday: {
+    label: 'Midday',
+    topColor: { h: [205, 215], s: [81, 89], b: [85, 91] },
+    botColor: { h: [195, 205], s: [31, 39], b: [92, 98] },
+  },
+  sunset: {
+    label: 'Sunset',
+    topColor: { h: [232, 248], s: [29, 41], b: [46, 54] },
+    botColor: { h: [24, 40],  s: [84, 96], b: [93, 100] },
+  },
+  dusk: {
+    label: 'Dusk',
+    topColor: { h: [224, 236], s: [26, 34], b: [39, 45] },
+    botColor: { h: [274, 286], s: [24, 32], b: [62, 68] },
+  },
+  night: {
+    label: 'Night',
+    topColor: { h: [221, 229], s: [57, 63], b: [6, 10] },
+    botColor: { h: [211, 219], s: [39, 45], b: [20, 24] },
+  },
+  overcastDawn: {
+    label: 'Overcast Dawn',
+    topColor: { h: [211, 219], s: [16, 20], b: [56, 60] },
+    botColor: { h: [26, 34],  s: [10, 14], b: [74, 78] },
+  },
+  overcastMidday: {
+    label: 'Overcast Midday',
+    topColor: { h: [207, 213], s: [10, 14], b: [76, 80] },
+    botColor: { h: [202, 208], s: [6, 10],  b: [86, 90] },
+  },
+  overcastSunset: {
+    label: 'Overcast Sunset',
+    topColor: { h: [24, 32],  s: [15, 21], b: [39, 45] },
+    botColor: { h: [20, 28],  s: [11, 17], b: [57, 63] },
+  },
+  overcastDusk: {
+    label: 'Overcast Dusk',
+    topColor: { h: [215, 221], s: [16, 20], b: [22, 26] },
+    botColor: { h: [213, 219], s: [6, 10],  b: [46, 50] },
+  },
+  overcastNight: {
+    label: 'Overcast Night',
+    topColor: { h: [22, 28],  s: [22, 28], b: [6, 10] },
+    botColor: { h: [32, 38],  s: [75, 81], b: [70, 74] },
+  },
+};
+
+const TIME_SLOTS = [
+  ['dawn', 'overcastDawn'],
+  ['midday', 'overcastMidday'],
+  ['sunset', 'overcastSunset'],
+  ['dusk', 'overcastDusk'],
+  ['night', 'overcastNight'],
+];
+
+// ============================================================================
+// COLOR UTILITIES — ported from TheSky_v2.js
+// ============================================================================
+
+function wrapHSB(c) {
+  let h = c[0] % 360;
+  if (h < 0) h += 360;
+  let s = Math.max(0, Math.min(100, c[1]));
+  let b = Math.max(0, Math.min(100, c[2]));
+  return [h, s, b];
+}
+
+function hsbToRgb(hsb) {
+  let h = hsb[0], s = hsb[1] / 100, v = hsb[2] / 100;
+  let c = v * s;
+  let x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  let m = v - c;
+  let r, g, b;
+  if (h < 60)       { r = c; g = x; b = 0; }
+  else if (h < 120) { r = x; g = c; b = 0; }
+  else if (h < 180) { r = 0; g = c; b = x; }
+  else if (h < 240) { r = 0; g = x; b = c; }
+  else if (h < 300) { r = x; g = 0; b = c; }
+  else              { r = c; g = 0; b = x; }
+  return [(r + m) * 255, (g + m) * 255, (b + m) * 255];
+}
+
+function rgbToLab(c) {
+  let r = c[0] / 255, g = c[1] / 255, b = c[2] / 255;
+  r = r > 0.04045 ? Math.pow((r + 0.055) / 1.055, 2.4) : r / 12.92;
+  g = g > 0.04045 ? Math.pow((g + 0.055) / 1.055, 2.4) : g / 12.92;
+  b = b > 0.04045 ? Math.pow((b + 0.055) / 1.055, 2.4) : b / 12.92;
+  let x = (r * 0.4124 + g * 0.3576 + b * 0.1805) * 100;
+  let y = (r * 0.2126 + g * 0.7152 + b * 0.0722) * 100;
+  let z = (r * 0.0193 + g * 0.1192 + b * 0.9505) * 100;
+  x /= 95.047; y /= 100; z /= 108.883;
+  x = x > 0.008856 ? Math.pow(x, 1/3) : 7.787 * x + 16/116;
+  y = y > 0.008856 ? Math.pow(y, 1/3) : 7.787 * y + 16/116;
+  z = z > 0.008856 ? Math.pow(z, 1/3) : 7.787 * z + 16/116;
+  return [(116 * y) - 16, 500 * (x - y), 200 * (y - z)];
+}
+
+function labToRgb(a) {
+  let cl = a[0], ca = a[1], cb = a[2];
+  let y = (cl + 16) / 116;
+  let x = ca / 500 + y;
+  let z = y - cb / 200;
+  y = Math.pow(y, 3) > 0.008856 ? Math.pow(y, 3) : (y - 16/116) / 7.787;
+  x = Math.pow(x, 3) > 0.008856 ? Math.pow(x, 3) : (x - 16/116) / 7.787;
+  z = Math.pow(z, 3) > 0.008856 ? Math.pow(z, 3) : (z - 16/116) / 7.787;
+  x *= 95.047; y *= 100; z *= 108.883;
+  let r = (x * 3.2406 + y * -1.5372 + z * -0.4986) / 100;
+  let g = (x * -0.9689 + y * 1.8758 + z * 0.0415) / 100;
+  let b = (x * 0.0557 + y * -0.2040 + z * 1.0570) / 100;
+  r = r > 0.0031308 ? 1.055 * Math.pow(r, 1/2.4) - 0.055 : 12.92 * r;
+  g = g > 0.0031308 ? 1.055 * Math.pow(g, 1/2.4) - 0.055 : 12.92 * g;
+  b = b > 0.0031308 ? 1.055 * Math.pow(b, 1/2.4) - 0.055 : 12.92 * b;
+  return [
+    Math.round(Math.max(0, Math.min(255, r * 255))),
+    Math.round(Math.max(0, Math.min(255, g * 255))),
+    Math.round(Math.max(0, Math.min(255, b * 255))),
+  ];
+}
+
+function betterLerp(col1, col2, t) {
+  let arr1 = rgbToLab(col1);
+  let arr2 = rgbToLab(col2);
+  return labToRgb([
+    arr1[0] + t * (arr2[0] - arr1[0]),
+    arr1[1] + t * (arr2[1] - arr1[1]),
+    arr1[2] + t * (arr2[2] - arr1[2]),
+  ]);
+}
+
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+function midpoint(range) {
+  return (range[0] + range[1]) / 2;
+}
+
+function conditionMidpointRgb(condKey) {
+  let cond = SKY_CONDITIONS[condKey];
+  let topHSB = wrapHSB([midpoint(cond.topColor.h), midpoint(cond.topColor.s), midpoint(cond.topColor.b)]);
+  let botHSB = wrapHSB([midpoint(cond.botColor.h), midpoint(cond.botColor.s), midpoint(cond.botColor.b)]);
+  return {
+    top: hsbToRgb(topHSB),
+    bot: hsbToRgb(botHSB),
+    topHSB,
+    botHSB,
+  };
+}
+
+// Also show min/max endpoints of each range
+function conditionRangeRgb(condKey) {
+  let cond = SKY_CONDITIONS[condKey];
+  return {
+    topMin: hsbToRgb(wrapHSB([cond.topColor.h[0], cond.topColor.s[0], cond.topColor.b[0]])),
+    topMax: hsbToRgb(wrapHSB([cond.topColor.h[1], cond.topColor.s[1], cond.topColor.b[1]])),
+    botMin: hsbToRgb(wrapHSB([cond.botColor.h[0], cond.botColor.s[0], cond.botColor.b[0]])),
+    botMax: hsbToRgb(wrapHSB([cond.botColor.h[1], cond.botColor.s[1], cond.botColor.b[1]])),
+  };
+}
+
+function rgbToHex(rgb) {
+  return '#' + rgb.map(v => Math.round(v).toString(16).padStart(2, '0')).join('');
+}
+
+function rgbCss(rgb) {
+  return `rgb(${Math.round(rgb[0])},${Math.round(rgb[1])},${Math.round(rgb[2])})`;
+}
+
+// ============================================================================
+// CANVAS RENDERING
+// Draw sky gradient using Lab interpolation, same as TheSky_v2.js
+// ============================================================================
+
+function renderSkyCanvas(canvas, topRgb, botRgb) {
+  let ctx = canvas.getContext('2d');
+  let w = canvas.width;
+  let h = canvas.height;
+
+  let imageData = ctx.createImageData(w, h);
+  let data = imageData.data;
+
+  for (let y = 0; y < h; y++) {
+    let ny = y / h;
+    let c = betterLerp(topRgb, botRgb, ny);
+    let r = Math.round(c[0]), g = Math.round(c[1]), b = Math.round(c[2]);
+    for (let x = 0; x < w; x++) {
+      let idx = (y * w + x) * 4;
+      data[idx]     = r;
+      data[idx + 1] = g;
+      data[idx + 2] = b;
+      data[idx + 3] = 255;
+    }
+  }
+
+  ctx.putImageData(imageData, 0, 0);
+}
+
+// ============================================================================
+// BUILD UI
+// ============================================================================
+
+function buildCard(condKey) {
+  let colors = conditionMidpointRgb(condKey);
+  let ranges = conditionRangeRgb(condKey);
+  let cond = SKY_CONDITIONS[condKey];
+
+  let card = document.createElement('div');
+  card.className = 'card';
+
+  // Canvas
+  let canvas = document.createElement('canvas');
+  canvas.className = 'sky-canvas';
+  canvas.width = 340;
+  canvas.height = 200;
+  card.appendChild(canvas);
+
+  // Render gradient
+  renderSkyCanvas(canvas, colors.top, colors.bot);
+
+  // Info panel
+  let info = document.createElement('div');
+  info.className = 'card-info';
+
+  let label = document.createElement('div');
+  label.className = 'card-label';
+  label.textContent = cond.label;
+  info.appendChild(label);
+
+  // Color swatches: top color (midpoint + range), bot color (midpoint + range)
+  let swatchContainer = document.createElement('div');
+  swatchContainer.className = 'color-swatches';
+
+  // Top swatch group
+  swatchContainer.appendChild(buildSwatchGroup('top', colors.top, ranges.topMin, ranges.topMax, colors.topHSB, cond.topColor));
+
+  // Divider
+  let div = document.createElement('div');
+  div.style.width = '1px';
+  div.style.background = '#2a2a2a';
+  div.style.height = '36px';
+  div.style.margin = '0 4px';
+  swatchContainer.appendChild(div);
+
+  // Bot swatch group
+  swatchContainer.appendChild(buildSwatchGroup('bot', colors.bot, ranges.botMin, ranges.botMax, colors.botHSB, cond.botColor));
+
+  info.appendChild(swatchContainer);
+  card.appendChild(info);
+
+  return card;
+}
+
+function buildSwatchGroup(position, midRgb, minRgb, maxRgb, midHSB, hsbDef) {
+  let group = document.createElement('div');
+  group.className = 'swatch-group';
+
+  // Position label + midpoint swatch + hex
+  let midRow = document.createElement('div');
+  midRow.className = 'swatch-row';
+
+  let posLabel = document.createElement('span');
+  posLabel.className = 'swatch-label';
+  posLabel.textContent = position === 'top' ? '↑' : '↓';
+  posLabel.style.color = '#444';
+  midRow.appendChild(posLabel);
+
+  let midSwatch = document.createElement('div');
+  midSwatch.className = 'swatch';
+  midSwatch.style.background = rgbCss(midRgb);
+  midRow.appendChild(midSwatch);
+
+  let hexLabel = document.createElement('span');
+  hexLabel.className = 'swatch-hex';
+  hexLabel.textContent = rgbToHex(midRgb);
+  midRow.appendChild(hexLabel);
+
+  group.appendChild(midRow);
+
+  // Range row: min → max swatches
+  let rangeRow = document.createElement('div');
+  rangeRow.className = 'swatch-row';
+
+  let rangeLabel = document.createElement('span');
+  rangeLabel.className = 'swatch-label';
+  rangeLabel.textContent = '±';
+  rangeLabel.style.color = '#333';
+  rangeRow.appendChild(rangeLabel);
+
+  let rangeBox = document.createElement('div');
+  rangeBox.className = 'swatch-range';
+
+  let minSwatch = document.createElement('div');
+  minSwatch.className = 'swatch-min';
+  minSwatch.style.background = rgbCss(minRgb);
+  rangeBox.appendChild(minSwatch);
+
+  let arrow = document.createElement('span');
+  arrow.className = 'divider';
+  arrow.textContent = '→';
+  rangeBox.appendChild(arrow);
+
+  let maxSwatch = document.createElement('div');
+  maxSwatch.className = 'swatch-max';
+  maxSwatch.style.background = rgbCss(maxRgb);
+  rangeBox.appendChild(maxSwatch);
+
+  rangeRow.appendChild(rangeBox);
+  group.appendChild(rangeRow);
+
+  // HSB values
+  let hsbDiv = document.createElement('div');
+  hsbDiv.className = 'hsb-values';
+  hsbDiv.textContent = `H ${hsbDef.h[0]}–${hsbDef.h[1]}  S ${hsbDef.s[0]}–${hsbDef.s[1]}  B ${hsbDef.b[0]}–${hsbDef.b[1]}`;
+  group.appendChild(hsbDiv);
+
+  return group;
+}
+
+function buildCatalog() {
+  let catalog = document.getElementById('catalog');
+
+  TIME_SLOTS.forEach(([clearKey, overcastKey]) => {
+    let row = document.createElement('div');
+    row.className = 'grid-row';
+
+    // Row label
+    let labelCell = document.createElement('div');
+    labelCell.className = 'row-label-cell';
+    let label = document.createElement('div');
+    label.className = 'row-label';
+    label.textContent = SKY_CONDITIONS[clearKey].label.replace('Dawn','Dawn').replace('Midday','Midday');
+    // Just use the clear variant's name as the slot label
+    label.textContent = clearKey.charAt(0).toUpperCase() + clearKey.slice(1);
+    labelCell.appendChild(label);
+    row.appendChild(labelCell);
+
+    // Clear card
+    row.appendChild(buildCard(clearKey));
+
+    // Overcast card
+    row.appendChild(buildCard(overcastKey));
+
+    catalog.appendChild(row);
+  });
+}
+
+function buildSequenceDiagram() {
+  let container = document.getElementById('sequence-diagram');
+
+  TIME_SLOTS.forEach(([clearKey, overcastKey], i) => {
+    // Slot
+    let slot = document.createElement('div');
+    slot.className = 'seq-slot';
+
+    let pair = document.createElement('div');
+    pair.className = 'seq-pair';
+
+    let clearColors = conditionMidpointRgb(clearKey);
+    let overColors = conditionMidpointRgb(overcastKey);
+
+    [clearColors, overColors].forEach(colors => {
+      let canvas = document.createElement('canvas');
+      canvas.className = 'seq-dot';
+      canvas.width = 32;
+      canvas.height = 32;
+      renderSkyCanvas(canvas, colors.top, colors.bot);
+      pair.appendChild(canvas);
+    });
+
+    slot.appendChild(pair);
+
+    let name = document.createElement('div');
+    name.className = 'seq-name';
+    // Extract base name (clear / overcast)
+    let baseName = SKY_CONDITIONS[clearKey].label;
+    name.textContent = baseName;
+    slot.appendChild(name);
+
+    container.appendChild(slot);
+
+    // Arrow (not after last)
+    if (i < TIME_SLOTS.length - 1) {
+      let arrow = document.createElement('div');
+      arrow.className = 'seq-arrow';
+      arrow.textContent = '→';
+      container.appendChild(arrow);
+    }
+  });
+
+  // Loop arrow back to dawn
+  let loop = document.createElement('div');
+  loop.className = 'seq-arrow';
+  loop.textContent = '↩';
+  loop.style.color = '#2a2a2a';
+  container.appendChild(loop);
+}
+
+// ============================================================================
+// INIT
+// ============================================================================
+
+buildCatalog();
+buildSequenceDiagram();
+</script>
+</body>
+</html>
