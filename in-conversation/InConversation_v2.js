@@ -1,5 +1,4 @@
 // to-do
-// bring color within printing gamut
 // universal stroke weight
 
 // sample token hash/id - REMOVE
@@ -28,9 +27,13 @@ let colors = [["#f21424", "#ffd7d7"], ["#f23f08", "#ffe9ef"], ["#a3131d", "#ed14
 // Each method is a self-contained compositional engine with:
 //   shapes:    which shape primitives it supports
 //   defaults:  knob values when no subtopic constraint overrides them
-//              (numbers 0-1 on boolean knobs = probability, true/false = forced)
 //   subtopics: which subtopics use this method, with per-subtopic knob overrides
 //   draw:      the rendering function, receives (shape, config) with pre-merged config
+//
+// Knob conventions:
+//   Binary knobs:       0-1 = probability, true/false = forced. Resolved via chance().
+//   Multi-option knobs: "random" = equal odds across options, or a specific string to force.
+//                        Resolved in draw via: if (val === "random") val = R.random_choice([...]);
 // ============================================================================
 
 let methods = {
@@ -221,13 +224,14 @@ let methods = {
   // ---------------------------------------------------------------------------
   // GRID
   // Line-based grid patterns with outer/inner groupings.
-  // Knobs: stacked (equal rows/cols), varied (thick border strokes)
+  // Knobs: layout (linear/stacked/stretched), varied, irregularity
   // ---------------------------------------------------------------------------
   grid: {
     shapes: ["Line"],
     defaults: {
-      stacked: false,
-      varied: false
+      layout: "random",
+      varied: 0.5,
+      irregularity: "random"
     },
     subtopics: {
       "Repetition": {},
@@ -235,99 +239,178 @@ let methods = {
       "Symmetry": {}
     },
     draw: function(shape, config) {
-      let stacked = chance(config.stacked);
+      let layout = config.layout;
+      if (layout === "random") layout = R.random_choice(["linear", "stacked", "stretched"]);
       let varied = chance(config.varied);
+      let irregularity = config.irregularity;
+      if (irregularity === "random") irregularity = R.random_choice(["none", "anomaly", "scattered"]);
 
-      let margins = [sd / 16, sd / 8, sd / 4];
-      let vm = R.random_choice(margins);
-      let hm = R.random_choice(margins);
-      if (stacked) {
-        hm = vm;
-      }
-
+      // --- Grid dimensions ---
       let gr, gc, ir, ic;
-      gr = gc = ir = ic = 1;
-      while (gr === 1 && gc === 1 && ir === 1 && ic === 1) {
+      do {
         gr = R.random_int(1, 6);
         gc = R.random_int(1, 6);
         ir = R.random_int(1, 6);
         ic = R.random_int(1, 6);
-      }
-      if (stacked) {
-        gr = R.random_int(2, 4);
-        gc = gr;
-        ir = ic;
+      } while ((gr === 1 && gc === 1 && ir === 1 && ic === 1) ||
+               gr * ir > 20 || gc * ic > 20);
+
+      if (layout === "stacked") {
+        gr = R.random_int(2, 4); gc = gr; ir = ic;
       } else {
-        if (R.random_bool(0.5)) {
-          gr = 1;
+        R.random_bool(0.5) ? gr = 1 : gc = 1;
+      }
+      if (ir === 1 && ic === 1) {
+        R.random_bool(0.5) ? ir = R.random_int(2, 6) : ic = R.random_int(2, 6);
+      }
+
+      // --- Stretch direction (stretched only, removes outer lines and extends to edge) ---
+      let stretchDir = null;
+      if (layout === "stretched") {
+        stretchDir = (gr === 1 && gc === 1) ? "both" : (gr === 1 ? "horizontal" : "vertical");
+        let stretchV = stretchDir === "vertical" || stretchDir === "both";
+        let stretchH = stretchDir === "horizontal" || stretchDir === "both";
+        if (stretchH && ir === 1) { stretchDir = stretchV ? "vertical" : "none"; }
+        if (stretchV && ic === 1) { stretchDir = stretchH ? "horizontal" : "none"; }
+        if (stretchDir === "none") layout = "linear";
+      }
+
+      // --- Margins ---
+      let margins = [sd / 16, sd / 8, sd / 4];
+      let vm = R.random_choice(margins);
+      let hm = R.random_choice(margins);
+      if (layout === "stacked") hm = vm;
+      if (layout === "stretched") {
+        if (stretchDir === "horizontal" || stretchDir === "both") hm = 0;
+        if (stretchDir === "vertical" || stretchDir === "both") vm = 0;
+      }
+      if (gc === 1 && ic === 1 && vm === sd / 4) vm = sd / 8;
+      if (gr === 1 && ir === 1 && hm === sd / 4) hm = sd / 8;
+
+      // --- Cell sizes (first pass, for stroke weight) ---
+      let computeSizes = function() {
+        let cm = (sd - 2 * vm) / (gc * ic + gc - 1);
+        let rm = (sd - 2 * hm) / (gr * ir + gr - 1);
+        let gw = (sd - 2 * vm - (gc - 1) * cm) / gc;
+        let gh = (sd - 2 * hm - (gr - 1) * rm) / gr;
+        return { cm: cm, rm: rm, gw: gw, gh: gh, iw: gw / ic, ih: gh / ir };
+      };
+
+      // Balance gap vs margin (only when multiple groups exist)
+      let sizes = computeSizes();
+      let stretchV = layout === "stretched" && (stretchDir === "vertical" || stretchDir === "both");
+      let stretchH = layout === "stretched" && (stretchDir === "horizontal" || stretchDir === "both");
+      if (gc > 1 && sizes.cm > vm && !stretchV) vm = sizes.cm;
+      if (gr > 1 && sizes.rm > hm && !stretchH) hm = sizes.rm;
+      sizes = computeSizes();
+
+      // --- Stroke weight (proportional to cell size) ---
+      let unit = Math.min(sizes.iw, sizes.ih);
+      let swThick = unit / 4, swMed = unit / 8, swThin = unit / 16;
+      let sw, swOuter, swInner;
+      if (varied) {
+        let pair = R.random_choice([[swThick, swMed], [swMed, swThin], [swThick, swThin]]);
+        swOuter = pair[0]; swInner = pair[1]; sw = swOuter;
+      } else {
+        sw = R.random_choice([swThick, swMed, swThin]);
+      }
+
+      // Enforce minimum margin (1.5x stroke for visible clearance), then recompute
+      let minMargin = (varied ? swOuter : sw) * 1.5;
+      if (vm > 0 && vm < minMargin) vm = minMargin;
+      if (hm > 0 && hm < minMargin) hm = minMargin;
+      sizes = computeSizes();
+      let { cm, rm, gw, gh, iw, ih } = sizes;
+
+      // --- Irregularity (cell-line gaps) ---
+      let hasInternalV = ic > 1, hasInternalH = ir > 1;
+      let holes = [];
+      if ((irregularity === "anomaly" || irregularity === "scattered") && (hasInternalV || hasInternalH)) {
+        let makeHole = function(gi, gj) {
+          let dir, pos, gap;
+          if (!hasInternalV) {
+            dir = "horizontal"; pos = R.random_int(1, ir - 1); gap = R.random_int(0, ic - 1);
+          } else if (!hasInternalH) {
+            dir = "vertical"; pos = R.random_int(1, ic - 1); gap = R.random_int(0, ir - 1);
+          } else {
+            dir = R.random_bool(0.5) ? "vertical" : "horizontal";
+            pos = dir === "vertical" ? R.random_int(1, ic - 1) : R.random_int(1, ir - 1);
+            gap = dir === "vertical" ? R.random_int(0, ir - 1) : R.random_int(0, ic - 1);
+          }
+          holes.push({ gi: gi, gj: gj, dir: dir, pos: pos, gap: gap });
+        };
+        if (irregularity === "anomaly") {
+          makeHole(R.random_int(0, gc - 1), R.random_int(0, gr - 1));
         } else {
-          gc = 1;
+          for (let gi = 0; gi < gc; gi++)
+            for (let gj = 0; gj < gr; gj++)
+              makeHole(gi, gj);
         }
+      } else {
+        irregularity = "none";
       }
 
-      if (gc === 1 && ic === 1 && vm === sd / 4) {
-        vm = sd / 8;
+      // Pre-index holes by group+line for O(1) lookup during drawing
+      let holeMap = {};
+      for (let h of holes) {
+        let key = h.gi + "," + h.gj + "," + h.dir + "," + h.pos;
+        if (!holeMap[key]) holeMap[key] = [];
+        holeMap[key].push(h.gap);
       }
-      if (gr === 1 && ir === 1 && hm === sd / 4) {
-        hm = sd / 8;
-      }
+      for (let key in holeMap) holeMap[key].sort((a, b) => a - b);
 
-      let cm = (sd - (2 * vm)) / ((gc * ic) + (gc - 1));
-      let rm = (sd - (2 * hm)) / ((gr * ir) + (gr - 1));
-
-      if (cm > vm) vm = cm;
-      if (rm > hm) hm = rm;
-
-      cm = (sd - (2 * vm)) / ((gc * ic) + (gc - 1));
-      rm = (sd - (2 * hm)) / ((gr * ir) + (gr - 1));
-
-      let gw = (sd - (2 * vm) - ((gc - 1) * cm)) / gc;
-      let gh = (sd - (2 * hm) - ((gr - 1) * rm)) / gr;
-      let iw = gw / ic;
-      let ih = gh / ir;
-
-      print("Layout:", stacked ? "Stacked" : "Linear");
+      print("Layout:", layout, stretchDir ? "(" + stretchDir + ")" : "");
       print("Grid Size:", gc + "×" + gr, "(outer), " + ic + "×" + ir, "(inner)");
-      print("Margins: V=" + Math.round(vm) + ", H=" + Math.round(hm));
-      print("Varied Strokes:", varied ? "Yes" : "No");
+      print("Varied:", varied ? "Yes" : "No");
+      print("Irregularity:", irregularity, holes.length > 0 ? "(" + holes.length + " holes)" : "");
 
+      // --- Draw ---
       noFill();
       stroke(c1);
-      let sw = sd / (60 * R.random_int(2, 3));
-      let thinStroke = R.random_bool(0.5);
-      strokeWeight(thinStroke ? sw / 2 : sw);
-
-      push();
-      translate(sd / 2, sd / 2);
-      scale((sd / sw + 1) / (sd / sw));
-      translate(-sd / 2, -sd / 2);
+      strokeWeight(sw);
 
       for (let i = 0; i < gc; i++) {
         for (let j = 0; j < gr; j++) {
-          let gx = vm + (i * (gw + cm));
-          let gy = hm + (j * (gh + rm));
+          let gx = vm + i * (gw + cm);
+          let gy = hm + j * (gh + rm);
+
           for (let k = 0; k <= ic; k++) {
-            if (varied && (k === 0 || k === ic)) {
-              strokeWeight(sw);
-            } else if (varied) {
-              strokeWeight(sw / 2);
+            if (stretchV && (k === 0 || k === ic)) continue;
+            if (varied) strokeWeight((k === 0 || k === ic) ? swOuter : swInner);
+            let ix = gx + k * iw;
+            let gaps = holeMap[i + "," + j + ",vertical," + k];
+            if (gaps) {
+              let cy = gy;
+              for (let g = 0; g < gaps.length; g++) {
+                let gapY = gy + gaps[g] * ih;
+                if (cy < gapY) line(ix, cy, ix, gapY);
+                cy = gapY + ih;
+              }
+              if (cy < gy + gh) line(ix, cy, ix, gy + gh);
+            } else {
+              line(ix, gy, ix, gy + gh);
             }
-            let ix = gx + (k * iw);
-            line(ix, gy, ix, gy + gh);
           }
+
           for (let l = 0; l <= ir; l++) {
-            if (varied && (l === 0 || l === ir)) {
-              strokeWeight(sw);
-            } else if (varied) {
-              strokeWeight(sw / 2);
+            if (stretchH && (l === 0 || l === ir)) continue;
+            if (varied) strokeWeight((l === 0 || l === ir) ? swOuter : swInner);
+            let iy = gy + l * ih;
+            let gaps = holeMap[i + "," + j + ",horizontal," + l];
+            if (gaps) {
+              let cx = gx;
+              for (let g = 0; g < gaps.length; g++) {
+                let gapX = gx + gaps[g] * iw;
+                if (cx < gapX) line(cx, iy, gapX, iy);
+                cx = gapX + iw;
+              }
+              if (cx < gx + gw) line(cx, iy, gx + gw, iy);
+            } else {
+              line(gx, iy, gx + gw, iy);
             }
-            let iy = gy + (l * ih);
-            line(gx, iy, gx + gw, iy);
           }
         }
       }
-
-      pop();
     }
   },
 
@@ -659,7 +742,7 @@ function auditCoverage() {
 // --- TEST MODE ---
 // Set these to test a method directly, bypassing topic/subtopic selection.
 // Leave as null to use the normal pipeline.
-let testMethod = "shapeProgression";   // e.g. "shapeProgression", "grid", "shapeGrid", "stripe", "largeShape"
+let testMethod = ["shapeProgression", "shapeProgression", "shapeProgression", "grid"];   // array (repeat to weight), string, or null
 let testShape = null;                  // e.g. "Line", "Circle", "Square", "Triangle" (null = random)
 
 function setup() {
@@ -671,7 +754,7 @@ function setup() {
   R = new Random();
 
   if (testMethod) {
-    comp = testMethod;
+    comp = Array.isArray(testMethod) ? R.random_choice(testMethod) : testMethod;
     shape = testShape || R.random_choice(methods[comp].shapes);
     config = methods[comp].defaults || {};
     topic = "Test";
@@ -696,43 +779,27 @@ function setup() {
     config = comp ? resolveConfig(comp, sub) : {};
   }
 
-  // --- Color selection: preset pairs (commented out, available for revert) ---
-  // ci = R.random_int(0, colors.length - 1);
-  // c1 = colors[ci][0];
-  // c2 = colors[ci][1];
-  // if (R.random_bool(0.5)) {
-  //   let temp = c1;
-  //   c1 = c2;
-  //   c2 = temp;
-  // }
-
-  // --- Color selection: random HSB with rejection ---
-  let hMin = 100;
-  let vMin = 40;
+  // --- Color selection: random HSB with perceptual lightness rejection ---
+  let lMin = 10;
   colorMode(HSB, 360, 100, 100);
-  let hdif, vdif;
+  let ldif, colors_hsb;
   do {
-    let colors_hsb = [];
+    colors_hsb = [];
     for (let i = 0; i < 2; i++) {
       let hu = R.random_bool(0.5) ? R.random_num(180, 420) % 360 : R.random_num(0, 360);
       let gamut = cmykGamut(hu);
       let maxSat = gamut[0], maxBr = gamut[1];
-      let sa, br;
-      if (R.random_bool(0.5) || hu < 120) {
-        sa = R.random_num(10, maxSat);
-        br = maxBr;
-      } else {
-        sa = maxSat;
-        br = R.random_num(25, maxBr);
-      }
+      let sa = R.random_bool(0.75) ? R.random_num(50, maxSat) : R.random_num(10, maxSat);
+      let br = R.random_bool(0.75) ? R.random_num(65, maxBr) : R.random_num(25, maxBr);
       colors_hsb.push({ h: hu, s: sa, b: br });
     }
-    hdif = Math.abs(colors_hsb[0].h - colors_hsb[1].h);
-    hdif = Math.min(hdif, 360 - hdif);
-    vdif = (Math.abs(colors_hsb[0].s - colors_hsb[1].s) + Math.abs(colors_hsb[0].b - colors_hsb[1].b)) / 2;
     c1 = color(colors_hsb[0].h, colors_hsb[0].s, colors_hsb[0].b);
     c2 = color(colors_hsb[1].h, colors_hsb[1].s, colors_hsb[1].b);
-  } while (hdif < hMin && vdif < vMin);
+    colorMode(RGB);
+    ldif = Math.abs(rgbToLab(c1)[0] - rgbToLab(c2)[0]);
+    colorMode(HSB, 360, 100, 100);
+  } while (ldif < lMin);
+  print("ldif:", Math.round(ldif));
   colorMode(RGB);
 
   background(255);
