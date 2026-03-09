@@ -44,28 +44,6 @@
   button:hover { background: #3a3a3a; }
   button.primary { background: #2e5339; border-color: #3d7a50; color: #c8e6c9; }
   button.primary:hover { background: #3d7a50; }
-  .toggle-tubes {
-    margin-left: auto; font-size: 12px; color: #888; cursor: pointer; user-select: none;
-  }
-  .toggle-tubes:hover { color: #bbb; }
-  .tube-editor {
-    display: none; background: #111; border: 1px solid #333;
-    border-radius: 6px; padding: 16px; margin-bottom: 24px;
-  }
-  .tube-editor.open { display: block; }
-  .tube-editor h2 { font-size: 14px; color: #999; margin-bottom: 12px; font-weight: 500; }
-  .tube-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
-  .tube-swatch {
-    width: 20px; height: 20px; border-radius: 3px; border: 1px solid #444; flex-shrink: 0;
-  }
-  .tube-hsb { color: #666; font-size: 11px; width: 110px; flex-shrink: 0; }
-  .tube-row input {
-    background: #1a1a1a; color: #d4d4d4; border: 1px solid #333;
-    border-radius: 3px; padding: 4px 8px; font-family: inherit;
-    font-size: 12px; flex: 1; max-width: 240px; outline: none;
-  }
-  .tube-row input:focus { border-color: #555; }
-  .tube-actions { margin-top: 10px; display: flex; gap: 8px; }
   .results { display: flex; flex-direction: column; gap: 16px; }
   .color-card {
     background: #222; border: 1px solid #333; border-radius: 8px;
@@ -84,6 +62,12 @@
   .recipe-line.black-mix .value { color: #969896; }
   .recipe-line.none .value { color: #555; font-style: italic; }
   .color-index { font-size: 11px; color: #555; margin-bottom: 4px; }
+  .stage-label {
+    font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px;
+    margin-top: 8px; margin-bottom: 2px; padding-top: 6px;
+    border-top: 1px solid #333;
+  }
+  .stage-label:first-of-type { border-top: none; padding-top: 0; }
   .error-msg {
     color: #cc6666; background: #2a1a1a; border: 1px solid #442222;
     border-radius: 4px; padding: 10px; font-size: 13px;
@@ -105,17 +89,14 @@
 <body>
 
 <h1>DfaM Paint Mixing Guide</h1>
-<p class="subtitle">Paste the rc array from console → get gouache mixing recipes</p>
+<p class="subtitle">Paste HSB values in any format → get gouache mixing recipes</p>
 
-<textarea id="input" placeholder='Paste HSB array, e.g.: [[25, 95, 100], [138, 40, 60], [219, 80, 45]]'></textarea>
+<textarea id="input" placeholder='Paste HSB values — arrays, bare triplets, parens all work&#10;e.g.: [[25,95,100], [138,40,60]]  or  (25,95,100), (138,40,60)  or  25 95 100'></textarea>
 
 <div class="controls">
   <button class="primary" onclick="processInput()">Mix Colors</button>
-  <button onclick="loadExample()">Load Example</button>
-  <span class="toggle-tubes" onclick="toggleTubeEditor()">⚙ Edit Tube Names</span>
 </div>
 
-<div class="tube-editor" id="tubeEditor"></div>
 <div class="results" id="results"></div>
 
 <script>
@@ -124,8 +105,8 @@
 // ============================================================
 
 const DEFAULT_TUBES = [
-  { hsb: [5, 89, 84],    name: "Carmine (G502)" },
-  { hsb: [9, 82, 93],    name: "Flame Red (G507)" },
+  { hsb: [5, 89, 84],    name: "Flame Red (G507)" },
+  { hsb: [9, 82, 93],    name: "Cadmium Red (G504)" },
   { hsb: [25, 95, 100],  name: "Cadmium Yellow Orange (G525)" },
   { hsb: [33, 100, 100], name: "Permanent Yellow Orange (G522)" },
   { hsb: [56, 100, 100], name: "Lemon Yellow (G526)" },
@@ -135,8 +116,8 @@ const DEFAULT_TUBES = [
   { hsb: [187, 100, 77], name: "Cobalt Turquoise (G569)" },
   { hsb: [195, 70, 90],  name: "Aqua Blue (G570)" },
   { hsb: [219, 97, 78],  name: "Ultramarine Light (G564)" },
-  { hsb: [325, 85, 72],  name: "Brilliant Red Violet (W&N 050)" },
-  { hsb: [354, 92, 74],  name: "Cadmium Red (G504)" },
+  { hsb: [325, 85, 72],  name: "Brilliant Red Violet (WN050)" },
+  { hsb: [354, 92, 74],  name: "Carmine (G502)" },
 ];
 
 const K_HSB = [240, 3, 13];   // Primary Black (G658)
@@ -228,73 +209,7 @@ function betterLerp(col1, col2, t) {
   ]);
 }
 
-// ============================================================
-// TUBE NAME PERSISTENCE
-// ============================================================
-
-function loadTubeNames() {
-  try {
-    var saved = localStorage.getItem('dfam-tube-names');
-    if (saved) {
-      var names = JSON.parse(saved);
-      if (Array.isArray(names) && names.length === 13) return names;
-    }
-  } catch(e) {}
-  return DEFAULT_TUBES.map(function(t) { return t.name; });
-}
-
-function saveTubeNames(names) {
-  localStorage.setItem('dfam-tube-names', JSON.stringify(names));
-}
-
-var tubeNames = loadTubeNames();
-
-// ============================================================
-// TUBE EDITOR
-// ============================================================
-
-function renderTubeEditor() {
-  var el = document.getElementById('tubeEditor');
-  var html = '<h2>Paint Tube Names — saved to localStorage</h2>';
-  for (var i = 0; i < DEFAULT_TUBES.length; i++) {
-    var tube = DEFAULT_TUBES[i];
-    var rgb = hsbToRgb(tube.hsb[0], tube.hsb[1], tube.hsb[2]);
-    html += '<div class="tube-row">'
-      + '<div class="tube-swatch" style="background:rgb(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ')"></div>'
-      + '<span class="tube-hsb">H' + tube.hsb[0] + ' S' + tube.hsb[1] + ' B' + tube.hsb[2] + '</span>'
-      + '<input type="text" id="tn' + i + '" value="' + tubeNames[i] + '" />'
-      + '</div>';
-  }
-  html += '<div class="tube-actions">'
-    + '<button onclick="saveTubeEditor()">Save Names</button>'
-    + '<button onclick="resetTubeNames()">Reset Defaults</button>'
-    + '</div>';
-  el.innerHTML = html;
-}
-
-function toggleTubeEditor() {
-  var el = document.getElementById('tubeEditor');
-  el.classList.toggle('open');
-  if (el.classList.contains('open')) renderTubeEditor();
-}
-
-function saveTubeEditor() {
-  var names = [];
-  for (var i = 0; i < 13; i++) {
-    var v = document.getElementById('tn' + i).value.trim();
-    names.push(v || DEFAULT_TUBES[i].name);
-  }
-  tubeNames = names;
-  saveTubeNames(names);
-  var input = document.getElementById('input').value.trim();
-  if (input) processInput();
-}
-
-function resetTubeNames() {
-  tubeNames = DEFAULT_TUBES.map(function(t) { return t.name; });
-  saveTubeNames(tubeNames);
-  renderTubeEditor();
-}
+var tubeNames = DEFAULT_TUBES.map(function(t) { return t.name; });
 
 // ============================================================
 // CORE: paintColor() — faithful translation from DfaM
@@ -393,6 +308,7 @@ function paintColor(h, s, bri) {
     inputRgb: hsbToRgb(h, s, bri),
     outputHsb: [Math.round(newH * 10) / 10, Math.round(newS * 10) / 10, Math.round(newB * 10) / 10],
     outputRgb: outputRgb,
+    hueRgb: interpRgb,
     tubeRecipe: tubeRecipe,
     whitePct: whitePct,
     blackPct: blackPct
@@ -407,18 +323,43 @@ function parseInput(text) {
   text = text.trim();
   text = text.replace(/^(let|var|const)?\s*\w+\s*=\s*/, '');
   text = text.replace(/;\s*$/, '');
+
+  // Normalize: replace parentheses with brackets
+  var normalized = text.replace(/\(/g, '[').replace(/\)/g, ']');
+
+  // Try as-is first (already a valid array of arrays)
+  var result = tryParseArray(normalized);
+  if (result) return result;
+
+  // Try wrapping in outer brackets (handles bare list of triplets)
+  result = tryParseArray('[' + normalized + ']');
+  if (result) return result;
+
+  // Fallback: extract all numeric triplets via regex
+  var triplets = [];
+  var re = /[\[\(]?\s*(-?\d+(?:\.\d+)?)\s*[,\s]\s*(-?\d+(?:\.\d+)?)\s*[,\s]\s*(-?\d+(?:\.\d+)?)\s*[\]\)]?/g;
+  var m;
+  while ((m = re.exec(text)) !== null) {
+    triplets.push([+m[1], +m[2], +m[3]]);
+  }
+  return triplets.length > 0 ? triplets : null;
+}
+
+function tryParseArray(text) {
   try {
     var parsed = JSON.parse(text);
     if (Array.isArray(parsed)) {
       if (parsed.length === 3 && typeof parsed[0] === 'number') return [parsed];
-      return parsed.filter(function(c) { return Array.isArray(c) && c.length === 3; });
+      var filtered = parsed.filter(function(c) { return Array.isArray(c) && c.length === 3; });
+      return filtered.length > 0 ? filtered : null;
     }
   } catch(e) {
     try {
       var result = (new Function('return ' + text))();
       if (Array.isArray(result)) {
         if (result.length === 3 && typeof result[0] === 'number') return [result];
-        return result.filter(function(c) { return Array.isArray(c) && c.length === 3; });
+        var filtered = result.filter(function(c) { return Array.isArray(c) && c.length === 3; });
+        return filtered.length > 0 ? filtered : null;
       }
     } catch(e2) {}
   }
@@ -458,47 +399,65 @@ function renderResults(colors) {
 
     var result = paintColor(h, s, bri);
 
-    // Build tube blend string
-    var tubeStr = result.tubeRecipe.map(function(tr) {
-      return tr.pct + '% ' + esc(tubeNames[tr.idx]);
-    }).join(' + ');
+    // Stage 1: Hue mix lines (one per tube, sorted largest first)
+    result.tubeRecipe.sort(function(a, b) { return b.pct - a.pct; });
+    var tubeLines = result.tubeRecipe.map(function(tr, i) {
+      return '<div class="recipe-line tube-blend"><span class="label">Color ' + (i + 1) + ': </span><span class="value">'
+        + tr.pct + '% ' + esc(tubeNames[tr.idx]) + '</span></div>';
+    }).join('');
 
-    // White/black strings
-    var whiteStr = result.whitePct > 0
-      ? '<span class="value">' + result.whitePct + '% White</span>'
-      : '<span class="value none">No white</span>';
-    var blackStr = result.blackPct > 0
-      ? '<span class="value">' + result.blackPct + '% Black</span>'
-      : '<span class="value none">No black</span>';
-
-    // Mixing bar
+    // Stage 2: Normalized paint recipe
     var colorAmt = (s / 100) * (bri / 100) * 100;
     var whiteAmt = result.whitePct;
     var blackAmt = result.blackPct;
     var barTotal = colorAmt + whiteAmt + blackAmt;
     if (barTotal === 0) barTotal = 1;
 
-    var barHtml = '<div class="mix-bar">';
+    var normColor = Math.round(colorAmt / barTotal * 100);
+    var normWhite = Math.round(whiteAmt / barTotal * 100);
+    var normBlack = Math.round(blackAmt / barTotal * 100);
+
+    // Hue mix bar: individual tube colors in proportion
+    var hueBarHtml = '<div class="mix-bar">';
     for (var ti = 0; ti < result.tubeRecipe.length; ti++) {
       var tr = result.tubeRecipe[ti];
-      var segW = (tr.pct / 100) * colorAmt / barTotal * 100;
-      if (segW > 0.3) {
+      if (tr.pct > 0) {
         var tRgb = hsbToRgb(DEFAULT_TUBES[tr.idx].hsb[0], DEFAULT_TUBES[tr.idx].hsb[1], DEFAULT_TUBES[tr.idx].hsb[2]);
-        barHtml += '<div class="mix-bar-seg" style="width:' + segW + '%;background:' + rc(tRgb) + '">'
-          + '<span class="tip">' + esc(tubeNames[tr.idx]) + '</span></div>';
+        hueBarHtml += '<div class="mix-bar-seg" style="width:' + tr.pct + '%;background:' + rc(tRgb) + '">'
+          + '<span class="tip">' + esc(tubeNames[tr.idx]) + ' ' + tr.pct + '%</span></div>';
       }
     }
-    var wW = whiteAmt / barTotal * 100;
-    if (wW > 0.3) {
-      barHtml += '<div class="mix-bar-seg" style="width:' + wW + '%;background:#f0ebe0">'
-        + '<span class="tip">White</span></div>';
+    hueBarHtml += '</div>';
+
+    // Paint recipe text + bar: combined hue, white, black
+    var paintRecipeHtml = '';
+    if (normColor > 0) {
+      paintRecipeHtml += '<div class="recipe-line tube-blend"><span class="label">Color: </span><span class="value">' + normColor + '%</span></div>';
     }
-    var bW = blackAmt / barTotal * 100;
-    if (bW > 0.3) {
-      barHtml += '<div class="mix-bar-seg" style="width:' + bW + '%;background:#222">'
-        + '<span class="tip">Black</span></div>';
+    if (normWhite > 0) {
+      paintRecipeHtml += '<div class="recipe-line white-mix"><span class="label">White: </span><span class="value">' + normWhite + '%</span></div>';
     }
-    barHtml += '</div>';
+    if (normBlack > 0) {
+      paintRecipeHtml += '<div class="recipe-line black-mix"><span class="label">Black: </span><span class="value">' + normBlack + '%</span></div>';
+    }
+
+    var recipeBarHtml = '<div class="mix-bar">';
+    var colorBarW = colorAmt / barTotal * 100;
+    if (colorBarW > 0.3) {
+      recipeBarHtml += '<div class="mix-bar-seg" style="width:' + colorBarW + '%;background:' + rc(result.hueRgb) + '">'
+        + '<span class="tip">Color ' + normColor + '%</span></div>';
+    }
+    var whiteBarW = whiteAmt / barTotal * 100;
+    if (whiteBarW > 0.3) {
+      recipeBarHtml += '<div class="mix-bar-seg" style="width:' + whiteBarW + '%;background:#f0ebe0">'
+        + '<span class="tip">White ' + normWhite + '%</span></div>';
+    }
+    var blackBarW = blackAmt / barTotal * 100;
+    if (blackBarW > 0.3) {
+      recipeBarHtml += '<div class="mix-bar-seg" style="width:' + blackBarW + '%;background:#222">'
+        + '<span class="tip">Black ' + normBlack + '%</span></div>';
+    }
+    recipeBarHtml += '</div>';
 
     html += '<div class="color-card">'
       + '<div class="swatches">'
@@ -515,10 +474,12 @@ function renderResults(colors) {
       + '  <div class="color-index">Color ' + (ci + 1) + ' of ' + colors.length + '</div>'
       + '  <div class="hsb-input">HSB [' + h + ', ' + s + ', ' + bri + ']'
       + '    → Paint HSB [' + result.outputHsb[0] + ', ' + result.outputHsb[1] + ', ' + result.outputHsb[2] + ']</div>'
-      + '  <div class="recipe-line tube-blend"><span class="label">Tubes: </span><span class="value">' + tubeStr + '</span></div>'
-      + '  <div class="recipe-line white-mix"><span class="label">White: </span>' + whiteStr + '</div>'
-      + '  <div class="recipe-line black-mix"><span class="label">Black: </span>' + blackStr + '</div>'
-      + barHtml
+      + '  <div class="stage-label">Hue Mix</div>'
+      + tubeLines
+      + hueBarHtml
+      + '  <div class="stage-label">Paint Recipe</div>'
+      + paintRecipeHtml
+      + recipeBarHtml
       + '</div>'
       + '</div>';
   }
@@ -532,14 +493,9 @@ function processInput() {
   renderResults(colors);
 }
 
-function loadExample() {
-  document.getElementById('input').value = '[[25, 95, 100], [138, 40, 60], [219, 80, 45], [354, 92, 74], [56, 100, 100], [175, 50, 35], [0, 20, 90], [300, 60, 50]]';
-  processInput();
-}
-
-// Process on Enter (Cmd/Ctrl+Enter)
+// Enter → Mix Colors, Shift+Enter → newline
 document.getElementById('input').addEventListener('keydown', function(e) {
-  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+  if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
     processInput();
   }
