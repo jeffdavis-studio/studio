@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Color Blend SVG Generator</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+  <style>
+    @import url('https://use.typekit.net/YOUR_KIT_ID.css');
+    
+    body {
+      font-family: aktiv-grotesk, -apple-system, sans-serif;
+      margin: 0;
+      padding: 40px 20px;
+      color: #333;
+    }
+    .main-layout {
+      display: inline-flex;
+      gap: 40px;
+      align-items: flex-start;
+    }
+    .center-wrapper {
+      display: flex;
+      justify-content: center;
+    }
+    .preview-column {
+      flex-shrink: 0;
+      max-width: 630px;
+    }
+    .sidebar {
+      width: 420px;
+      flex-shrink: 0;
+    }
+    .sidebar > .section {
+      width: 100%;
+    }
+    .section {
+      margin-bottom: 40px;
+    }
+    .section h3 {
+      margin: 0 0 16px 0;
+      font-size: 14px;
+      font-weight: 400;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #333;
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .form-row + .form-row {
+      margin-top: 12px;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+    label {
+      margin-bottom: 6px;
+      font-weight: 400;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #666;
+    }
+    input {
+      padding: 12px;
+      font-family: aktiv-grotesk, -apple-system, sans-serif;
+      font-size: 14px;
+      border: 1px solid #333;
+      border-radius: 0;
+      background: white;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    input:focus {
+      outline: none;
+      border-color: #000;
+    }
+    .buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    button {
+      padding: 14px 16px;
+      font-family: aktiv-grotesk, -apple-system, sans-serif;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      background: white;
+      color: #333;
+      border: 1px solid #333;
+      border-radius: 0;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.15s, color 0.15s;
+    }
+    button:hover {
+      background: #333;
+      color: white;
+    }
+    button.active {
+      background: #333;
+      color: white;
+    }
+    button.full-width {
+      grid-column: 1 / -1;
+    }
+    .color-swatch {
+      width: 16px;
+      height: 16px;
+      border-radius: 0;
+      border: 1px solid rgba(0,0,0,0.3);
+      flex-shrink: 0;
+    }
+    .corner-colors {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .corner-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .corner-item .swatch {
+      width: 44px;
+      height: 44px;
+      flex-shrink: 0;
+    }
+    .corner-item .details {
+      font-size: 11px;
+      flex: 1;
+      min-width: 0;
+    }
+    .corner-item .corner-name {
+      font-weight: 400;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+      color: #666;
+    }
+    .corner-item select {
+      padding: 6px 8px;
+      font-family: aktiv-grotesk, -apple-system, sans-serif;
+      font-size: 12px;
+      border: 1px solid #333;
+      border-radius: 0;
+      background: white;
+      width: 100%;
+      cursor: pointer;
+    }
+    .corner-item select:focus {
+      outline: none;
+      border-color: #000;
+    }
+    @media (max-width: 800px) {
+      .center-wrapper {
+        display: block;
+      }
+      .main-layout {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .sidebar {
+        width: 100%;
+        max-width: 400px;
+      }
+      .preview-column {
+        margin-bottom: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="center-wrapper">
+    <div class="main-layout">
+      <div class="preview-column">
+        <h3 style="margin: 0 0 16px 0; font-size: 14px; font-weight: 400; text-transform: uppercase; letter-spacing: 1.5px; color: #333;">Preview</h3>
+        <div id="preview-container"></div>
+        <div id="svg-preview-container" style="display: none;"></div>
+        <div id="preview-buttons" class="buttons" style="grid-template-columns: repeat(6, 1fr); margin-top: 12px;">
+          <button class="active" onclick="showColorPreview()">Blend</button>
+          <button onclick="previewSVGForCorner('p1')">p1</button>
+          <button onclick="previewSVGForCorner('p2')">p2</button>
+          <button onclick="previewSVGForCorner('p3')">p3</button>
+          <button onclick="previewSVGForCorner('p4')">p4</button>
+          <button onclick="previewOutlineSVG()">Outline</button>
+        </div>
+      </div>
+    
+    <div class="sidebar">
+      <div class="section">
+        <h3>Image Size</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="imgWidth">Width (mm)</label>
+            <input type="number" id="imgWidth" value="100" step="25" min="25">
+          </div>
+          <div class="form-group">
+            <label for="imgHeight">Height (mm)</label>
+            <input type="number" id="imgHeight" value="100" step="25" min="25">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="horizSubs">Columns</label>
+            <input type="number" id="horizSubs" value="4" step="1" min="1">
+          </div>
+          <div class="form-group">
+            <label for="vertSubs">Rows</label>
+            <input type="number" id="vertSubs" value="4" step="1" min="1">
+          </div>
+        </div>
+        <div class="form-row" style="grid-template-columns: 1fr 1fr 1fr;">
+          <div class="form-group">
+            <label for="linesPerUnit">Lines / 25mm</label>
+            <input type="number" id="linesPerUnit" value="30" step="1" min="1">
+          </div>
+          <div class="form-group">
+            <label for="curveExponent">Density Curve</label>
+            <input type="number" id="curveExponent" value="1" step="0.1" min="1" max="7">
+          </div>
+          <div class="form-group">
+            <label for="sharpenThreshold">Sharpen (mm)</label>
+            <input type="number" id="sharpenThreshold" value="1250" step="50" min="100">
+          </div>
+        </div>
+      </div>
+      
+      <div class="section">
+        <h3>Pencil Assignment</h3>
+        <div class="corner-colors">
+          <div class="corner-item">
+            <div class="swatch" id="swatch-p1"></div>
+            <div class="details">
+              <div class="corner-name">p1 - Top Left</div>
+              <select id="select-p1" onchange="onColorSelect('p1')"></select>
+            </div>
+          </div>
+          <div class="corner-item">
+            <div class="swatch" id="swatch-p2"></div>
+            <div class="details">
+              <div class="corner-name">p2 - Top Right</div>
+              <select id="select-p2" onchange="onColorSelect('p2')"></select>
+            </div>
+          </div>
+          <div class="corner-item">
+            <div class="swatch" id="swatch-p4"></div>
+            <div class="details">
+              <div class="corner-name">p4 - Bottom Left</div>
+              <select id="select-p4" onchange="onColorSelect('p4')"></select>
+            </div>
+          </div>
+          <div class="corner-item">
+            <div class="swatch" id="swatch-p3"></div>
+            <div class="details">
+              <div class="corner-name">p3 - Bottom Right</div>
+              <select id="select-p3" onchange="onColorSelect('p3')"></select>
+            </div>
+          </div>
+        </div>
+        <button style="margin-top: 16px; width: 100%;" onclick="randomizeColors()">Randomize</button>
+      </div>
+      
+      <div class="section">
+        <h3>Download SVG</h3>
+        <div class="buttons">
+          <button onclick="generateSVGForCorner('p1')">
+            <div class="color-swatch" id="btn-swatch-p1"></div>
+            p1
+          </button>
+          <button onclick="generateSVGForCorner('p2')">
+            <div class="color-swatch" id="btn-swatch-p2"></div>
+            p2
+          </button>
+          <button onclick="generateSVGForCorner('p4')">
+            <div class="color-swatch" id="btn-swatch-p4"></div>
+            p4
+          </button>
+          <button onclick="generateSVGForCorner('p3')">
+            <div class="color-swatch" id="btn-swatch-p3"></div>
+            p3
+          </button>
+          <button onclick="generateOutlineSVG()">Outline</button>
+          <button onclick="downloadPreview()">Preview</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  </div>
+
+  <script>
+    // ============ CONSTANTS ============
+    function getLineWidth() {
+      const linesPerUnit = parseInt(document.getElementById('linesPerUnit').value) || 32;
+      return 25 / linesPerUnit;
+    }
+    const PREVIEW_SIZE = 630;
+    
+    // ============ GLOBAL STATE ============
+    let tokenData, R;
+    let p1, p2, p3, p4;
+    let p1Name, p2Name, p3Name, p4Name;
+    let previewCanvas;
+    let showOutline = false;
+    
+    // ============ MATERIALS ============
+    const materials = [
+      { hsb: [359, 78, 85], name: "070 Scarlet" },
+      { hsb: [10, 79, 97], name: "060 Vermilion" },
+      { hsb: [19, 80, 100], name: "040 Reddish Orange" },
+      { hsb: [33, 97, 100], name: "030 Orange" },
+      { hsb: [38, 99, 100], name: "300 Fast Orange" },
+      { hsb: [45, 100, 100], name: "020 Golden Yellow" },
+      { hsb: [50, 100, 100], name: "010 Yellow" },
+      { hsb: [54, 77, 97], name: "250 Canary Yellow" },
+      { hsb: [59, 68, 94], name: "240 Lemon Yellow" },
+      { hsb: [71, 65, 90], name: "470 Spring Green" },
+      { hsb: [95, 60, 88], name: "230 Yellow Green" },
+      { hsb: [163, 100, 69], name: "201 Veronese Green" },
+      { hsb: [180, 100, 73], name: "191 Turquoise Green" },
+      { hsb: [189, 100, 81], name: "171 Turquoise Blue" },
+      { hsb: [200, 93, 88], name: "161 Light Blue" },
+      { hsb: [205, 100, 75], name: "370 Gentian Blue" },
+      { hsb: [209, 100, 63], name: "260 Blue" },
+      { hsb: [236, 69, 56], name: "140 Ultramarine" },
+      { hsb: [243, 51, 56], name: "130 Royal Blue" },
+      { hsb: [261, 54, 48], name: "120 Violet" },
+      { hsb: [297, 46, 54], name: "110 Lilac" },
+      { hsb: [325, 61, 66], name: "100 Purple Violet" },
+      { hsb: [343, 80, 79], name: "080 Carmine" },
+      { hsb: [352, 77, 88], name: "280 Ruby Red" },
+    ];
+    
+    // ============ RANDOM CLASS ============
+    class Random {
+      constructor(token) {
+        this.useA = false;
+        let sfc32 = function(uint128Hex) {
+          let a = parseInt(uint128Hex.substr(0, 8), 16);
+          let b = parseInt(uint128Hex.substr(8, 8), 16);
+          let c = parseInt(uint128Hex.substr(16, 8), 16);
+          let d = parseInt(uint128Hex.substr(24, 8), 16);
+          return function() {
+            a |= 0; b |= 0; c |= 0; d |= 0;
+            let t = (((a + b) | 0) + d) | 0;
+            d = (d + 1) | 0;
+            a = b ^ (b >>> 9);
+            b = (c + (c << 3)) | 0;
+            c = (c << 21) | (c >>> 11);
+            c = (c + t) | 0;
+            return (t >>> 0) / 4294967296;
+          };
+        };
+        this.prngA = new sfc32(token.substr(2, 32));
+        this.prngB = new sfc32(token.substr(34, 32));
+        for (let i = 0; i < 1e6; i += 2) {
+          this.prngA();
+          this.prngB();
+        }
+      }
+      random_dec() {
+        this.useA = !this.useA;
+        return this.useA ? this.prngA() : this.prngB();
+      }
+      random_num(a, b) {
+        return a + (b - a) * this.random_dec();
+      }
+      random_int(a, b) {
+        return Math.floor(this.random_num(a, b + 1));
+      }
+      random_bool(p) {
+        return this.random_dec() < p;
+      }
+    }
+    
+    // ============ P5.JS SKETCH ============
+    function setup() {
+      previewCanvas = createCanvas(PREVIEW_SIZE, PREVIEW_SIZE);
+      previewCanvas.parent('preview-container');
+      colorMode(HSB);
+      noLoop();
+      populateDropdowns();
+      randomizeColors();
+    }
+    
+    function populateDropdowns() {
+      const corners = ['p1', 'p2', 'p3', 'p4'];
+      for (const corner of corners) {
+        const select = document.getElementById(`select-${corner}`);
+        select.innerHTML = '';
+        for (const m of materials) {
+          const option = document.createElement('option');
+          option.value = m.name;
+          option.textContent = m.name;
+          select.appendChild(option);
+        }
+      }
+    }
+    
+    function onColorSelect(corner) {
+      colorMode(HSB);
+      const name = document.getElementById(`select-${corner}`).value;
+      const material = materials.find(m => m.name === name);
+      const c = color(material.hsb[0], material.hsb[1], material.hsb[2]);
+      
+      if (corner === 'p1') { p1 = c; p1Name = name; }
+      else if (corner === 'p2') { p2 = c; p2Name = name; }
+      else if (corner === 'p3') { p3 = c; p3Name = name; }
+      else if (corner === 'p4') { p4 = c; p4Name = name; }
+      
+      updateColorDisplay();
+      redraw();
+    }
+    
+    function hasConsecutivePair(indices) {
+      const n = materials.length;
+      for (let i = 0; i < indices.length; i++) {
+        const j = (i + 1) % indices.length;
+        const diff = Math.abs(indices[i] - indices[j]);
+        if (diff === 1 || diff === n - 1) return true;
+      }
+      return false;
+    }
+
+    function randomizeColors() {
+      tokenData = "0x" + Array(64).fill(0).map(() => "0123456789abcdef"[Math.floor(Math.random() * 16)]).join("");
+      R = new Random(tokenData);
+      
+      colorMode(HSB);
+      
+      let selected;
+      let attempts = 0;
+      do {
+        let availableIndices = [...Array(materials.length).keys()];
+        let pickedIndices = [];
+        for (let i = 0; i < 4; i++) {
+          let idx = R.random_int(0, availableIndices.length - 1);
+          pickedIndices.push(availableIndices.splice(idx, 1)[0]);
+        }
+
+        selected = pickedIndices.map(i => ({
+          color: color(materials[i].hsb[0], materials[i].hsb[1], materials[i].hsb[2]),
+          name: materials[i].name,
+          materialIndex: i
+        }));
+
+        // Sort by hue
+        selected.sort((a, b) => hue(a.color) - hue(b.color));
+
+        // Random rotation
+        let rotation = R.random_int(0, 3);
+        for (let i = 0; i < rotation; i++) {
+          selected.push(selected.shift());
+        }
+
+        // Maybe reverse
+        if (R.random_bool(0.5)) selected.reverse();
+
+        attempts++;
+      } while (hasConsecutivePair(selected.map(s => s.materialIndex)) && attempts < 100);
+      
+      [p1, p2, p3, p4] = selected.map(s => s.color);
+      [p1Name, p2Name, p3Name, p4Name] = selected.map(s => s.name);
+      
+      updateColorDisplay();
+      redraw();
+    }
+    
+    function draw() {
+      const horizSubs = parseInt(document.getElementById('horizSubs').value) || 17;
+      const vertSubs = parseInt(document.getElementById('vertSubs').value) || 17;
+      const imgWidth = parseFloat(document.getElementById('imgWidth').value) || 17;
+      const imgHeight = parseFloat(document.getElementById('imgHeight').value) || 17;
+      
+      // Scale preview to fit (add precise margin for outline stroke when shown)
+      let scale, margin;
+      if (showOutline) {
+        // Solve: margin = (scale * 0.5) / 2, scale = (PREVIEW_SIZE - 2*margin) / maxDim
+        // => margin = 0.25 * PREVIEW_SIZE / (maxDim + 0.5) where maxDim is the limiting dimension
+        const maxDim = Math.max(imgWidth, imgHeight);
+        margin = 0.25 * PREVIEW_SIZE / (maxDim + 0.5);
+        scale = (PREVIEW_SIZE - 2 * margin) / maxDim;
+      } else {
+        margin = 0;
+        scale = Math.min(PREVIEW_SIZE / imgWidth, PREVIEW_SIZE / imgHeight);
+      }
+      const w = imgWidth * scale;
+      const h = imgHeight * scale;
+      const offsetX = (PREVIEW_SIZE - w) / 2;
+      const offsetY = (PREVIEW_SIZE - h) / 2;
+      
+      background(200);
+      
+      colorMode(RGB);
+      noStroke();
+      
+      for (let y = 0; y < vertSubs; y++) {
+        for (let x = 0; x < horizSubs; x++) {
+          let nx = horizSubs > 1 ? x / (horizSubs - 1) : 0.5;
+          let ny = vertSubs > 1 ? y / (vertSubs - 1) : 0.5;
+          let topColor = betterLerp(p1, p2, nx);
+          let bottomColor = betterLerp(p4, p3, nx);
+          let c = betterLerp(topColor, bottomColor, ny);
+          fill(c);
+          rect(offsetX + x * w / horizSubs, offsetY + y * h / vertSubs, w / horizSubs + 1, h / vertSubs + 1);
+        }
+      }
+      
+      // Draw grid outline (0.5mm equivalent, graphite color)
+      if (showOutline) {
+        const strokeW = scale * 0.5; // 0.5mm scaled to preview
+        stroke(100);
+        strokeWeight(strokeW);
+        noFill();
+        for (let col = 0; col <= horizSubs; col++) {
+          const x = offsetX + col * w / horizSubs;
+          line(x, offsetY, x, offsetY + h);
+        }
+        for (let row = 0; row <= vertSubs; row++) {
+          const y = offsetY + row * h / vertSubs;
+          line(offsetX, y, offsetX + w, y);
+        }
+      }
+      
+      colorMode(HSB);
+    }
+    
+    function setActivePreviewButton(index) {
+      const buttons = document.getElementById('preview-buttons').querySelectorAll('button');
+      buttons.forEach((btn, i) => btn.classList.toggle('active', i === index));
+    }
+
+    function showColorPreview() {
+      showOutline = false;
+      setActivePreviewButton(0);
+      document.getElementById('preview-container').style.display = 'block';
+      document.getElementById('svg-preview-container').style.display = 'none';
+      redraw();
+    }
+
+    function previewOutlineToggle() {
+      showOutline = !showOutline;
+      setActivePreviewButton(showOutline ? 5 : 0);
+      document.getElementById('preview-container').style.display = 'block';
+      document.getElementById('svg-preview-container').style.display = 'none';
+      redraw();
+    }
+
+    function showSVGPreview(svgContent) {
+      const p5Container = document.getElementById('preview-container');
+      const svgContainer = document.getElementById('svg-preview-container');
+      
+      p5Container.style.display = 'none';
+      svgContainer.style.display = 'block';
+      svgContainer.innerHTML = svgContent;
+      
+      // Scale SVG to match preview size
+      const svg = svgContainer.querySelector('svg');
+      if (svg) {
+        svg.removeAttribute('width');
+        svg.removeAttribute('height');
+        svg.style.width = PREVIEW_SIZE + 'px';
+        svg.style.height = PREVIEW_SIZE + 'px';
+        svg.style.background = 'white';
+      }
+    }
+
+    function previewSVGForCorner(corner) {
+      const buttonIndex = { p1: 1, p2: 2, p3: 3, p4: 4 }[corner];
+      setActivePreviewButton(buttonIndex);
+      const imgWidth = parseFloat(document.getElementById('imgWidth').value);
+      const imgHeight = parseFloat(document.getElementById('imgHeight').value);
+      const horizSubs = parseInt(document.getElementById('horizSubs').value);
+      const vertSubs = parseInt(document.getElementById('vertSubs').value);
+      const cellWidth = imgWidth / horizSubs;
+      const cellHeight = imgHeight / vertSubs;
+      const sharpenThreshold = parseFloat(document.getElementById('sharpenThreshold').value) || 1250;
+      const lineWidth = getLineWidth();
+
+      const cells = generateCellData(imgWidth, imgHeight, horizSubs, vertSubs, cellWidth, cellHeight, corner, lineWidth);
+      const batches = packBatches(cells, sharpenThreshold);
+      showSVGPreview(buildBatchedSVG(imgWidth, imgHeight, batches));
+    }
+
+    function previewOutlineSVG() {
+      previewOutlineToggle();
+    }
+    
+    function updateColorDisplay() {
+      const corners = { p1, p2, p3, p4 };
+      const names = { p1: p1Name, p2: p2Name, p3: p3Name, p4: p4Name };
+      
+      for (const [key, c] of Object.entries(corners)) {
+        const rgbStr = `rgb(${Math.round(red(c))}, ${Math.round(green(c))}, ${Math.round(blue(c))})`;
+        
+        document.getElementById(`swatch-${key}`).style.backgroundColor = rgbStr;
+        document.getElementById(`btn-swatch-${key}`).style.backgroundColor = rgbStr;
+        document.getElementById(`select-${key}`).value = names[key];
+      }
+    }
+    
+    // Update preview when inputs change
+    document.addEventListener('DOMContentLoaded', () => {
+      ['imgWidth', 'imgHeight', 'horizSubs', 'vertSubs'].forEach(id => {
+        document.getElementById(id).addEventListener('input', () => redraw());
+      });
+    });
+    
+    // ============ COLOR INTERPOLATION ============
+    function rgbToLab(c) {
+      let r = red(c) / 255;
+      let g = green(c) / 255;
+      let b = blue(c) / 255;
+      if (r > 0.04045) r = Math.pow((r + 0.055) / 1.055, 2.4);
+      else r = r / 12.92;
+      if (g > 0.04045) g = Math.pow((g + 0.055) / 1.055, 2.4);
+      else g = g / 12.92;
+      if (b > 0.04045) b = Math.pow((b + 0.055) / 1.055, 2.4);
+      else b = b / 12.92;
+      let x = (r * 0.4124 + g * 0.3576 + b * 0.1805) * 100;
+      let y = (r * 0.2126 + g * 0.7152 + b * 0.0722) * 100;
+      let z = (r * 0.0193 + g * 0.1192 + b * 0.9505) * 100;
+      x = x / 95.047; y = y / 100; z = z / 108.883;
+      if (x > 0.008856) x = Math.pow(x, 1/3);
+      else x = (7.787 * x) + 16/116;
+      if (y > 0.008856) y = Math.pow(y, 1/3);
+      else y = (7.787 * y) + 16/116;
+      if (z > 0.008856) z = Math.pow(z, 1/3);
+      else z = (7.787 * z) + 16/116;
+      return [(116 * y) - 16, 500 * (x - y), 200 * (y - z)];
+    }
+    
+    function labToRgb(lab) {
+      let y = (lab[0] + 16) / 116;
+      let x = lab[1] / 500 + y;
+      let z = y - lab[2] / 200;
+      if (Math.pow(y, 3) > 0.008856) y = Math.pow(y, 3);
+      else y = (y - 16/116) / 7.787;
+      if (Math.pow(x, 3) > 0.008856) x = Math.pow(x, 3);
+      else x = (x - 16/116) / 7.787;
+      if (Math.pow(z, 3) > 0.008856) z = Math.pow(z, 3);
+      else z = (z - 16/116) / 7.787;
+      x = x * 95.047; y = y * 100; z = z * 108.883;
+      let r = (x * 3.2406 + y * -1.5372 + z * -0.4986) / 100;
+      let g = (x * -0.9689 + y * 1.8758 + z * 0.0415) / 100;
+      let b = (x * 0.0557 + y * -0.2040 + z * 1.0570) / 100;
+      if (r > 0.0031308) r = 1.055 * Math.pow(r, 1/2.4) - 0.055;
+      else r = 12.92 * r;
+      if (g > 0.0031308) g = 1.055 * Math.pow(g, 1/2.4) - 0.055;
+      else g = 12.92 * g;
+      if (b > 0.0031308) b = 1.055 * Math.pow(b, 1/2.4) - 0.055;
+      else b = 12.92 * b;
+      return color(Math.round(r * 255), Math.round(g * 255), Math.round(b * 255));
+    }
+    
+    function betterLerp(col1, col2, t) {
+      let arr1 = rgbToLab(col1);
+      let arr2 = rgbToLab(col2);
+      return labToRgb([
+        arr1[0] + t * (arr2[0] - arr1[0]),
+        arr1[1] + t * (arr2[1] - arr1[1]),
+        arr1[2] + t * (arr2[2] - arr1[2])
+      ]);
+    }
+    
+    // ============ SVG GENERATION ============
+    function generateSVGForCorner(corner) {
+      const imgWidth = parseFloat(document.getElementById('imgWidth').value);
+      const imgHeight = parseFloat(document.getElementById('imgHeight').value);
+      const horizSubs = parseInt(document.getElementById('horizSubs').value);
+      const vertSubs = parseInt(document.getElementById('vertSubs').value);
+      const cellWidth = imgWidth / horizSubs;
+      const cellHeight = imgHeight / vertSubs;
+      const sharpenThreshold = parseFloat(document.getElementById('sharpenThreshold').value) || 1250;
+
+      const filenames = {
+        'p1': 'p1-vertical.svg',
+        'p2': 'p2-diagonal-down.svg',
+        'p3': 'p3-horizontal.svg',
+        'p4': 'p4-diagonal-up.svg'
+      };
+
+      const lineWidth = getLineWidth();
+      const cells = generateCellData(imgWidth, imgHeight, horizSubs, vertSubs, cellWidth, cellHeight, corner, lineWidth);
+      const batches = packBatches(cells, sharpenThreshold);
+      downloadSVG(filenames[corner], buildBatchedSVG(imgWidth, imgHeight, batches));
+    }
+
+    function generateOutlineSVG() {
+      const imgWidth = parseFloat(document.getElementById('imgWidth').value);
+      const imgHeight = parseFloat(document.getElementById('imgHeight').value);
+      const horizSubs = parseInt(document.getElementById('horizSubs').value);
+      const vertSubs = parseInt(document.getElementById('vertSubs').value);
+      const cellWidth = imgWidth / horizSubs;
+      const cellHeight = imgHeight / vertSubs;
+
+      let lines = [];
+
+      // Vertical lines (full height)
+      for (let col = 0; col <= horizSubs; col++) {
+        const x = col * cellWidth;
+        lines.push({ x1: x, y1: 0, x2: x, y2: imgHeight });
+      }
+
+      // Horizontal lines (full width)
+      for (let row = 0; row <= vertSubs; row++) {
+        const y = row * cellHeight;
+        lines.push({ x1: 0, y1: y, x2: imgWidth, y2: y });
+      }
+
+      downloadSVG('outline.svg', buildSVG(imgWidth, imgHeight, lines));
+    }
+
+    function generateCombinedSVG() {
+      const imgWidth = parseFloat(document.getElementById('imgWidth').value);
+      const imgHeight = parseFloat(document.getElementById('imgHeight').value);
+      const horizSubs = parseInt(document.getElementById('horizSubs').value);
+      const vertSubs = parseInt(document.getElementById('vertSubs').value);
+      const cellWidth = imgWidth / horizSubs;
+      const cellHeight = imgHeight / vertSubs;
+
+      const lineWidth = getLineWidth();
+      let allLines = [];
+      for (const corner of ['p1', 'p2', 'p3', 'p4']) {
+        const cells = generateCellData(imgWidth, imgHeight, horizSubs, vertSubs, cellWidth, cellHeight, corner, lineWidth);
+        for (const cell of cells) {
+          allLines.push(...cell.lines);
+        }
+      }
+
+      downloadSVG('all-combined.svg', buildSVG(imgWidth, imgHeight, allLines));
+    }
+
+    // ============ CELL DATA GENERATION ============
+    function lineDistance(line) {
+      const dx = line.x2 - line.x1;
+      const dy = line.y2 - line.y1;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    function generateCellData(imgWidth, imgHeight, horizSubs, vertSubs, cellWidth, cellHeight, corner, lineWidth) {
+      const curveExp = parseFloat(document.getElementById('curveExponent').value) || 4;
+      const cells = [];
+
+      for (let row = 0; row < vertSubs; row++) {
+        for (let col = 0; col < horizSubs; col++) {
+          const nx = horizSubs > 1 ? col / (horizSubs - 1) : 0.5;
+          const ny = vertSubs > 1 ? row / (vertSubs - 1) : 0.5;
+
+          let weight;
+          switch (corner) {
+            case 'p1': weight = (1 - nx) * (1 - ny); break;
+            case 'p2': weight = nx * (1 - ny); break;
+            case 'p3': weight = nx * ny; break;
+            case 'p4': weight = (1 - nx) * ny; break;
+          }
+
+          if (weight > 0.001) {
+            const cellX = col * cellWidth;
+            const cellY = row * cellHeight;
+            const coverage = 1 - Math.pow(1 - weight, curveExp);
+
+            let lines;
+            switch (corner) {
+              case 'p1':
+                lines = generateVerticalLines(cellX, cellY, cellWidth, cellHeight, coverage, lineWidth);
+                break;
+              case 'p2':
+                lines = generateDiagonalDownLines(cellX, cellY, cellWidth, cellHeight, coverage, lineWidth);
+                break;
+              case 'p3':
+                lines = generateHorizontalLines(cellX, cellY, cellWidth, cellHeight, coverage, lineWidth);
+                break;
+              case 'p4':
+                lines = generateDiagonalUpLines(cellX, cellY, cellWidth, cellHeight, coverage, lineWidth);
+                break;
+            }
+
+            const distance = lines.reduce((sum, l) => sum + lineDistance(l), 0);
+            cells.push({ col, row, lines, distance });
+          }
+        }
+      }
+
+      return cells;
+    }
+
+    // ============ BATCH PACKING ============
+    function packBatches(cells, maxDistance) {
+      // Greedy bin-packing: pair largest remaining cell with largest companion that fits
+      const remaining = cells.map((cell, i) => ({ ...cell, index: i }));
+      remaining.sort((a, b) => b.distance - a.distance); // largest first
+
+      const used = new Set();
+      const batches = [];
+
+      for (let i = 0; i < remaining.length; i++) {
+        if (used.has(i)) continue;
+        used.add(i);
+
+        const batch = { cells: [remaining[i]], distance: remaining[i].distance };
+
+        // Try to find the largest companion that still fits
+        for (let j = i + 1; j < remaining.length; j++) {
+          if (used.has(j)) continue;
+          if (batch.distance + remaining[j].distance <= maxDistance) {
+            used.add(j);
+            batch.cells.push(remaining[j]);
+            batch.distance += remaining[j].distance;
+          }
+        }
+
+        batches.push(batch);
+      }
+
+      return batches;
+    }
+
+    function generateVerticalLines(cellX, cellY, cellWidth, cellHeight, coverage, lineWidth) {
+      const lines = [];
+      const numLines = Math.max(1, Math.round(coverage * cellWidth / lineWidth));
+      const blankSpace = cellWidth - numLines * lineWidth;
+      const gapUnit = blankSpace / numLines;
+      const firstCenter = gapUnit / 2 + lineWidth / 2;
+      const centerToCenter = lineWidth + gapUnit;
+
+      for (let i = 0; i < numLines; i++) {
+        const x = cellX + firstCenter + i * centerToCenter;
+        lines.push({ x1: x, y1: cellY, x2: x, y2: cellY + cellHeight });
+      }
+      return lines;
+    }
+
+    function generateHorizontalLines(cellX, cellY, cellWidth, cellHeight, coverage, lineWidth) {
+      const lines = [];
+      const numLines = Math.max(1, Math.round(coverage * cellHeight / lineWidth));
+      const blankSpace = cellHeight - numLines * lineWidth;
+      const gapUnit = blankSpace / numLines;
+      const firstCenter = gapUnit / 2 + lineWidth / 2;
+      const centerToCenter = lineWidth + gapUnit;
+
+      for (let i = 0; i < numLines; i++) {
+        const y = cellY + firstCenter + i * centerToCenter;
+        lines.push({ x1: cellX, y1: y, x2: cellX + cellWidth, y2: y });
+      }
+      return lines;
+    }
+
+    function generateDiagonalDownLines(cellX, cellY, cellWidth, cellHeight, coverage, lineWidth) {
+      const lines = [];
+      const minC = -cellWidth;
+      const maxC = cellHeight;
+      const span = maxC - minC;
+      
+      const effectiveLineWidth = lineWidth * Math.SQRT2;
+      const numLines = Math.max(1, Math.round(coverage * span / effectiveLineWidth));
+      const blankSpace = span - numLines * effectiveLineWidth;
+      const gapUnit = blankSpace / numLines;
+      const firstC = minC + gapUnit / 2 + effectiveLineWidth / 2;
+      const centerToCenter = effectiveLineWidth + gapUnit;
+
+      for (let i = 0; i < numLines; i++) {
+        const c = firstC + i * centerToCenter;
+        const line = clipDiagonalDown(cellX, cellY, cellWidth, cellHeight, c);
+        if (line) lines.push(line);
+      }
+      return lines;
+    }
+
+    function clipDiagonalDown(cellX, cellY, cellWidth, cellHeight, c) {
+      let points = [];
+      
+      let y = cellY + c;
+      if (y >= cellY && y <= cellY + cellHeight) {
+        points.push({ x: cellX, y: y });
+      }
+      
+      y = cellY + c + cellWidth;
+      if (y >= cellY && y <= cellY + cellHeight) {
+        points.push({ x: cellX + cellWidth, y: y });
+      }
+      
+      let x = cellX - c;
+      if (x >= cellX && x <= cellX + cellWidth) {
+        points.push({ x: x, y: cellY });
+      }
+      
+      x = cellX + cellHeight - c;
+      if (x >= cellX && x <= cellX + cellWidth) {
+        points.push({ x: x, y: cellY + cellHeight });
+      }
+
+      points = dedupePoints(points);
+      
+      if (points.length >= 2) {
+        points.sort((a, b) => a.y - b.y || a.x - b.x);
+        return { x1: points[0].x, y1: points[0].y, x2: points[1].x, y2: points[1].y };
+      }
+      return null;
+    }
+
+    function generateDiagonalUpLines(cellX, cellY, cellWidth, cellHeight, coverage, lineWidth) {
+      const lines = [];
+      const minC = 0;
+      const maxC = cellWidth + cellHeight;
+      const span = maxC - minC;
+      
+      const effectiveLineWidth = lineWidth * Math.SQRT2;
+      const numLines = Math.max(1, Math.round(coverage * span / effectiveLineWidth));
+      const blankSpace = span - numLines * effectiveLineWidth;
+      const gapUnit = blankSpace / numLines;
+      const firstC = minC + gapUnit / 2 + effectiveLineWidth / 2;
+      const centerToCenter = effectiveLineWidth + gapUnit;
+
+      for (let i = 0; i < numLines; i++) {
+        const c = firstC + i * centerToCenter;
+        const line = clipDiagonalUp(cellX, cellY, cellWidth, cellHeight, c);
+        if (line) lines.push(line);
+      }
+      return lines;
+    }
+
+    function clipDiagonalUp(cellX, cellY, cellWidth, cellHeight, c) {
+      let points = [];
+      
+      let y = cellY + c;
+      if (y >= cellY && y <= cellY + cellHeight) {
+        points.push({ x: cellX, y: y });
+      }
+      
+      y = cellY + c - cellWidth;
+      if (y >= cellY && y <= cellY + cellHeight) {
+        points.push({ x: cellX + cellWidth, y: y });
+      }
+      
+      let x = cellX + c;
+      if (x >= cellX && x <= cellX + cellWidth) {
+        points.push({ x: x, y: cellY });
+      }
+      
+      x = cellX + c - cellHeight;
+      if (x >= cellX && x <= cellX + cellWidth) {
+        points.push({ x: x, y: cellY + cellHeight });
+      }
+
+      points = dedupePoints(points);
+      
+      if (points.length >= 2) {
+        points.sort((a, b) => a.y - b.y || a.x - b.x);
+        // Reverse: draw bottom-left → top-right (↗)
+        return { x1: points[1].x, y1: points[1].y, x2: points[0].x, y2: points[0].y };
+      }
+      return null;
+    }
+
+    function dedupePoints(points) {
+      const unique = [];
+      const epsilon = 0.0001;
+      for (const p of points) {
+        let isDupe = false;
+        for (const u of unique) {
+          if (Math.abs(p.x - u.x) < epsilon && Math.abs(p.y - u.y) < epsilon) {
+            isDupe = true;
+            break;
+          }
+        }
+        if (!isDupe) unique.push(p);
+      }
+      return unique;
+    }
+
+    function buildSVG(width, height, lines) {
+      const lineElements = lines.map(l => 
+        `  <line x1="${l.x1.toFixed(6)}" y1="${l.y1.toFixed(6)}" x2="${l.x2.toFixed(6)}" y2="${l.y2.toFixed(6)}"/>`
+      ).join('\n');
+
+      return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" 
+     width="${width}mm" 
+     height="${height}mm" 
+     viewBox="0 0 ${width} ${height}">
+  <rect x="0" y="0" width="${width}" height="${height}" fill="none" stroke="none"/>
+  <g stroke="black" stroke-width="1" stroke-linecap="butt">
+${lineElements}
+  </g>
+</svg>`;
+    }
+
+    function buildBatchedSVG(width, height, batches) {
+      const batchGroups = batches.map((batch, i) => {
+        const lineElements = batch.cells
+          .flatMap(cell => cell.lines)
+          .map(l => `      <line x1="${l.x1.toFixed(6)}" y1="${l.y1.toFixed(6)}" x2="${l.x2.toFixed(6)}" y2="${l.y2.toFixed(6)}"/>`)
+          .join('\n');
+        const cellList = batch.cells.map(c => `(${c.col},${c.row})`).join(' ');
+        return `    <g id="batch-${i + 1}" data-distance="${Math.round(batch.distance)}" data-cells="${cellList}">
+${lineElements}
+    </g>`;
+      }).join('\n');
+
+      return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" 
+     width="${width}mm" 
+     height="${height}mm" 
+     viewBox="0 0 ${width} ${height}">
+  <rect x="0" y="0" width="${width}" height="${height}" fill="none" stroke="none"/>
+  <g stroke="black" stroke-width="1" stroke-linecap="butt">
+${batchGroups}
+  </g>
+</svg>`;
+    }
+
+    function downloadPreview() {
+      saveCanvas(previewCanvas, 'preview', 'png');
+    }
+
+    function downloadSVG(filename, content) {
+      const blob = new Blob([content], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>
