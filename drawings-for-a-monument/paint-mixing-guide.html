@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DfaM Paint Mixing Guide</title>
+<title>DfaM Paint Mixing Tool</title>
 <style>
   @import url('https://use.typekit.net/YOUR_KIT_ID.css');
 
@@ -23,12 +23,7 @@
     text-transform: uppercase;
     letter-spacing: 1.5px;
     color: #333;
-    margin-bottom: 4px;
-  }
-  .subtitle {
-    font-size: 12px;
-    color: #999;
-    margin-bottom: 32px;
+    margin-bottom: 16px;
   }
   textarea {
     width: 100%;
@@ -62,136 +57,91 @@
     transition: background 0.15s, color 0.15s;
   }
   button:hover { background: #333; color: white; }
-  button.primary { background: white; border-color: #333; color: #333; }
-  button.primary:hover { background: #333; color: white; }
-  .results { display: flex; flex-direction: column; gap: 20px; }
+  .results { display: flex; flex-direction: column; gap: 21px; }
   .color-card {
     background: white;
     border: 1px solid #333;
-    border-radius: 0;
-    padding: 20px;
+    padding: 16px;
     display: flex;
-    gap: 20px;
-    align-items: flex-start;
-  }
-  .swatches { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
-  .swatch {
-    width: 72px;
-    height: 72px;
-    border-radius: 0;
-    border: 1px solid rgba(0,0,0,0.15);
-  }
-  .swatch-label {
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: #999;
-    text-align: center;
-    margin-top: 4px;
-  }
-  .recipe { flex: 1; min-width: 0; }
-  .recipe .hsb-input { font-size: 12px; color: #999; margin-bottom: 10px; }
-  .recipe-line { margin-bottom: 4px; font-size: 13px; }
-  .recipe-line .label {
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: #666;
-  }
-  .recipe-line .value { color: #333; }
-  .recipe-line.tube-blend .value { color: #333; }
-  .recipe-line.white-mix .value { color: #333; }
-  .recipe-line.black-mix .value { color: #333; }
-  .recipe-line.none .value { color: #999; font-style: italic; }
-  .color-index {
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: #666;
-    margin-bottom: 6px;
+    flex-direction: column;
+    gap: 4px;
   }
   .stage-label {
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 400;
-    color: #999;
+    color: #333;
     text-transform: uppercase;
     letter-spacing: 1px;
-    margin-top: 12px;
-    margin-bottom: 4px;
-    padding-top: 8px;
-    border-top: 1px solid #e0e0e0;
+    margin-top: 8px;
+    margin-bottom: 2px;
   }
-  .stage-label:first-of-type { border-top: none; padding-top: 0; }
+  .stage-label:first-child { margin-top: 0; }
   .error-msg {
     color: #cc3333;
     background: #fff5f5;
     border: 1px solid #cc3333;
-    border-radius: 0;
     padding: 12px;
     font-size: 13px;
   }
-  .mix-bar {
+  .bar-group { width: 100%; }
+  .bar-strip {
     display: flex;
-    height: 16px;
-    border-radius: 0;
-    overflow: hidden;
-    margin-top: 10px;
-    border: 1px solid rgba(0,0,0,0.15);
+    height: 32px;
+    width: 100%;
+    gap: 2px;
   }
-  .mix-bar-seg { height: 100%; position: relative; }
-  .mix-bar-seg .tip {
-    display: none; position: absolute; bottom: 20px; left: 50%;
-    transform: translateX(-50%); background: #333; color: white;
-    padding: 2px 6px; border-radius: 0; font-size: 10px;
-    white-space: nowrap; z-index: 10; pointer-events: none;
+  .bar-strip-seg { height: 100%; }
+  .bar-labels {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 12px;
+    margin-top: 4px;
   }
-  .mix-bar-seg:hover .tip { display: block; }
+  .bar-labels span {
+    font-size: 12px;
+    color: #333;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .bar-labels .dot {
+    width: 8px;
+    height: 8px;
+    flex-shrink: 0;
+  }
 
   @media print {
-    body { padding: 0; color: #000; }
-    h1 { color: #000; margin-bottom: 2px; }
-    .subtitle { margin-bottom: 16px; color: #666; }
-    textarea, .controls { display: none; }
-    .results { gap: 0; }
+    body { padding: 0; }
+    body > *:not(.results) { display: none !important; }
+    .results { margin: 0; gap: 0; }
     .color-card {
       border: 1px solid #ccc;
-      padding: 14px 16px;
+      padding: 12px;
+      margin-bottom: 12px;
       break-inside: avoid;
       page-break-inside: avoid;
-      margin-bottom: 12px;
+      -webkit-column-break-inside: avoid;
+      overflow: visible;
     }
-    .swatch {
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-      border: 1px solid #ccc;
+    .bar-group, .stage-label {
+      break-inside: avoid;
+      page-break-inside: avoid;
     }
-    .mix-bar {
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-      border-color: #ccc;
-    }
-    .mix-bar-seg {
+    .bar-strip-seg, .bar-labels .dot {
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
-    .mix-bar-seg .tip { display: none !important; }
-    .recipe-line .value { color: #000; }
-    .recipe-line .label { color: #444; }
-    .color-index { color: #444; }
-    .stage-label { color: #666; border-color: #ccc; }
-    .recipe .hsb-input { color: #666; }
   }
 </style>
 </head>
 <body>
 
-<h1>DfaM Paint Mixing Guide</h1>
-<p class="subtitle">Paste HSB values in any format → get gouache mixing recipes</p>
+<h1>DfaM Paint Mixing Tool</h1>
 
-<textarea id="input" placeholder='Paste HSB values — arrays, bare triplets, parens all work&#10;e.g.: [[25,95,100], [138,40,60]]  or  (25,95,100), (138,40,60)  or  25 95 100'></textarea>
+<textarea id="input"></textarea>
 
 <div class="controls">
-  <button class="primary" onclick="processInput()">Mix Colors</button>
+  <button onclick="processInput()">Show Mixtures</button>
 </div>
 
 <div class="results" id="results"></div>
@@ -475,6 +425,19 @@ function esc(s) {
   return d.innerHTML;
 }
 
+function makeBar(segments) {
+  var strip = '<div class="bar-strip">';
+  var labels = '<div class="bar-labels">';
+  for (var i = 0; i < segments.length; i++) {
+    var s = segments[i];
+    strip += '<div class="bar-strip-seg" style="width:' + s.w + '%;background:' + s.bg + '"></div>';
+    labels += '<span><span class="dot" style="background:' + s.bg + '"></span>' + s.label + '</span>';
+  }
+  strip += '</div>';
+  labels += '</div>';
+  return '<div class="bar-group">' + strip + labels + '</div>';
+}
+
 function renderResults(colors) {
   var el = document.getElementById('results');
   if (!colors || colors.length === 0) {
@@ -487,7 +450,6 @@ function renderResults(colors) {
     var c = colors[ci];
     var h = c[0], s = c[1], bri = c[2];
 
-    // Validate ranges
     if (h < 0 || h > 360 || s < 0 || s > 100 || bri < 0 || bri > 100) {
       html += '<div class="error-msg">Color ' + (ci + 1) + ': Invalid HSB values [' + h + ', ' + s + ', ' + bri + ']. '
         + 'H: 0-360, S: 0-100, B: 0-100</div>';
@@ -496,14 +458,25 @@ function renderResults(colors) {
 
     var result = paintColor(h, s, bri);
 
-    // Stage 1: Hue mix lines (one per tube, sorted largest first)
-    result.tubeRecipe.sort(function(a, b) { return b.pct - a.pct; });
-    var tubeLines = result.tubeRecipe.map(function(tr, i) {
-      return '<div class="recipe-line tube-blend"><span class="label">Color ' + (i + 1) + ': </span><span class="value">'
-        + tr.pct + '% ' + esc(tubeNames[tr.idx]) + '</span></div>';
-    }).join('');
+    // Color bar: Input | Paint
+    var colorBarHtml = makeBar([
+      { w: 50, bg: rc(result.inputRgb), label: 'Input [' + h + ', ' + s + ', ' + bri + ']' },
+      { w: 50, bg: rc(result.outputRgb), label: 'Paint [' + result.outputHsb[0] + ', ' + result.outputHsb[1] + ', ' + result.outputHsb[2] + ']' }
+    ]);
 
-    // Stage 2: Normalized paint recipe
+    // Hue mix bar
+    result.tubeRecipe.sort(function(a, b) { return b.pct - a.pct; });
+    var hueSegs = [];
+    for (var ti = 0; ti < result.tubeRecipe.length; ti++) {
+      var tr = result.tubeRecipe[ti];
+      if (tr.pct > 0) {
+        var tRgb = hsbToRgb(DEFAULT_TUBES[tr.idx].hsb[0], DEFAULT_TUBES[tr.idx].hsb[1], DEFAULT_TUBES[tr.idx].hsb[2]);
+        hueSegs.push({ w: tr.pct, bg: rc(tRgb), label: tr.pct + '% ' + esc(tubeNames[tr.idx]) });
+      }
+    }
+    var hueBarHtml = makeBar(hueSegs);
+
+    // Paint recipe bar
     var colorAmt = (s / 100) * (bri / 100) * 100;
     var whiteAmt = result.whitePct;
     var blackAmt = result.blackPct;
@@ -514,70 +487,19 @@ function renderResults(colors) {
     var normWhite = Math.round(whiteAmt / barTotal * 100);
     var normBlack = Math.round(blackAmt / barTotal * 100);
 
-    // Hue mix bar: individual tube colors in proportion
-    var hueBarHtml = '<div class="mix-bar">';
-    for (var ti = 0; ti < result.tubeRecipe.length; ti++) {
-      var tr = result.tubeRecipe[ti];
-      if (tr.pct > 0) {
-        var tRgb = hsbToRgb(DEFAULT_TUBES[tr.idx].hsb[0], DEFAULT_TUBES[tr.idx].hsb[1], DEFAULT_TUBES[tr.idx].hsb[2]);
-        hueBarHtml += '<div class="mix-bar-seg" style="width:' + tr.pct + '%;background:' + rc(tRgb) + '">'
-          + '<span class="tip">' + esc(tubeNames[tr.idx]) + ' ' + tr.pct + '%</span></div>';
-      }
-    }
-    hueBarHtml += '</div>';
-
-    // Paint recipe text + bar: combined hue, white, black
-    var paintRecipeHtml = '';
-    if (normColor > 0) {
-      paintRecipeHtml += '<div class="recipe-line tube-blend"><span class="label">Color: </span><span class="value">' + normColor + '%</span></div>';
-    }
-    if (normWhite > 0) {
-      paintRecipeHtml += '<div class="recipe-line white-mix"><span class="label">White: </span><span class="value">' + normWhite + '%</span></div>';
-    }
-    if (normBlack > 0) {
-      paintRecipeHtml += '<div class="recipe-line black-mix"><span class="label">Black: </span><span class="value">' + normBlack + '%</span></div>';
-    }
-
-    var recipeBarHtml = '<div class="mix-bar">';
-    var colorBarW = colorAmt / barTotal * 100;
-    if (colorBarW > 0.3) {
-      recipeBarHtml += '<div class="mix-bar-seg" style="width:' + colorBarW + '%;background:' + rc(result.hueRgb) + '">'
-        + '<span class="tip">Color ' + normColor + '%</span></div>';
-    }
-    var whiteBarW = whiteAmt / barTotal * 100;
-    if (whiteBarW > 0.3) {
-      recipeBarHtml += '<div class="mix-bar-seg" style="width:' + whiteBarW + '%;background:#f0ebe0">'
-        + '<span class="tip">White ' + normWhite + '%</span></div>';
-    }
-    var blackBarW = blackAmt / barTotal * 100;
-    if (blackBarW > 0.3) {
-      recipeBarHtml += '<div class="mix-bar-seg" style="width:' + blackBarW + '%;background:#222">'
-        + '<span class="tip">Black ' + normBlack + '%</span></div>';
-    }
-    recipeBarHtml += '</div>';
+    var recipeSegs = [];
+    if (normColor > 0) recipeSegs.push({ w: colorAmt / barTotal * 100, bg: rc(result.hueRgb), label: normColor + '% Color' });
+    if (normWhite > 0) recipeSegs.push({ w: whiteAmt / barTotal * 100, bg: '#f0ebe0', label: normWhite + '% White' });
+    if (normBlack > 0) recipeSegs.push({ w: blackAmt / barTotal * 100, bg: '#222', label: normBlack + '% Black' });
+    var recipeBarHtml = makeBar(recipeSegs);
 
     html += '<div class="color-card">'
-      + '<div class="swatches">'
-      + '  <div>'
-      + '    <div class="swatch" style="background:' + rc(result.inputRgb) + '"></div>'
-      + '    <div class="swatch-label">Input</div>'
-      + '  </div>'
-      + '  <div>'
-      + '    <div class="swatch" style="background:' + rc(result.outputRgb) + '"></div>'
-      + '    <div class="swatch-label">Paint</div>'
-      + '  </div>'
-      + '</div>'
-      + '<div class="recipe">'
-      + '  <div class="color-index">Color ' + (ci + 1) + ' of ' + colors.length + '</div>'
-      + '  <div class="hsb-input">HSB [' + h + ', ' + s + ', ' + bri + ']'
-      + '    → Paint HSB [' + result.outputHsb[0] + ', ' + result.outputHsb[1] + ', ' + result.outputHsb[2] + ']</div>'
-      + '  <div class="stage-label">Hue Mix</div>'
-      + tubeLines
+      + '<div class="stage-label">' + 'Color ' + (ci + 1) + '</div>'
+      + colorBarHtml
+      + '<div class="stage-label">Hue Mix</div>'
       + hueBarHtml
-      + '  <div class="stage-label">Paint Recipe</div>'
-      + paintRecipeHtml
+      + '<div class="stage-label">Paint Recipe</div>'
       + recipeBarHtml
-      + '</div>'
       + '</div>';
   }
 
