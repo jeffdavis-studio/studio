@@ -35,11 +35,13 @@ uniform vec4 uCloud1;
 uniform vec4 uCloud2;
 uniform vec4 uCloud3;
 uniform vec4 uCloud4;
+uniform vec4 uCloud5;
 uniform vec3 uCloudColor0;
 uniform vec3 uCloudColor1;
 uniform vec3 uCloudColor2;
 uniform vec3 uCloudColor3;
 uniform vec3 uCloudColor4;
+uniform vec3 uCloudColor5;
 
 // sRGB <-> linear
 vec3 srgbToLinear(vec3 c) {
@@ -123,6 +125,7 @@ void main() {
   if (uCloudCount > 2.5) color = applyCloud(color, uCloud2, uCloudColor2, ny);
   if (uCloudCount > 3.5) color = applyCloud(color, uCloud3, uCloudColor3, ny);
   if (uCloudCount > 4.5) color = applyCloud(color, uCloud4, uCloudColor4, ny);
+  if (uCloudCount > 5.5) color = applyCloud(color, uCloud5, uCloudColor5, ny);
 
   vec2 seed = vUV + uTime;
   float dr = fract(sin(dot(seed, vec2(12.9898, 78.233))) * 43758.5453)
@@ -348,36 +351,14 @@ function lerpState(a, b, t) {
   s.topColor = betterLerp(a.topColor, b.topColor, t);
   s.botColor = betterLerp(a.botColor, b.botColor, t);
 
-  let maxLen = Math.max(a.clouds.length, b.clouds.length);
   s.clouds = [];
-  for (let i = 0; i < maxLen; i++) {
-    let ac = a.clouds[i];
-    let bc = b.clouds[i];
-    if (ac && bc) {
-      s.clouds.push({
-        position: ac.position + t * (bc.position - ac.position),
-        height: ac.height + t * (bc.height - ac.height),
-        color: betterLerp(ac.color, bc.color, t),
-        opacity: ac.opacity + t * (bc.opacity - ac.opacity),
-        falloff: ac.falloff + t * (bc.falloff - ac.falloff),
-      });
-    } else if (ac && !bc) {
-      s.clouds.push({
-        position: ac.position,
-        height: ac.height,
-        color: ac.color,
-        opacity: ac.opacity * (1 - t),
-        falloff: ac.falloff,
-      });
-    } else if (!ac && bc) {
-      s.clouds.push({
-        position: bc.position,
-        height: bc.height,
-        color: bc.color,
-        opacity: bc.opacity * t,
-        falloff: bc.falloff,
-      });
-    }
+  for (let i = 0; i < a.clouds.length; i++) {
+    let c = a.clouds[i];
+    s.clouds.push({ position: c.position, height: c.height, color: c.color, opacity: c.opacity * (1 - t), falloff: c.falloff });
+  }
+  for (let i = 0; i < b.clouds.length; i++) {
+    let c = b.clouds[i];
+    s.clouds.push({ position: c.position, height: c.height, color: c.color, opacity: c.opacity * t, falloff: c.falloff });
   }
 
   return s;
@@ -389,12 +370,12 @@ function lerpState(a, b, t) {
 // Colors are divided by 255 (JS stores 0-255, shader expects 0-1).
 // ============================================================================
 
-const CLOUD_NAMES = ['uCloud0','uCloud1','uCloud2','uCloud3','uCloud4'];
-const CLOUD_COLOR_NAMES = ['uCloudColor0','uCloudColor1','uCloudColor2','uCloudColor3','uCloudColor4'];
+const CLOUD_NAMES = ['uCloud0','uCloud1','uCloud2','uCloud3','uCloud4','uCloud5'];
+const CLOUD_COLOR_NAMES = ['uCloudColor0','uCloudColor1','uCloudColor2','uCloudColor3','uCloudColor4','uCloudColor5'];
 
 function sendCloudUniforms(sh, clouds) {
   sh.setUniform('uCloudCount', clouds.length);
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 6; i++) {
     let cl = clouds[i];
     if (cl) {
       sh.setUniform(CLOUD_NAMES[i], [cl.position, cl.height, cl.falloff, cl.opacity]);
