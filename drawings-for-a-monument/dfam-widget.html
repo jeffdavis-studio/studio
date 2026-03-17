@@ -125,6 +125,7 @@
   }
 
   .dfam-token-card {
+    position: relative;
     border: 2px solid #e5e5e5;
     border-radius: 6px;
     padding: 0.5rem;
@@ -141,7 +142,27 @@
     border-color: #1a1a1a;
     box-shadow: 0 2px 8px rgba(0,0,0,0.12);
   }
-
+  .dfam-token-card.claimed {
+    opacity: 0.65;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+  .dfam-token-card.claimed:hover {
+    border-color: #e5e5e5;
+  }
+  .dfam-token-card .token-claimed-badge {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    background: #333;
+    color: #fff;
+    padding: 3px 6px;
+    border-radius: 4px;
+  }
   .dfam-token-card img {
     width: 100%;
     aspect-ratio: 1;
@@ -279,7 +300,6 @@
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.4/ethers.umd.min.js"></script>
 <script>
 (function() {
   'use strict';
@@ -288,34 +308,15 @@
   // CONFIGURATION — UPDATE THESE VALUES
   // =============================================
 
-  // DfaM Art Blocks contract on Ethereum mainnet
+  // DfaM token contract (Art Blocks)
   const DFAM_CONTRACT = '0xababababab20053426ad1c782de9ea8444358070';
+  const DFAM_PROJECT_ID = DFAM_CONTRACT + '-3';
 
-  // Art Blocks project ID for DfaM (project #3 on this contract)
-  const PROJECT_ID = 3;
+  // Art Blocks public GraphQL API (avoids on-chain contract reverts)
+  const ART_BLOCKS_GRAPHQL = 'https://artblocks-mainnet.hasura.app/v1/graphql';
 
-  // Token ID range for project #3: 3000000 to 3999999
-  const TOKEN_ID_MIN = PROJECT_ID * 1000000;
-  const TOKEN_ID_MAX = TOKEN_ID_MIN + 999999;
-
-  // Thumbnail URL pattern — {id} will be replaced with the full token ID
   const THUMBNAIL_URL = 'https://media.artblocks.io/' + DFAM_CONTRACT + '/{id}.png';
-
-  // *** UPDATE THIS URL to your actual Squarespace product page ***
-  // The token ID will be appended as ?token={tokenId}
   const SQUARESPACE_PRODUCT_URL = 'https://www.jeffgdavis.com/store/p/dfam-commission';
-
-  // Public RPC for read-only contract calls
-  const PUBLIC_RPC = 'https://cloudflare-eth.com';
-
-  // =============================================
-  // ABI fragments
-  // =============================================
-  const ABI = [
-    'function tokensOfOwner(address owner) view returns (uint256[])',
-    'function balanceOf(address owner) view returns (uint256)',
-    'function tokenOfOwnerByIndex(address owner, uint256 index) view returns (uint256)'
-  ];
 
   // =============================================
   // State
@@ -395,30 +396,31 @@
     show('dfam-loading');
 
     try {
-      const provider = new ethers.JsonRpcProvider(PUBLIC_RPC);
-      const contract = new ethers.Contract(DFAM_CONTRACT, ABI, provider);
-
-      let allTokens;
-
-      // Try tokensOfOwner first (gas-efficient)
-      try {
-        allTokens = await contract.tokensOfOwner(address);
-      } catch (e) {
-        // Fallback: balanceOf + tokenOfOwnerByIndex
-        const balance = await contract.balanceOf(address);
-        const count = Number(balance);
-        allTokens = [];
-        for (let i = 0; i < count; i++) {
-          const tokenId = await contract.tokenOfOwnerByIndex(address, i);
-          allTokens.push(tokenId);
-        }
+      const owner = address.toLowerCase();
+      const res = await fetch(ART_BLOCKS_GRAPHQL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: 'query DfaMTokens($owner: String!, $contract: String!, $projectId: String!) { tokens_metadata(where: { owner_address: { _eq: $owner }, contract_address: { _eq: $contract }, project_id: { _eq: $projectId } }, limit: 200) { token_id media_thumb_url features } }',
+          variables: { owner: owner, contract: DFAM_CONTRACT, projectId: DFAM_PROJECT_ID }
+        })
+      });
+      const json = await res.json();
+      if (json.errors && json.errors.length) {
+        throw new Error(json.errors[0].message || 'GraphQL error');
       }
 
-      // Filter to DfaM project tokens only (project #3: IDs 3000000–3999999)
-      const dfamTokens = allTokens
-        .map(t => Number(t))
-        .filter(t => t >= TOKEN_ID_MIN && t <= TOKEN_ID_MAX)
-        .sort((a, b) => a - b);
+      const list = (json.data && json.data.tokens_metadata) || [];
+      const dfamTokens = list
+        .map(function(t) {
+          var features = t.features || {};
+          return {
+            tokenId: t.token_id,
+            thumb: t.media_thumb_url || null,
+            claimed: (features.Drawing === 'Claimed')
+          };
+        })
+        .sort(function(a, b) { return Number(a.tokenId) - Number(b.tokenId); });
 
       hideAll();
 
@@ -427,14 +429,13 @@
         return;
       }
 
-      // Render token grid
       renderTokens(dfamTokens, address);
       show('dfam-tokens');
 
     } catch (err) {
       hideAll();
       document.getElementById('dfam-error-msg').textContent =
-        'Error reading contract: ' + (err.message || 'Unknown error') + '. Please try again.';
+        'Error loading tokens: ' + (err.message || 'Unknown error') + '. Please try again.';
       show('dfam-error');
     }
   }
@@ -450,13 +451,14 @@
     grid.innerHTML = '';
     selectedTokenId = null;
 
-    tokens.forEach(function(tokenId) {
+    tokens.forEach(function(t) {
+      const tokenId = t.tokenId;
       const card = document.createElement('div');
-      card.className = 'dfam-token-card';
+      card.className = 'dfam-token-card' + (t.claimed ? ' claimed' : '');
       card.setAttribute('data-token', tokenId);
 
       const img = document.createElement('img');
-      img.src = THUMBNAIL_URL.replace('{id}', tokenId);
+      img.src = t.thumb || THUMBNAIL_URL.replace('{id}', tokenId);
       img.alt = 'DfaM #' + tokenId;
       img.loading = 'lazy';
       img.onerror = function() {
@@ -471,17 +473,24 @@
       card.appendChild(img);
       card.appendChild(label);
 
-      card.addEventListener('click', function() {
-        // Deselect previous
-        var prev = grid.querySelector('.selected');
-        if (prev) prev.classList.remove('selected');
-        // Select this
-        card.classList.add('selected');
-        selectedTokenId = tokenId;
-        var btn = document.getElementById('dfam-purchase-btn');
-        btn.disabled = false;
-        btn.textContent = 'Purchase Commission — $500';
-      });
+      if (t.claimed) {
+        const badge = document.createElement('div');
+        badge.className = 'token-claimed-badge';
+        badge.textContent = 'Claimed';
+        card.appendChild(badge);
+      } else {
+        card.addEventListener('click', function() {
+          // Deselect previous
+          var prev = grid.querySelector('.selected');
+          if (prev) prev.classList.remove('selected');
+          // Select this
+          card.classList.add('selected');
+          selectedTokenId = tokenId;
+          var btn = document.getElementById('dfam-purchase-btn');
+          btn.disabled = false;
+          btn.textContent = 'Purchase Commission — $500';
+        });
+      }
 
       grid.appendChild(card);
     });
