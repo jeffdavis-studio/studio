@@ -175,40 +175,47 @@ const SKY_CONDITIONS = {
 
   night: {
     label: 'Night',
-    topColor: { h: [218, 233], s: [47, 73], b: [1, 13] },
-    botColor: { h: [210, 240], s: [14, 68], b: [7, 29] },
+    // 43 photos. Top hue very tight (15° span). Bot hue wide — horizon ranges
+    // from blue (~195°) through warm city glow (~30°), wrapping through 360°.
+    topColor: { h: [218, 233], s: [0, 73], b: [1, 24] },
+    botColor: { h: [195, 80],  s: [1, 68], b: [7, 38] },
   },
 
   dawn: {
     label: 'Dawn',
+    // 22 photos. Bot hue wraps: blue sky bottoms (~215°) + warm horizon (~23-41°).
     topColor: { h: [215, 247], s: [28, 64], b: [11, 50] },
-    botColor: { h: [23, 41],  s: [7, 65],  b: [30, 100] },
+    botColor: { h: [215, 41],  s: [7, 65],  b: [30, 100] },
   },
 
   sunrise: {
     label: 'Sunrise',
-    // Placeholder — derived from late dawn photos with warm horizon.
-    // Parallel to sunset but cooler/softer. Replace with photo data.
+    // Placeholder — no photo data yet. Parallel to sunset but cooler/softer.
     topColor: { h: [215, 235], s: [35, 60], b: [30, 55] },
-    botColor: { h: [15, 40],  s: [40, 65], b: [80, 100] },
+    botColor: { h: [15, 40],   s: [40, 65], b: [80, 100] },
   },
 
   midday: {
     label: 'Midday',
-    topColor: { h: [205, 218], s: [40, 98], b: [32, 100] },
-    botColor: { h: [186, 217], s: [4, 60],  b: [57, 100] },
+    // 80 photos (incl overcast). Both hue ranges tight (17° top, 39° bot).
+    topColor: { h: [205, 222], s: [12, 98], b: [32, 100] },
+    botColor: { h: [186, 225], s: [4, 60],  b: [46, 100] },
   },
 
   sunset: {
     label: 'Sunset',
-    topColor: { h: [202, 243], s: [4, 100],  b: [16, 93] },
-    botColor: { h: [340, 85],  s: [7, 52],   b: [43, 100] },
+    // 65 photos. Top hue spans blue→purple (113°). Bot hue wraps: blue (~212°)
+    // through warm reds/oranges (~355°-85°), 233° arc clockwise.
+    topColor: { h: [202, 315], s: [4, 100],  b: [16, 93] },
+    botColor: { h: [212, 85],  s: [7, 52],   b: [43, 100] },
   },
 
   dusk: {
     label: 'Dusk',
+    // 28 photos. Bot hue wraps: blue (~214°) through purple through warm (~23°),
+    // 169° arc clockwise (short way around).
     topColor: { h: [209, 291], s: [12, 57], b: [5, 67] },
-    botColor: { h: [8, 351],   s: [14, 62], b: [18, 86] },
+    botColor: { h: [214, 23],  s: [14, 62], b: [18, 86] },
   },
 
 };
