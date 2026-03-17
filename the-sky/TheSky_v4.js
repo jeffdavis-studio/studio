@@ -207,7 +207,7 @@ const SKY_CONDITIONS = {
     // 65 photos. Top hue spans blue→purple (113°). Bot hue wraps: blue (~212°)
     // through warm reds/oranges (~355°-85°), 233° arc clockwise.
     topColor: { h: [202, 315], s: [4, 100],  b: [16, 93] },
-    botColor: { h: [212, 85],  s: [7, 52],   b: [43, 100] },
+    botColor: { h: [212, 75],  s: [7, 52],   b: [43, 100] },
   },
 
   dusk: {
