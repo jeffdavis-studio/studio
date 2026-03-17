@@ -117,7 +117,7 @@ vec3 applyCloud(vec3 base, vec4 params, vec3 cloudColor, float ny) {
 }
 
 void main() {
-  float ny = vUV.y;
+  float ny = 1.0 - vUV.y;  // flip: 0=top of screen, 1=bottom
   vec3 color = labLerp(uTopColor, uBotColor, ny);
 
   if (uCloudCount > 0.5) color = applyCloud(color, uCloud0, uCloudColor0, ny);
