@@ -281,7 +281,7 @@ let cloudHeightMax = 0.40;
 let cloudFalloffMin = 0.05;
 let cloudFalloffMax = 0.15;
 let cloudOpacityMin = 0.15;
-let cloudOpacityMax = 0.60;
+let cloudOpacityMax = 1.00;
 
 function instantiateCondition(conditionKey) {
   let cond = SKY_CONDITIONS[conditionKey];
