@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DfaM Commission</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+  .dfam-widget {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    color: #1a1a1a;
+    line-height: 1.6;
+  }
+
+  .dfam-widget * {
+    box-sizing: border-box;
+  }
+
+  .dfam-header {
+    margin-bottom: 2rem;
+  }
+
+  .dfam-header h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0 0 0.75rem 0;
+  }
+
+  .dfam-header p {
+    font-size: 0.95rem;
+    color: #444;
+    margin: 0 0 0.5rem 0;
+  }
+
+  .dfam-price {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-top: 0.5rem;
+  }
+
+  .dfam-connect-btn {
+    display: inline-block;
+    padding: 0.75rem 2rem;
+    background: #1a1a1a;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .dfam-connect-btn:hover {
+    background: #333;
+  }
+
+  .dfam-connect-btn:disabled {
+    background: #999;
+    cursor: not-allowed;
+  }
+
+  .dfam-status {
+    margin: 1.5rem 0;
+    padding: 1rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+  }
+
+  .dfam-status.loading {
+    background: #f5f5f5;
+    color: #666;
+  }
+
+  .dfam-status.error {
+    background: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+  }
+
+  .dfam-status.success {
+    background: #f0fdf4;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+  }
+
+  .dfam-status.empty {
+    background: #f5f5f5;
+    color: #555;
+  }
+
+  .dfam-spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #ccc;
+    border-top-color: #1a1a1a;
+    border-radius: 50%;
+    animation: dfam-spin 0.8s linear infinite;
+    vertical-align: middle;
+    margin-right: 8px;
+  }
+
+  @keyframes dfam-spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .dfam-wallet-info {
+    font-size: 0.85rem;
+    color: #666;
+    margin-bottom: 1rem;
+  }
+
+  .dfam-wallet-info code {
+    background: #f0f0f0;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.8rem;
+  }
+
+  .dfam-token-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin: 1.5rem 0;
+  }
+
+  .dfam-token-card {
+    border: 2px solid #e5e5e5;
+    border-radius: 6px;
+    padding: 0.5rem;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    text-align: center;
+  }
+
+  .dfam-token-card:hover {
+    border-color: #999;
+  }
+
+  .dfam-token-card.selected {
+    border-color: #1a1a1a;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  }
+
+  .dfam-token-card img {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: 4px;
+    background: #f5f5f5;
+  }
+
+  .dfam-token-card .token-id {
+    font-size: 0.8rem;
+    font-weight: 500;
+    margin-top: 0.4rem;
+    color: #555;
+  }
+
+  .dfam-purchase-section {
+    margin-top: 1.5rem;
+    text-align: center;
+  }
+
+  .dfam-purchase-btn {
+    display: inline-block;
+    padding: 0.85rem 2.5rem;
+    background: #1a1a1a;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .dfam-purchase-btn:hover {
+    background: #333;
+  }
+
+  .dfam-purchase-btn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+  }
+
+  .dfam-fine-print {
+    font-size: 0.8rem;
+    color: #888;
+    margin-top: 1rem;
+    line-height: 1.5;
+  }
+
+  .dfam-fine-print p {
+    margin: 0.3rem 0;
+  }
+
+  .dfam-disconnect {
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 0.8rem;
+    cursor: pointer;
+    text-decoration: underline;
+    font-family: inherit;
+    padding: 0;
+    margin-left: 0.5rem;
+  }
+
+  .dfam-disconnect:hover {
+    color: #555;
+  }
+
+  .dfam-install-link {
+    color: #1a1a1a;
+    font-weight: 500;
+  }
+
+  @media (max-width: 480px) {
+    .dfam-token-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+</style>
+</head>
+<body>
+<div class="dfam-widget" id="dfam-widget">
+  <div class="dfam-header">
+    <h2>Commission a Painting</h2>
+    <p>Each <em>Drawings for a Monument</em> token can be commissioned as a custom gouache painting — hand-painted by Jeff Davis based on your token's unique output.</p>
+    <p class="dfam-price">$500 per commission</p>
+  </div>
+
+  <div id="dfam-content">
+    <div id="dfam-no-wallet" style="display:none;">
+      <div class="dfam-status error">
+        No Ethereum wallet detected. To commission a painting, install <a href="https://metamask.io/download/" target="_blank" class="dfam-install-link">MetaMask</a> or another Web3 wallet and refresh this page.
+      </div>
+    </div>
+
+    <div id="dfam-connect" style="display:none;">
+      <button class="dfam-connect-btn" id="dfam-connect-btn" onclick="dfamConnect()">Connect Wallet</button>
+    </div>
+
+    <div id="dfam-loading" style="display:none;">
+      <div class="dfam-status loading">
+        <span class="dfam-spinner"></span> Checking your wallet for DfaM tokens…
+      </div>
+    </div>
+
+    <div id="dfam-empty" style="display:none;">
+      <div class="dfam-status empty">
+        This wallet doesn't hold any Drawings for a Monument tokens. You need a DfaM token to commission a painting. <br><br>
+        <a href="https://www.artblocks.io/collections/presents/projects/0xababababab20053426ad1c782de9ea8444358070-3" target="_blank" style="color:#1a1a1a; font-weight:500;">View DfaM on Art Blocks →</a>
+      </div>
+    </div>
+
+    <div id="dfam-error" style="display:none;">
+      <div class="dfam-status error" id="dfam-error-msg"></div>
+    </div>
+
+    <div id="dfam-adding" style="display:none;">
+      <div class="dfam-status loading">
+        <span class="dfam-spinner"></span> Adding to cart…
+      </div>
+    </div>
+
+    <div id="dfam-added" style="display:none;">
+      <div class="dfam-status success" id="dfam-added-msg">
+        Added to cart! Proceed to checkout to complete your commission.
+      </div>
+    </div>
+
+    <div id="dfam-tokens" style="display:none;">
+      <div class="dfam-wallet-info">
+        Connected: <code id="dfam-wallet-addr"></code>
+        <button class="dfam-disconnect" onclick="dfamDisconnect()">disconnect</button>
+      </div>
+      <p style="font-size:0.95rem; margin-bottom:0.5rem;">Select the token you'd like painted:</p>
+      <div class="dfam-token-grid" id="dfam-token-grid"></div>
+
+      <div class="dfam-purchase-section">
+        <button class="dfam-purchase-btn" id="dfam-purchase-btn" disabled onclick="dfamPurchase()">Select a token above</button>
+        <div class="dfam-fine-print">
+          <p>After checkout, you'll be contacted to confirm your painting details. Estimated delivery: 6–8 weeks.</p>
+          <p>One commission per token. Secondary market tokens are eligible.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.4/ethers.umd.min.js"></script>
+<script>
+(function() {
+  'use strict';
+
+  // =============================================
+  // CONFIGURATION — UPDATE THESE VALUES
+  // =============================================
+
+  // DfaM Art Blocks contract on Ethereum mainnet
+  var DFAM_CONTRACT = '0xababababab20053426ad1c782de9ea8444358070';
+
+  // Art Blocks project ID for DfaM (project #3 on this contract)
+  var PROJECT_ID = 3;
+
+  // Token ID range for project #3: 3000000 to 3999999
+  var TOKEN_ID_MIN = PROJECT_ID * 1000000;
+  var TOKEN_ID_MAX = TOKEN_ID_MIN + 999999;
+
+  // Thumbnail URL pattern — {id} will be replaced with the full token ID
+  var THUMBNAIL_URL = 'https://media.artblocks.io/' + DFAM_CONTRACT + '/{id}.png';
+
+  // *** SQUARESPACE PRODUCT URL — UPDATE to your actual product page URL ***
+  // Used as a fallback redirect if direct cart integration isn't available.
+  var SQUARESPACE_PRODUCT_URL = 'https://www.jeffgdavis.com/dfam';
+
+  // Label of the "Add to cart" form field in Squarespace that captures the token ID.
+  // Must match EXACTLY what you set in the Squarespace product form editor.
+  // See README.md / NOTES.md for setup instructions.
+  var SQS_FORM_FIELD_LABEL = 'Token ID';
+
+  // Public RPC for read-only contract calls
+  var PUBLIC_RPC = 'https://cloudflare-eth.com';
+
+  // =============================================
+  // ABI fragments
+  // =============================================
+  var ABI = [
+    'function tokensOfOwner(address owner) view returns (uint256[])',
+    'function balanceOf(address owner) view returns (uint256)',
+    'function tokenOfOwnerByIndex(address owner, uint256 index) view returns (uint256)'
+  ];
+
+  // =============================================
+  // State
+  // =============================================
+  var selectedTokenId = null;
+  var connectedAddress = null;
+
+  // =============================================
+  // DOM helpers
+  // =============================================
+  function show(id) { document.getElementById(id).style.display = ''; }
+  function hide(id) { document.getElementById(id).style.display = 'none'; }
+  function hideAll() {
+    ['dfam-no-wallet','dfam-connect','dfam-loading','dfam-empty',
+     'dfam-error','dfam-tokens','dfam-adding','dfam-added'].forEach(hide);
+  }
+
+  // =============================================
+  // Initialize
+  // =============================================
+  function init() {
+    // Hide the native Squarespace Add to Cart button if present.
+    // The widget replaces it with its own wallet-gated flow.
+    hideNativeAddToCart();
+
+    // Check for ?token= param in URL (redirect-back flow)
+    checkUrlToken();
+
+    if (typeof window.ethereum === 'undefined') {
+      hideAll();
+      show('dfam-no-wallet');
+    } else {
+      hideAll();
+      show('dfam-connect');
+    }
+  }
+
+  // =============================================
+  // Hide native Squarespace Add to Cart button
+  // =============================================
+  function hideNativeAddToCart() {
+    var style = document.createElement('style');
+    style.textContent = [
+      '.ProductItem-details .sqs-add-to-cart-button-wrapper { display: none !important; }',
+      '.ProductItem-details .product-quantity-input { display: none !important; }'
+    ].join('\n');
+    document.head.appendChild(style);
+  }
+
+  // =============================================
+  // Check for token ID in URL (redirect flow)
+  // =============================================
+  function checkUrlToken() {
+    var params = new URLSearchParams(window.location.search);
+    var urlToken = params.get('token');
+    if (!urlToken) return;
+
+    // Token ID came back via redirect. Try to auto-fill the product form
+    // and add to cart. This handles the case where the widget redirected
+    // the user to this page with ?token=XXXXX.
+    console.log('[DfaM Widget] Token ID from URL: ' + urlToken);
+
+    // Wait for Squarespace's own JS to initialize, then fill the form
+    setTimeout(function() {
+      autoFillAndSubmit(urlToken);
+    }, 1500);
+  }
+
+  // =============================================
+  // Auto-fill form field and submit (for redirect flow)
+  // =============================================
+  function autoFillAndSubmit(tokenId) {
+    // First, un-hide the add-to-cart button temporarily
+    var wrapper = document.querySelector('.sqs-add-to-cart-button-wrapper');
+    if (wrapper) {
+      wrapper.style.setProperty('display', 'block', 'important');
+      wrapper.style.setProperty('visibility', 'hidden', 'important');
+      wrapper.style.setProperty('position', 'absolute', 'important');
+      wrapper.style.setProperty('height', '0', 'important');
+      wrapper.style.setProperty('overflow', 'hidden', 'important');
+    }
+
+    // Click the add-to-cart button to trigger form overlay
+    var addBtn = document.querySelector('.sqs-add-to-cart-button');
+    if (!addBtn) {
+      console.log('[DfaM Widget] No add-to-cart button found for auto-fill.');
+      return;
+    }
+
+    addBtn.click();
+
+    // Wait for form overlay to render
+    setTimeout(function() {
+      var filled = fillFormField(tokenId);
+      if (filled) {
+        submitProductForm(tokenId);
+      } else {
+        console.log('[DfaM Widget] Auto-fill failed — form field not found.');
+        // Clean up URL param
+        var url = new URL(window.location);
+        url.searchParams.delete('token');
+        window.history.replaceState({}, '', url.toString());
+        // Re-hide the wrapper
+        if (wrapper) {
+          wrapper.style.cssText = 'display: none !important;';
+        }
+      }
+    }, 800);
+  }
+
+  // =============================================
+  // Connect wallet
+  // =============================================
+  window.dfamConnect = async function() {
+    var btn = document.getElementById('dfam-connect-btn');
+    btn.disabled = true;
+    btn.textContent = 'Connecting\u2026';
+
+    try {
+      var accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      if (!accounts || accounts.length === 0) {
+        throw new Error('No accounts returned');
+      }
+      connectedAddress = accounts[0];
+      await loadTokens(connectedAddress);
+    } catch (err) {
+      hideAll();
+      if (err.code === 4001) {
+        show('dfam-connect');
+        btn.disabled = false;
+        btn.textContent = 'Connect Wallet';
+      } else {
+        document.getElementById('dfam-error-msg').textContent =
+          'Connection failed: ' + (err.message || 'Unknown error');
+        show('dfam-error');
+      }
+    }
+  };
+
+  // =============================================
+  // Disconnect
+  // =============================================
+  window.dfamDisconnect = function() {
+    connectedAddress = null;
+    selectedTokenId = null;
+    hideAll();
+    show('dfam-connect');
+    var btn = document.getElementById('dfam-connect-btn');
+    btn.disabled = false;
+    btn.textContent = 'Connect Wallet';
+  };
+
+  // =============================================
+  // Load tokens
+  // =============================================
+  async function loadTokens(address) {
+    hideAll();
+    show('dfam-loading');
+
+    try {
+      var provider = new ethers.JsonRpcProvider(PUBLIC_RPC);
+      var contract = new ethers.Contract(DFAM_CONTRACT, ABI, provider);
+
+      var allTokens;
+
+      try {
+        allTokens = await contract.tokensOfOwner(address);
+      } catch (e) {
+        var balance = await contract.balanceOf(address);
+        var count = Number(balance);
+        allTokens = [];
+        for (var i = 0; i < count; i++) {
+          var tokenId = await contract.tokenOfOwnerByIndex(address, i);
+          allTokens.push(tokenId);
+        }
+      }
+
+      var dfamTokens = allTokens
+        .map(function(t) { return Number(t); })
+        .filter(function(t) { return t >= TOKEN_ID_MIN && t <= TOKEN_ID_MAX; })
+        .sort(function(a, b) { return a - b; });
+
+      hideAll();
+
+      if (dfamTokens.length === 0) {
+        show('dfam-empty');
+        return;
+      }
+
+      renderTokens(dfamTokens, address);
+      show('dfam-tokens');
+
+    } catch (err) {
+      hideAll();
+      document.getElementById('dfam-error-msg').textContent =
+        'Error reading contract: ' + (err.message || 'Unknown error') + '. Please try again.';
+      show('dfam-error');
+    }
+  }
+
+  // =============================================
+  // Render token grid
+  // =============================================
+  function renderTokens(tokens, address) {
+    var grid = document.getElementById('dfam-token-grid');
+    var addrEl = document.getElementById('dfam-wallet-addr');
+
+    addrEl.textContent = address.slice(0, 6) + '\u2026' + address.slice(-4);
+    grid.innerHTML = '';
+    selectedTokenId = null;
+
+    tokens.forEach(function(tokenId) {
+      var card = document.createElement('div');
+      card.className = 'dfam-token-card';
+      card.setAttribute('data-token', tokenId);
+
+      var img = document.createElement('img');
+      img.src = THUMBNAIL_URL.replace('{id}', tokenId);
+      img.alt = 'DfaM #' + tokenId;
+      img.loading = 'lazy';
+      img.onerror = function() {
+        this.style.background = '#e5e5e5';
+        this.alt = '#' + tokenId;
+      };
+
+      var label = document.createElement('div');
+      label.className = 'token-id';
+      label.textContent = '#' + tokenId;
+
+      card.appendChild(img);
+      card.appendChild(label);
+
+      card.addEventListener('click', function() {
+        var prev = grid.querySelector('.selected');
+        if (prev) prev.classList.remove('selected');
+        card.classList.add('selected');
+        selectedTokenId = tokenId;
+        var btn = document.getElementById('dfam-purchase-btn');
+        btn.disabled = false;
+        btn.textContent = 'Purchase Commission \u2014 $500';
+      });
+
+      grid.appendChild(card);
+    });
+
+    var purchaseBtn = document.getElementById('dfam-purchase-btn');
+    purchaseBtn.disabled = true;
+    purchaseBtn.textContent = 'Select a token above';
+  }
+
+  // =============================================
+  // Purchase — Add to Squarespace cart
+  // =============================================
+  window.dfamPurchase = function() {
+    if (!selectedTokenId) return;
+
+    var purchaseBtn = document.getElementById('dfam-purchase-btn');
+    purchaseBtn.disabled = true;
+    purchaseBtn.textContent = 'Adding to cart\u2026';
+
+    // Strategy 1: Direct DOM integration (widget on same product page)
+    var addBtn = document.querySelector(
+      '.ProductItem-details .sqs-add-to-cart-button, ' +
+      '.product-block .sqs-add-to-cart-button, ' +
+      '.sqs-add-to-cart-button'
+    );
+
+    if (addBtn) {
+      console.log('[DfaM Widget] Found Squarespace add-to-cart button, using direct integration.');
+      directAddToCart(selectedTokenId, addBtn);
+      return;
+    }
+
+    // Strategy 2: Redirect with token param
+    console.log('[DfaM Widget] No add-to-cart button found, using redirect.');
+    redirectToProduct(selectedTokenId);
+  };
+
+  // =============================================
+  // Strategy 1: Direct DOM integration
+  // =============================================
+  function directAddToCart(tokenId, addBtn) {
+    hideAll();
+    show('dfam-adding');
+
+    // Un-hide the wrapper temporarily so Squarespace's JS can operate
+    var wrapper = document.querySelector('.sqs-add-to-cart-button-wrapper');
+    if (wrapper) {
+      wrapper.style.setProperty('display', 'block', 'important');
+      wrapper.style.setProperty('visibility', 'hidden', 'important');
+      wrapper.style.setProperty('position', 'absolute', 'important');
+      wrapper.style.setProperty('height', '0', 'important');
+      wrapper.style.setProperty('overflow', 'hidden', 'important');
+    }
+
+    // Click the button — this either adds to cart directly or opens a form overlay
+    addBtn.click();
+
+    // Give Squarespace time to render the form overlay (if any)
+    setTimeout(function() {
+      var filled = fillFormField(tokenId);
+
+      if (filled) {
+        // Form field found and filled — submit the form
+        submitProductForm(tokenId);
+      } else {
+        // No form field found. Two possibilities:
+        // a) Product has no form → item was added directly (but no token ID captured)
+        // b) Form hasn't rendered yet
+        // Try waiting a bit longer for the form
+        setTimeout(function() {
+          var filledRetry = fillFormField(tokenId);
+          if (filledRetry) {
+            submitProductForm(tokenId);
+          } else {
+            // Still no form — the product probably doesn't have an "Add to cart form" configured.
+            // Fall back to redirect with clear messaging.
+            console.warn('[DfaM Widget] No product form found. Make sure the DfaM Commission product ' +
+              'has an "Add to cart form" with a "Token ID" text field. Falling back to redirect.');
+            if (wrapper) {
+              wrapper.style.cssText = 'display: none !important;';
+            }
+            redirectToProduct(tokenId);
+          }
+        }, 1000);
+      }
+    }, 800);
+  }
+
+  // =============================================
+  // Fill the Token ID form field
+  // =============================================
+  function fillFormField(tokenId) {
+    // Squarespace product "Add to cart" forms create fields in an overlay or inline.
+    // We look for a label matching our configured field name and fill its input.
+
+    var allLabels = document.querySelectorAll('label, .form-item .title, .field-label, .caption-text, .SP08ZLkhAnk2Rqaf');
+    var targetInput = null;
+
+    for (var i = 0; i < allLabels.length; i++) {
+      var labelText = (allLabels[i].textContent || '').trim().replace(/\s*\(required\)\s*/i, '').trim();
+      if (labelText.toLowerCase() === SQS_FORM_FIELD_LABEL.toLowerCase()) {
+        // Found the label — find the associated input
+        var parent = allLabels[i].closest('.form-item') ||
+                     allLabels[i].closest('.field') ||
+                     allLabels[i].parentElement;
+        if (parent) {
+          targetInput = parent.querySelector('input[type="text"], input:not([type]), textarea');
+        }
+        if (!targetInput) {
+          var forId = allLabels[i].getAttribute('for');
+          if (forId) targetInput = document.getElementById(forId);
+        }
+        if (targetInput) break;
+      }
+    }
+
+    if (!targetInput) return false;
+
+    // Set value using native setter to trigger framework change detection
+    var nativeSetter = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype, 'value'
+    );
+    if (nativeSetter && nativeSetter.set) {
+      nativeSetter.set.call(targetInput, String(tokenId));
+    } else {
+      targetInput.value = String(tokenId);
+    }
+
+    // Dispatch events
+    targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+    targetInput.dispatchEvent(new Event('change', { bubbles: true }));
+    targetInput.dispatchEvent(new Event('blur', { bubbles: true }));
+
+    console.log('[DfaM Widget] Filled token ID field with: ' + tokenId);
+    return true;
+  }
+
+  // =============================================
+  // Submit the product form
+  // =============================================
+  function submitProductForm(tokenId) {
+    setTimeout(function() {
+      // Find the submit button in the form lightbox
+      var submitBtn = document.querySelector(
+        '.sqs-block-form-lightbox .form-submit-button, ' +
+        '.sqs-block-form-lightbox button[type="submit"], ' +
+        '.sqs-modal-lightbox .sqs-add-to-cart-button, ' +
+        '.sqs-product-form-modal .sqs-add-to-cart-button'
+      );
+
+      if (submitBtn) {
+        submitBtn.click();
+        console.log('[DfaM Widget] Clicked form submit button.');
+      } else {
+        // Try the main add-to-cart button as fallback
+        var mainBtn = document.querySelector('.sqs-add-to-cart-button');
+        if (mainBtn) {
+          mainBtn.click();
+          console.log('[DfaM Widget] Re-clicked main add-to-cart button.');
+        }
+      }
+
+      // Show success state
+      hideAll();
+      show('dfam-added');
+      document.getElementById('dfam-added-msg').innerHTML =
+        '\u2713 <strong>DfaM #' + tokenId + '</strong> commission added to cart!<br><br>' +
+        '<a href="/commerce/show-cart" style="color:#166534; font-weight:600; text-decoration:underline;">' +
+        'View Cart &amp; Checkout \u2192</a>';
+
+      // Re-hide the wrapper
+      var wrapper = document.querySelector('.sqs-add-to-cart-button-wrapper');
+      if (wrapper) {
+        wrapper.style.cssText = 'display: none !important;';
+      }
+
+      // Dismiss form overlay if visible
+      setTimeout(function() {
+        var closeBtn = document.querySelector('.sqs-block-form-lightbox .lightbox-close, .sqs-modal-lightbox .lightbox-close');
+        if (closeBtn) closeBtn.click();
+        var overlay = document.querySelector('.sqs-block-form-lightbox, .sqs-modal-lightbox');
+        if (overlay) overlay.style.display = 'none';
+      }, 500);
+
+    }, 300);
+  }
+
+  // =============================================
+  // Strategy 2: Redirect with token ID in URL
+  // =============================================
+  function redirectToProduct(tokenId) {
+    // Redirect to the product page with the token ID as a URL parameter.
+    // The checkUrlToken() function runs on page load and will auto-fill
+    // the form field from the URL param.
+    var url = SQUARESPACE_PRODUCT_URL;
+    if (url.indexOf('?') === -1) {
+      url += '?token=' + tokenId;
+    } else {
+      url += '&token=' + tokenId;
+    }
+    window.location.href = url;
+  }
+
+  // =============================================
+  // Start
+  // =============================================
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+})();
+</script>
+</body>
+</html>
