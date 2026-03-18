@@ -1,6 +1,15 @@
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 
+  /* Hide native Squarespace product block (must remain in DOM for cart/form functionality) */
+  .sqs-block-product, .product-block { display: none !important; }
+
+  /* Pre-hide the form lightbox so it never flashes when we programmatically trigger it */
+  .sqs-block-form-lightbox, .sqs-modal-lightbox {
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
   .dfam-widget {
     max-width: 600px;
     margin: 0 auto;
@@ -12,28 +21,6 @@
 
   .dfam-widget * {
     box-sizing: border-box;
-  }
-
-  .dfam-header {
-    margin-bottom: 2rem;
-  }
-
-  .dfam-header h2 {
-    font-size: 1.5rem;
-    font-weight: 600;
-    margin: 0 0 0.75rem 0;
-  }
-
-  .dfam-header p {
-    font-size: 0.95rem;
-    color: #444;
-    margin: 0 0 0.5rem 0;
-  }
-
-  .dfam-price {
-    font-size: 1.1rem;
-    font-weight: 600;
-    margin-top: 0.5rem;
   }
 
   .dfam-connect-btn {
@@ -208,17 +195,6 @@
     cursor: not-allowed;
   }
 
-  .dfam-fine-print {
-    font-size: 0.8rem;
-    color: #888;
-    margin-top: 1rem;
-    line-height: 1.5;
-  }
-
-  .dfam-fine-print p {
-    margin: 0.3rem 0;
-  }
-
   .dfam-disconnect {
     background: none;
     border: none;
@@ -235,11 +211,6 @@
     color: #555;
   }
 
-  .dfam-install-link {
-    color: #1a1a1a;
-    font-weight: 500;
-  }
-
   @media (max-width: 480px) {
     .dfam-token-grid {
       grid-template-columns: repeat(2, 1fr);
@@ -248,20 +219,8 @@
 </style>
 
 <div class="dfam-widget" id="dfam-widget">
-  <div class="dfam-header">
-    <h2>Commission a Painting</h2>
-    <p>Each <em>Drawings for a Monument</em> token can be commissioned as a custom gouache painting — hand-painted by Jeff Davis based on your token's unique output.</p>
-    <p class="dfam-price">$500 per commission</p>
-  </div>
-
   <div id="dfam-content">
-    <div id="dfam-no-wallet" style="display:none;">
-      <div class="dfam-status error">
-        No Ethereum wallet detected. To commission a painting, install <a href="https://metamask.io/download/" target="_blank" class="dfam-install-link">MetaMask</a> or another Web3 wallet and refresh this page.
-      </div>
-    </div>
-
-    <div id="dfam-connect" style="display:none;">
+    <div id="dfam-connect">
       <button class="dfam-connect-btn" id="dfam-connect-btn" onclick="dfamConnect()">Connect Wallet</button>
     </div>
 
@@ -304,10 +263,6 @@
 
       <div class="dfam-purchase-section">
         <button class="dfam-purchase-btn" id="dfam-purchase-btn" disabled onclick="dfamPurchase()">Select a token above</button>
-        <div class="dfam-fine-print">
-          <p>After checkout, you'll be contacted to confirm your painting details. Estimated delivery: 6–8 weeks.</p>
-          <p>One commission per token. Secondary market tokens are eligible.</p>
-        </div>
       </div>
     </div>
   </div>
@@ -349,7 +304,7 @@
   function show(id) { document.getElementById(id).style.display = ''; }
   function hide(id) { document.getElementById(id).style.display = 'none'; }
   function hideAll() {
-    ['dfam-no-wallet','dfam-connect','dfam-loading','dfam-empty',
+    ['dfam-connect','dfam-loading','dfam-empty',
      'dfam-error','dfam-tokens','dfam-adding','dfam-added'].forEach(hide);
   }
 
@@ -357,31 +312,11 @@
   // Initialize
   // =============================================
   function init() {
-    // Hide the native Squarespace Add to Cart button if present.
-    hideNativeAddToCart();
-
     // Check for ?token= param in URL (redirect-back flow)
     checkUrlToken();
 
-    if (typeof window.ethereum === 'undefined') {
-      hideAll();
-      show('dfam-no-wallet');
-    } else {
-      hideAll();
-      show('dfam-connect');
-    }
-  }
-
-  // =============================================
-  // Hide native Squarespace Add to Cart button
-  // =============================================
-  function hideNativeAddToCart() {
-    var style = document.createElement('style');
-    style.textContent = [
-      '.ProductItem-details .sqs-add-to-cart-button-wrapper { display: none !important; }',
-      '.ProductItem-details .product-quantity-input { display: none !important; }'
-    ].join('\n');
-    document.head.appendChild(style);
+    hideAll();
+    show('dfam-connect');
   }
 
   // =============================================
@@ -404,14 +339,14 @@
   // Auto-fill form field and submit (for redirect flow)
   // =============================================
   function autoFillAndSubmit(tokenId) {
-    // Un-hide the add-to-cart button temporarily
-    var wrapper = document.querySelector('.sqs-add-to-cart-button-wrapper');
-    if (wrapper) {
-      wrapper.style.setProperty('display', 'block', 'important');
-      wrapper.style.setProperty('visibility', 'hidden', 'important');
-      wrapper.style.setProperty('position', 'absolute', 'important');
-      wrapper.style.setProperty('height', '0', 'important');
-      wrapper.style.setProperty('overflow', 'hidden', 'important');
+    // Make the product block visible but off-screen so Squarespace JS can operate
+    var productBlock = document.querySelector('.sqs-block-product, .product-block');
+    if (productBlock) {
+      productBlock.style.setProperty('display', 'block', 'important');
+      productBlock.style.setProperty('position', 'absolute', 'important');
+      productBlock.style.setProperty('left', '-9999px', 'important');
+      productBlock.style.setProperty('height', '0', 'important');
+      productBlock.style.setProperty('overflow', 'hidden', 'important');
     }
 
     // Click the add-to-cart button to trigger form overlay
@@ -423,7 +358,7 @@
 
     addBtn.click();
 
-    // Wait for form overlay to render
+    // Wait for form overlay to render (it's invisible via CSS but functional)
     setTimeout(function() {
       var filled = fillFormField(tokenId);
       if (filled) {
@@ -433,8 +368,9 @@
         var url = new URL(window.location);
         url.searchParams.delete('token');
         window.history.replaceState({}, '', url.toString());
-        if (wrapper) {
-          wrapper.style.cssText = 'display: none !important;';
+        // Re-hide the product block
+        if (productBlock) {
+          productBlock.style.cssText = 'display: none !important;';
         }
       }
     }, 800);
@@ -449,6 +385,9 @@
     btn.textContent = 'Connecting\u2026';
 
     try {
+      if (typeof window.ethereum === 'undefined') {
+        throw new Error('No Ethereum wallet detected. Please install MetaMask or another Web3 wallet.');
+      }
       var accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
       if (!accounts || accounts.length === 0) {
         throw new Error('No accounts returned');
@@ -463,7 +402,7 @@
         btn.textContent = 'Connect Wallet';
       } else {
         document.getElementById('dfam-error-msg').textContent =
-          'Connection failed: ' + (err.message || 'Unknown error');
+          (err.message || 'Unknown error');
         show('dfam-error');
       }
     }
@@ -603,9 +542,8 @@
     purchaseBtn.textContent = 'Adding to cart\u2026';
 
     // Strategy 1: Direct DOM integration (widget on same product page)
+    // Product block is hidden via CSS but still in DOM
     var addBtn = document.querySelector(
-      '.ProductItem-details .sqs-add-to-cart-button, ' +
-      '.product-block .sqs-add-to-cart-button, ' +
       '.sqs-add-to-cart-button'
     );
 
@@ -627,20 +565,20 @@
     hideAll();
     show('dfam-adding');
 
-    // Un-hide the wrapper temporarily so Squarespace's JS can operate
-    var wrapper = document.querySelector('.sqs-add-to-cart-button-wrapper');
-    if (wrapper) {
-      wrapper.style.setProperty('display', 'block', 'important');
-      wrapper.style.setProperty('visibility', 'hidden', 'important');
-      wrapper.style.setProperty('position', 'absolute', 'important');
-      wrapper.style.setProperty('height', '0', 'important');
-      wrapper.style.setProperty('overflow', 'hidden', 'important');
+    // Temporarily make the product block positionally visible so Squarespace JS can operate
+    var productBlock = document.querySelector('.sqs-block-product, .product-block');
+    if (productBlock) {
+      productBlock.style.setProperty('display', 'block', 'important');
+      productBlock.style.setProperty('position', 'absolute', 'important');
+      productBlock.style.setProperty('left', '-9999px', 'important');
+      productBlock.style.setProperty('height', '0', 'important');
+      productBlock.style.setProperty('overflow', 'hidden', 'important');
     }
 
-    // Click the button — this either adds to cart directly or opens a form overlay
+    // Click the button — this opens the form overlay (invisible via CSS)
     addBtn.click();
 
-    // Give Squarespace time to render the form overlay (if any)
+    // Give Squarespace time to render the form overlay
     setTimeout(function() {
       var filled = fillFormField(tokenId);
 
@@ -655,8 +593,9 @@
           } else {
             console.warn('[DfaM Widget] No product form found. Make sure the DfaM Commission product ' +
               'has an "Add to cart form" with a "Token ID" text field. Falling back to redirect.');
-            if (wrapper) {
-              wrapper.style.cssText = 'display: none !important;';
+            // Re-hide the product block
+            if (productBlock) {
+              productBlock.style.cssText = 'display: none !important;';
             }
             redirectToProduct(tokenId);
           }
@@ -719,7 +658,7 @@
   // =============================================
   function submitProductForm(tokenId) {
     setTimeout(function() {
-      // Find the submit button in the form lightbox
+      // Find the submit button in the form lightbox (invisible but functional)
       var submitBtn = document.querySelector(
         '.sqs-block-form-lightbox .form-submit-button, ' +
         '.sqs-block-form-lightbox button[type="submit"], ' +
@@ -746,13 +685,13 @@
         '<a href="/commerce/show-cart" style="color:#166534; font-weight:600; text-decoration:underline;">' +
         'View Cart &amp; Checkout \u2192</a>';
 
-      // Re-hide the wrapper
-      var wrapper = document.querySelector('.sqs-add-to-cart-button-wrapper');
-      if (wrapper) {
-        wrapper.style.cssText = 'display: none !important;';
+      // Re-hide the product block
+      var productBlock = document.querySelector('.sqs-block-product, .product-block');
+      if (productBlock) {
+        productBlock.style.cssText = 'display: none !important;';
       }
 
-      // Dismiss form overlay if visible
+      // Dismiss form overlay if present (already invisible, but clean up DOM state)
       setTimeout(function() {
         var closeBtn = document.querySelector('.sqs-block-form-lightbox .lightbox-close, .sqs-modal-lightbox .lightbox-close');
         if (closeBtn) closeBtn.click();
