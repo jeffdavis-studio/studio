@@ -125,6 +125,7 @@
   }
 
   .dfam-token-card {
+    position: relative;
     border: 2px solid #e5e5e5;
     border-radius: 6px;
     padding: 0.5rem;
@@ -140,6 +141,28 @@
   .dfam-token-card.selected {
     border-color: #1a1a1a;
     box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  }
+
+  .dfam-token-card.claimed {
+    opacity: 0.65;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+  .dfam-token-card.claimed:hover {
+    border-color: #e5e5e5;
+  }
+  .dfam-token-card .token-claimed-badge {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    background: #333;
+    color: #fff;
+    padding: 3px 6px;
+    border-radius: 4px;
   }
 
   .dfam-token-card img {
@@ -223,8 +246,7 @@
     }
   }
 </style>
-</head>
-<body>
+
 <div class="dfam-widget" id="dfam-widget">
   <div class="dfam-header">
     <h2>Commission a Painting</h2>
@@ -291,48 +313,29 @@
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.4/ethers.umd.min.js"></script>
 <script>
 (function() {
   'use strict';
 
   // =============================================
-  // CONFIGURATION — UPDATE THESE VALUES
+  // CONFIGURATION
   // =============================================
 
-  // DfaM Art Blocks contract on Ethereum mainnet
+  // DfaM token contract (Art Blocks)
   var DFAM_CONTRACT = '0xababababab20053426ad1c782de9ea8444358070';
+  var DFAM_PROJECT_ID = DFAM_CONTRACT + '-3';
 
-  // Art Blocks project ID for DfaM (project #3 on this contract)
-  var PROJECT_ID = 3;
+  // Art Blocks public GraphQL API (avoids on-chain contract reverts)
+  var ART_BLOCKS_GRAPHQL = 'https://artblocks-mainnet.hasura.app/v1/graphql';
 
-  // Token ID range for project #3: 3000000 to 3999999
-  var TOKEN_ID_MIN = PROJECT_ID * 1000000;
-  var TOKEN_ID_MAX = TOKEN_ID_MIN + 999999;
-
-  // Thumbnail URL pattern — {id} will be replaced with the full token ID
   var THUMBNAIL_URL = 'https://media.artblocks.io/' + DFAM_CONTRACT + '/{id}.png';
 
-  // *** SQUARESPACE PRODUCT URL — UPDATE to your actual product page URL ***
-  // Used as a fallback redirect if direct cart integration isn't available.
+  // *** SQUARESPACE PRODUCT URL ***
   var SQUARESPACE_PRODUCT_URL = 'https://www.jeffgdavis.com/dfam';
 
   // Label of the "Add to cart" form field in Squarespace that captures the token ID.
   // Must match EXACTLY what you set in the Squarespace product form editor.
-  // See README.md / NOTES.md for setup instructions.
   var SQS_FORM_FIELD_LABEL = 'Token ID';
-
-  // Public RPC for read-only contract calls
-  var PUBLIC_RPC = 'https://cloudflare-eth.com';
-
-  // =============================================
-  // ABI fragments
-  // =============================================
-  var ABI = [
-    'function tokensOfOwner(address owner) view returns (uint256[])',
-    'function balanceOf(address owner) view returns (uint256)',
-    'function tokenOfOwnerByIndex(address owner, uint256 index) view returns (uint256)'
-  ];
 
   // =============================================
   // State
@@ -355,7 +358,6 @@
   // =============================================
   function init() {
     // Hide the native Squarespace Add to Cart button if present.
-    // The widget replaces it with its own wallet-gated flow.
     hideNativeAddToCart();
 
     // Check for ?token= param in URL (redirect-back flow)
@@ -390,9 +392,6 @@
     var urlToken = params.get('token');
     if (!urlToken) return;
 
-    // Token ID came back via redirect. Try to auto-fill the product form
-    // and add to cart. This handles the case where the widget redirected
-    // the user to this page with ?token=XXXXX.
     console.log('[DfaM Widget] Token ID from URL: ' + urlToken);
 
     // Wait for Squarespace's own JS to initialize, then fill the form
@@ -405,7 +404,7 @@
   // Auto-fill form field and submit (for redirect flow)
   // =============================================
   function autoFillAndSubmit(tokenId) {
-    // First, un-hide the add-to-cart button temporarily
+    // Un-hide the add-to-cart button temporarily
     var wrapper = document.querySelector('.sqs-add-to-cart-button-wrapper');
     if (wrapper) {
       wrapper.style.setProperty('display', 'block', 'important');
@@ -431,11 +430,9 @@
         submitProductForm(tokenId);
       } else {
         console.log('[DfaM Widget] Auto-fill failed — form field not found.');
-        // Clean up URL param
         var url = new URL(window.location);
         url.searchParams.delete('token');
         window.history.replaceState({}, '', url.toString());
-        // Re-hide the wrapper
         if (wrapper) {
           wrapper.style.cssText = 'display: none !important;';
         }
@@ -486,34 +483,38 @@
   };
 
   // =============================================
-  // Load tokens
+  // Load tokens via Art Blocks GraphQL API
   // =============================================
   async function loadTokens(address) {
     hideAll();
     show('dfam-loading');
 
     try {
-      var provider = new ethers.JsonRpcProvider(PUBLIC_RPC);
-      var contract = new ethers.Contract(DFAM_CONTRACT, ABI, provider);
-
-      var allTokens;
-
-      try {
-        allTokens = await contract.tokensOfOwner(address);
-      } catch (e) {
-        var balance = await contract.balanceOf(address);
-        var count = Number(balance);
-        allTokens = [];
-        for (var i = 0; i < count; i++) {
-          var tokenId = await contract.tokenOfOwnerByIndex(address, i);
-          allTokens.push(tokenId);
-        }
+      var owner = address.toLowerCase();
+      var res = await fetch(ART_BLOCKS_GRAPHQL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: 'query DfaMTokens($owner: String!, $contract: String!, $projectId: String!) { tokens_metadata(where: { owner_address: { _eq: $owner }, contract_address: { _eq: $contract }, project_id: { _eq: $projectId } }, limit: 200) { token_id media_thumb_url features } }',
+          variables: { owner: owner, contract: DFAM_CONTRACT, projectId: DFAM_PROJECT_ID }
+        })
+      });
+      var json = await res.json();
+      if (json.errors && json.errors.length) {
+        throw new Error(json.errors[0].message || 'GraphQL error');
       }
 
-      var dfamTokens = allTokens
-        .map(function(t) { return Number(t); })
-        .filter(function(t) { return t >= TOKEN_ID_MIN && t <= TOKEN_ID_MAX; })
-        .sort(function(a, b) { return a - b; });
+      var list = (json.data && json.data.tokens_metadata) || [];
+      var dfamTokens = list
+        .map(function(t) {
+          var features = t.features || {};
+          return {
+            tokenId: t.token_id,
+            thumb: t.media_thumb_url || null,
+            claimed: (features.Drawing === 'Claimed')
+          };
+        })
+        .sort(function(a, b) { return Number(a.tokenId) - Number(b.tokenId); });
 
       hideAll();
 
@@ -528,7 +529,7 @@
     } catch (err) {
       hideAll();
       document.getElementById('dfam-error-msg').textContent =
-        'Error reading contract: ' + (err.message || 'Unknown error') + '. Please try again.';
+        'Error loading tokens: ' + (err.message || 'Unknown error') + '. Please try again.';
       show('dfam-error');
     }
   }
@@ -544,13 +545,14 @@
     grid.innerHTML = '';
     selectedTokenId = null;
 
-    tokens.forEach(function(tokenId) {
+    tokens.forEach(function(t) {
+      var tokenId = t.tokenId;
       var card = document.createElement('div');
-      card.className = 'dfam-token-card';
+      card.className = 'dfam-token-card' + (t.claimed ? ' claimed' : '');
       card.setAttribute('data-token', tokenId);
 
       var img = document.createElement('img');
-      img.src = THUMBNAIL_URL.replace('{id}', tokenId);
+      img.src = t.thumb || THUMBNAIL_URL.replace('{id}', tokenId);
       img.alt = 'DfaM #' + tokenId;
       img.loading = 'lazy';
       img.onerror = function() {
@@ -565,15 +567,22 @@
       card.appendChild(img);
       card.appendChild(label);
 
-      card.addEventListener('click', function() {
-        var prev = grid.querySelector('.selected');
-        if (prev) prev.classList.remove('selected');
-        card.classList.add('selected');
-        selectedTokenId = tokenId;
-        var btn = document.getElementById('dfam-purchase-btn');
-        btn.disabled = false;
-        btn.textContent = 'Purchase Commission \u2014 $500';
-      });
+      if (t.claimed) {
+        var badge = document.createElement('div');
+        badge.className = 'token-claimed-badge';
+        badge.textContent = 'Claimed';
+        card.appendChild(badge);
+      } else {
+        card.addEventListener('click', function() {
+          var prev = grid.querySelector('.selected');
+          if (prev) prev.classList.remove('selected');
+          card.classList.add('selected');
+          selectedTokenId = tokenId;
+          var btn = document.getElementById('dfam-purchase-btn');
+          btn.disabled = false;
+          btn.textContent = 'Purchase Commission \u2014 $500';
+        });
+      }
 
       grid.appendChild(card);
     });
@@ -636,20 +645,14 @@
       var filled = fillFormField(tokenId);
 
       if (filled) {
-        // Form field found and filled — submit the form
         submitProductForm(tokenId);
       } else {
-        // No form field found. Two possibilities:
-        // a) Product has no form → item was added directly (but no token ID captured)
-        // b) Form hasn't rendered yet
         // Try waiting a bit longer for the form
         setTimeout(function() {
           var filledRetry = fillFormField(tokenId);
           if (filledRetry) {
             submitProductForm(tokenId);
           } else {
-            // Still no form — the product probably doesn't have an "Add to cart form" configured.
-            // Fall back to redirect with clear messaging.
             console.warn('[DfaM Widget] No product form found. Make sure the DfaM Commission product ' +
               'has an "Add to cart form" with a "Token ID" text field. Falling back to redirect.');
             if (wrapper) {
@@ -728,7 +731,6 @@
         submitBtn.click();
         console.log('[DfaM Widget] Clicked form submit button.');
       } else {
-        // Try the main add-to-cart button as fallback
         var mainBtn = document.querySelector('.sqs-add-to-cart-button');
         if (mainBtn) {
           mainBtn.click();
@@ -765,9 +767,6 @@
   // Strategy 2: Redirect with token ID in URL
   // =============================================
   function redirectToProduct(tokenId) {
-    // Redirect to the product page with the token ID as a URL parameter.
-    // The checkUrlToken() function runs on page load and will auto-fill
-    // the form field from the URL param.
     var url = SQUARESPACE_PRODUCT_URL;
     if (url.indexOf('?') === -1) {
       url += '?token=' + tokenId;
