@@ -11,7 +11,6 @@
   /* ---- Minimal structural CSS (only what Squarespace can't provide) ---- */
 
   .dfam-widget {
-    max-width: 600px;
     margin: 0 auto;
     padding: 2rem 0;
   }
@@ -33,46 +32,65 @@
     text-align: center;
   }
 
-  .dfam-token-card:hover {
+  .dfam-token-card:hover,
+  .dfam-token-card.selected {
     border-color: currentColor;
   }
 
   .dfam-token-card.selected {
-    border-color: currentColor;
     outline: 1px solid currentColor;
   }
 
   .dfam-token-card.claimed {
-    opacity: 0.5;
     cursor: not-allowed;
+    pointer-events: none;
+    border-color: rgba(0, 0, 0, 0.12);
+  }
+
+  .dfam-token-card .token-thumb-wrap {
+    position: relative;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .dfam-token-card.claimed .token-thumb-wrap img {
+    filter: grayscale(42%) brightness(0.9);
+  }
+
+  .token-claimed-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    background: rgba(0, 0, 0, 0.58);
+    color: #fff;
+    text-align: center;
+    padding: 0.5rem;
+    box-sizing: border-box;
     pointer-events: none;
   }
 
-  .dfam-token-card .token-claimed-badge {
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    font-size: 0.65rem;
-    font-weight: 600;
+  .token-claimed-label {
+    font-size: clamp(0.7rem, 3.2vw, 0.95rem);
+    font-weight: 700;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    background: currentColor;
-    color: #fff;
-    padding: 2px 6px;
-    border-radius: 3px;
+    line-height: 1.2;
   }
 
-  .dfam-token-card img {
+  .dfam-token-card .token-thumb-wrap img {
     width: 100%;
     aspect-ratio: 1;
     object-fit: cover;
     border-radius: 2px;
+    display: block;
   }
 
   .dfam-token-card .token-id {
-    font-size: 0.8em;
     margin-top: 0.4rem;
-    opacity: 0.6;
   }
 
   .dfam-purchase-section {
@@ -96,15 +114,7 @@
     to { transform: rotate(360deg); }
   }
 
-  .dfam-status {
-    margin: 1rem 0;
-    padding: 1rem;
-    font-size: 0.9em;
-  }
-
   .dfam-wallet-info {
-    font-size: 0.85em;
-    opacity: 0.6;
     margin-bottom: 1rem;
   }
 
@@ -112,17 +122,11 @@
     background: none;
     border: none;
     color: inherit;
-    font-size: inherit;
-    font-family: inherit;
+    font: inherit;
     cursor: pointer;
     text-decoration: underline;
-    opacity: 0.7;
     padding: 0;
     margin-left: 0.5rem;
-  }
-
-  .dfam-disconnect:hover {
-    opacity: 1;
   }
 
   @media (max-width: 480px) {
@@ -135,7 +139,7 @@
 <div class="dfam-widget" id="dfam-widget">
   <div id="dfam-content">
     <div id="dfam-connect">
-      <button class="sqs-block-button-element--medium sqs-button-element--primary sqs-block-button-element" id="dfam-connect-btn" onclick="dfamConnect()">Connect Wallet</button>
+      <button class="sqs-block-button-element--medium sqs-button-element--primary sqs-block-button-element" id="dfam-connect-btn" onclick="dfamConnect()">CONNECT WALLET</button>
     </div>
 
     <div id="dfam-loading" style="display:none;">
@@ -169,14 +173,14 @@
 
     <div id="dfam-tokens" style="display:none;">
       <div class="dfam-wallet-info">
-        Connected: <code id="dfam-wallet-addr"></code>
-        <button class="dfam-disconnect" onclick="dfamDisconnect()">disconnect</button>
+        Connected: <span id="dfam-wallet-addr"></span>
+        <button class="dfam-disconnect" onclick="dfamDisconnect()">DISCONNECT</button>
       </div>
       <p>Select the token you'd like painted:</p>
       <div class="dfam-token-grid" id="dfam-token-grid"></div>
 
       <div class="dfam-purchase-section">
-        <button class="sqs-block-button-element--medium sqs-button-element--primary sqs-block-button-element" id="dfam-purchase-btn" disabled onclick="dfamPurchase()">Select a token above</button>
+        <button class="sqs-block-button-element--medium sqs-button-element--primary sqs-block-button-element" id="dfam-purchase-btn" disabled onclick="dfamPurchase()">SELECT A TOKEN ABOVE</button>
       </div>
     </div>
   </div>
@@ -203,6 +207,23 @@
      'dfam-error','dfam-tokens','dfam-adding','dfam-added'].forEach(hide);
   }
 
+  function showProductBlockOffscreen() {
+    var productBlock = document.querySelector('.sqs-block-product, .product-block');
+    if (productBlock) {
+      productBlock.style.setProperty('display', 'block', 'important');
+      productBlock.style.setProperty('position', 'absolute', 'important');
+      productBlock.style.setProperty('left', '-9999px', 'important');
+      productBlock.style.setProperty('height', '0', 'important');
+      productBlock.style.setProperty('overflow', 'hidden', 'important');
+    }
+    return productBlock;
+  }
+
+  function hideProductBlock() {
+    var productBlock = document.querySelector('.sqs-block-product, .product-block');
+    if (productBlock) productBlock.style.cssText = 'display: none !important;';
+  }
+
   function init() {
     checkUrlToken();
     hideAll();
@@ -217,14 +238,7 @@
   }
 
   function autoFillAndSubmit(tokenId) {
-    var productBlock = document.querySelector('.sqs-block-product, .product-block');
-    if (productBlock) {
-      productBlock.style.setProperty('display', 'block', 'important');
-      productBlock.style.setProperty('position', 'absolute', 'important');
-      productBlock.style.setProperty('left', '-9999px', 'important');
-      productBlock.style.setProperty('height', '0', 'important');
-      productBlock.style.setProperty('overflow', 'hidden', 'important');
-    }
+    showProductBlockOffscreen();
     var addBtn = document.querySelector('.sqs-add-to-cart-button');
     if (!addBtn) return;
     addBtn.click();
@@ -236,7 +250,7 @@
         var url = new URL(window.location);
         url.searchParams.delete('token');
         window.history.replaceState({}, '', url.toString());
-        if (productBlock) productBlock.style.cssText = 'display: none !important;';
+        hideProductBlock();
       }
     }, 800);
   }
@@ -244,7 +258,7 @@
   window.dfamConnect = async function() {
     var btn = document.getElementById('dfam-connect-btn');
     btn.disabled = true;
-    btn.textContent = 'Connecting\u2026';
+    btn.textContent = 'CONNECTING\u2026';
     try {
       if (typeof window.ethereum === 'undefined') {
         throw new Error('No Ethereum wallet detected. Install MetaMask or another Web3 wallet and refresh.');
@@ -258,7 +272,7 @@
       if (err.code === 4001) {
         show('dfam-connect');
         btn.disabled = false;
-        btn.textContent = 'Connect Wallet';
+        btn.textContent = 'CONNECT WALLET';
       } else {
         document.getElementById('dfam-error-msg').textContent = (err.message || 'Unknown error');
         show('dfam-error');
@@ -273,7 +287,7 @@
     show('dfam-connect');
     var btn = document.getElementById('dfam-connect-btn');
     btn.disabled = false;
-    btn.textContent = 'Connect Wallet';
+    btn.textContent = 'CONNECT WALLET';
   };
 
   async function loadTokens(address) {
@@ -335,19 +349,30 @@
       img.loading = 'lazy';
       img.onerror = function() { this.alt = '#' + tokenId; };
 
+      var thumbWrap = document.createElement('div');
+      thumbWrap.className = 'token-thumb-wrap';
+      thumbWrap.appendChild(img);
+
+      if (t.claimed) {
+        img.alt = 'DfaM #' + tokenId + ' (claimed, not available for commission)';
+        var overlay = document.createElement('div');
+        overlay.className = 'token-claimed-overlay';
+        overlay.setAttribute('aria-hidden', 'true');
+        var claimLabel = document.createElement('span');
+        claimLabel.className = 'token-claimed-label';
+        claimLabel.textContent = 'CLAIMED';
+        overlay.appendChild(claimLabel);
+        thumbWrap.appendChild(overlay);
+      }
+
       var label = document.createElement('div');
       label.className = 'token-id';
       label.textContent = '#' + tokenId;
 
-      card.appendChild(img);
+      card.appendChild(thumbWrap);
       card.appendChild(label);
 
-      if (t.claimed) {
-        var badge = document.createElement('div');
-        badge.className = 'token-claimed-badge';
-        badge.textContent = 'Claimed';
-        card.appendChild(badge);
-      } else {
+      if (!t.claimed) {
         card.addEventListener('click', function() {
           var prev = grid.querySelector('.selected');
           if (prev) prev.classList.remove('selected');
@@ -355,7 +380,7 @@
           selectedTokenId = tokenId;
           var btn = document.getElementById('dfam-purchase-btn');
           btn.disabled = false;
-          btn.textContent = 'Purchase Commission \u2014 $500';
+          btn.textContent = 'PURCHASE COMMISSION';
         });
       }
       grid.appendChild(card);
@@ -363,14 +388,14 @@
 
     var purchaseBtn = document.getElementById('dfam-purchase-btn');
     purchaseBtn.disabled = true;
-    purchaseBtn.textContent = 'Select a token above';
+    purchaseBtn.textContent = 'SELECT A TOKEN';
   }
 
   window.dfamPurchase = function() {
     if (!selectedTokenId) return;
     var purchaseBtn = document.getElementById('dfam-purchase-btn');
     purchaseBtn.disabled = true;
-    purchaseBtn.textContent = 'Adding to cart\u2026';
+    purchaseBtn.textContent = 'ADDING TO CART\u2026';
 
     var addBtn = document.querySelector('.sqs-add-to-cart-button');
     if (addBtn) {
@@ -383,16 +408,7 @@
   function directAddToCart(tokenId, addBtn) {
     hideAll();
     show('dfam-adding');
-
-    var productBlock = document.querySelector('.sqs-block-product, .product-block');
-    if (productBlock) {
-      productBlock.style.setProperty('display', 'block', 'important');
-      productBlock.style.setProperty('position', 'absolute', 'important');
-      productBlock.style.setProperty('left', '-9999px', 'important');
-      productBlock.style.setProperty('height', '0', 'important');
-      productBlock.style.setProperty('overflow', 'hidden', 'important');
-    }
-
+    showProductBlockOffscreen();
     addBtn.click();
 
     setTimeout(function() {
@@ -405,7 +421,7 @@
           if (filledRetry) {
             submitProductForm(tokenId);
           } else {
-            if (productBlock) productBlock.style.cssText = 'display: none !important;';
+            hideProductBlock();
             redirectToProduct(tokenId);
           }
         }, 1000);
@@ -413,6 +429,7 @@
     }, 800);
   }
 
+  // Finds the Squarespace form field whose label matches SQS_FORM_FIELD_LABEL ('Token ID') and sets its value to tokenId.
   function fillFormField(tokenId) {
     var allLabels = document.querySelectorAll('label, .form-item .title, .field-label, .caption-text, .SP08ZLkhAnk2Rqaf');
     var targetInput = null;
@@ -466,11 +483,9 @@
       hideAll();
       show('dfam-added');
       document.getElementById('dfam-added-msg').innerHTML =
-        '\u2713 <strong>DfaM #' + tokenId + '</strong> commission added to cart!<br><br>' +
-        '<a href="/commerce/show-cart">View Cart &amp; Checkout \u2192</a>';
+      '<a href="/commerce/show-cart">#' + tokenId + ' added to cart! Checkout \u2192</a>';
 
-      var productBlock = document.querySelector('.sqs-block-product, .product-block');
-      if (productBlock) productBlock.style.cssText = 'display: none !important;';
+      hideProductBlock();
 
       setTimeout(function() {
         var closeBtn = document.querySelector('.sqs-block-form-lightbox .lightbox-close, .sqs-modal-lightbox .lightbox-close');
