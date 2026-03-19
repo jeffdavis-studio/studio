@@ -209,8 +209,8 @@
       <div class="section-title">Transition</div>
       <div class="row">
         <label>Speed</label>
-        <input type="range" id="transitionDuration" min="5" max="180" step="1" value="60">
-        <div class="value" id="transitionDuration-val">60s</div>
+        <input type="range" id="transitionDuration" min="5" max="180" step="1" value="30">
+        <div class="value" id="transitionDuration-val">30s</div>
       </div>
     </div>
 
@@ -272,8 +272,8 @@
       </div>
       <div class="row">
         <label>Opacity Max</label>
-        <input type="range" id="cloudOpacityMax" min="0.1" max="1.0" step="0.05" value="0.60">
-        <div class="value" id="cloudOpacityMax-val">0.60</div>
+        <input type="range" id="cloudOpacityMax" min="0.1" max="1.0" step="0.05" value="1.00">
+        <div class="value" id="cloudOpacityMax-val">1.00</div>
       </div>
     </div>
 
@@ -311,9 +311,13 @@
   <script src="TheSky_v5.js"></script>
 
   <script>
-    function wireSlider(id, getter, setter, formatter) {
+    function wireSlider(id, initialValue, setter, formatter) {
       let el = document.getElementById(id);
       let val = document.getElementById(id + '-val');
+      if (initialValue != null) {
+        el.value = initialValue;
+        val.textContent = formatter ? formatter(initialValue) : initialValue;
+      }
       el.addEventListener('input', function() {
         let v = parseFloat(el.value);
         setter(v);
@@ -427,22 +431,22 @@
     }
 
     window.addEventListener('load', function() {
-      wireSlider('transitionDuration', null, v => { transitionDuration = v; }, v => v + 's');
+      wireSlider('transitionDuration', transitionDuration, v => { transitionDuration = v; }, v => v + 's');
 
       buildConditionControls();
       updateButtonStates();
 
-      wireSlider('cloudCountMin', null, v => { cloudCountMin = v; }, v => v);
-      wireSlider('cloudCountMax', null, v => { cloudCountMax = v; }, v => v);
-      wireSlider('cloudPositionMin', null, v => { cloudPositionMin = v; }, v => v.toFixed(2));
-      wireSlider('cloudPositionMax', null, v => { cloudPositionMax = v; }, v => v.toFixed(2));
-      wireSlider('cloudHeightMin', null, v => { cloudHeightMin = v; }, v => v.toFixed(2));
-      wireSlider('cloudHeightMax', null, v => { cloudHeightMax = v; }, v => v.toFixed(2));
-      wireSlider('cloudFalloffMin', null, v => { cloudFalloffMin = v; }, v => v.toFixed(3));
-      wireSlider('cloudFalloffMax', null, v => { cloudFalloffMax = v; }, v => v.toFixed(3));
+      wireSlider('cloudCountMin', cloudCountMin, v => { cloudCountMin = v; }, v => v);
+      wireSlider('cloudCountMax', cloudCountMax, v => { cloudCountMax = v; }, v => v);
+      wireSlider('cloudPositionMin', cloudPositionMin, v => { cloudPositionMin = v; }, v => v.toFixed(2));
+      wireSlider('cloudPositionMax', cloudPositionMax, v => { cloudPositionMax = v; }, v => v.toFixed(2));
+      wireSlider('cloudHeightMin', cloudHeightMin, v => { cloudHeightMin = v; }, v => v.toFixed(2));
+      wireSlider('cloudHeightMax', cloudHeightMax, v => { cloudHeightMax = v; }, v => v.toFixed(2));
+      wireSlider('cloudFalloffMin', cloudFalloffMin, v => { cloudFalloffMin = v; }, v => v.toFixed(3));
+      wireSlider('cloudFalloffMax', cloudFalloffMax, v => { cloudFalloffMax = v; }, v => v.toFixed(3));
 
-      wireSlider('cloudOpacityMin', null, v => { cloudOpacityMin = v; }, v => v.toFixed(2));
-      wireSlider('cloudOpacityMax', null, v => { cloudOpacityMax = v; }, v => v.toFixed(2));
+      wireSlider('cloudOpacityMin', cloudOpacityMin, v => { cloudOpacityMin = v; }, v => v.toFixed(2));
+      wireSlider('cloudOpacityMax', cloudOpacityMax, v => { cloudOpacityMax = v; }, v => v.toFixed(2));
     });
 
     function updateButtonStates() {

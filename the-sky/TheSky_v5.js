@@ -162,7 +162,7 @@ void main() {
 // 60  = slow (default, 1 min)
 // 20  = medium
 // 8   = fast
-let transitionDuration = 60;
+let transitionDuration = 30;
 
 // ============================================================================
 // STATE
@@ -185,67 +185,67 @@ const SKY_CONDITIONS = {
 
   night: {
     label: 'Night',
-    topColor: { h: [215, 235], s: [15, 65], b: [0, 15] },
-    botColor: { h: [235, 35],  s: [10, 60], b: [10, 30] },
+    topColor: { h: [215, 230], s: [15, 65], b: [10, 20] },
+    botColor: { h: [230, 45],  s: [10, 60], b: [10, 25] },
     cloudOffsets: {
       hueLerp:   [0, 0.50],
       satOffset: [0, -5],
-      briOffset: [0, 25],
+      briOffset: [5, 10],
     },
   },
 
   dawn: {
     label: 'Dawn',
-    topColor: { h: [215, 225], s: [45, 65], b: [25, 50] },
-    botColor: { h: [225, 285], s: [10, 50], b: [30, 60] },
+    topColor: { h: [215, 225], s: [45, 65], b: [30, 50] },
+    botColor: { h: [225, 285], s: [20, 50], b: [30, 55] },
     cloudOffsets: {
       hueLerp:   [0, 0.50],
-      satOffset: [0, -25],
-      briOffset: [0, 25],
+      satOffset: [-5, -10],
+      briOffset: [0, 20],
     },
   },
 
   sunrise: {
     label: 'Sunrise',
-    topColor: { h: [215, 245], s: [35, 65], b: [15, 30] },
+    topColor: { h: [220, 250], s: [45, 65], b: [40, 65] },
     botColor: { h: [20, 35],   s: [25, 65], b: [65, 100] },
     cloudOffsets: {
       hueLerp:   [0, 0.50],
-      satOffset: [0, -10],
-      briOffset: [0, 15],
+      satOffset: [0, -5],
+      briOffset: [5, 15],
     },
   },
 
   midday: {
     label: 'Midday',
-    topColor: { h: [205, 220], s: [45, 80], b: [35, 85] },
-    botColor: { h: [185, 205], s: [10, 60], b: [55, 95] },
+    topColor: { h: [210, 225], s: [50, 80], b: [50, 85] },
+    botColor: { h: [195, 210], s: [30, 60], b: [55, 90] },
     cloudOffsets: {
       hueLerp:   [0, 0.50],
-      satOffset: [0, -35],
-      briOffset: [0, 15],
+      satOffset: [-15, -40],
+      briOffset: [5, 10],
     },
   },
 
   sunset: {
     label: 'Sunset',
-    topColor: { h: [205, 315], s: [10, 80], b: [20, 90] },
-    botColor: { h: [315, 55],  s: [10, 50], b: [45, 95] },
+    topColor: { h: [210, 270], s: [45, 75], b: [60, 90] },
+    botColor: { h: [300, 35],  s: [40, 70], b: [60, 90] },
     cloudOffsets: {
       hueLerp:   [0, 0.50],
       satOffset: [0, -10],
-      briOffset: [0, 15],
+      briOffset: [5, 15],
     },
   },
 
   dusk: {
     label: 'Dusk',
-    topColor: { h: [210, 280], s: [15, 55], b: [10, 65] },
-    botColor: { h: [280, 20],  s: [15, 55], b: [20, 80] },
+    topColor: { h: [220, 255], s: [35, 55], b: [25, 65] },
+    botColor: { h: [255, 290],  s: [35, 55], b: [25, 65] },
     cloudOffsets: {
       hueLerp:   [0, 0.50],
-      satOffset: [0, -25],
-      briOffset: [0, 25],
+      satOffset: [0, -5],
+      briOffset: [5, 20],
     },
   },
 
@@ -256,14 +256,13 @@ const SKY_CONDITIONS = {
 // Forward time sequence: night → dawn → sunrise → midday → sunset → dusk → night
 // ============================================================================
 
-const TIME_SLOTS = ['night', 'dawn', 'sunrise', 'midday', 'sunset', 'dusk'];
+const TIME_SLOTS = ['dawn', 'sunrise', 'midday', 'midday', 'midday', 'sunset', 'dusk', 'night', 'night'];
 
-function pickCondition(current) {
-  if (!current) return TIME_SLOTS[R.random_int(0, TIME_SLOTS.length - 1)];
-  let idx = TIME_SLOTS.indexOf(current);
-  if (idx === -1) idx = 0;
-  let nextIdx = (idx + 1) % TIME_SLOTS.length;
-  return TIME_SLOTS[nextIdx];
+let currentSlotIdx = -1;
+
+function pickCondition() {
+  currentSlotIdx = (currentSlotIdx + 1) % TIME_SLOTS.length;
+  return TIME_SLOTS[currentSlotIdx];
 }
 
 // ============================================================================
@@ -273,14 +272,14 @@ function pickCondition(current) {
 
 // Cloud generation parameters
 let cloudCountMin = 0;
-let cloudCountMax = 5;
+let cloudCountMax = 4;
 let cloudPositionMin = 0.05;
 let cloudPositionMax = 0.95;
 let cloudHeightMin = 0.10;
 let cloudHeightMax = 0.40;
 let cloudFalloffMin = 0.05;
 let cloudFalloffMax = 0.15;
-let cloudOpacityMin = 0.15;
+let cloudOpacityMin = 1.00;
 let cloudOpacityMax = 1.00;
 
 function instantiateCondition(conditionKey) {
@@ -370,7 +369,7 @@ function advanceStateMachine() {
     transitionT = 0;
     currentInstance = targetInstance;
     currentConditionKey = currentInstance.conditionKey;
-    let nextKey = lockedCondition || pickCondition(currentConditionKey);
+    let nextKey = lockedCondition || pickCondition();
     targetInstance = instantiateCondition(nextKey);
   }
 }
@@ -444,10 +443,10 @@ function setup() {
 
   R = new Random();
 
-  let startKey = pickCondition(null);
+  let startKey = pickCondition();
   currentConditionKey = startKey;
   currentInstance = instantiateCondition(startKey);
-  let nextKey = pickCondition(startKey);
+  let nextKey = pickCondition();
   targetInstance = instantiateCondition(nextKey);
   transitionT = 0;
 }
