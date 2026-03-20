@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mechanical Drawings — Composition Playground</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+  <style>
+    @import url('https://use.typekit.net/YOUR_KIT_ID.css');
+    * { box-sizing: border-box; }
+    body { font-family: aktiv-grotesk, -apple-system, sans-serif; margin: 0; padding: 0; color: #333; background: #fff; }
+    .app { display: flex; height: 100vh; }
+    .sidebar { width: 280px; min-width: 280px; border-right: 1px solid #ddd; display: flex; flex-direction: column; overflow-y: auto; padding: 20px; background: #fafafa; }
+    .main-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .gallery-area { flex: 1; overflow-y: auto; padding: 20px; }
+    .detail-area { display: none; flex: 1; overflow-y: auto; padding: 20px; }
+    .favorites-strip { border-top: 1px solid #ddd; background: #fafafa; padding: 10px 20px; min-height: 76px; }
+    .section { margin-bottom: 24px; }
+    .section h3 { margin: 0 0 10px 0; font-size: 11px; font-weight: 400; text-transform: uppercase; letter-spacing: 1.5px; color: #999; }
+    .form-row { display: grid; gap: 8px; margin-bottom: 8px; }
+    .form-row.cols-2 { grid-template-columns: 1fr 1fr; }
+    .form-group { display: flex; flex-direction: column; }
+    .form-group label { margin-bottom: 4px; font-weight: 400; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #999; }
+    .form-group input, .form-group select { padding: 8px; font-family: aktiv-grotesk, -apple-system, sans-serif; font-size: 13px; border: 1px solid #ccc; border-radius: 0; background: white; width: 100%; }
+    .form-group input:focus, .form-group select:focus { outline: none; border-color: #000; }
+    .lock-row { display: flex; align-items: flex-end; gap: 4px; }
+    .lock-row .form-group { flex: 1; }
+    .lock-btn { width: 28px; height: 33px; display: flex; align-items: center; justify-content: center; border: 1px solid #ccc; background: white; cursor: pointer; font-size: 13px; padding: 0; flex-shrink: 0; border-radius: 0; }
+    .lock-btn:hover { border-color: #000; }
+    .lock-btn.locked { background: #333; color: white; border-color: #333; }
+    .corner-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .corner-item { display: flex; align-items: center; gap: 6px; }
+    .corner-swatch { width: 28px; height: 28px; flex-shrink: 0; border: 1px solid rgba(0,0,0,0.15); }
+    .corner-item .corner-details { flex: 1; min-width: 0; }
+    .corner-item .corner-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; color: #999; margin-bottom: 2px; }
+    .corner-item select { padding: 3px 4px; font-family: aktiv-grotesk, -apple-system, sans-serif; font-size: 10px; border: 1px solid #ccc; border-radius: 0; background: white; width: 100%; cursor: pointer; }
+    .corner-item select:focus { outline: none; border-color: #000; }
+    .corner-lock { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; border: 1px solid #ccc; background: white; cursor: pointer; font-size: 11px; padding: 0; flex-shrink: 0; border-radius: 0; }
+    .corner-lock:hover { border-color: #000; }
+    .corner-lock.locked { background: #333; color: white; border-color: #333; }
+    button { font-family: aktiv-grotesk, -apple-system, sans-serif; border-radius: 0; cursor: pointer; }
+    .btn { padding: 10px 14px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; background: white; color: #333; border: 1px solid #333; width: 100%; transition: background 0.1s, color 0.1s; }
+    .btn:hover { background: #333; color: white; }
+    .btn.active { background: #333; color: white; }
+    .btn-row { display: grid; gap: 8px; }
+    .btn-row.cols-2 { grid-template-columns: 1fr 1fr; }
+    .btn-row.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .btn-row.cols-6 { grid-template-columns: repeat(6, 1fr); }
+    .gallery-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .gallery-header h3 { margin: 0; font-size: 11px; font-weight: 400; text-transform: uppercase; letter-spacing: 1.5px; color: #999; }
+    .gallery-count { font-size: 11px; color: #999; }
+    .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 12px; }
+    .thumb { cursor: pointer; border: 2px solid transparent; position: relative; background: #f0f0f0; }
+    .thumb:hover { border-color: #aaa; }
+    .thumb.selected { border-color: #000; }
+    .thumb canvas { width: 100% !important; height: auto !important; display: block; }
+    .thumb-swatches { display: flex; height: 6px; }
+    .thumb-swatches div { flex: 1; }
+    .thumb-info { padding: 3px 6px; font-size: 10px; color: #999; display: flex; justify-content: space-between; align-items: center; }
+    .thumb-fav { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.85); border: none; cursor: pointer; font-size: 14px; color: #ccc; padding: 0; position: absolute; top: 4px; right: 4px; z-index: 2; border-radius: 0; }
+    .thumb-fav:hover { color: #e33; }
+    .thumb-fav.favorited { color: #e33; }
+    .detail-layout { display: flex; gap: 30px; align-items: flex-start; flex-wrap: wrap; }
+    .detail-preview { flex-shrink: 0; }
+    .detail-sidebar { flex: 1; min-width: 260px; }
+    .detail-corners { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+    .detail-corner { display: flex; align-items: center; gap: 8px; }
+    .detail-corner-swatch { width: 36px; height: 36px; flex-shrink: 0; border: 1px solid rgba(0,0,0,0.15); }
+    .detail-corner-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; color: #999; margin-bottom: 2px; }
+    .detail-corner-name { font-size: 11px; }
+    .detail-meta { font-size: 12px; color: #666; margin-bottom: 16px; line-height: 1.8; }
+    .back-btn { padding: 8px 14px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; background: white; color: #333; border: 1px solid #333; margin-bottom: 16px; border-radius: 0; }
+    .back-btn:hover { background: #333; color: white; }
+    #detail-svg-container { display: none; }
+    #detail-svg-container svg { display: block; background: white; }
+    .fav-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+    .fav-header h3 { margin: 0; font-size: 11px; font-weight: 400; text-transform: uppercase; letter-spacing: 1.5px; color: #999; }
+    .fav-actions { display: flex; gap: 6px; }
+    .fav-actions button { padding: 3px 8px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; background: white; color: #333; border: 1px solid #ccc; border-radius: 0; }
+    .fav-actions button:hover { background: #333; color: white; }
+    .fav-scroll { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; min-height: 36px; }
+    .fav-thumb { flex-shrink: 0; width: 52px; cursor: pointer; position: relative; border: 2px solid transparent; }
+    .fav-thumb.selected { border-color: #000; }
+    .fav-thumb canvas { width: 52px !important; height: auto !important; display: block; }
+    .fav-thumb-swatches { display: flex; height: 3px; }
+    .fav-thumb-swatches div { flex: 1; }
+    .fav-remove { position: absolute; top: 0; right: 0; width: 14px; height: 14px; background: rgba(0,0,0,0.6); color: white; border: none; font-size: 9px; cursor: pointer; display: none; align-items: center; justify-content: center; padding: 0; border-radius: 0; }
+    .fav-thumb:hover .fav-remove { display: flex; }
+    #p5-hidden { display: none; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #ccc; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="sidebar">
+      <div class="section">
+        <h3>Image Size</h3>
+        <div class="form-row cols-2">
+          <div class="lock-row">
+            <div class="form-group"><label>Width (mm)</label><input type="number" id="param-width" value="100" step="25" min="25"></div>
+            <button class="lock-btn" data-lock="width" onclick="toggleLock('width')">🔓</button>
+          </div>
+          <div class="lock-row">
+            <div class="form-group"><label>Height (mm)</label><input type="number" id="param-height" value="100" step="25" min="25"></div>
+            <button class="lock-btn" data-lock="height" onclick="toggleLock('height')">🔓</button>
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <h3>Grid</h3>
+        <div class="form-row cols-2">
+          <div class="lock-row">
+            <div class="form-group"><label>Columns</label><input type="number" id="param-cols" value="4" step="1" min="1"></div>
+            <button class="lock-btn" data-lock="cols" onclick="toggleLock('cols')">🔓</button>
+          </div>
+          <div class="lock-row">
+            <div class="form-group"><label>Rows</label><input type="number" id="param-rows" value="4" step="1" min="1"></div>
+            <button class="lock-btn" data-lock="rows" onclick="toggleLock('rows')">🔓</button>
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <h3>Line Parameters</h3>
+        <div class="lock-row" style="margin-bottom:8px;">
+          <div class="form-group"><label>Lines / 25mm</label><input type="number" id="param-linesPerUnit" value="30" step="1" min="1"></div>
+          <button class="lock-btn" data-lock="linesPerUnit" onclick="toggleLock('linesPerUnit')">🔓</button>
+        </div>
+        <div class="form-row cols-2">
+          <div class="lock-row">
+            <div class="form-group"><label>Density Curve</label><input type="number" id="param-curve" value="1" step="0.1" min="1" max="7"></div>
+            <button class="lock-btn" data-lock="curve" onclick="toggleLock('curve')">🔓</button>
+          </div>
+          <div class="lock-row">
+            <div class="form-group"><label>Sharpen (mm)</label><input type="number" id="param-sharpen" value="1250" step="50" min="100"></div>
+            <button class="lock-btn" data-lock="sharpen" onclick="toggleLock('sharpen')">🔓</button>
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <h3>Pencil Assignment</h3>
+        <div class="corner-grid">
+          <div class="corner-item"><div class="corner-swatch" id="sb-sw-p1"></div><div class="corner-details"><div class="corner-label">p1 — TL</div><select id="sb-sel-p1" onchange="onSbColor('p1')"></select></div><button class="corner-lock" data-lock="p1" onclick="toggleLock('p1')">🔓</button></div>
+          <div class="corner-item"><div class="corner-swatch" id="sb-sw-p2"></div><div class="corner-details"><div class="corner-label">p2 — TR</div><select id="sb-sel-p2" onchange="onSbColor('p2')"></select></div><button class="corner-lock" data-lock="p2" onclick="toggleLock('p2')">🔓</button></div>
+          <div class="corner-item"><div class="corner-swatch" id="sb-sw-p4"></div><div class="corner-details"><div class="corner-label">p4 — BL</div><select id="sb-sel-p4" onchange="onSbColor('p4')"></select></div><button class="corner-lock" data-lock="p4" onclick="toggleLock('p4')">🔓</button></div>
+          <div class="corner-item"><div class="corner-swatch" id="sb-sw-p3"></div><div class="corner-details"><div class="corner-label">p3 — BR</div><select id="sb-sel-p3" onchange="onSbColor('p3')"></select></div><button class="corner-lock" data-lock="p3" onclick="toggleLock('p3')">🔓</button></div>
+        </div>
+      </div>
+      <div class="section">
+        <button class="btn" onclick="generateBatch()">Generate 24</button>
+        <div style="margin-top:6px;font-size:10px;color:#aaa;text-align:center;">Lock params → only unlocked values vary</div>
+      </div>
+    </div>
+    <div class="main-area">
+      <div class="gallery-area" id="gallery-area">
+        <div class="gallery-header"><h3>Compositions</h3><span class="gallery-count" id="gallery-count"></span></div>
+        <div class="gallery-grid" id="gallery-grid"></div>
+      </div>
+      <div class="detail-area" id="detail-area">
+        <button class="back-btn" onclick="showGallery()">← Back to Gallery</button>
+        <div class="detail-layout">
+          <div class="detail-preview">
+            <div id="detail-canvas-container"></div>
+            <div id="detail-svg-container"></div>
+            <div class="btn-row cols-6" style="margin-top:8px;" id="detail-preview-btns">
+              <button class="btn active" onclick="detailShowBlend()">Blend</button>
+              <button class="btn" onclick="detailShowCorner('p1')">p1</button>
+              <button class="btn" onclick="detailShowCorner('p2')">p2</button>
+              <button class="btn" onclick="detailShowCorner('p3')">p3</button>
+              <button class="btn" onclick="detailShowCorner('p4')">p4</button>
+              <button class="btn" onclick="detailShowOutline()">Outline</button>
+            </div>
+          </div>
+          <div class="detail-sidebar">
+            <div class="section"><h3>Colors</h3><div class="detail-corners" id="detail-corners"></div></div>
+            <div class="section"><h3>Parameters</h3><div class="detail-meta" id="detail-meta"></div></div>
+            <div class="section"><h3>Download SVG</h3><div class="btn-row cols-3" id="detail-dl-btns"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="favorites-strip">
+        <div class="fav-header"><h3>Shortlist (<span id="fav-count">0</span>)</h3><div class="fav-actions"><button onclick="exportFavorites()">Export JSON</button><button onclick="clearFavorites()">Clear All</button></div></div>
+        <div class="fav-scroll" id="fav-scroll"></div>
+      </div>
+    </div>
+  </div>
+  <div id="p5-hidden"></div>
+  <script>
+    // ═══════════════════════════════════════
+    // MATERIALS (exact from v4)
+    // ═══════════════════════════════════════
+    const materials = [
+      { hsb: [359, 78, 85], name: "070 Scarlet" },
+      { hsb: [10, 79, 97], name: "060 Vermilion" },
+      { hsb: [19, 80, 100], name: "040 Reddish Orange" },
+      { hsb: [33, 97, 100], name: "030 Orange" },
+      { hsb: [38, 99, 100], name: "300 Fast Orange" },
+      { hsb: [45, 100, 100], name: "020 Golden Yellow" },
+      { hsb: [50, 100, 100], name: "010 Yellow" },
+      { hsb: [54, 77, 97], name: "250 Canary Yellow" },
+      { hsb: [59, 68, 94], name: "240 Lemon Yellow" },
+      { hsb: [71, 65, 90], name: "470 Spring Green" },
+      { hsb: [95, 60, 88], name: "230 Yellow Green" },
+      { hsb: [163, 100, 69], name: "201 Veronese Green" },
+      { hsb: [180, 100, 73], name: "191 Turquoise Green" },
+      { hsb: [189, 100, 81], name: "171 Turquoise Blue" },
+      { hsb: [200, 93, 88], name: "161 Light Blue" },
+      { hsb: [205, 100, 75], name: "370 Gentian Blue" },
+      { hsb: [209, 100, 63], name: "260 Blue" },
+      { hsb: [236, 69, 56], name: "140 Ultramarine" },
+      { hsb: [243, 51, 56], name: "130 Royal Blue" },
+      { hsb: [261, 54, 48], name: "120 Violet" },
+      { hsb: [297, 46, 54], name: "110 Lilac" },
+      { hsb: [325, 61, 66], name: "100 Purple Violet" },
+      { hsb: [343, 80, 79], name: "080 Carmine" },
+      { hsb: [352, 77, 88], name: "280 Ruby Red" },
+    ];
+
+    // ═══════════════════════════════════════
+    // RANDOM CLASS (exact from v4)
+    // ═══════════════════════════════════════
+    class Random {
+      constructor(token) {
+        this.useA = false;
+        let sfc32 = function(uint128Hex) {
+          let a = parseInt(uint128Hex.substr(0, 8), 16);
+          let b = parseInt(uint128Hex.substr(8, 8), 16);
+          let c = parseInt(uint128Hex.substr(16, 8), 16);
+          let d = parseInt(uint128Hex.substr(24, 8), 16);
+          return function() {
+            a |= 0; b |= 0; c |= 0; d |= 0;
+            let t = (((a + b) | 0) + d) | 0;
+            d = (d + 1) | 0;
+            a = b ^ (b >>> 9);
+            b = (c + (c << 3)) | 0;
+            c = (c << 21) | (c >>> 11);
+            c = (c + t) | 0;
+            return (t >>> 0) / 4294967296;
+          };
+        };
+        this.prngA = new sfc32(token.substr(2, 32));
+        this.prngB = new sfc32(token.substr(34, 32));
+        for (let i = 0; i < 1e6; i += 2) {
+          this.prngA();
+          this.prngB();
+        }
+      }
+      random_dec() {
+        this.useA = !this.useA;
+        return this.useA ? this.prngA() : this.prngB();
+      }
+      random_num(a, b) { return a + (b - a) * this.random_dec(); }
+      random_int(a, b) { return Math.floor(this.random_num(a, b + 1)); }
+      random_bool(p) { return this.random_dec() < p; }
+    }
+
+    // ═══════════════════════════════════════
+    // COLOR MATH (exact from v4)
+    // ═══════════════════════════════════════
+    function rgbToLab(c) {
+      let r = red(c)/255, g = green(c)/255, b = blue(c)/255;
+      r = r > 0.04045 ? Math.pow((r+0.055)/1.055, 2.4) : r/12.92;
+      g = g > 0.04045 ? Math.pow((g+0.055)/1.055, 2.4) : g/12.92;
+      b = b > 0.04045 ? Math.pow((b+0.055)/1.055, 2.4) : b/12.92;
+      let x = (r*0.4124+g*0.3576+b*0.1805)*100;
+      let y = (r*0.2126+g*0.7152+b*0.0722)*100;
+      let z = (r*0.0193+g*0.1192+b*0.9505)*100;
+      x /= 95.047; y /= 100; z /= 108.883;
+      x = x > 0.008856 ? Math.pow(x,1/3) : (7.787*x)+16/116;
+      y = y > 0.008856 ? Math.pow(y,1/3) : (7.787*y)+16/116;
+      z = z > 0.008856 ? Math.pow(z,1/3) : (7.787*z)+16/116;
+      return [(116*y)-16, 500*(x-y), 200*(y-z)];
+    }
+
+    function labToRgb(lab) {
+      let y = (lab[0]+16)/116, x = lab[1]/500+y, z = y-lab[2]/200;
+      y = Math.pow(y,3) > 0.008856 ? Math.pow(y,3) : (y-16/116)/7.787;
+      x = Math.pow(x,3) > 0.008856 ? Math.pow(x,3) : (x-16/116)/7.787;
+      z = Math.pow(z,3) > 0.008856 ? Math.pow(z,3) : (z-16/116)/7.787;
+      x *= 95.047; y *= 100; z *= 108.883;
+      let r = (x*3.2406+y*-1.5372+z*-0.4986)/100;
+      let g = (x*-0.9689+y*1.8758+z*0.0415)/100;
+      let b = (x*0.0557+y*-0.2040+z*1.0570)/100;
+      r = r > 0.0031308 ? 1.055*Math.pow(r,1/2.4)-0.055 : 12.92*r;
+      g = g > 0.0031308 ? 1.055*Math.pow(g,1/2.4)-0.055 : 12.92*g;
+      b = b > 0.0031308 ? 1.055*Math.pow(b,1/2.4)-0.055 : 12.92*b;
+      return color(Math.max(0,Math.min(255,Math.round(r*255))),Math.max(0,Math.min(255,Math.round(g*255))),Math.max(0,Math.min(255,Math.round(b*255))));
+    }
+
+    function betterLerp(c1, c2, t) {
+      let a1 = rgbToLab(c1), a2 = rgbToLab(c2);
+      return labToRgb([a1[0]+t*(a2[0]-a1[0]), a1[1]+t*(a2[1]-a1[1]), a1[2]+t*(a2[2]-a1[2])]);
+    }
+
+    // ═══════════════════════════════════════
+    // LINE GENERATION (exact from v4)
+    // ═══════════════════════════════════════
+    function generateVerticalLines(cellX, cellY, cellWidth, cellHeight, coverage, lineWidth) {
+      const lines = [];
+      const numLines = Math.max(1, Math.round(coverage * cellWidth / lineWidth));
+      const blankSpace = cellWidth - numLines * lineWidth;
+      const gapUnit = blankSpace / numLines;
+      const firstCenter = gapUnit / 2 + lineWidth / 2;
+      const centerToCenter = lineWidth + gapUnit;
+      for (let i = 0; i < numLines; i++) {
+        const x = cellX + firstCenter + i * centerToCenter;
+        lines.push({ x1: x, y1: cellY, x2: x, y2: cellY + cellHeight });
+      }
+      return lines;
+    }
+
+    function generateHorizontalLines(cellX, cellY, cellWidth, cellHeight, coverage, lineWidth) {
+      const lines = [];
+      const numLines = Math.max(1, Math.round(coverage * cellHeight / lineWidth));
+      const blankSpace = cellHeight - numLines * lineWidth;
+      const gapUnit = blankSpace / numLines;
+      const firstCenter = gapUnit / 2 + lineWidth / 2;
+      const centerToCenter = lineWidth + gapUnit;
+      for (let i = 0; i < numLines; i++) {
+        const y = cellY + firstCenter + i * centerToCenter;
+        lines.push({ x1: cellX, y1: y, x2: cellX + cellWidth, y2: y });
+      }
+      return lines;
+    }
+
+    function dedupePoints(points) {
+      const unique = [];
+      const epsilon = 0.0001;
+      for (const p of points) {
+        let isDupe = false;
+        for (const u of unique) {
+          if (Math.abs(p.x - u.x) < epsilon && Math.abs(p.y - u.y) < epsilon) { isDupe = true; break; }
+        }
+        if (!isDupe) unique.push(p);
+      }
+      return unique;
+    }
+
+    function clipDiagonalDown(cellX, cellY, cellWidth, cellHeight, c) {
+      let points = [];
+      let y = cellY + c;
+      if (y >= cellY && y <= cellY + cellHeight) points.push({ x: cellX, y: y });
+      y = cellY + c + cellWidth;
+      if (y >= cellY && y <= cellY + cellHeight) points.push({ x: cellX + cellWidth, y: y });
+      let x = cellX - c;
+      if (x >= cellX && x <= cellX + cellWidth) points.push({ x: x, y: cellY });
+      x = cellX + cellHeight - c;
+      if (x >= cellX && x <= cellX + cellWidth) points.push({ x: x, y: cellY + cellHeight });
+      points = dedupePoints(points);
+      if (points.length >= 2) {
+        points.sort((a, b) => a.y - b.y || a.x - b.x);
+        return { x1: points[0].x, y1: points[0].y, x2: points[1].x, y2: points[1].y };
+      }
+      return null;
+    }
+
+    function generateDiagonalDownLines(cellX, cellY, cellWidth, cellHeight, coverage, lineWidth) {
+      const lines = [];
+      const minC = -cellWidth;
+      const maxC = cellHeight;
+      const span = maxC - minC;
+      const effectiveLineWidth = lineWidth * Math.SQRT2;
+      const numLines = Math.max(1, Math.round(coverage * span / effectiveLineWidth));
+      const blankSpace = span - numLines * effectiveLineWidth;
+      const gapUnit = blankSpace / numLines;
+      const firstC = minC + gapUnit / 2 + effectiveLineWidth / 2;
+      const centerToCenter = effectiveLineWidth + gapUnit;
+      for (let i = 0; i < numLines; i++) {
+        const c = firstC + i * centerToCenter;
+        const line = clipDiagonalDown(cellX, cellY, cellWidth, cellHeight, c);
+        if (line) lines.push(line);
+      }
+      return lines;
+    }
+
+    function clipDiagonalUp(cellX, cellY, cellWidth, cellHeight, c) {
+      let points = [];
+      let y = cellY + c;
+      if (y >= cellY && y <= cellY + cellHeight) points.push({ x: cellX, y: y });
+      y = cellY + c - cellWidth;
+      if (y >= cellY && y <= cellY + cellHeight) points.push({ x: cellX + cellWidth, y: y });
+      let x = cellX + c;
+      if (x >= cellX && x <= cellX + cellWidth) points.push({ x: x, y: cellY });
+      x = cellX + c - cellHeight;
+      if (x >= cellX && x <= cellX + cellWidth) points.push({ x: x, y: cellY + cellHeight });
+      points = dedupePoints(points);
+      if (points.length >= 2) {
+        points.sort((a, b) => a.y - b.y || a.x - b.x);
+        return { x1: points[1].x, y1: points[1].y, x2: points[0].x, y2: points[0].y };
+      }
+      return null;
+    }
+
+    function generateDiagonalUpLines(cellX, cellY, cellWidth, cellHeight, coverage, lineWidth) {
+      const lines = [];
+      const minC = 0;
+      const maxC = cellWidth + cellHeight;
+      const span = maxC - minC;
+      const effectiveLineWidth = lineWidth * Math.SQRT2;
+      const numLines = Math.max(1, Math.round(coverage * span / effectiveLineWidth));
+      const blankSpace = span - numLines * effectiveLineWidth;
+      const gapUnit = blankSpace / numLines;
+      const firstC = minC + gapUnit / 2 + effectiveLineWidth / 2;
+      const centerToCenter = effectiveLineWidth + gapUnit;
+      for (let i = 0; i < numLines; i++) {
+        const c = firstC + i * centerToCenter;
+        const line = clipDiagonalUp(cellX, cellY, cellWidth, cellHeight, c);
+        if (line) lines.push(line);
+      }
+      return lines;
+    }
+
+    // ═══════════════════════════════════════
+    // CELL DATA + BATCH PACKING (exact from v4)
+    // ═══════════════════════════════════════
+    function lineDistance(line) {
+      const dx = line.x2 - line.x1, dy = line.y2 - line.y1;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    function generateCellData(imgWidth, imgHeight, horizSubs, vertSubs, cellWidth, cellHeight, corner, lineWidth, curveExp) {
+      const cells = [];
+      for (let row = 0; row < vertSubs; row++) {
+        for (let col = 0; col < horizSubs; col++) {
+          const nx = horizSubs > 1 ? col / (horizSubs - 1) : 0.5;
+          const ny = vertSubs > 1 ? row / (vertSubs - 1) : 0.5;
+          let weight;
+          switch (corner) {
+            case 'p1': weight = (1 - nx) * (1 - ny); break;
+            case 'p2': weight = nx * (1 - ny); break;
+            case 'p3': weight = nx * ny; break;
+            case 'p4': weight = (1 - nx) * ny; break;
+          }
+          if (weight > 0.001) {
+            const cellX = col * cellWidth;
+            const cellY = row * cellHeight;
+            const coverage = 1 - Math.pow(1 - weight, curveExp);
+            let lines;
+            switch (corner) {
+              case 'p1': lines = generateVerticalLines(cellX, cellY, cellWidth, cellHeight, coverage, lineWidth); break;
+              case 'p2': lines = generateDiagonalDownLines(cellX, cellY, cellWidth, cellHeight, coverage, lineWidth); break;
+              case 'p3': lines = generateHorizontalLines(cellX, cellY, cellWidth, cellHeight, coverage, lineWidth); break;
+              case 'p4': lines = generateDiagonalUpLines(cellX, cellY, cellWidth, cellHeight, coverage, lineWidth); break;
+            }
+            const distance = lines.reduce((sum, l) => sum + lineDistance(l), 0);
+            cells.push({ col, row, lines, distance });
+          }
+        }
+      }
+      return cells;
+    }
+
+    function packBatches(cells, maxDistance) {
+      const remaining = cells.map((cell, i) => ({ ...cell, index: i }));
+      remaining.sort((a, b) => b.distance - a.distance);
+      const used = new Set();
+      const batches = [];
+      for (let i = 0; i < remaining.length; i++) {
+        if (used.has(i)) continue;
+        used.add(i);
+        const batch = { cells: [remaining[i]], distance: remaining[i].distance };
+        for (let j = i + 1; j < remaining.length; j++) {
+          if (used.has(j)) continue;
+          if (batch.distance + remaining[j].distance <= maxDistance) {
+            used.add(j);
+            batch.cells.push(remaining[j]);
+            batch.distance += remaining[j].distance;
+          }
+        }
+        batches.push(batch);
+      }
+      return batches;
+    }
+
+    // ═══════════════════════════════════════
+    // SVG BUILDING (exact from v4)
+    // ═══════════════════════════════════════
+    function buildSVG(width, height, lines) {
+      const lineElements = lines.map(l =>
+        '  <line x1="'+l.x1.toFixed(6)+'" y1="'+l.y1.toFixed(6)+'" x2="'+l.x2.toFixed(6)+'" y2="'+l.y2.toFixed(6)+'"/>'
+      ).join('\n');
+      return '<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="'+width+'mm" height="'+height+'mm" viewBox="0 0 '+width+' '+height+'">\n  <rect x="0" y="0" width="'+width+'" height="'+height+'" fill="none" stroke="none"/>\n  <g stroke="black" stroke-width="1" stroke-linecap="butt">\n'+lineElements+'\n  </g>\n</svg>';
+    }
+
+    function buildBatchedSVG(width, height, batches) {
+      const batchGroups = batches.map((batch, i) => {
+        const lineElements = batch.cells.flatMap(cell => cell.lines)
+          .map(l => '      <line x1="'+l.x1.toFixed(6)+'" y1="'+l.y1.toFixed(6)+'" x2="'+l.x2.toFixed(6)+'" y2="'+l.y2.toFixed(6)+'"/>')
+          .join('\n');
+        const cellList = batch.cells.map(c => '('+c.col+','+c.row+')').join(' ');
+        return '    <g id="batch-'+(i+1)+'" data-distance="'+Math.round(batch.distance)+'" data-cells="'+cellList+'">\n'+lineElements+'\n    </g>';
+      }).join('\n');
+      return '<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="'+width+'mm" height="'+height+'mm" viewBox="0 0 '+width+' '+height+'">\n  <rect x="0" y="0" width="'+width+'" height="'+height+'" fill="none" stroke="none"/>\n  <g stroke="black" stroke-width="1" stroke-linecap="butt">\n'+batchGroups+'\n  </g>\n</svg>';
+    }
+
+    function downloadSVG(filename, content) {
+      const blob = new Blob([content], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // ═══════════════════════════════════════
+    // COLOR SELECTION (exact from v4)
+    // ═══════════════════════════════════════
+    function hasConsecutivePair(indices) {
+      const n = materials.length;
+      for (let i = 0; i < indices.length; i++) {
+        const j = (i + 1) % indices.length;
+        const diff = Math.abs(indices[i] - indices[j]);
+        if (diff === 1 || diff === n - 1) return true;
+      }
+      return false;
+    }
+
+    function selectColors(R) {
+      colorMode(HSB);
+      let selected;
+      let attempts = 0;
+      do {
+        let availableIndices = [...Array(materials.length).keys()];
+        let pickedIndices = [];
+        for (let i = 0; i < 4; i++) {
+          let idx = R.random_int(0, availableIndices.length - 1);
+          pickedIndices.push(availableIndices.splice(idx, 1)[0]);
+        }
+        selected = pickedIndices.map(i => ({
+          color: color(materials[i].hsb[0], materials[i].hsb[1], materials[i].hsb[2]),
+          name: materials[i].name,
+          materialIndex: i
+        }));
+        selected.sort((a, b) => hue(a.color) - hue(b.color));
+        let rotation = R.random_int(0, 3);
+        for (let i = 0; i < rotation; i++) selected.push(selected.shift());
+        if (R.random_bool(0.5)) selected.reverse();
+        attempts++;
+      } while (hasConsecutivePair(selected.map(s => s.materialIndex)) && attempts < 100);
+      return selected;
+    }
+
+    function makeToken() {
+      return "0x" + Array(64).fill(0).map(() => "0123456789abcdef"[Math.floor(Math.random() * 16)]).join("");
+    }
+
+    // ═══════════════════════════════════════
+    // GLOBAL STATE
+    // ═══════════════════════════════════════
+    let compositions = [];
+    let favorites = [];
+    let selectedIdx = -1;
+    let detailComp = null;
+    let detailCanvas = null;
+
+    const locks = {
+      width: false, height: false, cols: false, rows: false,
+      linesPerUnit: false, curve: false, sharpen: false,
+      p1: false, p2: false, p3: false, p4: false
+    };
+
+    // ═══════════════════════════════════════
+    // P5 SETUP
+    // ═══════════════════════════════════════
+    function setup() {
+      let c = createCanvas(1, 1);
+      c.parent('p5-hidden');
+      colorMode(HSB);
+      noLoop();
+      populateSidebarDropdowns();
+      loadFavorites();
+      generateBatch();
+    }
+    function draw() {}
+
+    function populateSidebarDropdowns() {
+      for (const corner of ['p1','p2','p3','p4']) {
+        const sel = document.getElementById('sb-sel-' + corner);
+        sel.innerHTML = '';
+        for (const m of materials) {
+          const opt = document.createElement('option');
+          opt.value = m.name; opt.textContent = m.name;
+          sel.appendChild(opt);
+        }
+      }
+    }
+
+    // ═══════════════════════════════════════
+    // LOCK SYSTEM
+    // ═══════════════════════════════════════
+    function toggleLock(key) {
+      locks[key] = !locks[key];
+      const btns = document.querySelectorAll('[data-lock="' + key + '"]');
+      btns.forEach(btn => {
+        btn.classList.toggle('locked', locks[key]);
+        btn.textContent = locks[key] ? '🔒' : '🔓';
+      });
+    }
+
+    function onSbColor(corner) {
+      // When user manually picks a color in sidebar, lock it
+      if (!locks[corner]) toggleLock(corner);
+    }
+
+    function getLockedColors() {
+      const result = {};
+      for (const c of ['p1','p2','p3','p4']) {
+        if (locks[c]) {
+          const name = document.getElementById('sb-sel-' + c).value;
+          const mat = materials.find(m => m.name === name);
+          colorMode(HSB);
+          result[c] = { color: color(mat.hsb[0], mat.hsb[1], mat.hsb[2]), name: mat.name };
+        }
+      }
+      return result;
+    }
+
+    function getParam(key, defaultVal) {
+      return parseFloat(document.getElementById('param-' + key).value) || defaultVal;
+    }
+
+    // ═══════════════════════════════════════
+    // COMPOSITION GENERATION
+    // ═══════════════════════════════════════
+    function generateComposition() {
+      const token = makeToken();
+      const R = new Random(token);
+
+      // Grid params — use locked values or randomize
+      const imgW = locks.width ? getParam('width', 100) : [50, 75, 100, 125, 150, 200][Math.floor(Math.random() * 6)];
+      const imgH = locks.height ? getParam('height', 100) : [50, 75, 100, 125, 150, 200][Math.floor(Math.random() * 6)];
+      const cols = locks.cols ? getParam('cols', 4) : Math.floor(Math.random() * 8) + 2;
+      const rows = locks.rows ? getParam('rows', 4) : Math.floor(Math.random() * 8) + 2;
+      const lpu = locks.linesPerUnit ? getParam('linesPerUnit', 30) : getParam('linesPerUnit', 30);
+      const curve = locks.curve ? getParam('curve', 1) : getParam('curve', 1);
+      const sharpen = locks.sharpen ? getParam('sharpen', 1250) : getParam('sharpen', 1250);
+
+      // Colors — use locked or generate via algorithm
+      const lockedColors = getLockedColors();
+      let colors;
+
+      const allColorsLocked = locks.p1 && locks.p2 && locks.p3 && locks.p4;
+      const noColorsLocked = !locks.p1 && !locks.p2 && !locks.p3 && !locks.p4;
+
+      if (allColorsLocked) {
+        colors = {
+          p1: lockedColors.p1,
+          p2: lockedColors.p2,
+          p3: lockedColors.p3,
+          p4: lockedColors.p4
+        };
+      } else if (noColorsLocked) {
+        const sel = selectColors(R);
+        colors = {
+          p1: { color: sel[0].color, name: sel[0].name },
+          p2: { color: sel[1].color, name: sel[1].name },
+          p3: { color: sel[2].color, name: sel[2].name },
+          p4: { color: sel[3].color, name: sel[3].name },
+        };
+      } else {
+        // Partial lock: generate full set then replace locked ones
+        const sel = selectColors(R);
+        colors = {
+          p1: locks.p1 ? lockedColors.p1 : { color: sel[0].color, name: sel[0].name },
+          p2: locks.p2 ? lockedColors.p2 : { color: sel[1].color, name: sel[1].name },
+          p3: locks.p3 ? lockedColors.p3 : { color: sel[2].color, name: sel[2].name },
+          p4: locks.p4 ? lockedColors.p4 : { color: sel[3].color, name: sel[3].name },
+        };
+      }
+
+      return {
+        token, imgW, imgH, cols, rows, lpu, curve, sharpen, colors,
+        id: token.substr(2, 8)
+      };
+    }
+
+    // ═══════════════════════════════════════
+    // THUMBNAIL RENDERING
+    // ═══════════════════════════════════════
+    function renderThumbCanvas(comp, size) {
+      const g = createGraphics(size, size);
+      g.colorMode(RGB);
+      g.noStroke();
+
+      const w = comp.imgW, h = comp.imgH;
+      const scale = size / Math.max(w, h);
+      const pw = w * scale, ph = h * scale;
+      const ox = (size - pw) / 2, oy = (size - ph) / 2;
+
+      g.background(200);
+
+      for (let row = 0; row < comp.rows; row++) {
+        for (let col = 0; col < comp.cols; col++) {
+          let nx = comp.cols > 1 ? col / (comp.cols - 1) : 0.5;
+          let ny = comp.rows > 1 ? row / (comp.rows - 1) : 0.5;
+          let topC = betterLerp(comp.colors.p1.color, comp.colors.p2.color, nx);
+          let botC = betterLerp(comp.colors.p4.color, comp.colors.p3.color, nx);
+          let c = betterLerp(topC, botC, ny);
+          g.fill(red(c), green(c), blue(c));
+          g.rect(ox + col * pw / comp.cols, oy + row * ph / comp.rows, pw / comp.cols + 1, ph / comp.rows + 1);
+        }
+      }
+      return g;
+    }
+
+    function colorToRgbStr(c) {
+      return 'rgb(' + Math.round(red(c)) + ',' + Math.round(green(c)) + ',' + Math.round(blue(c)) + ')';
+    }
+
+    // ═══════════════════════════════════════
+    // BATCH GENERATION
+    // ═══════════════════════════════════════
+    function generateBatch() {
+      compositions = [];
+      selectedIdx = -1;
+      const count = 24;
+
+      for (let i = 0; i < count; i++) {
+        compositions.push(generateComposition());
+      }
+
+      // Update sidebar swatches from first composition
+      if (compositions.length > 0) {
+        updateSidebarFromComp(compositions[0]);
+      }
+
+      renderGallery();
+    }
+
+    function updateSidebarFromComp(comp) {
+      for (const c of ['p1','p2','p3','p4']) {
+        if (!locks[c]) {
+          document.getElementById('sb-sw-' + c).style.backgroundColor = colorToRgbStr(comp.colors[c].color);
+          document.getElementById('sb-sel-' + c).value = comp.colors[c].name;
+        }
+      }
+    }
+
+    // ═══════════════════════════════════════
+    // GALLERY RENDERING
+    // ═══════════════════════════════════════
+    function renderGallery() {
+      const grid = document.getElementById('gallery-grid');
+      grid.innerHTML = '';
+      document.getElementById('gallery-count').textContent = compositions.length + ' compositions';
+
+      compositions.forEach((comp, idx) => {
+        const thumb = document.createElement('div');
+        thumb.className = 'thumb' + (idx === selectedIdx ? ' selected' : '');
+        thumb.onclick = (e) => {
+          if (e.target.closest('.thumb-fav')) return;
+          selectThumb(idx);
+        };
+
+        // Fav button
+        const favBtn = document.createElement('button');
+        favBtn.className = 'thumb-fav' + (isFavorite(comp.id) ? ' favorited' : '');
+        favBtn.textContent = isFavorite(comp.id) ? '♥' : '♡';
+        favBtn.onclick = (e) => {
+          e.stopPropagation();
+          toggleFavorite(comp, idx);
+        };
+        thumb.appendChild(favBtn);
+
+        // Canvas
+        const g = renderThumbCanvas(comp, 200);
+        thumb.appendChild(g.canvas);
+
+        // Swatches
+        const swatches = document.createElement('div');
+        swatches.className = 'thumb-swatches';
+        for (const c of ['p1','p2','p4','p3']) {
+          const s = document.createElement('div');
+          s.style.backgroundColor = colorToRgbStr(comp.colors[c].color);
+          swatches.appendChild(s);
+        }
+        thumb.appendChild(swatches);
+
+        // Info
+        const info = document.createElement('div');
+        info.className = 'thumb-info';
+        info.innerHTML = '<span>' + comp.cols + '×' + comp.rows + '</span><span>' + comp.imgW + '×' + comp.imgH + 'mm</span>';
+        thumb.appendChild(info);
+
+        grid.appendChild(thumb);
+      });
+    }
+
+    function selectThumb(idx) {
+      selectedIdx = idx;
+      detailComp = compositions[idx];
+      showDetail();
+    }
+
+    // ═══════════════════════════════════════
+    // DETAIL VIEW
+    // ═══════════════════════════════════════
+    function showDetail() {
+      document.getElementById('gallery-area').style.display = 'none';
+      document.getElementById('detail-area').style.display = 'block';
+
+      // Render large preview
+      const container = document.getElementById('detail-canvas-container');
+      container.innerHTML = '';
+      const DSIZE = Math.min(500, window.innerWidth - 400);
+      const g = renderThumbCanvas(detailComp, DSIZE);
+      detailCanvas = g;
+      container.appendChild(g.canvas);
+
+      // Hide SVG container
+      document.getElementById('detail-svg-container').style.display = 'none';
+      container.style.display = 'block';
+
+      // Reset preview buttons
+      const btns = document.getElementById('detail-preview-btns').querySelectorAll('.btn');
+      btns.forEach((b, i) => b.classList.toggle('active', i === 0));
+
+      // Colors
+      const cornersDiv = document.getElementById('detail-corners');
+      cornersDiv.innerHTML = '';
+      const cornerMap = [
+        ['p1', 'Top Left'],
+        ['p2', 'Top Right'],
+        ['p4', 'Bottom Left'],
+        ['p3', 'Bottom Right']
+      ];
+      for (const [key, label] of cornerMap) {
+        const div = document.createElement('div');
+        div.className = 'detail-corner';
+        div.innerHTML = '<div class="detail-corner-swatch" style="background-color:' + colorToRgbStr(detailComp.colors[key].color) + '"></div>'
+          + '<div><div class="detail-corner-label">' + key + ' — ' + label + '</div>'
+          + '<div class="detail-corner-name">' + detailComp.colors[key].name + '</div></div>';
+        cornersDiv.appendChild(div);
+      }
+
+      // Meta
+      document.getElementById('detail-meta').innerHTML =
+        'Grid: ' + detailComp.cols + ' × ' + detailComp.rows + '<br>'
+        + 'Size: ' + detailComp.imgW + ' × ' + detailComp.imgH + ' mm<br>'
+        + 'Lines/25mm: ' + detailComp.lpu + '<br>'
+        + 'Density curve: ' + detailComp.curve + '<br>'
+        + 'Sharpen: ' + detailComp.sharpen + ' mm<br>'
+        + 'Token: ' + detailComp.token.substr(0, 18) + '…';
+
+      // Download buttons
+      const dlDiv = document.getElementById('detail-dl-btns');
+      dlDiv.innerHTML = '';
+      for (const corner of ['p1','p2','p3','p4']) {
+        const btn = document.createElement('button');
+        btn.className = 'btn';
+        btn.innerHTML = '<span style="display:inline-block;width:10px;height:10px;background:' + colorToRgbStr(detailComp.colors[corner].color) + ';border:1px solid rgba(0,0,0,0.2);margin-right:4px;vertical-align:middle;"></span>' + corner;
+        btn.onclick = () => downloadCornerSVG(corner);
+        dlDiv.appendChild(btn);
+      }
+      const outBtn = document.createElement('button');
+      outBtn.className = 'btn';
+      outBtn.textContent = 'Outline';
+      outBtn.onclick = downloadOutlineSVG;
+      dlDiv.appendChild(outBtn);
+      const prevBtn = document.createElement('button');
+      prevBtn.className = 'btn';
+      prevBtn.textContent = 'Preview';
+      prevBtn.onclick = downloadDetailPreview;
+      dlDiv.appendChild(prevBtn);
+    }
+
+    function showGallery() {
+      document.getElementById('gallery-area').style.display = 'block';
+      document.getElementById('detail-area').style.display = 'none';
+      renderGallery();
+    }
+
+    function detailShowBlend() {
+      const container = document.getElementById('detail-canvas-container');
+      document.getElementById('detail-svg-container').style.display = 'none';
+      container.style.display = 'block';
+      container.innerHTML = '';
+      const DSIZE = Math.min(500, window.innerWidth - 400);
+      const g = renderThumbCanvas(detailComp, DSIZE);
+      detailCanvas = g;
+      container.appendChild(g.canvas);
+      setDetailBtn(0);
+    }
+
+    function detailShowCorner(corner) {
+      const idx = { p1: 1, p2: 2, p3: 3, p4: 4 }[corner];
+      setDetailBtn(idx);
+
+      const comp = detailComp;
+      const lw = 25 / comp.lpu;
+      const cellW = comp.imgW / comp.cols;
+      const cellH = comp.imgH / comp.rows;
+      const cells = generateCellData(comp.imgW, comp.imgH, comp.cols, comp.rows, cellW, cellH, corner, lw, comp.curve);
+      const batches = packBatches(cells, comp.sharpen);
+      const svgContent = buildBatchedSVG(comp.imgW, comp.imgH, batches);
+
+      document.getElementById('detail-canvas-container').style.display = 'none';
+      const svgContainer = document.getElementById('detail-svg-container');
+      svgContainer.style.display = 'block';
+      svgContainer.innerHTML = svgContent;
+      const svg = svgContainer.querySelector('svg');
+      if (svg) {
+        const DSIZE = Math.min(500, window.innerWidth - 400);
+        svg.removeAttribute('width');
+        svg.removeAttribute('height');
+        svg.style.width = DSIZE + 'px';
+        svg.style.height = DSIZE + 'px';
+        svg.style.background = 'white';
+      }
+    }
+
+    function detailShowOutline() {
+      setDetailBtn(5);
+      const comp = detailComp;
+      const DSIZE = Math.min(500, window.innerWidth - 400);
+
+      document.getElementById('detail-svg-container').style.display = 'none';
+      const container = document.getElementById('detail-canvas-container');
+      container.style.display = 'block';
+      container.innerHTML = '';
+
+      const g = createGraphics(DSIZE, DSIZE);
+      const scale = DSIZE / Math.max(comp.imgW, comp.imgH);
+      const pw = comp.imgW * scale, ph = comp.imgH * scale;
+      const ox = (DSIZE - pw) / 2, oy = (DSIZE - ph) / 2;
+
+      g.colorMode(RGB);
+      g.background(200);
+      g.noStroke(); g.fill(255);
+      g.rect(ox, oy, pw, ph);
+
+      // Draw blend
+      g.noStroke();
+      for (let row = 0; row < comp.rows; row++) {
+        for (let col = 0; col < comp.cols; col++) {
+          let nx = comp.cols > 1 ? col / (comp.cols - 1) : 0.5;
+          let ny = comp.rows > 1 ? row / (comp.rows - 1) : 0.5;
+          let topC = betterLerp(comp.colors.p1.color, comp.colors.p2.color, nx);
+          let botC = betterLerp(comp.colors.p4.color, comp.colors.p3.color, nx);
+          let c = betterLerp(topC, botC, ny);
+          g.fill(red(c), green(c), blue(c));
+          g.rect(ox + col * pw / comp.cols, oy + row * ph / comp.rows, pw / comp.cols + 1, ph / comp.rows + 1);
+        }
+      }
+
+      // Draw outline
+      const strokeW = scale * 0.5;
+      g.stroke(100);
+      g.strokeWeight(strokeW);
+      g.noFill();
+      for (let col = 0; col <= comp.cols; col++) {
+        const x = ox + col * pw / comp.cols;
+        g.line(x, oy, x, oy + ph);
+      }
+      for (let row = 0; row <= comp.rows; row++) {
+        const y = oy + row * ph / comp.rows;
+        g.line(ox, y, ox + pw, y);
+      }
+
+      detailCanvas = g;
+      container.appendChild(g.canvas);
+    }
+
+    function setDetailBtn(idx) {
+      const btns = document.getElementById('detail-preview-btns').querySelectorAll('.btn');
+      btns.forEach((b, i) => b.classList.toggle('active', i === idx));
+    }
+
+    // ═══════════════════════════════════════
+    // DOWNLOAD FUNCTIONS
+    // ═══════════════════════════════════════
+    function downloadCornerSVG(corner) {
+      const comp = detailComp;
+      const lw = 25 / comp.lpu;
+      const cellW = comp.imgW / comp.cols;
+      const cellH = comp.imgH / comp.rows;
+      const cells = generateCellData(comp.imgW, comp.imgH, comp.cols, comp.rows, cellW, cellH, corner, lw, comp.curve);
+      const batches = packBatches(cells, comp.sharpen);
+      const filenames = { p1: 'p1-vertical.svg', p2: 'p2-diagonal-down.svg', p3: 'p3-horizontal.svg', p4: 'p4-diagonal-up.svg' };
+      downloadSVG(comp.id + '-' + filenames[corner], buildBatchedSVG(comp.imgW, comp.imgH, batches));
+    }
+
+    function downloadOutlineSVG() {
+      const comp = detailComp;
+      const cellW = comp.imgW / comp.cols;
+      const cellH = comp.imgH / comp.rows;
+      let lines = [];
+      for (let col = 0; col <= comp.cols; col++) {
+        const x = col * cellW;
+        lines.push({ x1: x, y1: 0, x2: x, y2: comp.imgH });
+      }
+      for (let row = 0; row <= comp.rows; row++) {
+        const y = row * cellH;
+        lines.push({ x1: 0, y1: y, x2: comp.imgW, y2: y });
+      }
+      downloadSVG(comp.id + '-outline.svg', buildSVG(comp.imgW, comp.imgH, lines));
+    }
+
+    function downloadDetailPreview() {
+      if (detailCanvas) {
+        saveCanvas(detailCanvas, detailComp.id + '-preview', 'png');
+      }
+    }
+
+    // ═══════════════════════════════════════
+    // FAVORITES
+    // ═══════════════════════════════════════
+    function isFavorite(id) {
+      return favorites.some(f => f.id === id);
+    }
+
+    function toggleFavorite(comp, idx) {
+      const existing = favorites.findIndex(f => f.id === comp.id);
+      if (existing >= 0) {
+        favorites.splice(existing, 1);
+      } else {
+        // Store serializable version
+        favorites.push({
+          id: comp.id,
+          token: comp.token,
+          imgW: comp.imgW,
+          imgH: comp.imgH,
+          cols: comp.cols,
+          rows: comp.rows,
+          lpu: comp.lpu,
+          curve: comp.curve,
+          sharpen: comp.sharpen,
+          colorNames: {
+            p1: comp.colors.p1.name,
+            p2: comp.colors.p2.name,
+            p3: comp.colors.p3.name,
+            p4: comp.colors.p4.name,
+          }
+        });
+      }
+      saveFavorites();
+      renderGallery();
+      renderFavorites();
+    }
+
+    function favToComp(fav) {
+      colorMode(HSB);
+      const colors = {};
+      for (const c of ['p1','p2','p3','p4']) {
+        const mat = materials.find(m => m.name === fav.colorNames[c]);
+        colors[c] = {
+          color: color(mat.hsb[0], mat.hsb[1], mat.hsb[2]),
+          name: mat.name
+        };
+      }
+      return {
+        token: fav.token, id: fav.id,
+        imgW: fav.imgW, imgH: fav.imgH,
+        cols: fav.cols, rows: fav.rows,
+        lpu: fav.lpu, curve: fav.curve, sharpen: fav.sharpen,
+        colors
+      };
+    }
+
+    function saveFavorites() {
+      try {
+        localStorage.setItem('mech-drawings-favorites', JSON.stringify(favorites));
+      } catch(e) {}
+      document.getElementById('fav-count').textContent = favorites.length;
+    }
+
+    function loadFavorites() {
+      try {
+        const stored = localStorage.getItem('mech-drawings-favorites');
+        if (stored) favorites = JSON.parse(stored);
+      } catch(e) { favorites = []; }
+      document.getElementById('fav-count').textContent = favorites.length;
+      renderFavorites();
+    }
+
+    function renderFavorites() {
+      const scroll = document.getElementById('fav-scroll');
+      scroll.innerHTML = '';
+      document.getElementById('fav-count').textContent = favorites.length;
+
+      if (favorites.length === 0) return;
+
+      favorites.forEach((fav, idx) => {
+        const comp = favToComp(fav);
+        const thumb = document.createElement('div');
+        thumb.className = 'fav-thumb';
+        thumb.onclick = () => {
+          detailComp = comp;
+          showDetail();
+        };
+
+        // Remove button
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'fav-remove';
+        removeBtn.textContent = '×';
+        removeBtn.onclick = (e) => {
+          e.stopPropagation();
+          favorites.splice(idx, 1);
+          saveFavorites();
+          renderFavorites();
+          renderGallery();
+        };
+        thumb.appendChild(removeBtn);
+
+        // Mini canvas
+        const g = renderThumbCanvas(comp, 100);
+        thumb.appendChild(g.canvas);
+
+        // Mini swatches
+        const swatches = document.createElement('div');
+        swatches.className = 'fav-thumb-swatches';
+        for (const c of ['p1','p2','p4','p3']) {
+          const s = document.createElement('div');
+          s.style.backgroundColor = colorToRgbStr(comp.colors[c].color);
+          swatches.appendChild(s);
+        }
+        thumb.appendChild(swatches);
+
+        scroll.appendChild(thumb);
+      });
+    }
+
+    function exportFavorites() {
+      if (favorites.length === 0) { alert('No favorites to export.'); return; }
+      const data = JSON.stringify(favorites, null, 2);
+      const blob = new Blob([data], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'mech-drawings-shortlist.json';
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function clearFavorites() {
+      if (favorites.length === 0) return;
+      if (!confirm('Clear all ' + favorites.length + ' favorites?')) return;
+      favorites = [];
+      saveFavorites();
+      renderFavorites();
+      renderGallery();
+    }
+  </script>
+</body>
+</html>
