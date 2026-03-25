@@ -1,0 +1,4004 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DfaM Print Generator</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#1a1a1a;color:#e0e0e0;min-height:100vh}
+.container{max-width:1200px;margin:0 auto;padding:24px}
+h1{font-size:24px;font-weight:300;letter-spacing:2px;margin-bottom:24px;color:#fff}
+h1 span{font-weight:600}
+.controls{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;margin-bottom:24px;background:#242424;padding:20px;border-radius:8px}
+.control-group{display:flex;flex-direction:column;gap:6px}
+.control-group label{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#888}
+input[type="text"]{background:#333;border:1px solid #444;color:#fff;padding:8px 12px;border-radius:4px;font-family:'SF Mono','Fira Code',monospace;font-size:13px;width:520px}
+input[type="text"]:focus{outline:none;border-color:#666}
+select{background:#333;border:1px solid #444;color:#fff;padding:8px 12px;border-radius:4px;font-size:13px;cursor:pointer}
+.checkbox-group{display:flex;align-items:center;gap:6px;padding-top:18px}
+.checkbox-group input{cursor:pointer}
+.checkbox-group label{font-size:13px;color:#ccc;cursor:pointer;text-transform:none;letter-spacing:0}
+button{padding:8px 20px;border:none;border-radius:4px;font-size:13px;cursor:pointer;transition:background 0.2s}
+button.primary{background:#4a9eff;color:#fff}
+button.primary:hover{background:#3a8eef}
+button.primary:disabled{background:#333;color:#666;cursor:not-allowed}
+button.secondary{background:#333;color:#ccc;border:1px solid #444}
+button.secondary:hover{background:#3a3a3a}
+button.secondary:disabled{background:#2a2a2a;color:#555;cursor:not-allowed}
+.info-panel{background:#242424;padding:16px 20px;border-radius:8px;margin-bottom:24px;display:none}
+.info-panel.visible{display:block}
+.info-row{display:flex;gap:32px;flex-wrap:wrap;align-items:center}
+.info-item{display:flex;flex-direction:column;gap:4px}
+.info-label{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#888}
+.info-value{font-size:14px;color:#fff}
+.palette-display{display:flex;gap:4px;align-items:center}
+.palette-swatch{width:24px;height:24px;border-radius:3px;border:1px solid rgba(255,255,255,0.1)}
+.preview-container{position:relative;margin-bottom:24px}
+.preview-container canvas{max-width:100%;height:auto;border-radius:4px;box-shadow:0 4px 20px rgba(0,0,0,0.4)}
+.status{font-size:13px;color:#888;margin-bottom:16px;min-height:20px}
+.status.generating{color:#4a9eff}
+.status.done{color:#4aff7a}
+.status.error{color:#ff4a4a}
+</style>
+</head>
+<body>
+<div class="container">
+<h1><span>DfaM</span> Print Generator</h1>
+<div class="controls">
+  <div class="control-group"><label>Token Hash</label>
+    <input type="text" id="hashInput" placeholder="0x3fef2c4e3ebee55fb1ce27bc3aa9f8de5fb1bd9d8bc09cbdd8a4bf049ff3edd8" spellcheck="false">
+  </div>
+  <div class="control-group"><label>Print Size</label>
+    <select id="sizeSelect">
+      <option value="4200,3150">14&times;10.5&Prime; (exact 4:3)</option>
+      <option value="4200,3300">14&times;11&Prime;</option>
+      <option value="5700,3900">19&times;13&Prime;</option>
+      <option value="6000,4500">20&times;15&Prime; (exact 4:3)</option>
+      <option value="6600,5100">22&times;17&Prime;</option>
+    </select>
+  </div>
+  <div class="checkbox-group"><input type="checkbox" id="regMarks"><label for="regMarks">Registration marks</label></div>
+  <div class="checkbox-group"><input type="checkbox" id="guideLines"><label for="guideLines">Structure guides</label></div>
+  <div class="control-group" style="padding-top:16px"><button class="primary" id="generateBtn" onclick="generate()">Generate</button></div>
+  <div class="control-group" style="padding-top:16px"><button class="secondary" id="downloadBtn" onclick="downloadPNG()" disabled>Download PNG</button></div>
+</div>
+<div class="info-panel" id="infoPanel">
+  <div class="info-row">
+    <div class="info-item"><span class="info-label">Tribute</span><span class="info-value" id="infoTribute">&mdash;</span></div>
+    <div class="info-item"><span class="info-label">Tribute ID</span><span class="info-value" id="infoTributeId">&mdash;</span></div>
+    <div class="info-item"><span class="info-label">Orientation</span><span class="info-value" id="infoOrientation">&mdash;</span></div>
+    <div class="info-item"><span class="info-label">Canvas</span><span class="info-value" id="infoCanvas">&mdash;</span></div>
+    <div class="info-item"><span class="info-label">Palette (HSB)</span><div class="palette-display" id="infoPalette"></div></div>
+  </div>
+</div>
+<div class="status" id="status"></div>
+<div class="preview-container"><canvas id="preview" style="display:none"></canvas></div>
+</div>
+<script>
+// ============================================================
+// DfaM Print Generator — Canvas 2D port of on-chain p5.js script
+// ============================================================
+
+// ---- Color system (replaces p5.js color objects) ----
+class Color {
+    constructor(r, g, b, a) {
+        this.r = Math.max(0, Math.min(255, r));
+        this.g = Math.max(0, Math.min(255, g));
+        this.b = Math.max(0, Math.min(255, b));
+        this.a = (a !== undefined) ? a : 1.0;
+        let hsb = _rgbToHsbInternal(this.r, this.g, this.b);
+        this.h = hsb[0]; this.s = hsb[1]; this.br = hsb[2];
+    }
+    toCSS() {
+        if (this.a < 1) return 'rgba('+Math.round(this.r)+','+Math.round(this.g)+','+Math.round(this.b)+','+this.a.toFixed(4)+')';
+        return 'rgb('+Math.round(this.r)+','+Math.round(this.g)+','+Math.round(this.b)+')';
+    }
+}
+
+function _rgbToHsbInternal(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    let max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h, s, br = max, d = max - min;
+    s = max === 0 ? 0 : d / max;
+    if (max === min) h = 0;
+    else {
+        if (max === r) h = (g < b) ? (g - b) / d + 6 : (g - b) / d;
+        else if (max === g) h = (b - r) / d + 2;
+        else h = (r - g) / d + 4;
+        h /= 6;
+    }
+    return [Math.round(h * 360), Math.round(s * 100), Math.round(br * 100)];
+}
+
+function _hsbToRgbInternal(h, s, b) {
+    h /= 360; s /= 100; b /= 100;
+    let r, g, bl;
+    let i = Math.floor(h * 6), f = h * 6 - i;
+    let p = b * (1 - s), q = b * (1 - f * s), t = b * (1 - (1 - f) * s);
+    switch (i % 6) {
+        case 0: r=b;g=t;bl=p;break; case 1: r=q;g=b;bl=p;break;
+        case 2: r=p;g=b;bl=t;break; case 3: r=p;g=q;bl=b;break;
+        case 4: r=t;g=p;bl=b;break; default: r=b;g=p;bl=q;
+    }
+    return [Math.round(r*255), Math.round(g*255), Math.round(bl*255)];
+}
+
+// p5.js compatibility layer
+let _colorMode = 'HSB';
+function colorMode(m) { _colorMode = m; }
+function color(a, b, c) {
+    if (Array.isArray(a)) return color(a[0], a[1], a[2]);
+    if (_colorMode === 'HSB') { let rgb = _hsbToRgbInternal(a, b, c); return new Color(rgb[0], rgb[1], rgb[2]); }
+    return new Color(a, b, c);
+}
+function red(c) { return c.r; }
+function green(c) { return c.g; }
+function blue(c) { return c.b; }
+function hue(c) { return c.h; }
+function saturation(c) { return c.s; }
+function brightness(c) { return c.br; }
+
+// ---- Math helpers ----
+function lerp(a, b, t) { return a + (b - a) * t; }
+function dist(x1, y1, x2, y2) { return Math.sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1)); }
+
+// ---- PRNG (exact copy from on-chain) ----
+class Random {
+    constructor(td) {
+        this.useA = false;
+        let sfc32 = function(uint128Hex) {
+            let a = parseInt(uint128Hex.substr(0, 8), 16);
+            let b = parseInt(uint128Hex.substr(8, 8), 16);
+            let c = parseInt(uint128Hex.substr(16, 8), 16);
+            let d = parseInt(uint128Hex.substr(24, 8), 16);
+            return function() {
+                a |= 0; b |= 0; c |= 0; d |= 0;
+                let t = (((a + b) | 0) + d) | 0;
+                d = (d + 1) | 0;
+                a = b ^ (b >>> 9);
+                b = (c + (c << 3)) | 0;
+                c = (c << 21) | (c >>> 11);
+                c = (c + t) | 0;
+                return (t >>> 0) / 4294967296;
+            };
+        };
+        this.prngA = new sfc32(td.substr(2, 32));
+        this.prngB = new sfc32(td.substr(34, 32));
+        for (let i = 0; i < 1e6; i += 2) { this.prngA(); this.prngB(); }
+    }
+    random_dec() { this.useA = !this.useA; return this.useA ? this.prngA() : this.prngB(); }
+    random_num(a, b) { return a + (b - a) * this.random_dec(); }
+    random_int(a, b) { return Math.floor(this.random_num(a, b + 1)); }
+    random_bool(p) { return this.random_dec() < p; }
+    random_choice(list) { return list[this.random_int(0, list.length - 1)]; }
+}
+
+// ---- Color math functions (from on-chain) ----
+function hsbToRgb(h, s, b) { return _hsbToRgbInternal(h, s, b); }
+function rgbToHsb(r, g, b) { return _rgbToHsbInternal(r, g, b); }
+
+function rgbToLab(c) {
+    let r = red(c)/255, g = green(c)/255, b = blue(c)/255;
+    r = r > 0.04045 ? Math.pow((r+0.055)/1.055, 2.4) : r/12.92;
+    g = g > 0.04045 ? Math.pow((g+0.055)/1.055, 2.4) : g/12.92;
+    b = b > 0.04045 ? Math.pow((b+0.055)/1.055, 2.4) : b/12.92;
+    let x = (r*0.4124+g*0.3576+b*0.1805)*100;
+    let y = (r*0.2126+g*0.7152+b*0.0722)*100;
+    let z = (r*0.0193+g*0.1192+b*0.9505)*100;
+    x /= 95.047; y /= 100; z /= 108.883;
+    x = x > 0.008856 ? Math.pow(x, 1/3) : (7.787*x)+16/116;
+    y = y > 0.008856 ? Math.pow(y, 1/3) : (7.787*y)+16/116;
+    z = z > 0.008856 ? Math.pow(z, 1/3) : (7.787*z)+16/116;
+    return [(116*y)-16, 500*(x-y), 200*(y-z)];
+}
+
+function labToRgb(a) {
+    let cl=a[0],ca=a[1],cb=a[2];
+    let y=(cl+16)/116, x=ca/500+y, z=y-cb/200;
+    y = Math.pow(y,3)>0.008856 ? Math.pow(y,3) : (y-16/116)/7.787;
+    x = Math.pow(x,3)>0.008856 ? Math.pow(x,3) : (x-16/116)/7.787;
+    z = Math.pow(z,3)>0.008856 ? Math.pow(z,3) : (z-16/116)/7.787;
+    x*=95.047; y*=100; z*=108.883;
+    let r=(x*3.2406+y*-1.5372+z*-0.4986)/100;
+    let g=(x*-0.9689+y*1.8758+z*0.0415)/100;
+    let b=(x*0.0557+y*-0.2040+z*1.0570)/100;
+    r = r>0.0031308 ? 1.055*Math.pow(r,1/2.4)-0.055 : 12.92*r;
+    g = g>0.0031308 ? 1.055*Math.pow(g,1/2.4)-0.055 : 12.92*g;
+    b = b>0.0031308 ? 1.055*Math.pow(b,1/2.4)-0.055 : 12.92*b;
+    return color(Math.round(r*255), Math.round(g*255), Math.round(b*255));
+}
+
+function betterLerp(col1, col2, t) {
+    let a1=rgbToLab(col1), a2=rgbToLab(col2);
+    return labToRgb([a1[0]+t*(a2[0]-a1[0]), a1[1]+t*(a2[1]-a1[1]), a1[2]+t*(a2[2]-a1[2])]);
+}
+
+function betterLerpHSB(hsb1, hsb2, amount) {
+    let rgb1=hsbToRgb(hsb1[0],hsb1[1],hsb1[2]);
+    let rgb2=hsbToRgb(hsb2[0],hsb2[1],hsb2[2]);
+    colorMode('RGB');
+    let c1=color(rgb1[0],rgb1[1],rgb1[2]);
+    let c2=color(rgb2[0],rgb2[1],rgb2[2]);
+    let c=betterLerp(c1,c2,amount);
+    let r=red(c),g=green(c),b=blue(c);
+    let result=rgbToHsb(r,g,b);
+    colorMode('HSB');
+    return result;
+}
+
+function paintColor(h, s, b) {
+    let p=[[5,89,84],[9,82,93],[25,95,100],[33,100,100],[56,100,100],[70,80,86],[138,78,77],[175,99,71],[187,100,77],[195,70,90],[219,97,78],[325,85,72],[354,92,74]];
+    let k=[240,3,13], w=[40,1,99];
+    let c;
+    if (h < p[0][0]) {
+        let t=(h+360-p[p.length-1][0])/(360-p[p.length-1][0]+p[0][0]);
+        let c1=color(p[p.length-1][0],p[p.length-1][1],p[p.length-1][2]);
+        let c2=color(p[0][0],p[0][1],p[0][2]);
+        colorMode('RGB'); c=betterLerp(c1,c2,t); colorMode('HSB');
+    } else if (h > p[p.length-1][0]) {
+        let t=(h-p[p.length-1][0])/(360-p[p.length-1][0]+p[0][0]);
+        let c1=color(p[p.length-1][0],p[p.length-1][1],p[p.length-1][2]);
+        let c2=color(p[0][0],p[0][1],p[0][2]);
+        colorMode('RGB'); c=betterLerp(c1,c2,t); colorMode('HSB');
+    } else {
+        let index=0;
+        while(index<p.length-1 && !(h>=p[index][0] && h<=p[index+1][0])) index++;
+        let t=(h-p[index][0])/(p[index+1][0]-p[index][0]);
+        let h1=color(p[index]); let h2=color(p[index+1]);
+        colorMode('RGB'); c=betterLerp(h1,h2,t); colorMode('HSB');
+    }
+    let maxw=saturation(c), maxk=brightness(c);
+    let f=(s/100)*(b/100);
+    let s1=w[1]+(s/100)*(100-w[1]);
+    let b1=k[2]+(b/100)*(w[2]-k[2]);
+    let s2=w[1]+(s/100)*(maxw-w[1]);
+    let b2=k[2]+(b/100)*(maxk-k[2]);
+    let news=s1+f*(s2-s1);
+    let newb=b1+f*(b2-b1);
+    return color(h, news, newb);
+}
+
+function scramble(array) {
+    let shuffled = array;
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        let j = R.random_int(0, i);
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+}
+
+// ---- Global state ----
+let R; // PRNG - set before tributes color fns are called
+let tokenData; // global hash
+
+let tributes = [
+    {
+        id: 0,
+        title: "Chromie Squiggle",
+        colors: function() {
+            let colors = [];
+            let h = R.random_int(0, 360);
+            let s = R.random_int(4, 8);
+            let d = R.random_choice([-1, 1]);
+            for (let i = 0; i < s; i++) {
+                colors.push([(h + (i * 30 * d) + 360) % 360, 100, 100]);
+            }
+            return colors;
+        }
+    },
+    {
+        id: 1,
+        title: "Genesis",
+        colors: function() {
+            let bg = [R.random_int(0, 360), R.random_int(55, 100), R.random_int(80, 100)];
+            let p1 = [R.random_int(0, 360), R.random_int(55, 100), R.random_int(80, 100)];
+            while (Math.min(Math.abs(p1[0] - bg[0]), 360 - Math.abs(p1[0] - bg[0])) < 60) {
+                p1[0] = R.random_int(0, 360);
+            }
+            let p2 = [R.random_int(0, 360), R.random_int(55, 100), R.random_int(80, 100)];
+            while (Math.min(Math.abs(p2[0] - p1[0]), 360 - Math.abs(p2[0] - p1[0])) < 60) {
+                p2[0] = R.random_int(0, 360);
+            }
+            let c1 = betterLerpHSB(bg, p1, 0.4);
+            let c2 = betterLerpHSB(c1, p1, 0.4);
+            let c3 = betterLerpHSB(c2, p2, 0.5);
+            let colors = [bg, c1, c2, c3];
+            return colors;
+        }
+    },
+    {
+        id: 2,
+        title: "Construction Token",
+        colors: function() {
+            let h = R.random_int(0, 360);
+            let v = R.random_int(15, 35);
+            let colors = [[h, v, 100], [h, 100, 100], [h, 100, v]];
+            colors = scramble(colors);
+            return colors;
+        }
+    },
+    {
+        id: 3,
+        title: "Dynamic Slices",
+        colors: function() {
+            let choices = [
+                [[0, 100, 100], [172, 100, 63], [43, 100, 95], [32, 100, 98], [193, 57, 84]],
+                [[329, 30, 90], [231, 20, 97], [10, 29, 85], [219, 46, 83]],
+                [[339, 73, 69], [4, 68, 92], [318, 66, 45]],
+                [[0, 0, 21], [340, 90, 91], [0, 0, 91]],
+                [[240, 100, 1], [328, 93, 80], [0, 0, 91]],
+                [[60, 14, 100], [240, 14, 82], [0, 0, 91]],
+                [[247, 49, 64], [300, 36, 84], [274, 50, 79]],
+                [[240, 100, 1], [348, 100, 100], [0, 0, 91]]
+            ];
+            let colors = R.random_choice(choices);
+            colors = scramble(colors);
+            return colors;
+        }
+    },
+    {
+        id: 4,
+        title: "Cryptoblots",
+        colors: function() {
+            let choices = [
+                [200, 26, 22],
+                [210, 25, 40],
+                [205, 55, 93],
+                [230, 64, 82],
+                [222, 90, 65],
+                [205, 79, 91],
+                [218, 67, 37],
+                [207, 70, 92],
+                [75, 98, 51],
+                [120, 76, 55],
+                [109, 48, 76],
+                [157, 100, 62],
+                [90, 20, 94],
+                [150, 60, 78],
+                [350, 85, 77],
+                [350, 100, 59],
+                [348, 91, 86],
+                [10, 54, 98],
+                [0, 86, 90],
+                [350, 100, 90],
+                [325, 98, 40],
+                [267, 52, 66],
+                [302, 49, 85],
+                [301, 100, 53],
+                [305, 68, 45],
+                [300, 12, 85],
+                [60, 20, 100],
+                [60, 96, 93],
+                [60, 40, 100],
+                [51, 100, 100],
+                [37, 72, 91],
+                [56, 100, 100],
+                [21, 30, 62],
+                [60, 10, 96],
+                [8, 64, 58],
+                [31, 100, 48],
+                [21, 44, 20],
+                [38, 26, 76]
+            ];
+            let colors = [[0, 0, 0]];
+            let c = R.random_choice(choices);
+            let str;
+            if (c[2] > 66) {
+                str = [c[0], c[1], c[2] * 0.7];
+            } else {
+                str = [c[0], c[1], Math.min(c[2] * 2.75, 100)];
+            }
+            colors.push(c);
+            colors.push(str);
+            return colors;
+        }
+    },
+    {
+        id: 5,
+        title: "Elevated Deconstructions",
+        colors: function() {
+            let h = R.random_int(0, 360);
+            let s = R.random_int(5, 50);
+            let b = R.random_int(90, 100);
+            let p1 = [h, s, b];
+            let c1 = [h, s, b * 0.89];
+            let c2 = [h, s, b * 0.78];
+            let colors = [p1, c1, c2];
+            return colors;
+        }
+    },
+    {
+        id: 6,
+        title: "Singularity",
+        colors: function() {
+            let bg = [0, 0, 0];
+            let p1 = [52, 16, 100];
+            let sa = R.random_dec();
+            let choices = [
+                [[24, 53, 100], [339, 92, 74], [264, 83, 24]],
+                [[161, 19, 100], [214, 56, 65], [163, 87, 49]],
+                [[105, 59, 82], [174, 79, 44], [288, 99, 27]],
+                [[183, 92, 87], [111, 32, 75], [298, 94, 50]]
+            ];
+            let c = R.random_choice(choices);
+            let c1 = betterLerpHSB(c[0], p1, sa);
+            let c2 = betterLerpHSB(c[1], p1, sa);
+            let c3 = betterLerpHSB(c[2], p1, sa);
+            c2 = betterLerpHSB(c2, bg, 0.3);
+            c3 = betterLerpHSB(c3, bg, 0.6);
+            let colors = [bg, c1, c2, c3];
+            return colors;
+        }
+    },
+    {
+        id: 7,
+        title: "Ignition",
+        colors: function() {
+            let colors = [];
+            let h = R.random_int(0, 360);
+            if (R.random_bool(0.5)) {
+                colors.push([(h + 180) % 360, 52, 67]);
+                colors.push([h, 70, 100]);
+                colors.push([h + 30, 70, 100]);
+                colors.push([0, 0, 40]);
+            } else {
+                colors.push([0, 0, 0]);
+                colors.push([h, 70, 100]);
+                for (let i = 1; i < 3; i++) {
+                    colors.push([(h + (i * 30)) % 360, 70, 100]);
+                }
+            }
+            return colors;
+        }
+    },
+    {
+        id: 8,
+        title: "NimBuds",
+        colors: function() {
+            let colors = [[344, 58, 95], [186, 84, 85], [158, 67, 85], [45, 84, 95]];
+            colors = scramble(colors);
+            return colors;
+        }
+    },
+    {
+        id: 9,
+        title: "HyperHash",
+        colors: function() {
+            let h = R.random_int(0, 360);
+            let colors = [[0, 0, 32]];
+            let d = R.random_choice([-1, 1]);
+            for (let i = 0; i < R.random_int(2, 4); i++) {
+                colors.push([(h + (i * 22 * d)) % 360, 70, 100]);
+            }
+            return colors;
+        }
+    },
+    {
+        id: 10,
+        title: "Unigrids",
+        colors: function() {
+            let choices = [
+                [[96, 33, 6], [339, 87, 100], [61, 93, 100], [172, 72, 92]],
+                [[195, 82, 37], [162, 82, 58], [133, 36, 83], [104, 12, 85], [42, 14, 95]],
+                [[235, 35, 26], [218, 19, 68], [197, 8, 96], [353, 85, 94]],
+                [[355, 75, 90], [105, 10, 98], [182, 24, 86], [203, 56, 62], [215, 67, 34]],
+                [[333, 85, 97], [295, 95, 72], [258, 93, 64], [229, 72, 93], [194, 68, 94]],
+                [[201, 100, 29], [0, 81, 84], [31, 100, 97], [40, 71, 99], [51, 22, 92]],
+                [[225, 57, 25], [213, 46, 42], [179, 53, 75], [171, 56, 100]],
+                [[217, 100, 38], [209, 100, 67], [50, 100, 100]],
+                [[221, 67, 24], [37, 93, 99], [0, 0, 85]],
+                [[87, 100, 100], [202, 93, 33], [202, 96, 62]],
+                [[0, 49, 34], [12, 81, 95], [37, 24, 96], [180, 91, 67], [181, 85, 42]],
+                [[207, 97, 15], [174, 77, 77], [353, 87, 91], [35, 89, 100]]
+            ];
+            let c = R.random_choice(choices);
+            c = scramble(c);
+            let n = R.random_int(3, c.length);
+            let colors = [];
+            for (let i = 0; i < n; i++) {
+                colors.push(c[i]);
+            }
+            return colors;
+        }
+    },
+    {
+        id: 11,
+        title: "Ringers",
+        colors: function() {
+            let colors = [[46, 71, 95], [0, 0, 100], [0, 0, 8]];
+            if (R.random_bool(0.1)) {
+                colors.push([60, 15, 97]);
+                if (R.random_bool(0.5)) {
+                    colors.push([1, 80, 85]);
+                }
+            } else if (R.random_bool(0.3)) {
+                colors.push(R.random_choice([[210, 72, 80], [147, 63, 65], [1, 80, 85]]));
+            }
+            colors = scramble(colors);
+            return colors;
+        }
+    },
+    {
+        id: 12,
+        title: "Spectron",
+        colors: function() {
+            let colors = [[0, 0, 0]];
+            let h = R.random_choice([7, 65, 168]);
+            let ch = h + 180;
+            let hues = [h, ch, R.random_choice([h, ch])];
+            hues = scramble(hues);
+            let vs = scramble([30, 49, 68]);
+            for (let i = 0; i < 3; i++) {
+                let v1 = vs[i];
+                let v2 = 122 - v1;
+                colors.push([hues[i], v1, v2]);
+            }
+            return colors;
+        }
+    },
+    {
+        id: 13,
+        title: "27-Bit Digital",
+        colors: function() {
+            let choices = [[240, 100, 100], [120, 100, 100], [180, 100, 100], [0, 100, 100], [300, 100, 100], [60, 100, 100]];
+            let c = scramble(choices);
+            let colors = [[208, 8, 84]];
+            for (let i = 0; i < R.random_int(2, 4); i++) {
+                colors.push(c[i]);
+            }
+            return colors;
+        }
+    },
+    {
+        id: 14,
+        title: "Archetype",
+        colors: function() {
+            let choices = [
+                [[2, 81, 100], [169, 100, 47], [57, 12, 73]],
+                [[5, 69, 95], [43, 94, 96], [152, 88, 63], [219, 82, 87], [276, 42, 64]],
+                [[2, 83, 93], [48, 84, 97], [195, 84, 73], [353, 32, 98]],
+                [[357, 64, 93], [164, 64, 72], [37, 84, 93], [318, 29, 48]],
+                [[15, 79, 100], [50, 75, 99], [205, 100, 79], [156, 100, 73]],
+                [[26, 99, 88], [41, 93, 86], [64, 20, 89], [179, 39, 65]],
+                [[44, 71, 100], [10, 79, 100], [344, 40, 100]],
+                [[282, 38, 38], [10, 37, 100], [10, 71, 100], [45, 43, 98]],
+                [[21, 84, 93], [322, 40, 38], [36, 65, 91], [186, 38, 63]],
+                [[4, 57, 96], [7, 45, 57], [37, 70, 100]],
+                [[5, 83, 79], [44, 90, 90], [190, 54, 64], [143, 89, 49], [354, 18, 89]],
+                [[14, 83, 82], [200, 35, 74], [42, 57, 94], [49, 24, 93], [350, 58, 40]],
+                [[14, 46, 89], [11, 87, 85], [35, 27, 90]],
+                [[10, 88, 82], [117, 60, 46], [26, 81, 81], [162, 34, 62]],
+                [[11, 88, 87], [33, 77, 87], [167, 100, 44], [33, 24, 90], [93, 19, 59]],
+                [[159, 57, 68], [4, 68, 88], [37, 67, 95], [44, 11, 81], [34, 37, 82], [32, 15, 33]],
+                [[14, 84, 93], [41, 93, 96], [190, 18, 76]],
+                [[14, 83, 92], [45, 87, 93], [195, 58, 72]],
+                [[4, 70, 91], [43, 91, 97], [207, 5, 76], [10, 36, 100]],
+                [[6, 67, 100], [20, 44, 100], [103, 13, 93], [3, 49, 55], [341, 34, 75]],
+                [[1, 80, 79], [38, 100, 90], [186, 79, 58], [138, 81, 40], [44, 24, 91], [8, 24, 89]],
+                [[196, 28, 38], [185, 22, 61], [36, 76, 98], [8, 77, 87], [21, 75, 69]],
+                [[14, 79, 91], [36, 83, 94], [42, 43, 78], [36, 35, 88], [204, 48, 47], [21, 67, 93]],
+                [[127, 25, 80], [52, 92, 81], [2, 100, 82], [20, 36, 86], [58, 15, 75], [55, 17, 82]],
+                [[4, 73, 95], [128, 58, 75], [212, 72, 53], [57, 91, 96], [13, 46, 98], [202, 79, 84]],
+                [[40, 80, 96], [194, 99, 61], [356, 73, 91], [162, 100, 40], [2, 47, 93]],
+                [[195, 53, 69], [3, 75, 87], [32, 80, 93], [116, 54, 62]],
+                [[1, 69, 100], [41, 82, 99], [228, 66, 80], [222, 32, 24], [136, 44, 76], [191, 79, 65], [168, 28, 84]],
+                [[12, 65, 100], [262, 46, 65], [39, 26, 100], [227, 42, 55], [41, 71, 100], [310, 47, 71], [211, 63, 76]],
+                [[313, 47, 68], [50, 22, 95], [348, 40, 94], [41, 71, 97], [194, 63, 93], [12, 68, 97]],
+                [[14, 73, 92], [47, 84, 98], [209, 39, 84], [152, 27, 66], [344, 22, 95]],
+                [[19, 89, 92], [15, 25, 97], [167, 84, 46]],
+            ];
+            let c = R.random_choice(choices);
+            c = scramble(c);
+            let colors = [];
+            for (let i = 0; i < Math.min(c.length, 8); i++) {
+                colors.push(c[i]);
+            }
+            return colors;
+        }
+    },
+    {
+        id: 15,
+        title: "720 Minutes",
+        colors: function() {
+            let choices = [
+                [[295, 78, 94], [210, 78, 94], [125, 78, 94], [40, 78, 94]],
+                [[205, 90, 82], [25, 90, 82], [50, 90, 82]],
+                [[235, 75, 88], [290, 75, 88], [0, 75, 88], [40, 75, 88]],
+                [[210, 100, 80], [210, 67, 90], [210, 33, 100]],
+                [[20, 86, 94], [40, 86, 94], [160, 86, 94]],
+                [[240, 94, 94], [10, 94, 94], [40, 94, 94], [70, 94, 94]],
+                [[210, 100, 85], [210, 15, 100], [345, 45, 100]],
+                [[300, 100, 94], [185, 100, 94], [110, 100, 94], [35, 100, 94]],
+                [[330, 70, 94], [355, 70, 94], [20, 70, 94], [45, 70, 94]],
+                [[10, 79, 94], [35, 79, 94], [60, 79, 94], [160, 79, 94]],
+                [[230, 100, 94], [205, 100, 94], [180, 100, 94], [50, 100, 94]],
+                [[15, 84, 88], [30, 84, 88], [45, 84, 88], [170, 84, 88]],
+                [[220, 75, 94], [330, 75, 94], [5, 75, 94], [35, 75, 94]],
+                [[230, 100, 94], [300, 100, 94], [10, 100, 94], [40, 100, 94]],
+                [[325, 92, 88], [355, 92, 88], [20, 92, 88], [195, 92, 88]],
+                [[225, 70, 94], [335, 70, 94], [15, 70, 94], [50, 70, 94]],
+                [[280, 70, 82], [210, 70, 82], [140, 70, 82], [70, 70, 82]],
+                [[355, 77, 88], [45, 77, 88], [195, 77, 88]],
+                [[185, 54, 100], [20, 54, 100], [40, 54, 100]],
+                [[200, 94, 94], [230, 94, 94], [20, 94, 94], [40, 94, 94]],
+                [[25, 94, 94], [330, 94, 94], [255, 94, 94], [185, 94, 94]],
+                [[0, 94, 94], [325, 94, 94], [250, 94, 94], [200, 94, 94]],
+                [[355, 100, 94], [50, 100, 94], [115, 100, 94], [210, 100, 94]],
+                [[260, 100, 75], [330, 100, 75], [15, 100, 75], [50, 100, 75]],
+                [[210, 82, 75], [30, 82, 75], [30, 41, 100]],
+                [[225, 100, 94], [345, 100, 94], [15, 100, 94], [50, 100, 94]]
+            ];
+            let c = R.random_choice(choices);
+            for (let step = 0; step < R.random_int(0, c.length); step++) {
+                c.push(c.shift());
+            }
+            let colors = [[0, 0, 0]];
+            for (let i = 0; i < c.length; i++) {
+                let color;
+                if (i === c.length - 1) {
+                    color = betterLerpHSB(c[i], [c[i][0], 0, 100], 0.2);
+                } else {
+                    color = betterLerpHSB(c[i], [0, 0, 0], (c.length - 2 - i) * 0.2);
+                }
+                colors.push(color);
+            }
+            return colors;
+        }
+    },
+    {
+        id: 16,
+        title: "Apparitions",
+        colors: function() {
+            let choices = [
+                [[346, 39, 73], [0, 25, 80], [15, 31, 87], [33, 69, 87]],
+                [[0, 70, 67], [359, 15, 84], [358, 70, 50]],
+                [[346, 22, 98], [22, 25, 99], [182, 42, 82]],
+                [[181, 18, 90], [48, 57, 79], [13, 80, 95], [172, 100, 71]],
+                [[60, 25, 80], [200, 20, 100], [180, 100, 60], [182, 42, 82]],
+                [[336, 28, 79], [341, 48, 44], [346, 22, 98]],
+                [[198, 95, 43], [20, 79, 68], [40, 31, 92], [47, 41, 39]],
+                [[253, 52, 53], [283, 33, 67], [340, 70, 77]],
+                [[49, 21, 96], [28, 46, 93], [56, 63, 51], [108, 31, 19]],
+                [[298, 36, 65], [40, 31, 92], [82, 29, 63], [358, 86, 89]],
+                [[198, 32, 30], [26, 43, 85], [30, 58, 44], [49, 21, 96]],
+                [[191, 29, 46], [38, 44, 77], [49, 21, 96], [8, 82, 87]],
+                [[298, 36, 65], [41, 92, 99], [204, 100, 72], [358, 86, 89]],
+                [[198, 32, 30], [20, 79, 68], [28, 46, 93], [154, 18, 87]],
+                [[204, 100, 72], [176, 100, 59], [35, 89, 98]],
+                [[214, 25, 78], [154, 18, 87], [48, 32, 100], [24, 87, 95]],
+                [[338, 85, 49], [16, 50, 64], [191, 6, 76], [346, 22, 98]],
+                [[340, 44, 48], [34, 24, 76], [23, 65, 76], [12, 79, 46]],
+                [[205, 77, 31], [34, 24, 76], [30, 80, 73], [17, 41, 93]], 
+                [[158, 5, 86], [160, 26, 61], [336, 28, 79], [341, 48, 44]]
+            ];
+            let colors = R.random_choice(choices);
+            colors = scramble(colors);
+            return colors;
+        }
+    },
+    {
+        id: 17,
+        title: "Inspirals",
+        colors: function() {
+            let choices = [
+                [[332, 85, 50], [349, 78, 89], [45, 100, 99]],
+                [[174, 89, 8], [310, 74, 69], [81, 93, 95]],
+                [[282, 74, 50], [41, 100, 92], [160, 100, 100]],
+                [[158, 43, 21], [306, 95, 90], [81, 100, 100]],
+                [[256, 85, 55], [328, 100, 100], [60, 100, 95]],
+                [[158, 43, 21], [213, 90, 98], [81, 94, 100]],
+                [[158, 43, 21], [306, 95, 90], [186, 92, 100]],
+                [[345, 98, 96], [5, 99, 96], [54, 57, 100]],
+                [[284, 67, 62], [9, 57, 96], [81, 100, 82]],
+                [[268, 85, 58], [328, 85, 100], [54, 66, 100]],
+                [[180, 88, 9], [288, 100, 90], [16, 20, 100]],
+                [[186, 98, 28], [182, 16, 98], [321, 66, 96]],
+                [[180, 78, 20], [5, 60, 100], [180, 27, 100]],
+                [[95, 57, 17], [225, 100, 100], [43, 52, 100]],
+                [[198, 96, 29], [318, 100, 100], [45, 25, 100]],
+                [[189, 90, 27], [28, 90, 91], [182, 21, 100]],
+                [[272, 48, 47], [341, 96, 82], [348, 10, 100]],
+                [[261, 78, 37], [64, 100, 61], [36, 15, 100]],
+                [[70, 63, 24], [85, 43, 73], [60, 21, 99]],
+                [[9, 97, 39], [352, 40, 92], [193, 24, 99]],
+                [[189, 95, 29], [181, 51, 84], [44, 84, 99]],
+                [[231, 98, 40], [3, 87, 97], [48, 10, 99]],
+                [[155, 96, 21], [197, 100, 76], [317, 17, 100]],
+                [[188, 78, 22], [357, 54, 96], [159, 25, 100]],
+                [[181, 85, 15], [305, 54, 71], [50, 56, 99]],
+                [[176, 95, 7], [210, 69, 69], [317, 17, 100]],
+                [[299, 68, 56], [339, 44, 100], [28, 16, 99]],
+                [[258, 81, 19], [320, 53, 80], [27, 30, 100]],
+                [[152, 85, 19], [188, 68, 74], [230, 10, 99]],
+                [[214, 99, 45], [44, 62, 92], [348, 10, 98]],
+                [[265, 66, 52], [42, 58, 85], [276, 10, 100]],
+                [[93, 82, 26], [44, 60, 90], [87, 10, 91]],
+                [[207, 55, 35], [222, 50, 94], [182, 21, 99]],
+                [[68, 84, 20], [161, 44, 66], [57, 10, 94]]
+            ];
+            let colors = R.random_choice(choices);
+            colors = scramble(colors);
+            return colors;
+        }
+    },
+    {
+        id: 18,
+        title: "Aerial View",
+        colors: function() {
+            let choices = [
+                [[231, 27, 82], [168, 14, 89], [88, 16, 90], [60, 10, 90]],
+                [[284, 28, 68], [322, 29, 83], [341, 21, 90], [14, 17, 90]],
+                [[73, 19, 84], [51, 12, 90], [170, 10, 78], [201, 11, 71]],
+                [[19, 15, 63], [148, 37, 78], [221, 30, 45], [5, 36, 90]],
+                [[210, 86, 44], [13, 81, 90], [44, 99, 90], [57, 71, 90]],
+                [[211, 54, 46], [13, 81, 90], [339, 45, 81], [32, 30, 90]],
+                [[116, 88, 69], [56, 94, 90], [3, 87, 90], [231, 66, 57]],
+                [[282, 21, 32], [20, 56, 89], [67, 45, 45], [39, 37, 90]],
+                [[8, 73, 81], [38, 27, 87], [163, 40, 62], [44, 60, 87]],
+                [[274, 100, 84], [162, 100, 74], [48, 49, 90], [329, 58, 87]]
+            ];
+            let colors = [[0, 0, 0]];
+            let c = R.random_choice(choices);
+            c = scramble(c);
+            colors.push(...c);
+            return colors;
+        }
+    },
+    {
+        id: 19,
+        title: "Synapses",
+        colors: function() {
+            let black = [0, 0, 0];
+            let paper = [32, 5, 97];
+            let colors = [];
+            colors.push(betterLerpHSB(black, paper, 0.9));
+            colors.push(betterLerpHSB(black, paper, 0.6));
+            colors.push(betterLerpHSB(black, paper, 0.3));
+            colors.push(black);
+            if (R.random_bool(0.5)) {
+                colors.reverse();
+            }
+            return colors;
+        }
+    },
+    {
+        id: 20,
+        title: "Algobots",
+        colors: function() {
+            let choices = [[282, 51, 81], [197, 97, 99], [174, 100, 83], [48, 61, 100], [23, 88, 100], [329, 64, 94], [0, 67, 98], [240, 58, 100]];
+            let colors = [[0, 0, 95], [0, 0, 85]];
+            let c = R.random_choice(choices);
+            colors.push(betterLerpHSB(c, [0, 0, 100], 0.12));
+            return colors;
+        }
+    },
+    {
+        id: 21,
+        title: "Elementals",
+        colors: function() {
+            let g = [
+                [[0, 0, 78], [44, 92, 75], [335, 36, 74], [359, 81, 54], [187, 54, 46], [42, 27, 58]],
+                [[0, 0, 78], [173, 67, 56], [157, 38, 61], [58, 18, 66], [357, 38, 100], [329, 100, 78], [187, 60, 71], [174, 23, 66], [28, 100, 76], [28, 100, 98]]
+            ];
+            let p1 = [
+                [[44, 92, 96], [27, 94, 91], [8, 98, 66], [84, 88, 40], [41, 94, 72]],
+                [[335, 36, 95], [27, 94, 91], [213, 42, 44], [2, 42, 71]],
+                [[42, 27, 75], [41, 94, 72], [2, 42, 71], [2, 85, 52], [160, 46, 38]]
+            ];
+            let p2 = [
+                [[156, 38, 78], [164, 79, 56], [60, 12, 48], [318, 100, 48], [45, 100, 47]],
+                [[57, 18, 85], [159, 66, 61], [11, 47, 85], [335, 100, 85], [28, 75, 84], [28, 100, 84]],
+                [[357, 38, 100], [174, 46, 45], [60, 12, 48], [11, 47, 85], [340, 100, 100], [195, 37, 58], [358, 20, 65], [17, 100, 98]],
+                [[329, 100, 100], [282, 100, 35], [321, 100, 60], [0, 100, 98]],
+                [[187, 60, 91], [180, 85, 61], [168, 57, 71], [195, 37, 58], [287, 100, 47], [65, 100, 39]],
+                [[173, 23, 85], [172, 74, 62], [160, 52, 66], [127, 22, 72], [358, 20, 65], [321, 100, 65], [184, 68, 75], [37, 100, 64]],
+                [[54, 15, 93], [162, 66, 66], [137, 38, 72], [55, 30, 79], [9, 46, 93], [333, 100, 93], [173, 57, 78], [28, 100, 91]],
+                [[28, 81, 96], [95, 68, 39], [53, 74, 46], [354, 100, 96], [83, 64, 46], [39, 76, 63], [16, 100, 94]],
+                [[28, 100, 98], [76, 100, 33], [17, 100, 98], [0, 100, 98], [37, 100, 64]]
+            ];
+            let palette;
+            if (R.random_bool(0.4)) {
+                if (R.random_bool(0.5)) {
+                    palette = g[0];
+                } else {
+                    palette = g[1];
+                }
+            } else {
+                if (R.random_bool(0.25)) {
+                    palette = R.random_choice(p1);
+                } else {
+                    palette = R.random_choice(p2);
+                }
+            }
+            let colors = [];
+            colors.push(palette[0]);
+            let remaining = palette.slice(1);
+            remaining = scramble(remaining);
+            colors.push(...remaining);
+            return colors;
+        }
+    },
+    {
+        id: 22,
+        title: "Subscapes",
+        colors: function() {
+            let choices1 = [
+                [[232, 54, 59], [15, 68, 86], [126, 23, 53], [43, 81, 96]],
+                [[106, 69, 28], [21, 92, 91], [351, 27, 96], [185, 29, 80], [44, 97, 98]],
+                [[9, 85, 99], [50, 75, 99], [210, 96, 85], [156, 100, 73]],
+                [[20, 100, 100], [43, 72, 96], [120, 72, 28], [250, 98, 99], [328, 48, 89]],
+                [[170, 80, 64], [357, 17, 98], [212, 38, 87], [10, 59, 94]]
+            ];
+            let choices2 = [
+                [[168, 33, 31], [41, 78, 92], [42, 16, 97], [21, 23, 64]],
+                [[106, 69, 28], [21, 92, 91], [351, 27, 96], [185, 29, 80], [44, 97, 98]],
+                [[90, 19, 17], [168, 32, 90], [63, 75, 87], [172, 77, 69], [359, 50, 88]],
+                [[338, 78, 16], [37, 80, 97], [15, 15, 91], [277, 88, 92], [19, 72, 89], [306, 41, 92]],
+                [[23, 75, 9], [24, 30, 26], [28, 9, 65], [4, 65, 96], [7, 32, 83], [161, 84, 29]],
+                [[74, 35, 15], [16, 67, 79], [202, 61, 76], [149, 100, 51]],
+                [[120, 72, 28], [34, 64, 77], [232, 54, 59], [15, 68, 86], [126, 25, 46]],
+                [[241, 77, 78], [180, 48, 99], [305, 30, 98], [290, 66, 93], [239, 73, 40], [329, 61, 85]],
+                [[338, 42, 37], [230, 35, 77], [9, 46, 95], [188, 52, 49]],
+                [[249, 27, 20], [8, 26, 74], [207, 5, 67], [2, 49, 87], [3, 73, 100]],
+                [[237, 54, 49], [207, 52, 87], [50, 72, 99]]
+            ];
+            let colors = [];
+            let c;
+            if (R.random_bool(0.5)) {
+                colors = R.random_choice(choices1);
+                colors = scramble(colors);
+            } else {
+                c = R.random_choice(choices2);
+                colors.push(c[0]);
+                let remaining = c.slice(1);
+                remaining = scramble(remaining);
+                colors.push(...remaining);
+            }
+            return colors;
+        }
+    },
+    {
+        id: 23,
+        title: "Watercolor Dreams",
+        colors: function() {
+            let choices = [
+                [[207, 67, 66], [240, 32, 47], [134, 40, 87]],
+                [[301, 25, 78], [297, 36, 23], [236, 46, 68]],
+                [[231, 22, 73], [272, 76, 65], [341, 31, 85]],
+                [[70, 68, 65], [168, 68, 76], [226, 53, 68]],
+                [[76, 73, 51], [6, 44, 92], [319, 29, 80]],
+                [[16, 51, 82], [47, 46, 75], [144, 71, 56]],
+                [[18, 7, 56], [31, 51, 84], [344, 30, 95]],
+                [[54, 96, 56], [351, 80, 81], [65, 75, 33]],
+                [[69, 89, 78], [36, 84, 62], [329, 56, 89]],
+                [[268, 74, 71], [291, 100, 73], [314, 100, 86]],
+                [[353, 83, 81], [48, 100, 53], [198, 99, 65]],
+                [[334, 100, 82], [255, 30, 42], [197, 100, 43]],
+                [[172, 100, 63], [260, 77, 65], [357, 47, 90]],
+                [[0, 100, 64], [41, 79, 59], [173, 41, 65]],
+                [[345, 64, 92], [29, 96, 88], [165, 86, 69]],
+                [[29, 74, 92], [51, 60, 88], [176, 85, 64]],
+                [[45, 20, 62], [48, 92, 62], [60, 33, 34]],
+                [[127, 20, 50], [14, 19, 53], [17, 41, 82]],
+                [[51, 100, 90], [76, 100, 73], [186, 100, 64]],
+                [[316, 41, 86], [41, 76, 93], [141, 44, 86]]
+            ];
+            let c = R.random_choice(choices);
+            let c1 = c[0];
+            let c3 = c[1];
+            let c5 = c[2];
+            c1 = [c1[0], Math.min(c1[1] * 1.9, 100), c1[2]];
+            c3 = [c3[0], Math.min(c3[1] * 1.9, 100), c3[2]];
+            c5 = [c5[0], Math.min(c5[1] * 1.9, 100), c5[2]];
+            let c2 = betterLerpHSB(c1, c3, 0.5);
+            let c4 = betterLerpHSB(c3, c5, 0.5);
+            let hd1 = Math.abs(c3[0] - c1[0]);
+            if (hd1 > 180) {
+                hd1 = 360 - hd1;
+            }
+            let t2 = hd1 / 180;
+            let hd2 = Math.abs(c5[0] - c3[0]);
+            if (hd2 > 180) {
+                hd2 = 360 - hd2;
+            }
+            let t4 = hd2 / 180;
+            c2 = betterLerpHSB(c2, [0, 0, 0], t2 * 0.8);
+            c4 = betterLerpHSB(c4, [0, 0, 0], t4 * 0.8);
+            c2 = [c2[0], Math.min(c2[1] * 2.5, 100), c2[2]];
+            c4 = [c4[0], Math.min(c4[1] * 2.5, 100), c4[2]];
+            let colors = [c1, c2, c3, c4, c5];
+            for (let i = 0; i < colors.length; i++) {
+                colors[i] = betterLerpHSB(colors[i], [32, 5, 97], 0.12);
+            }
+            return colors;
+        }
+    },
+    {
+        id: 24,
+        title: "Bubble Blobby",
+        colors: function() {
+            let choices = [
+                [[0, 100, 100], [0, 45, 100], [0, 10, 100]],
+                [[31, 87, 91], [37, 63, 93], [60, 20, 83], [97, 20, 83]],
+                [[211, 72, 67], [218, 53, 92], [218, 37, 95], [242, 42, 96]],
+                [[197, 76, 76], [184, 87, 85], [173, 91, 90], [147, 95, 96]],
+                [[244, 42, 89], [214, 43, 90], [212, 24, 95], [240, 20, 86]],
+                [[330, 74, 100], [243, 57, 84], [178, 30, 100], [64, 71, 100]],
+                [[307, 73, 82], [224, 50, 92], [196, 73, 100], [135, 79, 100]],
+                [[229, 52, 59], [19, 100, 95], [25, 88, 99], [34, 47, 98]],
+                [[320, 100, 100], [200, 100, 100], [80, 100, 100], [40, 100, 100]],
+                [[201, 100, 71], [145, 100, 70], [48, 88, 100], [15, 76, 99]],
+                [[330, 100, 99], [11, 100, 99], [30, 93, 93], [44, 96, 100]],
+                [[343, 18, 62], [351, 30, 96], [349, 21, 100], [144, 4, 89]],
+                [[135, 56, 58], [115, 56, 68], [95, 56, 78], [75, 56, 88]]
+            ];
+            let colors = [[0, 0, 0]];
+            let c = R.random_choice(choices);
+            for (let i = 0; i < c.length; i++) {
+                c[i] = betterLerpHSB(c[i], [0, 0, 100], 0.15);
+            }
+            colors.push(...c);
+            return colors;
+        }
+    },
+    {
+        id: 25,
+        title: "AlgoRhythms",
+        colors: function() {
+            let choices = [
+                [352, 77, 83],
+                [25, 85, 98],
+                [44, 94, 100],
+                [48, 52, 100],
+                [143, 49, 41],
+                [143, 43, 56],
+                [143, 44, 77],
+                [130, 29, 94],
+                [217, 65, 43],
+                [223, 68, 72],
+                [200, 75, 94],
+                [193, 24, 89],
+                [351, 60, 97],
+                [349, 37, 99],
+                [349, 22, 100],
+            ];
+            let c = scramble(choices);
+            let colors = [];
+            for (let i = 0; i < 7; i++) {
+                colors.push(c[i]);
+            }
+            return colors;
+        }
+    },
+    {
+        id: 26,
+        title: "Frammenti",
+        colors: function() {
+            let choices = [
+                [[211, 56, 29], [0, 100, 83], [36, 33, 71], [210, 12, 96], [30, 12, 90], [28, 32, 88], [19, 50, 93], [9, 64, 89]],
+                [[211, 73, 38], [203, 74, 49], [199, 77, 63], [189, 75, 80], [44, 42, 99], [357, 77, 98]],
+                [[210, 100, 100], [0, 69, 100], [30, 100, 100], [27, 20, 97], [119, 41, 71], [181, 69, 57], [215, 65, 71]],
+                [[217, 65, 33], [15, 85, 93], [42, 70, 99], [11, 36, 97], [170, 69, 72], [182, 37, 76], [199, 54, 76]],
+                [[45, 79, 100], [182, 23, 86], [203, 41, 62], [207, 83, 34]],
+                [[215, 69, 48], [45, 100, 100], [358, 78, 82], [203, 85, 75], [11, 84, 85]]
+            ];
+            let colors = R.random_choice(choices);
+            colors = scramble(colors);
+            return colors;
+        }
+    },
+    {
+        id: 27,
+        title: "The Blocks of Art",
+        colors: function() {
+            let choices = [
+                [[38, 9, 80], [34, 11, 25], [17, 83, 92]],
+                [[242, 84, 30], [2, 68, 98], [38, 51, 95]],
+                [[197, 54, 38], [43, 55, 91], [12, 65, 91]],
+                [[355, 75, 90], [105, 5, 88], [215, 67, 34]],
+                [[235, 45, 35], [197, 5, 88], [350, 98, 85]],
+                [[201, 100, 29], [0, 81, 84], [51, 22, 92]],
+                [[221, 67, 30], [37, 93, 99], [0, 0, 85]],
+                [[207, 97, 12], [353, 87, 91], [35, 89, 100]],
+                [[188, 77, 41], [0, 58, 100], [50, 57, 100]],
+                [[48, 60, 100], [198, 78, 63], [170, 42, 76]],
+                [[24, 100, 100], [0, 0, 80], [209, 100, 60]],
+                [[186, 83, 54], [2, 76, 86], [40, 66, 100]],
+                [[100, 35, 30], [180, 77, 69], [47, 61, 96]],
+                [[182, 11, 99], [201, 18, 75], [197, 35, 25]],
+                [[209, 100, 30], [155, 21, 55], [42, 42, 96]],
+                [[227, 100, 76], [53, 96, 97], [11, 100, 89]],
+                [[285, 31, 5], [44, 82, 98], [192, 59, 80]],
+                [[44, 25, 100], [342, 100, 100], [316, 87, 43]],
+                [[43, 97, 100], [207, 68, 77], [203, 96, 26]],
+                [[105, 8, 98], [182, 24, 86], [215, 67, 34]],
+                [[209, 87, 45], [48, 25, 98], [10, 78, 98]],
+                [[96, 33, 6], [339, 87, 100], [61, 93, 100]],
+                [[122, 12, 89], [186, 41, 45], [206, 39, 30]]
+            ];
+            let colors = R.random_choice(choices);
+            colors = scramble(colors);
+            return colors;
+        }
+    },
+    {
+        id: 28,
+        title: "Fidenza",
+        colors: function() {
+            let choices = [
+                [[40, 12, 92], [220, 65, 35], [160, 15, 85], [25, 45, 33], [43, 55, 99], [43, 90, 99], [358, 59, 86], [210, 65, 55], [170, 75, 65], [11, 35, 97], [358, 80, 82], [200, 35, 75], [25, 78, 90], [160, 10, 90], [12, 18, 97]],
+                [[40, 12, 92], [25, 45, 33], [358, 59, 86], [25, 78, 90], [43, 55, 99], [200, 35, 75], [43, 90, 99], [358, 80, 82], [160, 15, 85], [210, 65, 55]],
+                [[40, 12, 92], [125, 55, 55], [12, 18, 97], [125, 12, 90], [11, 40, 97], [28, 42, 39]],
+                [[40, 12, 92], [220, 65, 35], [210, 65, 55], [200, 35, 75], [170, 75, 65], [160, 15, 85], [25, 45, 33], [260, 14, 88], [43, 60, 99], [11, 35, 97], [12, 18, 97]],
+                [[40, 12, 92], [200, 15, 90], [43, 60, 99], [11, 35, 97], [210, 65, 55], [358, 64, 86]],
+                [[40, 12, 88], [200, 35, 75], [25, 45, 33], [43, 90, 99], [358, 59, 86], [25, 68, 93], [358, 80, 82], [43, 55, 99]],
+                [[260, 30, 30], [180, 20, 30], [300, 10, 50], [130, 20, 70], [5, 10, 80], [5, 40, 90], [40, 25, 90]],
+                [[130, 20, 50], [40, 12, 92], [130, 50, 35], [210, 72, 50], [0, 40, 95], [210, 72, 30], [6, 20, 95], [32, 30, 99], [32, 30, 30]],
+                [[150, 8, 30], [150, 8, 40], [6, 16, 100], [15, 26, 97], [350, 60, 90], [350, 40, 80], [350, 80, 70]]
+            ];
+            let c;
+            if (R.random_bool(0.5)) {
+                c = choices[0];
+            } else {
+                c = R.random_choice(choices);
+            }
+            let used = [];
+            let colors = [];
+            for (let i = 0; i < Math.min(8, c.length); i++) {
+                let selected = Math.floor(Math.pow(R.random_dec(), 2) * c.length);
+                while (used.includes(selected)) {
+                    selected = Math.floor(Math.pow(R.random_dec(), 2) * c.length);
+                }
+                used.push(selected);
+                colors.push(c[selected]);
+            }
+            return colors;
+        }
+    },
+    {
+        id: 29,
+        title: "Dreams",
+        colors: function() {
+            let choices = [
+                [[349, 56, 71], [40, 18, 25], [188, 37, 47], [49, 24, 80], [112, 58, 53], [358, 76, 67], [40, 76, 73], [348, 42, 85]],
+                [[348, 84, 93], [42, 68, 98], [162, 61, 67], [175, 100, 28], [351, 13, 100], [198, 76, 63], [289, 65, 34], [225, 15, 37]],
+                [[357, 90, 31], [358, 78, 68], [66, 15, 78], [320, 17, 56], [302, 32, 32]],
+                [[33, 32, 91], [14, 69, 71], [354, 59, 59], [268, 62, 88], [281, 43, 93], [191, 50, 30], [191, 77, 50]],            
+                [[355, 80, 79], [1, 70, 90], [355, 52, 98], [44, 16, 100], [220, 40, 15]],
+                [[70, 38, 89], [100, 24, 72], [170, 22, 55], [226, 25, 60], [283, 23, 48], [163, 44, 76], [198, 59, 58], [214, 58, 39], [359, 54, 82]],
+                [[33, 58, 100], [347, 47, 100], [275, 36, 60], [92, 60, 60], [140, 59, 47], [349, 73, 100], [209, 95, 33], [194, 77, 41], [43, 17, 93]],
+                [[247, 48, 78], [247, 20, 65], [203, 46, 87], [207, 29, 98], [24, 60, 100], [42, 50, 99], [3, 59, 98], [346, 62, 80]],
+                [[320, 69, 49], [293, 44, 27], [186, 72, 66], [176, 89, 51], [113, 56, 62], [84, 66, 73], [46, 75, 100], [7, 62, 93]],
+                [[352, 82, 75], [62, 60, 49], [85, 57, 47], [167, 73, 36], [200, 69, 32]],
+                [[356, 84, 94], [50, 98, 100], [224, 77, 96], [30, 20, 15]],
+                [[285, 52, 32], [36, 78, 88], [38, 62, 93], [37, 32, 96], [355, 52, 89], [150, 23, 82]],
+            ];
+            let colors = [];
+            let c = R.random_choice(choices);
+            c = scramble(c);
+            for (let i = 0; i < Math.min(8, c.length); i++) {
+                colors.push([c[i][0], Math.min(c[i][1] * 1.1, 100), Math.min(c[i][2] * 1.1, 100)]);
+            }
+            return colors;
+        }
+    },
+    {
+        id: 30,
+        title: "CENTURY",
+        colors: function() {
+            let choices = [
+                [[43, 7, 88], [43, 8, 74], [200, 96, 65], [210, 28, 28], [13, 34, 92], [13, 57, 97]],
+                [[43, 7, 88], [43, 8, 74], [15, 88, 68], [210, 28, 28], [13, 34, 92], [13, 57, 97]],
+                [[240, 2, 19], [348, 34, 86], [43, 7, 88]]
+            ];
+            let indices = [0, 0, 1, 1, 2];
+            let colors = [];
+            let c = choices[R.random_choice(indices)];
+            let mixture = c.slice(2);
+            mixture = scramble(mixture);
+            c = c.slice(0, 2).concat(mixture);
+            for (let i = 0; i < Math.min(R.random_int(4, 6), c.length); i++) {
+                colors.push(c[i]);
+            }
+            colors = scramble(colors);
+            return colors;
+        }
+    },
+    {
+        id: 31,
+        title: "glitch crystal monsters",
+        colors: function() {
+            let backgrounds = [
+                [0, 20, 100],
+                [0, 100, 100],
+                [16, 100, 100],
+                [24, 100, 100],
+                [45, 80, 100],
+                [202, 72, 95],
+                [233, 90, 40],
+                [237, 66, 96],
+                [240, 100, 100],
+                [270, 40, 100],
+                [277, 85, 67],
+            ];
+            let choices = [
+                [[0, 100, 100], [30, 100, 100], [60, 100, 100]],
+                [[180, 100, 100], [210, 100, 100], [240, 100, 100]],
+                [[240, 100, 100], [270, 100, 100], [300, 100, 100]],
+                [[300, 100, 100], [330, 100, 100], [0, 100, 100]]
+            ];
+            let bgi = R.random_int(0, backgrounds.length - 1);
+            let indices = [];
+            if (bgi === 0 || bgi === 6) {
+                indices = [0, 1, 2, 3];
+            }
+            if (bgi === 1) {
+            indices = [1];
+            }
+            if (bgi === 2 || bgi === 3) {
+                indices = [1, 2];
+            }
+            if (bgi === 4) {
+                indices = [1, 2, 3];
+            }
+            if (bgi === 5) {
+                indices = [0, 3];
+            }
+            if (bgi === 7 || bgi === 8 || bgi === 10) {
+                indices = [0];
+            }
+            if (bgi === 9) {
+                indices = [0, 1, 3];
+            }
+            let colors = [backgrounds[bgi]];
+            let c = choices[R.random_choice(indices)];
+            if (R.random_bool(0.5)) {
+                c.reverse();
+            }
+            colors.push(...c);
+            return colors;
+        }
+    },
+    {
+        id: 32,
+        title: "Endless Nameless",
+        colors: function() {
+            let choices = [
+                [[120, 100, 40], [180, 100, 100]],
+                [[120, 100, 40], [60, 100, 100]],
+                [[240, 100, 100], [300, 100, 100]],
+                [[120, 100, 100], [300, 100, 100]],
+                [[180, 100, 100], [0, 100, 100]],
+                [[180, 100, 100], [300, 100, 100]],
+                [[180, 100, 100], [60, 100, 100]],
+                [[0, 100, 100], [300, 100, 100]],
+                [[300, 100, 100], [60, 100, 100]]
+            ];
+            let i1 = R.random_int(0, choices.length - 1);
+            let i2 = R.random_int(0, choices.length - 1);
+            while (i1 === i2 || choices[i1][0][0] === choices[i2][0][0] || choices[i1][0][0] === choices[i2][1][0] || choices[i1][1][0] === choices[i2][0][0] || choices[i1][1][0] === choices[i2][1][0]) {
+                i2 = R.random_int(0, choices.length - 1);
+            }
+            let p1 = choices[i1];
+            let p2 = choices[i2];
+            p1 = scramble(p1);
+            p2 = scramble(p2);
+            let colors = [...p1, ...p2];
+            return colors;
+        }
+    },
+    {
+        id: 33,
+        title: "Pigments",
+        colors: function() {
+            let choices = [
+                [[221, 19, 85], [33, 98, 45], [33, 29, 65], [28, 37, 85], [358, 98, 25]],
+                [[224, 98, 85], [224, 97, 50], [232, 55, 78], [257, 33, 71], [0, 1, 60]],
+                [[247, 42, 85], [246, 29, 55], [90, 25, 29], [13, 96, 35], [358, 97, 20]],
+                [[184, 36, 65], [172, 23, 45], [46, 42, 45], [29, 98, 30], [358, 97, 20]],
+                [[182, 70, 32], [161, 18, 42], [30, 14, 55], [163, 11, 75], [182, 100, 20]],
+                [[239, 75, 30], [30, 15, 51], [209, 67, 35], [203, 34, 45], [172, 13, 65]],
+                [[242, 34, 65], [265, 32, 79], [240, 95, 40], [242, 51, 39], [328, 55, 36]],
+                [[260, 17, 95], [220, 45, 75], [216, 80, 75], [28, 98, 25], [14, 45, 55]],
+                [[213, 44, 65], [38, 97, 45], [36, 98, 25], [32, 44, 75], [36, 100, 15]],
+                [[207, 75, 75], [203, 40, 75], [33, 98, 55], [23, 90, 90], [28, 98, 25]],
+                [[32, 59, 75], [21, 97, 75], [16, 98, 55], [0, 98, 45], [358, 98, 30]],
+                [[239, 98, 25], [21, 48, 58], [202, 59, 45], [192, 28, 55], [168, 16, 75]],
+                [[45, 20, 85], [33, 31, 55], [11, 98, 35], [175, 35, 78], [358, 97, 20]]
+            ];
+            let c = R.random_choice(choices);
+            let colors = scramble(c);
+            return colors;
+        }
+    },
+    {
+        id: 34,
+        title: "Scribbled Boundaries",
+        colors: function() {
+            let h, s, b;
+            let colors = [];
+            let index = R.random_int(3, 5);
+            for (let i = 0; i < index; i++) {
+                h = R.random_int(0, 360);
+                if (i > 0) {
+                    while (Math.min(Math.abs(h - colors[i - 1][0]), 360 - Math.abs(h - colors[i - 1][0])) < 30) {
+                        h = R.random_int(0, 360);
+                    }
+                }
+                s = R.random_int(60, 100);
+                b = R.random_int(18, 85);
+                colors.push(betterLerpHSB([h, s, b], [32, 5, 97], R.random_num(0.32, 0.82)));
+            }
+            return colors;
+        }
+    },
+    {
+        id: 35,
+        title: "phase",
+        colors: function() {
+            let choices = [
+                [[50, 64, 98], [30, 83, 91], [5, 82, 77], [197, 36, 98]],
+                [[359, 59, 100], [43, 69, 100], [188, 96, 98], [222, 99, 55]],
+                [[68, 47, 100], [325, 96, 100], [329, 99, 80], [290, 2, 80]],
+                [[172, 22, 91], [63, 99, 65], [57, 50, 97], [360, 99, 84], [359, 99, 42]],
+                [[120, 100, 48], [176, 86, 88], [48, 68, 100], [4, 53, 100], [357, 81, 100]],
+                [[29, 100, 66], [39, 100, 100], [54, 100, 100], [82, 94, 61]],
+                [[346, 97, 63], [348, 57, 100], [4, 20, 100], [188, 100, 78], [190, 100, 51]],
+                [[100, 41, 65], [184, 99, 71], [51, 87, 97], [30, 74, 98], [357, 71, 98]],
+                [[9, 83, 39], [19, 75, 73], [48, 46, 94], [36, 83, 80], [255, 34, 40]],
+                [[291, 94, 30], [346, 79, 56], [355, 72, 90], [1, 43, 87], [31, 58, 99]],
+                [[60, 23, 100], [228, 24, 97], [241, 84, 75], [242, 94, 37]],
+                [[352, 95, 55], [350, 75, 99], [207, 80, 53], [220, 74, 20], [30, 10, 98]],
+                [[235, 99, 56], [284, 94, 96], [329, 100, 100], [345, 100, 100]],
+                [[201, 91, 27], [185, 53, 96], [3, 10, 100], [31, 70, 100], [334, 83, 100]],
+                [[191, 99, 55], [174, 17, 80], [50, 20, 100], [350, 100, 100], [302, 93, 38]],
+                [[201, 80, 68], [257, 53, 53], [329, 100, 62], [8, 80, 100], [42, 100, 100]],
+                [[188, 46, 97], [189, 73, 76], [191, 100, 56], [357, 94, 97], [355, 98, 43]],
+                [[60, 100, 100], [31, 96, 100], [358, 77, 91], [302, 99, 38]],
+                [[330, 100, 84], [60, 100, 84], [180, 100, 100]],
+                [[180, 67, 100], [300, 67, 100], [60, 67, 100], [0, 100, 67], [240, 100, 67]],
+                [[300, 100, 67], [0, 100, 67], [60, 67, 100], [120, 100, 67]],
+                [[0, 100, 67], [0, 67, 100], [60, 67, 100], [240, 67, 100]],
+                [[0, 67, 100], [120, 67, 100], [60, 67, 100], [0, 0, 33], [180, 67, 100]],
+                [[300, 65, 100], [180, 67, 100], [300, 100, 90], [0, 0, 100]],
+                [[120, 100, 67], [0, 100, 67], [30, 100, 67], [120, 100, 33]]
+            ];
+            let c = R.random_choice(choices);
+            c = scramble(c);
+            let colors = [];
+            for (let i = 0; i < Math.min(4, c.length); i++) {
+                colors.push(betterLerpHSB(c[i], [0, 0, 0], 0.15));
+            }
+            return colors;
+        }
+    },
+    {
+        id: 36,
+        title: "Geometry Runners",
+        colors: function() {
+            let choices = [
+                [[37, 23, 35], [41, 61, 95], [167, 57, 68], [44, 11, 81], [8, 73, 88]],
+                [[37, 14, 79], [194, 88, 68], [356, 96, 87], [228, 27, 36], [38, 15, 89]],
+                [[34, 58, 83], [79, 11, 79], [168, 50, 20], [33, 38, 96], [26, 65, 100]],
+                [[43, 65, 83], [31, 21, 98], [326, 14, 20], [206, 63, 56], [3, 76, 92]],
+                [[13, 79, 89], [31, 32, 98], [326, 14, 20], [209, 70, 41], [117, 35, 49]],
+                [[192, 50, 61], [31, 32, 98], [326, 14, 20], [3, 77, 91], [196, 41, 80]],
+                [[343, 19, 29], [287, 14, 51], [36, 30, 98], [191, 75, 67], [196, 41, 80]],
+                [[357, 63, 44], [77, 13, 95], [45, 53, 54], [53, 49, 98], [150, 6, 20]],
+                [[98, 16, 20], [178, 54, 57], [33, 34, 96], [34, 17, 98]],
+                [[140, 4, 27], [13, 38, 95], [13, 82, 89], [53, 49, 98], [44, 62, 92]],
+                [[149, 31, 40], [213, 30, 90], [21, 11, 89], [6, 68, 79], [8, 85, 95]],
+                [[354, 11, 67], [53, 19, 89], [50, 92, 96], [52, 53, 98], [224, 21, 27]],
+                [[185, 42, 65], [90, 7, 77], [188, 53, 40], [53, 49, 98], [14, 71, 59]],
+                [[64, 9, 75], [190, 18, 76], [41, 93, 96], [14, 84, 93]],
+                [[28, 25, 62], [184, 32, 76], [203, 97, 46], [53, 49, 98], [37, 29, 98]],
+                [[180, 29, 42], [192, 100, 20], [33, 31, 96], [39, 69, 96]],
+                [[216, 48, 43], [0, 54, 82], [53, 49, 98]],
+                [[141, 26, 66], [0, 0, 54], [53, 49, 98], [0, 54, 82]],
+                [[117, 37, 46], [31, 23, 98], [326, 14, 20], [116, 14, 75], [3, 79, 91]],
+                [[13, 10, 55], [16, 12, 93], [295, 17, 25], [328, 38, 96]],
+                [[33, 11, 39], [168, 28, 28], [46, 94, 82], [53, 49, 98], [12, 87, 73]],
+                [[342, 40, 39], [37, 31, 100], [10, 56, 82], [313, 39, 28]],
+                [[35, 31, 63], [34, 26, 97], [159, 54, 49], [26, 65, 100]]
+            ];
+            let c = R.random_choice(choices);
+            let colors = [c[0]];
+            let remaining = scramble(c.slice(1));
+            colors.push(...remaining);
+            return colors;
+        }
+    },
+    {
+        id: 37,
+        title: "Trossets",
+        colors: function() {
+            let choices = [
+                [[82, 49, 82], [107, 62, 74], [128, 62, 37], [0, 12, 100], [1, 75, 94]],
+                [[38, 21, 86], [140, 21, 34], [166, 56, 20], [90, 20, 47], [6, 68, 88]],
+                [[0, 0, 0], [161, 55, 45], [172, 65, 76], [171, 35, 86], [0, 80, 90]],
+                [[25, 53, 92], [13, 66, 77], [320, 14, 25], [42, 33, 89], [144, 32, 60]],
+                [[212, 8, 68], [224, 18, 50], [217, 23, 22], [51, 100, 100], [50, 49, 100]],
+                [[140, 21, 34], [38, 21, 86], [166, 56, 20], [90, 20, 47], [6, 68, 88]],
+                [[145, 45, 80], [130, 20, 85], [40, 23, 8], [22, 76, 70], [50, 100, 90]],
+                [[45, 95, 96], [47, 73, 100], [178, 41, 25], [42, 25, 92], [18, 93, 93]],
+                [[60, 24, 91], [45, 95, 96], [47, 73, 100], [17, 72, 93], [178, 41, 25]],
+                [[162, 33, 68], [351, 81, 71], [319, 52, 22], [18, 64, 82], [49, 73, 86]],
+                [[8, 81, 98], [176, 94, 55], [0, 0, 22], [0, 0, 0], [27, 53, 95]],
+                [[176, 94, 55], [0, 0, 20], [0, 0, 0], [27, 53, 95], [8, 81, 98]],
+                [[51, 100, 98], [38, 100, 98], [215, 87, 44], [213, 65, 65]],
+                [[36, 20, 91], [201, 71, 19], [353, 77, 99], [37, 70, 96]],
+                [[63, 17, 94], [64, 68, 40], [63, 85, 65], [330, 99, 100], [324, 13, 20]],
+                [[90, 19, 49], [140, 25, 34], [166, 56, 20], [38, 21, 86], [34, 34, 78]],
+                [[67, 8, 81], [17, 98, 60], [0, 0, 0], [67, 23, 51], [65, 14, 67]],
+                [[164, 100, 75], [79, 20, 87], [160, 10, 12], [162, 100, 31], [163, 100, 51]]
+            ];
+            let colors = R.random_choice(choices);
+            return colors;
+        }
+    },
+    {
+        id: 38,
+        title: "Fragments of an Infinite Field",
+        colors: function() {
+            let seasons = [
+                [
+                [[135, 15, 75], [135, 25, 55], [135, 39, 45], [141, 63, 25], [145, 50, 15]],
+                [[169, 7, 87], [135, 31, 55], [134, 23, 65], [124, 48, 35], [106, 68, 15]],
+                [[45, 37, 98], [33, 63, 97], [306, 9, 87], [305, 29, 67]],
+                [[27, 18, 100], [352, 17, 52], [36, 47, 100], [26, 49, 100], [10, 38, 84]]
+                ],
+                [
+                [[66, 15, 95], [38, 63, 95], [28, 97, 55], [17, 98, 35]],
+                [[11, 84, 85], [39, 19, 95], [22, 75, 85], [11, 88, 40], [4, 82, 20]],
+                [[74, 48, 42], [88, 56, 21], [52, 15, 100], [32, 57, 87], [28, 80, 74]],
+                [[202, 12, 100], [199, 100, 86], [208, 36, 86], [357, 53, 95], [6, 84, 67]]
+                ],
+                [
+                [[45, 58, 95], [39, 67, 95], [33, 78, 95], [28, 95, 95], [50, 50, 95]],
+                [[52, 37, 93], [57, 31, 100], [59, 26, 100], [60, 18, 100]],
+                [[351, 13, 99], [344, 46, 95], [200, 14, 99], [207, 65, 81], [332, 97, 93]],
+                [[253, 98, 65], [242, 40, 95], [50, 98, 95], [39, 98, 95], [22, 98, 95]]
+                ],
+                [
+                [[225, 11, 85], [227, 4, 85], [220, 33, 65], [220, 22, 75]],
+                [[0, 0, 65], [0, 0, 55], [0, 0, 45], [0, 0, 35]],
+                [[310, 12, 75], [265, 20, 95], [240, 6, 95], [240, 3, 100], [322, 7, 92]],
+                [[191, 15, 85], [133, 9, 96], [86, 29, 78], [89, 100, 29], [160, 4, 98]]
+                ]
+            ];
+            let season = R.random_choice(seasons);
+            let li = R.random_int(0, 1);
+            let fi = R.random_int(2, 3);
+            let leaves = season[li];
+            let flowers = season[fi];
+            let bg = R.random_choice(leaves);
+            flowers = scramble(flowers);
+            let colors = [bg];
+            for (let i = 0; i < 4; i++) {
+                colors.push(flowers[i]);
+            }
+            return colors;
+        }
+    },
+    {
+        id: 39,
+        title: "Skulptuur",
+        colors: function() {
+            let skies = [
+                [[353, 90, 95], [29, 65, 56]],
+                [[245, 76, 84], [339, 94, 20]],
+                [[300, 92, 4], [6, 52, 70]],
+                [[227, 81, 69], [212, 70, 65]],
+                [[257, 86, 5], [213, 53, 79]],
+                [[155, 78, 89], [254, 91, 28]],
+                [[262, 57, 95], [257, 56, 10]],
+                [[25, 78, 89], [17, 86, 0]],
+                [[10, 99, 95], [3, 95, 41]],
+                [[224, 73, 74], [6, 88, 95]],
+                [[12, 99, 95], [273, 81, 48]],
+                [[60, 24, 41], [213, 56, 69]],
+                [[32, 67, 95], [202, 99, 95]],
+                [[226, 73, 56], [218, 57, 95]],
+            ];
+            let materials = scramble([[0, 0, 80], [220, 43, 30], [0, 86, 70]]);
+            let sun = [60, 20, 100];
+            let sky = R.random_choice(skies);
+            let temp = [];
+            temp.push(betterLerpHSB(sky[0], [32, 5, 97], 0.3));
+            if (R.random_bool(0.5)) {
+                temp.push(sun);
+            }
+            for (let i = 0; i < materials.length; i++) {
+                temp.push(betterLerpHSB(materials[i], sky[0], 0.2));
+            }
+            temp.push(betterLerpHSB(sky[1], [32, 5, 97], 0.3));
+            let colors = [];
+            for (let i = 0; i < Math.min(5, temp.length); i++) {
+                colors.push(temp[i]);
+            }
+            return colors;
+        }
+    },
+    {
+        id: 40,
+        title: "Edifice",
+        colors: function() {
+            let choices = [
+                [[31, 21, 96], [45, 51, 95], [39, 75, 20]],
+                [[46, 8, 90], [17, 100, 33], [47, 100, 90], [193, 100, 49], [0, 0, 15]],
+                [[41, 14, 87], [213, 55, 27], [190, 58, 40], [2, 83, 59], [48, 65, 83]],
+                [[56, 17, 97], [189, 70, 50], [60, 15, 19], [35, 94, 20], [62, 75, 28], [55, 79, 49], [29, 77, 79], [43, 83, 88]],
+                [[43, 14, 97], [197, 100, 81], [211, 100, 74], [216, 100, 53], [230, 96, 33]],
+                [[48, 40, 95], [40, 100, 98], [34, 100, 88], [17, 100, 82], [22, 58, 24], [223, 32, 9]],
+                [[46, 8, 90], [33, 100, 27], [13, 29, 49], [317, 24, 77], [72, 48, 45], [262, 30, 53], [39, 100, 90], [160, 37, 57], [343, 70, 85], [217, 71, 51]],
+                [[10, 26, 98], [352, 66, 100], [347, 100, 79], [355, 74, 38]],
+                [[27, 13, 96], [11, 80, 30], [0, 100, 0]],
+                [[72, 2, 83], [23, 68, 74], [17, 86, 75], [1, 100, 70], [3, 96, 44], [20, 89, 15]],
+                [[9, 86, 73], [180, 55, 13], [181, 75, 89]]
+            ];
+            let c = R.random_choice(choices);
+            let colors = [c[0]];
+            let remaining = scramble(c.slice(1));
+            for (let i = 0; i < Math.min(8, remaining.length); i++) {
+                colors.push(betterLerpHSB(remaining[i], [32, 5, 97], 0.1));
+            }
+            return colors;
+        }
+    },
+    {
+        id: 41,
+        title: "Asemica",
+        colors: function() {
+            let choices = [
+                [[55, 8, 95], [45, 9, 77], [0, 0, 14], [227, 92, 68], [0, 0, 100]],
+                [[180, 1, 92], [45, 9, 77], [227, 92, 68], [0, 0, 100], [0, 0, 0]],
+                [[56, 8, 91], [45, 9, 77], [227, 92, 68], [0, 0, 100], [0, 0, 0]],
+                [[45, 9, 77], [0, 0, 14], [227, 92, 68], [0, 0, 100]],
+                [[14, 7, 93], [45, 9, 77], [0, 0, 14], [227, 92, 68], [0, 0, 100]],
+                [[0, 0, 14], [45, 9, 77], [227, 92, 68], [0, 0, 100]],
+                [[227, 92, 68], [45, 9, 77], [0, 0, 100], [0, 0, 0]],
+                [[137, 29, 52], [45, 9, 77], [0, 0, 14], [227, 92, 68], [0, 0, 100]],
+                [[16, 74, 83], [45, 9, 77], [56, 49, 96], [0, 0, 100], [2, 77, 78]],
+                [[56, 49, 96], [45, 9, 77], [0, 0, 14], [227, 92, 68], [0, 0, 100]],
+                [[151, 85, 49], [45, 9, 77], [227, 92, 68], [0, 0, 100], [0, 0, 0]]
+            ];
+            let index = R.random_int(0, choices.length - 1);
+            let c = choices[index];
+            let colors = [c[0]];
+            let remaining = scramble(c.slice(1));
+            for (let i = 0; i < Math.min(R.random_int(2, 4), remaining.length); i++) {
+                colors.push(remaining[i]);
+            }
+            if (colors.length < 5 && R.random_bool(0.25)) {
+                if (index < 5) {
+                    colors.push(betterLerpHSB(colors[0], [327, 78, 84], 0.3));
+                } else {
+                    colors.push(betterLerpHSB(colors[0], [190, 29, 94], 0.9));
+                }
+            }
+            return colors;
+        }
+    },
+    {
+        id: 42,
+        title: "Autology",
+        colors: function() {
+            let choices = [
+                [[197, 54, 33], [173, 73, 62], [43, 55, 91], [27, 60, 96], [12, 65, 91]],
+                [[269, 44, 92], [0, 0, 78], [237, 32, 94], [236, 69, 88], [273, 96, 71]],
+                [[308, 8, 79], [203, 28, 97], [188, 43, 89], [176, 59, 71], [356, 94, 100]],
+                [[60, 13, 14], [60, 9, 91], [45, 33, 29], [51, 11, 62], [17, 86, 86]],
+                [[161, 63, 99], [206, 91, 99], [207, 55, 100], [238, 30, 75], [210, 20, 27]],
+                [[149, 46, 53], [348, 70, 75], [48, 79, 91], [28, 81, 89], [290, 20, 20], [211, 88, 80], [5, 52, 47]],
+                [[192, 51, 69], [35, 21, 97], [10, 65, 35], [24, 82, 80], [199, 100, 42], [38, 41, 48], [360, 94, 70]],
+                [[44, 100, 66], [46, 74, 83], [0, 0, 65], [39, 41, 55], [36, 68, 33], [0, 0, 13]],
+                [[192, 84, 76], [47, 88, 100], [342, 81, 94], [196, 29, 20]],
+                [[351, 73, 64], [348, 52, 80], [358, 42, 96], [188, 31, 67], [188, 39, 25]]
+            ];
+            let c = R.random_choice(choices);
+            c = scramble(c);
+            let colors = [];
+            for (let i = 0; i < Math.min(7, c.length); i++) {
+                colors.push(betterLerpHSB(c[i], [0, 0, 100], 0.05));
+            }
+            return colors;
+        }
+    },
+    {
+        id: 43,
+        title: "Bent",
+        colors: function() {
+            let choices = [[6, 59, 74], [25, 59, 75], [45, 54, 74], [106, 41, 52], [199, 52, 57], [220, 48, 62], [244, 36, 60]];
+            let index1 = R.random_int(0, choices.length - 1);
+            let index2 = (index1 + R.random_int(2, 3) * R.random_choice([-1, 1]) + choices.length) % choices.length;
+            let p1 = choices[index1];
+            let p2 = choices[index2];
+            let db = R.random_bool(0.5);
+            let c1, c2, c3;
+            if (R.random_bool(0.5) || db) {
+                c1 = p1;
+                c2 = betterLerpHSB(p1, p2, 0.5);
+                c3 = p2;
+            } else {
+                c1 = betterLerpHSB(p1, [0, 0, 100], 0.4);
+                c2 = p1;
+                c3 = betterLerpHSB(p1, [0, 0, 0], 0.4);
+            }
+            let colors = [];
+            if (db) {
+                colors = [betterLerpHSB(c3, [0, 0, 10], 0.7), c3, c2, c1];
+            } else {
+                colors = [betterLerpHSB(c1, [0, 0, 90], 0.7), c1, c2, c3];
+            }
+            return colors;
+        }
+    },
+    {
+        id: 44,
+        title: "Gazers",
+        colors: function() {
+            let choices = [
+                [60, 57, 100],
+                [55, 92, 100],
+                [37, 100, 100],
+                [29, 100, 100],
+                [45, 92, 100],
+                [12, 85, 93],
+                [10, 65, 100],
+                [351, 100, 89],
+                [16, 94, 80],
+                [335, 67, 100],
+                [334, 43, 100],
+                [329, 100, 96],
+                [305, 59, 100],
+                [305, 37, 100],
+                [306, 100, 84],
+                [332, 51, 100],
+                [254, 68, 96],
+                [247, 33, 86],
+                [240, 38, 100],
+                [216, 84, 100],
+                [220, 88, 100],
+                [206, 100, 88],
+                [199, 71, 100],
+                [199, 100, 92],
+                [169, 69, 80],
+                [86, 91, 80],
+                [86, 61, 80],
+                [87, 37, 80],
+                [147, 100, 80],
+                [148, 54, 88],
+                [152, 100, 80],
+                [79, 65, 80],
+                [164, 69, 80]
+            ];
+            let c = scramble(choices);
+            let c1 = betterLerpHSB(c[0], [0, 0, 0], 0.8);
+            let c3 = betterLerpHSB(c[0], [0, 0, 0], 0.4);
+            let c5 = betterLerpHSB(c[2], [0, 0, 70], 0.4);
+            let c2 = betterLerpHSB(c1, c3, 0.5);
+            let c4 = betterLerpHSB(c3, c5, 0.5);
+            let colors = [c1, ...scramble([c2, c3, c4, c5])];
+            return colors;
+        }
+    },
+    {
+        id: 45,
+        title: "Vortex",
+        colors: function() {
+            let choices = [
+                [[58, 54, 100], [34, 37, 100], [10, 33, 100], [275, 39, 100], [240, 37, 100], [120, 54, 83]],
+                [[0, 50, 100], [231, 65, 100], [60, 99, 100], [120, 100, 85]],
+                [[263, 52, 100], [208, 53, 100], [134, 44, 100], [58, 38, 100], [37, 49, 100], [311, 40, 100]],
+                [[60, 100, 100], [36, 92, 100], [6, 85, 100], [276, 100, 99], [228, 73, 100], [136, 100, 100]],
+                [[0, 80, 100], [37, 99, 100], [60, 93, 100], [117, 95, 87], [204, 92, 100], [269, 73, 100]],
+                [[119, 97, 60], [58, 92, 100], [30, 76, 100], [336, 67, 96], [266, 71, 90], [230, 84, 80]],
+                [[60, 100, 100], [178, 77, 100], [158, 100, 85], [168, 100, 42]],
+                [[243, 89, 100], [183, 100, 70], [114, 80, 100], [60, 67, 100], [0, 67, 100]],
+                [[61, 85, 100], [34, 87, 100], [336, 100, 100], [343, 100, 42]],
+                [[126, 100, 33], [188, 100, 57], [247, 54, 100], [278, 38, 100], [294, 20, 100], [300, 68, 100]],
+                [[324, 16, 92], [223, 58, 51], [121, 94, 75], [54, 96, 100], [240, 85, 98], [300, 49, 100], [283, 98, 49], [186, 87, 94], [0, 90, 100], [46, 94, 100], [281, 99, 83], [89, 99, 89], [14, 76, 100], [186, 87, 94], [336, 100, 100], [26, 36, 100], [123, 99, 42], [46, 94, 100], [89, 99, 89], [240, 68, 100], [60, 61, 100], [14, 76, 100]],
+                [[180, 100, 97], [122, 100, 47], [299, 34, 100], [272, 100, 94], [26, 83, 100], [233, 91, 96], [60, 95, 100], [157, 74, 100], [34, 89, 100]],
+                [[240, 100, 33], [197, 100, 81], [275, 100, 80], [275, 64, 100], [124, 100, 33], [116, 100, 64], [14, 100, 78], [27, 80, 100], [57, 90, 100], [291, 100, 78], [323, 61, 100], [254, 99, 65], [229, 80, 100], [16, 94, 100], [34, 83, 100], [268, 100, 60], [270, 52, 100], [320, 100, 65], [314, 76, 100], [231, 100, 76], [34, 83, 100]],
+                [[300, 31, 100], [276, 70, 100], [243, 100, 100]],
+                [[321, 100, 79], [0, 73, 100], [41, 98, 100], [60, 100, 100], [115, 77, 100], [204, 92, 100], [263, 73, 100], [250, 88, 89]],
+                [[0, 83, 100], [191, 95, 100], [40, 96, 100], [146, 100, 45], [60, 97, 100], [276, 97, 96], [146, 64, 100], [180, 99, 54], [53, 92, 100], [282, 86, 61], [27, 71, 100], [237, 96, 83], [0, 36, 100], [133, 95, 100], [0, 95, 100], [51, 100, 100], [123, 100, 41], [208, 44, 100], [279, 89, 91], [73, 77, 100], [237, 86, 73], [60, 90, 100], [302, 47, 100], [311, 98, 52], [184, 87, 100], [258, 80, 40], [261, 30, 100], [0, 100, 61], [170, 100, 94], [164, 100, 56], [21, 54, 100], [26, 98, 86], [60, 93, 100], [96, 61, 100], [101, 100, 58], [200, 49, 100], [204, 100, 100], [303, 38, 100], [300, 96, 100], [48, 61, 100], [48, 100, 86]],
+            ];
+            let c = R.random_choice(choices);
+            if (R.random_bool(0.5)) {
+                c.reverse();
+            }
+            let n = Math.min(8, c.length);
+            let index = R.random_int(0, Math.max(0, c.length - n));
+            let colors = [];
+            for (let i = index; i < index + n; i++) {
+                colors.push(c[i]);
+            }
+            return colors;
+        }
+    },
+    {
+        id: 46,
+        title: "Jiometory No Compute",
+        colors: function() {
+            let choices = [
+                [[349, 73, 85], [355, 62, 100], [37, 21, 100], [143, 54, 87]],
+                [[341, 84, 46], [190, 18, 100], [184, 98, 91], [197, 100, 47]],
+                [[20, 85, 100], [58, 60, 98], [180, 55, 100], [225, 60, 97], [232, 45, 40]],
+                [[150, 44, 93], [183, 57, 55], [206, 39, 30]],
+                [[6, 60, 91], [21, 62, 100], [45, 38, 100], [120, 16, 49], [231, 45, 37]],
+                [[9, 83, 65], [46, 59, 100], [41, 79, 80], [53, 55, 57]],
+                [[25, 52, 90], [57, 28, 62], [152, 28, 51], [200, 35, 31]],
+                [[227, 84, 60], [229, 93, 99], [203, 91, 90], [181, 52, 86], [44, 17, 93]],
+                [[260, 60, 47], [270, 47, 52], [300, 33, 56]],
+                [[202, 48, 30], [197, 35, 93], [168, 45, 77], [205, 7, 69]],
+                [[75, 9, 22], [171, 67, 60], [170, 45, 89]],
+                [[252, 58, 48], [200, 42, 75], [175, 19, 94], [109, 9, 100]],
+                [[255, 16, 29], [318, 15, 45], [356, 28, 70], [16, 34, 94], [40, 23, 97]],
+                [[336, 78, 57], [23, 68, 89], [43, 63, 91], [91, 17, 97]],
+                [[220, 8, 33], [58, 18, 100], [41, 53, 87], [0, 49, 35]],
+                [[300, 100, 30], [325, 75, 43], [0, 63, 75], [17, 73, 94]]
+            ];
+            let colors = R.random_choice(choices);
+            colors = scramble(colors);
+            return colors;
+        }
+    },
+    {
+        id: 47,
+        title: "Chimera",
+        colors: function() {
+            let choices =  [
+                [[190, 100, 45], [181, 93, 59], [160, 30, 82], [45, 29, 91], [39, 100, 93], [30, 99, 79], [5, 90, 68]],
+                [[355, 75, 90], [182, 24, 86], [203, 56, 62], [215, 67, 34]],
+                [[201, 100, 35], [0, 81, 84], [31, 100, 97], [40, 71, 99], [51, 22, 92]],
+                [[199, 38, 90], [192, 82, 74], [200, 97, 28], [43, 99, 100], [32, 100, 98]],
+                [[354, 96, 42], [0, 100, 82], [12, 99, 86], [23, 98, 91], [34, 98, 96], [43, 97, 100]],
+                [[343, 88, 50], [343, 88, 79], [349, 70, 100], [349, 54, 100], [349, 20, 100]],
+                [[37, 61, 96], [8, 20, 96], [165, 20, 65], [1, 46, 95]],
+                [[213, 53, 44], [276, 27, 48], [347, 44, 71], [358, 53, 90], [21, 41, 92]],
+                [[60, 21, 64], [53, 31, 84], [17, 34, 85], [357, 29, 73]],
+                [[9, 67, 87], [13, 57, 96], [9, 38, 96], [58, 26, 77], [136, 30, 65]],
+                [[222, 32, 32], [200, 100, 84], [13, 21, 87], [353, 59, 96], [343, 72, 89]],
+                [[209, 87, 40], [47, 61, 96], [28, 68, 93], [10, 78, 98]],
+                [[63, 20, 80], [39, 34, 100], [8, 59, 89], [350, 46, 45]],
+                [[322, 47, 56], [342, 32, 89], [16, 30, 93], [18, 17, 93], [300, 16, 58]],
+                [[206, 61, 90], [204, 40, 97], [50, 63, 100], [342, 61, 100]],
+                [[197, 54, 33], [173, 73, 62], [43, 55, 91], [27, 60, 96], [12, 65, 91]],
+                [[41, 20, 99], [358, 30, 99], [357, 77, 98], [207, 43, 87], [220, 54, 58]],
+                [[90, 2, 37], [1, 62, 95], [48, 60, 100], [198, 78, 63], [170, 42, 76]],
+                [[21, 30, 100], [12, 36, 100], [358, 34, 90], [348, 28, 71], [263, 11, 46]],
+                [[225, 46, 64], [225, 58, 46], [46, 41, 96], [19, 61, 96], [5, 62, 97]],
+                [[253, 73, 100], [261, 43, 100], [329, 24, 100], [341, 44, 100], [354, 49, 94]],
+                [[294, 49, 56], [183, 26, 63], [37, 25, 88], [11, 74, 100]]
+            ];
+            let colors = R.random_choice(choices);
+            colors = scramble(colors);
+            return colors;
+        }
+    },
+    {
+        id: 48,
+        title: "Cosmic Reef",
+        colors: function() {
+            let h1 = 30 * R.random_int(2, 5) + 180;
+            let h2 = 30 * R.random_int(2, 6) + 180;
+            let h3 = 30 * R.random_int(2, 7) + 180;
+            let h4 = 15 * R.random_int(8, 15) + 180;
+            let c1 = [h1 % 360, 100, 30];
+            let c2 = [h2 % 360, 100, 65];
+            let c3 = [h3 % 360, 100, 100];
+            let c4 = [h4 % 360, 65, 100];
+            let colors = [c1, c2, c3, c4];
+            return colors;
+        }
+    },
+    {
+        id: 49,
+        title: "Screens",
+        colors: function() {
+            let choices = [
+                [[56, 19, 95], [174, 88, 66], [358, 86, 93]],
+                [[38, 78, 95], [155, 21, 67], [209, 29, 75], [20, 70, 88]],
+                [[39, 10, 82], [36, 89, 95], [200, 51, 69], [12, 80, 94]],
+                [[40, 19, 92], [40, 96, 99], [2, 77, 76], [207, 98, 74]],
+                [[41, 18, 90], [9, 65, 67], [192, 32, 55]],
+                [[24, 16, 99], [158, 14, 82], [24, 65, 99]],
+                [[34, 20, 95], [13, 84, 90], [185, 99, 53]],
+                [[35, 15, 100], [4, 28, 96], [6, 46, 83], [183, 57, 49]],
+                [[120, 6, 85], [181, 45, 83], [359, 31, 79], [182, 58, 57], [161, 13, 50]],
+                [[211, 11, 91], [43, 70, 79], [206, 41, 69], [189, 46, 65]],
+                [[51, 24, 95], [55, 62, 83], [79, 39, 72], [263, 18, 64]],
+                [[206, 3, 98], [216, 2, 86], [17, 5, 60]],
+                [[206, 3, 98], [216, 2, 86], [17, 5, 60], [350, 99, 81]],
+                [[274, 8, 75], [2, 26, 86], [34, 84, 78], [145, 33, 59], [227, 47, 69]]
+            ];
+            let c = R.random_choice(choices);
+            let colors = [c[0]];
+            c.splice(0, 1);
+            c = scramble(c);
+            colors.push(...c);
+            return colors;
+        }
+    },
+    {
+        id: 50,
+        title: "Para Bellum",
+        colors: function() {
+            let choices = [
+                [[196, 5, 94], [349, 81, 75], [350, 34, 35], [203, 98, 75], [191, 98, 85]],
+                [[355, 36, 95], [197, 53, 85], [45, 83, 85], [28, 50, 85], [5, 77, 95]],
+                [[130, 37, 45], [49, 76, 74], [23, 96, 87], [219, 67, 62], [5, 97, 75]],
+                [[57, 13, 95], [45, 88, 95], [16, 92, 85], [5, 80, 35]],
+                [[220, 81, 65], [39, 70, 85], [18, 74, 79], [8, 82, 73]],
+                [[39, 80, 85], [91, 51, 45], [11, 33, 85], [5, 94, 65]],
+                [[21, 12, 85], [220, 59, 65], [28, 95, 85], [5, 98, 75], [5, 94, 55]],
+                [[45, 98, 95], [39, 98, 95], [25, 100, 100], [0, 98, 95]],
+                [[355, 98, 75], [349, 67, 85], [22, 89, 85], [16, 98, 85]],
+                [[355, 96, 75], [349, 92, 62], [11, 45, 85], [4, 100, 45]],
+                [[0, 77, 87], [39, 88, 85], [33, 86, 85], [28, 84, 65], [346, 100, 59]],
+                [[0, 83, 95], [167, 12, 84], [12, 94, 100], [5, 96, 35], [5, 97, 65]],
+                [[0, 99, 49], [359, 99, 66], [33, 67, 75], [33, 56, 95]],
+                [[35, 25, 87], [225, 66, 45], [39, 89, 85], [16, 91, 65]],
+                [[175, 6, 78], [50, 100, 91], [22, 92, 66], [9, 100, 65]],
+                [[28, 72, 95], [332, 89, 85], [327, 73, 95], [2, 71, 99], [0, 84, 95]],
+                [[191, 98, 75], [203, 100, 75], [45, 98, 85], [39, 98, 85], [0, 88, 65]],
+                [[11, 25, 95], [349, 81, 65], [33, 91, 95], [22, 86, 85], [5, 86, 85]],
+                [[32, 22, 85], [39, 98, 85], [33, 98, 85], [208, 51, 65], [16, 95, 75]],
+                [[338, 91, 75], [45, 98, 95], [33, 98, 85], [0, 94, 75]],
+                [[323, 84, 37], [349, 98, 60], [29, 86, 98], [23, 91, 89], [192, 84, 36]],
+                [[224, 63, 60], [45, 91, 100], [355, 94, 100], [345, 80, 100]],
+                [[148, 100, 29], [120, 100, 45], [101, 100, 69], [90, 100, 88], [75, 80, 100]],
+                [[22, 97, 98], [54, 82, 95], [82, 87, 71], [77, 99, 50], [38, 82, 98]],
+                [[198, 61, 92], [53, 70, 99], [79, 69, 77], [13, 77, 90], [24, 87, 98]],
+                [[0, 100, 82], [43, 97, 100], [207, 68, 77], [203, 96, 31], [172, 83, 44]],
+                [[211, 79, 67], [200, 72, 85], [174, 40, 75], [47, 100, 100], [26, 90, 92]],
+                [[17, 100, 100], [26, 100, 100], [35, 100, 100], [44, 100, 100]],
+                [[344, 55, 92], [326, 63, 75], [304, 71, 72], [286, 79, 69], [272, 90, 67]],
+                [[333, 85, 97], [309, 87, 71], [276, 95, 72], [243, 73, 79], [229, 72, 93], [212, 70, 94], [194, 68, 94]],
+                [[326, 100, 62], [340, 100, 100], [20, 100, 100], [44, 100, 100]],
+                [[38, 6, 51], [49, 70, 95], [220, 77, 42], [210, 8, 28]],
+                [[44, 8, 57], [147, 55, 26], [31, 75, 91], [33, 74, 47], [5, 84, 88], [4, 53, 62]],
+                [[235, 57, 79], [230, 71, 74], [228, 78, 66], [254, 87, 54]],
+                [[358, 15, 100], [342, 58, 92], [333, 99, 54], [224, 24, 30]],
+            ];
+            let c = R.random_choice(choices);
+            let colors = [c[0]];
+            c.splice(0, 1);
+            c = scramble(c);
+            colors.push(...c);
+            return colors;
+        }
+    },
+    {
+        id: 51,
+        title: "entretiempos",
+        colors: function() {
+            let backgrounds = [[0, 73, 65], [16, 98, 87], [43, 69, 71], [192, 18, 65], [189, 6, 82], [54, 91, 99]];
+            let choices = [
+                [[202, 95, 53], [202, 13, 98], [14, 23, 60], [15, 83, 35], [4, 11, 99], [2, 91, 95]],
+                [[135, 43, 61], [2, 84, 76], [44, 79, 99], [218, 88, 57], [60, 1, 68], [29, 19, 88]],
+                [[355, 82, 55], [226, 40, 56], [9, 14, 93], [51, 84, 94], [136, 53, 24], [53, 64, 82], [46, 22, 94], [42, 88, 88], [138, 39, 55], [37, 45, 56], [16, 48, 71], [217, 80, 47]],
+                [[124, 13, 85], [210, 44, 32], [40, 66, 100], [325, 48, 26], [2, 85, 97]],
+                [[218, 100, 33], [209, 98, 47], [200, 92, 55], [193, 89, 64], [194, 34, 81], [192, 15, 90], [45, 55, 100], [45, 100, 100], [45, 75, 75], [45, 100, 65], [53, 20, 100]],
+                [[210, 74, 90], [209, 36, 95], [213, 61, 56], [209, 23, 78], [14, 54, 40], [19, 74, 58], [21, 91, 96], [31, 82, 93], [37, 77, 92], [44, 72, 91]],
+                [[81, 61, 44], [0, 73, 72], [216, 27, 58], [216, 52, 62], [81, 52, 75], [41, 78, 94]],
+                [[202, 92, 20], [193, 58, 35], [187, 49, 54], [169, 31, 68], [47, 98, 100], [102, 8, 83], [43, 16, 96]],
+                [[16, 100, 90], [36, 100, 95], [46, 100, 98], [55, 100, 100], [55, 50, 100], [71, 54, 87], [103, 29, 84], [176, 31, 82], [180, 79, 63], [178, 96, 41]]
+            ];
+            let c = R.random_choice(choices);
+            c = scramble(c);
+            let colors = [];
+            for (let i = 0; i < Math.min(8, c.length); i++) {
+                colors.push(c[i]);
+            }
+            if (R.random_bool(0.2)) {
+                bg = R.random_choice(backgrounds);
+                colors[0] = bg;
+            } else {
+                bg = [32, 5, 97];
+            }
+            for (let i = 0; i < colors.length; i++) {
+                colors[i] = betterLerpHSB(colors[i], bg, 0.07);
+            }
+            return colors;
+        }
+    },
+    {
+        id: 52,
+        title: "Memories of Qilin",
+        colors: function() {
+            let choices = [
+                [[0, 0, 46], [213, 22, 39], [32, 14, 92], [33, 28, 78], [29, 48, 65], [27, 49, 53], [213, 78, 42]],
+                [[192, 29, 35], [102, 15, 54], [34, 28, 73], [223, 36, 23], [30, 45, 72], [23, 58, 62]],
+                [[188, 68, 65], [348, 99, 78], [348, 100, 53], [30, 29, 82], [38, 67, 81]],
+                [[198, 33, 32], [194, 66, 21], [25, 18, 71], [19, 83, 80], [7, 86, 52], [38, 67, 81]],
+                [[0, 100, 74], [0, 100, 47], [40, 84, 89], [7, 78, 79]],
+                [[56, 18, 90], [192, 30, 66], [203, 89, 29], [198, 77, 45], [30, 45, 72], [29, 48, 60]],
+                [[33, 26, 92], [33, 25, 68], [33, 26, 54], [0, 76, 50]],
+                [[45, 79, 84], [3, 97, 46], [113, 51, 27], [28, 91, 78]],
+                [[0, 0, 17], [356, 64, 54], [34, 32, 77], [33, 39, 62], [357, 63, 30]],
+                [[280, 8, 20], [34, 31, 89], [34, 32, 77], [33, 39, 68], [0, 0, 30]],
+                [[180, 17, 80], [180, 19, 47], [6, 92, 74], [180, 52, 33], [41, 53, 77], [7, 100, 40]],
+                [[126, 36, 22], [95, 12, 58], [57, 30, 49], [31, 29, 85], [102, 49, 34], [20, 58, 42]],
+                [[34, 56, 82], [0, 0, 36], [184, 19, 67], [194, 36, 56], [22, 60, 54], [21, 64, 77], [21, 85, 47]],
+                [[180, 20, 12], [39, 76, 93], [4, 100, 74]],
+                [[134, 11, 78], [145, 13, 58], [26, 11, 29], [45, 16, 87], [62, 17, 60], [17, 52, 84], [24, 56, 60]]
+            ];
+            let colors = R.random_choice(choices);
+            colors = scramble(colors);
+            return colors;
+        }
+    },
+    {
+        id: 53,
+        title: "Ancient Courses of Fictional Rivers",
+        colors: function() {
+            let choices = [
+                [[180, 62, 36], [180, 72, 62], [173, 36, 97], [59, 20, 100], [16, 63, 95]],
+                [[329, 1, 65], [31, 3, 25], [15, 31, 85], [0, 45, 75]],
+                [[33, 39, 35], [33, 26, 95], [28, 42, 85], [358, 91, 37], [0, 69, 71]],
+                [[207, 14, 85], [197, 34, 65], [191, 67, 25], [87, 45, 45], [80, 21, 67]],
+                [[214, 32, 54], [196, 79, 20], [197, 45, 35], [73, 8, 85], [4, 59, 76]],
+                [[39, 14, 65], [38, 11, 85], [28, 40, 65], [16, 66, 55], [168, 25, 65]],
+                [[70, 30, 60], [69, 10, 100], [70, 20, 90], [277, 38, 60], [277, 18, 90]],
+                [[18, 23, 93], [338, 4, 73], [211, 83, 41], [340, 66, 67]],
+                [[186, 51, 55], [180, 26, 85], [45, 37, 85], [33, 47, 75], [11, 98, 85]],
+                [[203, 19, 65], [33, 20, 95], [28, 61, 95], [28, 39, 15], [28, 29, 75]],
+                [[190, 80, 31], [191, 22, 40], [64, 11, 51], [69, 30, 67], [73, 47, 88]],
+                [[169, 20, 72], [15, 20, 97], [10, 60, 89], [53, 23, 100], [84, 26, 56]],
+                [[171, 9, 96], [159, 18, 85], [38, 69, 66], [45, 48, 95], [41, 23, 100]],
+                [[208, 36, 75], [203, 28, 85], [50, 68, 45], [50, 33, 85], [0, 75, 65]],
+                [[240, 1, 81], [213, 26, 55], [45, 56, 65], [34, 31, 75], [32, 26, 45]],
+                [[344, 44, 75], [208, 58, 35], [204, 23, 65], [204, 9, 85], [56, 40, 95]],
+                [[208, 58, 55], [209, 48, 25], [37, 68, 55], [37, 38, 100]],
+                [[25, 39, 87], [33, 23, 45], [132, 7, 79], [36, 16, 93], [7, 51, 87]],
+                [[196, 66, 35], [28, 56, 85], [28, 22, 95], [16, 80, 65], [11, 86, 45]],
+                [[246, 8, 95], [232, 17, 85], [203, 98, 30], [50, 98, 75], [50, 98, 55]],
+            ];
+            let colors = R.random_choice(choices);
+            colors = scramble(colors);
+            return colors;
+        }
+    },
+    {
+        id: 54,
+        title: "Flux",
+        colors: function() {
+            let choices = [
+                [[338, 84, 75], [282, 34, 15], [45, 78, 95], [45, 73, 75], [28, 75, 75]],
+                [[282, 78, 75], [237, 84, 75], [33, 84, 98], [16, 86, 95], [0, 3, 15]],
+                [[225, 80, 55], [206, 70, 69], [174, 31, 95], [126, 26, 15], [39, 81, 85]],
+                [[325, 67, 93], [280, 8, 15], [270, 75, 71], [225, 88, 95], [213, 74, 95]],
+                [[328, 72, 85], [270, 62, 95], [265, 72, 75], [231, 34, 15], [154, 37, 64]],
+                [[344, 59, 95], [300, 11, 95], [197, 70, 55], [0, 83, 75], [0, 24, 15]],
+                [[300, 11, 15], [284, 52, 80], [205, 75, 97], [11, 83, 95], [148, 74, 70]],
+                [[345, 14, 11], [299, 77, 45], [270, 34, 85], [198, 56, 79], [186, 64, 60]],
+                [[321, 61, 85], [248, 77, 65], [56, 34, 95], [36, 13, 15], [33, 83, 95]],
+                [[242, 86, 85], [254, 69, 33], [56, 25, 95], [11, 88, 95], [5, 51, 95]],
+                [[349, 80, 85], [349, 33, 95], [160, 32, 15], [141, 83, 85], [0, 66, 45]],
+                [[180, 27, 81], [332, 66, 75], [146, 73, 45], [120, 5, 15], [0, 88, 95]],
+                [[299, 69, 65], [133, 24, 15], [101, 78, 95], [56, 50, 95], [11, 73, 85]],
+                [[349, 86, 85], [328, 84, 75], [248, 61, 75], [60, 3, 15], [126, 76, 45]],
+                [[338, 58, 95], [282, 73, 65], [242, 83, 75], [17, 18, 15], [8, 88, 95]],
+                [[5, 88, 95], [310, 32, 15], [287, 66, 75], [237, 77, 65], [231, 83, 95]],
+                [[276, 47, 75], [253, 45, 55], [108, 26, 15], [39, 29, 95], [11, 83, 75]],
+                [[338, 86, 95], [253, 60, 29], [62, 77, 55], [39, 86, 95], [11, 75, 95]],
+                [[35, 48, 20], [345, 78, 74], [321, 81, 95], [276, 78, 75], [191, 80, 85]],
+                [[203, 80, 85], [197, 75, 65], [0, 83, 75], [0, 26, 15], [334, 23, 100]],
+                [[225, 84, 95], [190, 36, 52], [39, 56, 95], [28, 81, 65], [0, 24, 15]],
+                [[56, 42, 95], [33, 72, 95], [16, 62, 85], [24, 57, 24], [0, 86, 85]],
+                [[328, 73, 65], [316, 50, 95], [282, 26, 95], [166, 34, 15], [334, 69, 51]],
+                [[349, 57, 100], [203, 78, 85], [209, 49, 31], [174, 69, 95], [1, 86, 92]],
+                [[346, 34, 15], [326, 17, 75], [300, 11, 95], [214, 19, 95], [180, 59, 45]],
+                [[338, 69, 45], [276, 39, 85], [259, 80, 65], [120, 18, 15], [111, 28, 65]],
+                [[316, 72, 75], [265, 84, 95], [234, 67, 31], [186, 56, 85], [146, 80, 65]],
+                [[101, 86, 95], [62, 84, 95], [34, 18, 15], [335, 70, 82], [11, 80, 95]]
+            ];
+            let c = R.random_choice(choices);
+            let shift = R.random_int(0, c.length);
+            c = c.slice(shift).concat(c.slice(0, shift));
+            if (R.random_bool(0.5)) {
+                c.reverse();
+            }
+            let colors = c;
+            return colors;
+        }
+    },
+    {
+        id: 55,
+        title: "Anticyclone",
+        colors: function() {
+            let choices = [
+                [[234, 30, 41], [206, 61, 90], [17, 100, 25], [42, 64, 90]],
+                [[209, 30, 50], [38, 30, 82]],
+                [[16, 45, 66], [209, 30, 45]],
+                [[213, 67, 50], [207, 25, 50]],
+                [[343, 32, 91], [358, 67, 66]],
+                [[219, 30, 50], [29, 21, 50], [42, 64, 90]],
+                [[227, 55, 100], [0, 0, 54]],
+                [[227, 55, 55], [219, 30, 45]],
+                [[343, 21, 59], [40, 41, 98]],
+                [[346, 35, 98], [17, 16, 91]],
+                [[174, 50, 45]],
+                [[215, 61, 90]],
+                [[333, 40, 100], [174, 40, 40]],
+                [[310, 30, 55], [207, 35, 40]],
+                [[343, 50, 91], [227, 55, 26], [42, 64, 90], [213, 67, 60]],
+                [[342, 25, 64], [342, 70, 88]],
+                [[174, 18, 40], [42, 64, 90], [207, 30, 40]],
+                [[42, 64, 90]],
+                [[209, 100, 38], [37, 100, 100], [232, 30, 41], [358, 67, 66]],
+                [[358, 60, 66], [207, 35, 40]],
+                [[342, 70, 88], [206, 61, 40], [232, 30, 41], [42, 64, 90]],
+                [[219, 30, 53], [342, 70, 88], [42, 64, 90]]
+            ];
+            let c = R.random_choice(choices);
+            c = scramble(c);
+            let bg = [49, 19, 88];
+            let ink = [43, 66, 38];
+            let colors = [bg];
+            for (let i = 0; i < c.length; i++) {
+                let color = [c[i][0], Math.min(c[i][1] * 2.2, 100), Math.min(c[i][2] * 1.5, 100)];
+                let bias = 43;
+                let h = color[0];
+                let d = bias - h;
+                if (d > 180) {
+                    diff = diff - 360;
+                } else if (d < -180) {
+                    d = d + 360;
+                }
+                color[0] = (h + d * 0.1 + 360) % 360;
+                color = betterLerpHSB(color, bg, 0.2);
+                color = betterLerpHSB(color, [0, 0, 0], 0.1);
+                colors.push(color);
+            }
+            if (colors.length < 5) {
+                colors.push(ink);
+            }
+            return colors;
+        }
+    },
+    {
+        id: 56,
+        title: "Colorspace",
+        colors: function() {
+            let choices = [
+                [[338, 85, 98], [28, 100, 99], [49, 54, 90], [74, 81, 65], [187, 58, 94], [266, 31, 100]],
+                [[259, 33, 54], [199, 29, 67], [330, 37, 85], [22, 27, 99]],
+                [[229, 96, 38], [215, 88, 56], [0, 92, 85], [0, 0, 85]],
+                [[51, 40, 100], [45, 100, 100], [184, 92, 49], [196, 82, 48]],
+                [[271, 75, 47], [291, 86, 61], [316, 83, 78], [23, 79, 100], [47, 53, 98], [171, 100, 67]],
+                [[214, 85, 37], [213, 73, 67], [208, 42, 97], [40, 59, 95], [10, 66, 90], [353, 79, 90], [324, 70, 74]],
+                [[267, 82, 42], [335, 85, 98], [22, 73, 100]],
+                [[174, 100, 30], [122, 90, 69], [207, 89, 95], [225, 93, 49]],
+                [[17, 95, 79], [26, 67, 87], [196, 13, 87], [128, 89, 54]],
+                [[201, 99, 69], [43, 3, 83], [32, 22, 56], [18, 82, 100]],
+                [[314, 36, 89], [338, 26, 95], [165, 10, 93], [193, 100, 89]],
+                [[349, 93, 50], [340, 91, 75], [27, 71, 84], [26, 46, 90]],
+                [[0, 47, 95], [46, 45, 99], [96, 16, 100], [161, 35, 88]],
+                [[270, 42, 44], [200, 53, 54], [146, 52, 76], [44, 36, 95]],
+                [[70, 93, 93], [10, 96, 99], [299, 92, 85], [204, 100, 77], [141, 100, 67]],
+                [[261, 100, 30], [346, 73, 100], [70, 40, 100], [194, 54, 74]],
+                [[203, 77, 38], [191, 42, 60], [32, 63, 98], [5, 90, 75]],
+                [[240, 76, 63], [220, 37, 75], [39, 37, 93], [356, 95, 95]],
+                [[185, 86, 97], [265, 97, 81], [283, 43, 69], [339, 87, 69], [11, 92, 100], [57, 85, 100]],
+                [[0, 100, 100], [120, 100, 100], [240, 100, 100]]
+            ];
+            let colors = R.random_choice(choices);
+            colors = scramble(colors);
+            return colors;
+        }
+    },
+    {
+        id: 57,
+        title: "montreal friend scale",
+        colors: function() {
+            let bg = [0, 0, 18];
+            let static = [[0, 0, 100], [0, 67, 100], [32, 67, 100], [32, 28, 100]];
+            let odds = [0, 0, 0, 1, 2, 3];
+            let c = static[R.random_choice(odds)];
+            let c1 = betterLerpHSB(bg, c, 0.3);
+            let c2 = betterLerpHSB(bg, c, 0.85);
+            let colors = [bg, c1, c2];
+            return colors;
+        }
+    },
+    {
+        id: 58,
+        title: "Sudfah",
+        colors: function() {
+            let backgrounds = [
+                [30, 14, 87], [30, 11, 88], [30, 9, 92]
+            ];
+            let choices = [
+                [11, 47, 45], [40, 88, 67], [45, 47, 51], [63, 79, 61], 
+                [74, 76, 75], [102, 28, 48], [126, 86, 48], [156, 100, 68], 
+                [182, 97, 45], [184, 73, 30], [189, 96, 58], [196, 44, 54], 
+                [208, 51, 29], [218, 91, 86], [229, 100, 80], [263, 43, 42], 
+                [264, 75, 100], [318, 84, 52], [333, 96, 96], 
+                [343, 87, 65], [349, 80, 85], [358, 62, 88]
+            ];
+            let bg = R.random_choice(backgrounds);
+            let index1 = R.random_int(0, choices.length - 1);
+            let index2 = R.random_int(0, choices.length - 1);
+            while (Math.abs(index1 - index2) < 4) {
+                index2 = R.random_int(0, choices.length - 1);
+            }
+            let c1 = choices[index1];
+            let c2 = choices[index2];
+            let colors = [bg];
+            for (let i = 0; i < Math.min(3, choices.length); i++) {
+                let color = betterLerpHSB(c1, c2, i / 2);
+                color = betterLerpHSB(color, bg, R.random_num(0.3, 0.6));
+                colors.push(color);
+            }
+            return colors;
+        }
+    },
+    {
+        id: 59,
+        title: "Running Moon",
+        colors: function() {
+            let choices = [
+                [[217, 27, 97], [207, 69, 100], [42, 78, 91], [210, 69, 76], [210, 100, 71]],
+                [[280, 15, 82], [283, 15, 96], [171, 43, 87], [144, 35, 76], [165, 90, 67]],
+                [[156, 13, 97], [195, 35, 100], [45, 58, 100], [183, 18, 82], [205, 39, 99]],
+                [[234, 7, 94], [26, 31, 100], [24, 52, 96], [255, 29, 90], [235, 63, 99]],
+                [[11, 7, 92], [0, 7, 82], [0, 18, 62], [0, 67, 84], [0, 67, 22]],
+                [[214, 11, 97], [214, 27, 98], [358, 61, 99], [339, 77, 93], [348, 38, 95]],
+                [[30, 7, 84], [205, 8, 67], [249, 18, 52], [41, 70, 100], [294, 22, 27]],
+                [[210, 74, 68], [210, 83, 50], [219, 85, 39], [221, 97, 22]],
+                [[33, 84, 100], [172, 37, 89], [174, 45, 77], [161, 45, 40], [200, 97, 19]],
+                [[263, 13, 97], [230, 20, 100], [211, 64, 97], [215, 97, 75], [220, 53, 37]],
+                [[190, 74, 68], [190, 80, 50], [190, 85, 36], [190, 90, 24]],
+                [[303, 6, 97], [297, 25, 87], [256, 48, 72], [232, 68, 73], [270, 21, 49]],
+                [[187, 16, 100], [5, 42, 100], [192, 69, 100], [188, 75, 91], [201, 69, 76], [201, 100, 71]],
+                [[132, 17, 95], [56, 5, 77], [212, 7, 63], [152, 10, 48], [40, 100, 100], [146, 17, 23]],
+                [[217, 30, 97], [238, 39, 88], [37, 52, 100], [6, 54, 93], [232, 92, 62]],
+                [[56, 12, 100], [193, 25, 100], [45, 76, 100], [39, 81, 100], [36, 100, 100]],
+                [[228, 3, 91], [50, 50, 97], [211, 76, 100], [224, 70, 27]],
+                [[186, 5, 77], [206, 5, 66], [222, 8, 48], [23, 82, 100], [217, 6, 27]],
+                [[263, 9, 97], [313, 18, 99], [252, 20, 81], [235, 61, 99]],
+                [[280, 15, 100], [299, 27, 81], [223, 26, 73], [280, 67, 20], [213, 36, 54]],
+                [[42, 18, 100], [40, 52, 96], [45, 54, 82], [215, 6, 62], [44, 13, 18]],
+                [[12, 12, 100], [197, 37, 89], [194, 72, 78], [351, 48, 96]],
+                [[316, 20, 100], [240, 31, 100], [244, 45, 87], [328, 61, 100]],
+                [[213, 10, 96], [220, 9, 82], [51, 21, 97], [207, 24, 100]],
+                [[45, 100, 100], [206, 17, 79], [170, 23, 69], [209, 42, 61], [212, 64, 48]],
+                [[15, 11, 88], [14, 7, 67], [221, 8, 52], [0, 61, 99], [240, 1, 27]],
+                [[44, 37, 100], [218, 47, 100], [42, 93, 97], [35, 16, 71]],
+                [[211, 18, 100], [201, 52, 100], [189, 85, 90], [240, 21, 80], [219, 34, 71], [219, 57, 56]],
+                [[102, 14, 97], [1, 65, 98], [148, 38, 90], [170, 58, 77], [142, 44, 40]],
+                [[0, 0, 82], [0, 0, 64], [345, 70, 85], [0, 0, 27], [0, 0, 16]],
+                [[0, 52, 98], [0, 71, 100], [0, 8, 66], [0, 13, 18]],
+                [[180, 18, 100], [150, 29, 100], [1, 22, 92], [197, 15, 66], [184, 56, 59]],
+                [[137, 13, 99], [300, 7, 82], [120, 3, 71], [174, 30, 47], [148, 41, 34]],
+                [[158, 74, 68], [180, 83, 48], [165, 73, 35], [144, 89, 22]]
+            ];
+            let colors = R.random_choice(choices);
+            colors = scramble(colors);
+            return colors;
+        }
+    },
+    {
+        id: 60,
+        title: "Alan Ki Aankhen",
+        colors: function() {
+            let backgrounds = [[240, 3, 100], [0, 2, 100], [0, 0, 96], [60, 6, 93], [38, 9, 93], [150, 8, 87]];
+            let bg = R.random_choice(backgrounds);
+            let k = [0, 0, 0];
+            let s = betterLerpHSB(bg, k, 0.15);
+            let colors = [bg, s, k];
+            return colors;
+        }
+    },
+    {
+        id: 61,
+        title: "FAKE IT TILL YOU MAKE IT",
+        colors: function() {
+            let choices = [
+                [[330, 21, 100], [334, 72, 93], [329, 43, 99]],
+                [[184, 41, 89], [0, 0, 100], [75, 37, 89]],
+                [[75, 37, 89], [329, 51, 99], [334, 72, 93]],
+                [[75, 37, 89], [329, 51, 99], [184, 41, 89]],
+                [[330, 21, 100], [300, 2, 100], [334, 72, 93]],
+                [[334, 72, 93], [300, 2, 100], [329, 43, 99]],
+                [[330, 33, 100], [300, 2, 100], [0, 40, 95]],
+                [[330, 21, 100], [334, 72, 93], [329, 43, 99]],
+                [[16, 68, 91], [330, 21, 100], [329, 43, 99]],
+                [[16, 68, 91], [330, 6, 100], [265, 15, 99]],
+                [[334, 72, 93], [330, 21, 100], [0, 21, 100]],
+                [[265, 15, 99], [240, 1, 100], [330, 8, 100]],
+                [[265, 15, 99], [240, 1, 100], [329, 51, 99]],
+                [[329, 51, 99], [220, 21, 100], [16, 68, 91]],
+                [[329, 51, 99], [300, 2, 100], [75, 37, 89]],
+                [[265, 15, 99], [334, 72, 93], [330, 33, 100]],
+                [[0, 16, 100], [0, 0, 100], [0, 31, 100]],
+                [[330, 33, 100], [334, 72, 93], [329, 51, 99]],
+                [[329, 51, 99], [330, 5, 100], [330, 33, 100]],
+                [[220, 21, 100], [329, 51, 99], [16, 68, 91]],
+                [[220, 21, 100], [0, 0, 100], [0, 40, 95]],
+                [[330, 33, 100], [226, 42, 96], [329, 51, 99]],
+                [[0, 40, 95], [330, 21, 100], [334, 72, 93]],
+                [[0, 7, 100], [329, 79, 95], [220, 21, 100]],
+                [[330, 21, 100], [16, 68, 91], [334, 72, 93]],
+                [[75, 37, 89], [334, 72, 93], [329, 51, 99]],
+                [[220, 21, 100], [334, 72, 93], [0, 40, 95]],
+                [[265, 15, 99], [330, 21, 100], [220, 21, 100], [75, 37, 89]],
+                [[0, 21, 100], [330, 33, 100], [220, 21, 100], [75, 37, 89]],
+                [[334, 72, 93], [330, 21, 100], [329, 51, 99], [329, 39, 99]],
+                [[330, 21, 100], [220, 21, 100], [0, 40, 95], [334, 72, 93]],
+                [[329, 79, 95], [0, 21, 100], [265, 15, 99], [330, 8, 100]],
+                [[220, 21, 100], [165, 42, 89], [75, 37, 89], [184, 41, 89]],
+                [[330, 21, 100], [330, 38, 100], [0, 21, 100], [329, 79, 95], [0, 81, 89]],
+                [[265, 15, 99], [330, 21, 100], [220, 21, 100], [334, 72, 93]],
+                [[75, 37, 89], [160, 42, 89], [220, 21, 100], [184, 41, 89]],
+                [[75, 37, 89], [330, 21, 100], [220, 21, 100], [184, 41, 89]],
+                [[265, 15, 99], [330, 21, 100], [165, 42, 89], [75, 37, 89]],
+                [[330, 21, 100], [265, 15, 99], [266, 22, 94]],
+                [[330, 21, 100], [330, 33, 100], [329, 43, 97]],
+                [[0, 21, 100], [330, 31, 100], [329, 41, 97]],
+                [[330, 21, 100], [330, 33, 100], [329, 51, 99], [334, 72, 93]],
+                [[265, 15, 99], [268, 30, 95], [268, 63, 70]],
+                [[177, 17, 97], [165, 42, 89], [167, 53, 75], [166, 80, 45]],
+                [[227, 10, 100], [220, 21, 100], [224, 40, 89], [225, 70, 60]]
+            ];
+            let colors = R.random_choice(choices);
+            colors = scramble(colors);
+            return colors;
+        }
+    },
+    {
+        id: 62,
+        title: "Polychrome Music",
+        colors: function() {
+            let choices = [
+                [[158, 27, 100], [60, 100, 100], [180, 25, 100], [300, 20, 100], [255, 15, 100]],
+                [[177, 100, 66], [0, 0, 40], [197, 19, 99], [199, 83, 89], [0, 0, 80], [300, 20, 100]],
+                [[180, 25, 100], [197, 19, 99], [203, 40, 100], [199, 83, 89], [207, 100, 74]],
+                [[255, 15, 100], [283, 100, 64], [300, 20, 100], [332, 92, 93], [0, 100, 100]],
+                [[118, 53, 100], [163, 27, 100], [172, 100, 66], [139, 100, 65], [148, 100, 41]],
+                [[140, 100, 65], [195, 100, 94], [358, 93, 93], [330, 87, 93], [0, 0, 35]],
+                [[300, 20, 100], [163, 27, 100], [139, 100, 65], [197, 19, 99], [199, 83, 89], [283, 100, 64], [332, 92, 93], [60, 100, 100], [120, 100, 40], [240, 100, 100], [24, 100, 100], [300, 100, 100], [180, 100, 100], [0, 100, 100], [177, 100, 66], [268, 100, 86]]
+            ];
+            let c;
+            if (R.random_bool(0.3)) {
+                c = choices[R.random_int(0, choices.length - 2)];
+            } else {
+                c = choices[choices.length - 1];
+            }
+            c = scramble(c);
+            let colors = [];
+            for (let i = 0; i < Math.min(8, c.length); i++) {
+                colors.push(c[i]);
+            }
+            return colors;
+        }
+    },
+    {
+        id: 63,
+        title: "RASTER",
+        colors: function() {
+            let choices = [
+                [[30, 100, 73], [45, 95, 100], [203, 69, 77], [38, 71, 95], [43, 38, 94]],
+                [[200, 100, 56], [353, 100, 84], [41, 71, 98], [56, 36, 84], [195, 24, 94]],
+                [[195, 100, 65], [184, 100, 73], [60, 13, 99], [28, 27, 100], [9, 57, 94]],
+                [[229, 31, 26], [215, 12, 62], [197, 10, 96], [351, 100, 90], [48, 5, 82]],
+                [[44, 86, 99], [4, 95, 57], [36, 40, 100], [32, 75, 73], [43, 34, 100]],
+                [[43, 87, 98], [0, 100, 69], [258, 59, 91], [37, 24, 100], [218, 37, 84]],
+                [[289, 68, 61], [240, 38, 73], [156, 23, 84], [8, 76, 100], [46, 54, 99]],
+                [[28, 69, 87], [196, 35, 48], [63, 45, 87], [108, 60, 72], [114, 27, 100]],
+                [[222, 95, 78], [203, 80, 100], [57, 100, 99], [41, 100, 100], [330, 17, 100]]
+            ];
+            let c = R.random_choice(choices);
+            c = scramble(c);
+            let colors = [];
+            for (let i = 0; i < Math.min(5, c.length); i++) {
+                colors.push([c[i][0], Math.min(c[i][1] * 1.2, 100), c[i][2]]);
+            }
+            return colors;
+        }
+    },
+    {
+        id: 64,
+        title: "Act of Emotion",
+        colors: function() {
+            let h1 = R.random_int(0, 360);
+            let h2 = (h1 + R.random_choice([-1, 1]) * R.random_int(0, 30) + 360) % 360;
+            let c1 = [h1, 100, 75];
+            let c2 = [h2, 100, 75];
+            let warmth = R.random_num(0.1, 0.5);
+            c1 = betterLerpHSB(c1, [30, 100, 80], warmth);
+            c2 = betterLerpHSB(c2, [30, 100, 80], warmth);
+            let c3 = betterLerpHSB(c1, c2, 0.5);
+            let s1 = betterLerpHSB(c1, [0, 0, 0], 0.65);
+            let s2 = betterLerpHSB(c1, [0, 0, 0], 0.35);
+            let t2 = betterLerpHSB(c2, [0, 0, 100], 0.35);
+            let colors = [s1, s2, c3, t2];
+            colors = scramble(colors);
+            return colors;
+        }
+    },
+    {
+        id: 65,
+        title: "Fontana",
+        colors: function() {
+            let colors = [];
+            let h = R.random_num(0, 360);
+            let hd = R.random_int(40, 100)
+            for (let i = 0; i < 3; i++) {
+                let hue = (h + i * hd + 360) % 360;
+                let sat = R.random_num(50, 60);
+                let bf = 1.0;
+                if (hue >= 40 && hue <= 80) {
+                    bf = 0.9;
+                }
+                if (hue >= 80 && hue <= 160) {
+                    bf = 0.7;
+                }
+                if (hue >= 160 && hue <= 260) {
+                    bf = 1.1;
+                }
+                if (hue >= 260 && hue <= 320) {
+                    bf = 0.95;
+                }
+                let bri = R.random_num(65, 75) * bf;
+                colors.push([hue, sat, bri]);
+            }
+            for (let i = 0; i < 3; i++) {
+                colors[i] = betterLerpHSB(colors[i], colors[0], 0.1);
+            }
+            colors.push(betterLerpHSB([10, 100, 3], colors[0], 0.1));
+            colors.push(betterLerpHSB([50, 3, 92], colors[0], 0.05));
+            for (let i = 0; i < colors.length; i++) {
+                if (colors[i][0] >= 90 && colors[i][0] <= 150) {
+                    colors[i][1] *= 0.7;
+                }
+                if (colors[i][0] >= 260 && colors[i][0] <= 290) {
+                    colors[i][1] *= 0.85;
+                }
+                colors[i] = betterLerpHSB(colors[i], [50, 100, 100], 0.1);
+            }
+            colors = scramble(colors);
+            return colors;
+        }
+    },
+    {
+        id: 66,
+        title: "Primitives",
+        colors: function() {
+            let h, s, b;
+            if (R.random_bool(0.6)) {
+                h = R.random_int(30, 65);
+            }  else {
+                h = R.random_int(65, 320);
+            }
+            s = R.random_int(6, 14);
+            b = R.random_int(78, 98);
+            let bg = [h, s, b];
+            let k = [0, 0, 0];
+            let c1 = betterLerpHSB(bg, k, R.random_num(0.3, 0.6));
+            let c2 = betterLerpHSB(bg, k, 0.9);
+            let colors = [bg, c1, c2];
+            return colors;
+        }
+    },
+    {
+        id: 67,
+        title: "Tide Predictor",
+        colors: function() {
+            let hues = [0, 60, 120];
+            choices = scramble(hues);
+            let colors = [[0, 0, 0]];
+            for (let i = 0; i < 3; i++) {
+                colors.push([hues[i], 100, 100]);
+                colors.push([(hues[i] + 180) % 360, 100, 100]);
+            }
+            return colors;
+        }
+    },
+    {
+        id: 68,
+        title: "ORI",
+        colors: function() {
+            let choices = [
+                [[246, 89, 20], [344, 90, 95], [237, 70, 65], [209, 70, 80]],
+                [[214, 64, 81], [351, 83, 97], [52, 77, 93], [38, 41, 90], [311, 33, 32], [167, 55, 86]],
+                [[220, 12, 98], [24, 100, 97], [22, 61, 88], [18, 68, 74], [223, 28, 60]],
+                [[0, 0, 0], [54, 93, 100], [2, 93, 100], [191, 93, 100], [0, 0, 98]],
+                [[0, 0, 87], [25, 77, 94], [203, 26, 63], [212, 70, 32], [351, 74, 75], [256, 74, 65]],
+                [[195, 95, 38], [33, 77, 100], [100, 61, 93], [130, 87, 80], [195, 95, 70], [54, 58, 97]],
+                [[32, 20, 99], [33, 77, 100], [210, 57, 56], [8, 25, 97], [195, 90, 69]],
+                [[0, 0, 83], [24, 92, 96], [267, 68, 86], [234, 81, 55], [0, 80, 85]],
+                [[226, 18, 93], [231, 40, 30], [158, 35, 85]],
+                [[185, 10, 85], [199, 44, 44], [212, 50, 30], [184, 38, 74], [358, 73, 64]],
+                [[209, 73, 95], [344, 85, 82], [284, 85, 35], [219, 84, 65], [216, 15, 93]],
+                [[40, 100, 83], [210, 57, 25], [201, 90, 68], [8, 92, 65], [51, 13, 80]]
+            ];
+            let c = R.random_choice(choices);
+            let colors = [];
+            colors.push(c[0]);
+            let remaining = scramble(c.slice(1));
+            colors.push(...remaining);
+            return colors;
+        }
+    },
+    {
+        id: 69,
+        title: "Pre-Process",
+        colors: function() {
+            let choices = [
+                [[0, 0, 0], [0, 0, 60], [0, 0, 96], [0, 0, 45]],
+                [[0, 0, 96], [0, 0, 79], [0, 0, 40], [0, 0, 20], [0, 0, 0]],
+                [[0, 0, 0], [0, 0, 96], [0, 0, 50]],
+                [[0, 0, 0], [0, 0, 96], [0, 0, 50]],
+                [[0, 0, 60], [0, 0, 0], [0, 0, 96], [0, 0, 40]],
+                [[0, 0, 0], [0, 0, 15], [0, 0, 86]],
+                [[0, 0, 96], [0, 0, 71], [0, 0, 86], [0, 0, 10]],
+                [[0, 0, 96], [0, 0, 51], [0, 0, 10]]
+            ];
+            let c = R.random_choice(choices);
+            let colors = [];
+            colors.push(c[0]);
+            let remaining = scramble(c.slice(1));
+            colors.push(...remaining);
+            return colors;
+        }
+    },
+    {
+        id: 70,
+        title: "Dipolar",
+        colors: function() {
+            let bg = [40, 4, 92];
+            let inks = [[0, 0, 2], [0, 0, 2], [0, 0, 2], [0, 0, 2], [211, 100, 28]];
+            let accents = [[0, 97, 69], [0, 97, 69], [0, 97, 69], [0, 97, 88], [340, 77, 67]];
+            let c1 = betterLerpHSB(R.random_choice(inks), bg, 0.1);
+            let c2 = betterLerpHSB(R.random_choice(accents), bg, 0.1);
+            let colors = [bg, c1];
+            if (R.random_bool(0.7)) {
+                colors.push(c2);
+            }
+            return colors;
+        }
+    },
+    {
+        id: 71,
+        title: "The Field",
+        colors: function() {
+            let h1 = R.random_int(0, 360);
+            let h2 = R.random_int(0, 360);
+            while (Math.abs((h1 - h2 + 180) % 360 - 180) < 45) {
+                h2 = R.random_int(0, 360);
+            }
+            let c1 = [h1, R.random_int(25, 55), R.random_int(60, 90)];
+            let c2 = [h2, R.random_int(25, 55), R.random_int(60, 90)];
+            let colors = [];
+            for (let i = 0; i < 5; i++) {
+                colors.push(betterLerpHSB(c1, c2, i / 4));
+                if (i == 1 || i == 3) {
+                    colors[i] = (betterLerpHSB(colors[i], [0, 0, 100], 0.18));
+                }
+                if (i == 2) {
+                    colors[i] = betterLerpHSB(colors[i], [0, 0, 100], 0.36);
+                }
+            }
+            return colors;
+        }
+    },
+    {
+        id: 72,
+        title: "The Harvest",
+        colors: function() {
+            let choices = [
+                [[210, 65, 55], [200, 35, 75], [151, 23, 79], [147, 40, 67], [43, 60, 99], [43, 90, 99], [25, 78, 90], [11, 35, 97], [358, 80, 82], [358, 58, 89]],
+                [[210, 65, 55], [200, 35, 75], [151, 23, 79], [147, 40, 67], [43, 60, 99], [43, 90, 99], [25, 78, 90], [11, 35, 97], [358, 80, 82], [358, 58, 89]],
+                [[186, 58, 77], [197, 65, 70], [197, 57, 33], [16, 68, 41], [20, 77, 73], [29, 72, 93], [46, 55, 97]],
+                [[128, 95, 65], [150, 36, 82], [186, 95, 65], [202, 86, 44], [280, 44, 39], [347, 71, 100], [1, 44, 100], [8, 91, 99], [24, 100, 100], [44, 100, 100]],
+                [[32, 20, 96], [150, 19, 70], [15, 85, 76], [205, 77, 30], [36, 75, 95]],
+                [[188, 58, 75], [177, 20, 82], [16, 44, 98], [27, 100, 100], [15, 100, 100]],
+                [[39, 28, 91], [39, 100, 100], [13, 85, 98], [339, 98, 96], [286, 39, 59], [191, 69, 60], [177, 88, 72]],
+                [[212, 85, 42], [176, 100, 32], [171, 74, 58], [163, 49, 79], [27, 90, 90]],
+                [[185, 21, 89], [341, 49, 89], [342, 34, 92], [46, 44, 87], [58, 54, 97]],
+                [[333, 50, 70], [327, 50, 52], [314, 50, 34], [21, 79, 100], [270, 10, 41]],
+            ];
+            let colors = R.random_choice(choices);
+            colors = scramble(colors);
+            return colors;
+        }
+    },
+    {
+        id: 73,
+        title: "WaVyScApE",
+        colors: function() {
+            let choices = [
+                [[203, 24, 55], [0, 4, 50], [51, 20, 99], [43, 38, 85], [23, 46, 79], [17, 58, 51], [25, 54, 18]],
+                [[195, 100, 100], [328, 100, 100], [60, 100, 100], [180, 100, 100], [300, 100, 100], [60, 33, 100], [195, 100, 72]],
+                [[215, 21, 46], [218, 6, 87], [180, 8, 90], [180, 20, 90], [220, 7, 95], [225, 35, 25]],
+                [[212, 97, 85], [199, 69, 90], [329, 98, 99], [45, 38, 71], [28, 8, 91], [33, 21, 86], [18, 62, 35], [199, 69, 90]],
+                [[278, 69, 30], [351, 100, 82], [4, 41, 99], [231, 30, 68], [303, 83, 42], [318, 87, 61], [329, 100, 62]],
+                [[301, 97, 100], [291, 97, 89], [180, 100, 99], [65, 93, 99], [82, 97, 91], [180, 41, 63]],
+                [[215, 27, 30], [209, 31, 65], [213, 37, 43], [29, 17, 84], [188, 8, 97], [210, 63, 40], [200, 11, 92], [48, 26, 100]],
+                [[330, 86, 80], [296, 24, 98], [296, 64, 98], [297, 84, 49], [273, 58, 46], [226, 24, 69], [149, 54, 65]],
+                [[44, 16, 82], [39, 10, 57], [208, 10, 90], [47, 7, 90], [194, 6, 90]],
+                [[351, 36, 98], [300, 8, 93], [273, 49, 61], [195, 90, 66], [212, 92, 41], [351, 95, 78], [82, 67, 59], [60, 100, 100]],
+                [[199, 26, 90], [56, 37, 96], [199, 23, 51], [210, 100, 72], [214, 4, 82], [225, 56, 71]],
+                [[0, 0, 24], [210, 7, 90], [216, 8, 73], [210, 9, 55], [0, 0, 84]],
+                [[203, 24, 55], [0, 4, 50], [51, 20, 99], [43, 38, 85], [23, 46, 79], [17, 58, 51], [25, 54, 23]],
+                [[0, 36, 73], [338, 41, 96], [351, 49, 36], [0, 73, 67], [353, 60, 49], [347, 85, 30]],
+                [[350, 26, 97], [11, 12, 97], [203, 14, 86], [187, 76, 85], [313, 8, 87], [200, 12, 96]],
+                [[60, 20, 99], [66, 20, 89], [294, 66, 91], [195, 100, 66], [70, 30, 42]],
+                [[0, 99, 65], [211, 16, 58], [0, 25, 100], [45, 62, 81], [40, 52, 22], [211, 35, 54]],
+                [[51, 100, 100], [60, 100, 100], [50, 30, 95], [339, 79, 80], [22, 9, 56]],
+                [[61, 38, 100], [202, 9, 69], [187, 6, 94], [60, 22, 82], [26, 62, 44], [60, 35, 90], [180, 23, 100], [300, 10, 99]],
+                [[223, 86, 62], [291, 53, 65], [355, 55, 93], [24, 77, 100], [43, 97, 100], [51, 100, 100]],
+                [[302, 50, 98], [220, 45, 60], [203, 74, 33], [60, 29, 100], [180, 100, 100], [195, 43, 100], [320, 24, 100], [270, 26, 100]],
+                [[210, 68, 36], [0, 25, 97], [351, 100, 82], [16, 98, 100], [309, 100, 25], [180, 27, 73]],
+                [[195, 100, 100], [328, 100, 100], [60, 100, 100], [180, 100, 100], [300, 100, 100], [60, 33, 100], [195, 100, 72]],
+                [[215, 75, 35], [13, 26, 98], [0, 0, 88], [3, 92, 86], [355, 93, 69]],
+                [[207, 100, 78], [328, 100, 100], [12, 19, 99], [300, 7, 94], [22, 40, 100], [224, 84, 62], [0, 100, 100], [352, 36, 100]],
+                [[212, 97, 85], [199, 69, 90], [329, 98, 99], [45, 38, 71], [28, 8, 91], [33, 21, 86], [18, 62, 35]],
+                [[60, 20, 99], [66, 17, 91], [57, 90, 100], [287, 71, 87], [195, 100, 66]],
+                [[215, 27, 30], [209, 31, 65], [206, 6, 100], [213, 21, 50], [29, 17, 84], [202, 6, 76], [204, 22, 86], [210, 63, 40], [207, 9, 86], [50, 26, 100]],
+                [[330, 86, 80], [279, 29, 84], [296, 64, 98], [329, 68, 58], [273, 58, 46], [226, 24, 69], [316, 13, 98]],
+                [[44, 16, 82], [39, 10, 57], [208, 14, 89], [47, 7, 90], [194, 6, 90]]
+            ];
+            let c = R.random_choice(choices);
+            c = scramble(c);
+            let colors = [];
+            for (let i = 0; i < Math.min(8, c.length); i++) {
+                colors.push(betterLerpHSB(c[i], [0, 0, 100], 0.12));
+            }
+            return colors;
+        }
+    },
+    {
+        id: 74,
+        title: "Cerebellum",
+        colors: function() {
+            let choices = [
+                [[35, 92, 82], [262, 85, 98], [185, 57, 87]],
+                [[200, 69, 84], [356, 79, 76], [49, 65, 88]],
+                [[183, 49, 53], [2, 86, 80], [40, 85, 84]],
+                [[211, 24, 64], [353, 57, 69], [39, 47, 90]],
+                [[240, 67, 100], [0, 29, 44], [24, 36, 87]],
+                [[172, 49, 100], [3, 50, 100], [19, 24, 90]],
+                [[30, 69, 80], [0, 83, 100], [54, 42, 94]],
+                [[259, 53, 100], [0, 60, 100], [34, 48, 100]],
+                [[212, 56, 75], [355, 69, 89], [39, 67, 97]],
+                [[197, 25, 94], [351, 89, 77], [40, 71, 100]],
+                [[211, 45, 81], [7, 88, 88], [45, 98, 100]],
+                [[200, 66, 100], [2, 66, 100], [64, 37, 98]],
+                [[176, 60, 100], [337, 61, 96], [289, 84, 62]],
+                [[206, 31, 86], [0, 49, 89], [29, 52, 100]],
+                [[211, 76, 72], [15, 89, 97], [24, 88, 98]],
+                [[35, 92, 82], [262, 85, 98], [185, 57, 87]],
+                [[206, 64, 83], [346, 70, 81], [43, 82, 91]],
+                [[18, 57, 98], [346, 61, 99], [53, 69, 99]]
+            ];
+            let colors = R.random_choice(choices);
+            return colors;
+        }
+    },
+    {
+        id: 75,
+        title: "Calian",
+        colors: function() {
+            let choices = [
+                [[240, 8, 5], [270, 8, 45], [120, 13, 55], [73, 22, 75], [60, 30, 95]],
+                [[270, 14, 25], [240, 7, 49], [220, 6, 70], [56, 20, 85], [60, 37, 95]],
+                [[225, 79, 16], [265, 65, 40], [230, 50, 75], [195, 33, 80], [33, 15, 85]],
+                [[240, 15, 4], [270, 30, 25], [240, 14, 35], [30, 30, 60], [45, 25, 85]],
+                [[330, 6, 9], [0, 25, 25], [25, 45, 40], [210, 20, 53], [75, 55, 75]],            
+                [[240, 15, 5], [330, 18, 26], [120, 19, 35], [45, 61, 75], [32, 25, 85]],
+                [[240, 44, 5], [240, 42, 35], [210, 32, 35], [90, 11, 65], [60, 12, 93]],
+                [[225, 71, 15], [250, 55, 45], [220, 43, 70], [210, 23, 85], [45, 35, 90]],
+                [[240, 15, 4], [240, 17, 35], [225, 30, 60], [30, 15, 65], [75, 19, 75]],
+                [[240, 2, 3], [270, 25, 25], [270, 13, 35], [240, 2, 50], [40, 15, 65]],
+                [[240, 15, 5], [240, 12, 50], [165, 6, 65], [75, 13, 85], [60, 20, 95]],
+                [[195, 91, 15], [230, 65, 75], [200, 50, 75], [174, 25, 70], [30, 15, 95]],
+                [[245, 36, 25], [235, 42, 40], [30, 18, 42], [40, 40, 60], [50, 50, 85]],
+                [[270, 65, 25], [246, 61, 45], [220, 48, 60], [30, 44, 75], [60, 39, 85]],
+                [[30, 94, 4], [210, 38, 55], [180, 35, 55], [105, 21, 72], [45, 35, 85]],
+                [[120, 85, 6], [180, 25, 45], [105, 6, 75], [105, 20, 80], [270, 30, 75]]
+            ];
+            let c = R.random_choice(choices);
+            let colors = [];
+            for (let i = 0; i < c.length; i++) {
+                colors.push(betterLerpHSB(c[i], [0, 0, 15], 0.10));
+            }
+            return colors;
+        }
+    },
+    {
+        id: 76,
+        title: "Ceramics",
+        colors: function() {
+            let materials = [
+                [40, 26, 62],
+                [33, 23, 61],
+                [20, 57, 63],
+                [44, 28, 76],
+                [40, 36, 71],
+                [19, 79, 53],
+                [45, 23, 75],
+                [30, 40, 62],
+                [20, 57, 63],
+            ];
+            let glazes = [
+                [212, 56, 28],
+                [143, 27, 30],
+                [350, 99, 40],
+                [265, 46, 33],
+            ];
+            let mi = R.random_int(0, materials.length - 1);
+            let m = materials[mi];
+            let g = R.random_choice(glazes);
+            let colors = [];
+            if (R.random_bool(0.5) && mi < 6) {
+                colors.push(betterLerpHSB(m, g, 0.15));
+                colors.push(betterLerpHSB(m, g, 0.5));
+                colors.push(betterLerpHSB(m, g, 0.85));
+            } else {
+                colors.push(betterLerpHSB(m, [0, 0, 0], 0.5));
+                colors.push(m);
+                colors.push(betterLerpHSB(m, [0, 0, 100], 0.5));
+            }
+            return colors;
+        }
+    },
+    {
+        id: 77,
+        title: "Cargo",
+        colors: function() {
+            let h1 = R.random_int(180, 420) % 360;
+            let h2 = R.random_int(180, 420) % 360;
+            while (Math.min(Math.abs(h2 - h1), 360 - Math.abs(h2 - h1)) < 15) {
+                h2 = R.random_int(180, 420) % 360;
+            }
+            let h3 = R.random_int(180, 420) % 360;
+            while (Math.min(Math.abs(h3 - h1), 360 - Math.abs(h3 - h1)) < 15 || 
+                Math.min(Math.abs(h3 - h2), 360 - Math.abs(h3 - h2)) < 15) {
+                h3 = R.random_int(180, 420) % 360;
+            }
+            let c1 = [h1, 100, 100];
+            let c2 = [h2, 100, 100];
+            let c3 = [h3, 100, 100];
+            let colors = [[0, 0, 0], c1];
+            if (R.random_bool(0.7) || Math.min(Math.abs(h2 - h1), 360 - Math.abs(h2 - h1)) < 31) {
+                colors.push(c3);
+            } else {
+                colors.push(betterLerpHSB(c1, c2, 0.5));
+            }
+            colors.push(c2);
+            return colors;
+        }
+    },
+    {
+        id: 78,
+        title: "Solar Transits",
+        colors: function() {
+            let choices = [
+                [[340, 12, 12], [0, 14, 31], [20, 16, 50], [40, 18, 69], [60, 20, 88]],
+                [[235, 45, 20], [230, 38, 40], [225, 31, 60], [220, 24, 80], [215, 17, 100]],
+                [[265, 28, 12], [300, 25, 30], [335, 22, 50], [10, 19, 69], [45, 16, 90]],
+                [[0, 100, 16], [0, 100, 37], [0, 100, 58], [0, 100, 79], [0, 100, 100]],
+                [[220, 79, 20], [262, 63, 40], [305, 47, 60], [347, 31, 80], [30, 15, 100]],
+                [[355, 95, 16], [5, 85, 37], [15, 75, 58], [25, 65, 79], [35, 55, 100]],
+                [[48, 72, 95], [15, 75, 45], [262, 90, 35], [234, 90, 75], [206, 44, 96]],
+            ];
+            let colors = R.random_choice(choices);
+            return colors;
+        }
+    },
+    {
+        id: 79,
+        title: "Still Moving",
+        colors: function() {
+            let backgrounds = [
+                [0, 0, 100],
+                [140, 14, 100],
+                [45, 14, 97],
+                [188, 9, 96],
+                [357, 13, 96],
+                [0, 0, 82],
+            ];
+            let letters = [
+                [[300, 100, 100]],
+                [[0, 100, 100]],
+                [[240, 100, 100]],
+                [[0, 100, 100], [240, 100, 100], [120, 100, 100]],
+                [[0, 100, 100], [120, 100, 100], [240, 100, 100], [300, 100, 100], [60, 100, 100], [180, 100, 100]]
+            ];
+            let bgi = R.random_int(0, backgrounds.length - 1);
+            let bg = backgrounds[bgi];
+            let ci = R.random_int(0, letters.length - 1);
+            let c = scramble(letters[ci]);
+            let colors = [];
+            if (ci < 3) {
+                colors.push(bg);
+                colors.push(betterLerpHSB(bg, c[0], 0.55));
+                colors.push(c[0]);
+            } else if (bgi == 0) {
+                for (let i = 0; i < Math.min(5, c.length); i++) {
+                    colors.push(c[i]);
+                }
+            } else {
+                colors.push(bg);
+                for (let i = 0; i < Math.min(4, c.length); i++) {
+                    colors.push(c[i]);
+                }
+            }
+            return colors;
+        }
+    },
+    {
+        id: 80,
+        title: "Memories of Digital Data",
+        colors: function() {
+            let h1 = R.random_int(170, 420) % 360;
+            let s1 = R.random_int(50, 80);
+            let b1 = R.random_int(80, 100);
+            let h2 = R.random_int(170, 420) % 360;
+            while (Math.min(Math.abs(h2 - h1), 360 - Math.abs(h2 - h1)) < 30 || 
+                Math.min(Math.abs(h2 - h1), 360 - Math.abs(h2 - h1)) > 120) {
+                h2 = R.random_int(180, 420) % 360;
+            }
+            let s2 = R.random_int(50, 80);
+            let b2 = R.random_int(80, 100);
+            let c1 = [h1, s1, b1];
+            let c2 = [h2, s2, b2];
+            let rgb1 = hsbToRgb(h1, s1, b1);
+            let rgb2 = hsbToRgb(h2, s2, b2);
+            let lum1 = 0.299 * rgb1[0] + 0.587 * rgb1[1] + 0.114 * rgb1[2];
+            let lum2 = 0.299 * rgb2[0] + 0.587 * rgb2[1] + 0.114 * rgb2[2];
+            if (lum1 > lum2) {
+                let temp = c1;
+                c1 = c2;
+                c2 = temp;
+            }
+            let m1 = betterLerpHSB(c1, c2, 0.5);
+            let i1 = betterLerpHSB([c1[0], 100, 100], [170, 100, 100], 0.11);
+            let c3 = [i1[0], s1 * 0.8, b1 * 0.61];
+            let m2 = betterLerpHSB(c2, c3, 0.5);
+            let colors = [c1, m1, c2, m2, c3,];
+            return colors;
+        }
+    },
+    {
+        id: 81,
+        title: "Human Unreadable",
+        colors: function() {
+            let hues = [];
+            let h1 = R.random_int(210, 240);
+            let h2 = R.random_int(390, 420);
+            for (let i = 0; i < 5; i++) {
+                hues.push(lerp(h1, h2, i / 4) % 360);
+            }
+            let saturations = [];
+            for (let i = 0; i < 5; i++) {
+                saturations.push(R.random_int(3, 6));
+            }
+            let a = 8;
+            let b = 86;
+            let b1 = R.random_int(0, a);
+            let b5 = R.random_int(b, 92);
+            let b2 = R.random_int(a, b);
+            while (Math.abs(b2 - b1) < 10 || Math.abs(b2 - b5) < 10) {
+                b2 = R.random_int(a, b);
+            }
+            let b3 = R.random_int(a, b);
+            while (Math.abs(b3 - b1) < 10 || Math.abs(b3 - b5) < 10 || Math.abs(b3 - b2) < 10) {
+                b3 = R.random_int(a, b);
+            }
+            let b4 = R.random_int(a, b);
+            while (Math.abs(b4 - b1) < 10 || Math.abs(b4 - b5) < 10 || Math.abs(b4 - b2) < 10 || Math.abs(b4 - b3) < 10) {
+                b4 = R.random_int(a, b);
+            }
+            let brightnesses = [b1, b2, b3, b4, b5];
+            brightnesses.sort((a, b) => a - b);
+            let colors = [[hues[0], saturations[0], brightnesses[0]]];
+            let remaining = [];
+            for (let i = 1; i < 5; i++) {
+                remaining.push([hues[i], saturations[i], brightnesses[i]]);
+            }
+            remaining = scramble(remaining);
+            colors.push(...remaining);
+            return colors;
+        }
+    },
+    {
+        id: 82,
+        title: "Neural Sediments",
+        colors: function() {
+            let choices = [
+                [0, 85, 89],
+                [0, 91, 88],
+                [0, 85, 64],
+                [15, 80, 93],
+                [320, 84, 53],
+                [150, 54, 63],
+                [120, 81, 39],
+                [180, 60, 69],
+                [180, 42, 83],
+                [201, 64, 82],
+                [220, 74, 83],
+                [201, 68, 86],
+                [180, 61, 47],
+            ];
+            let c = R.random_choice(choices);
+            let c1 = betterLerpHSB(c, [0, 0, 100], 0.1);
+            let c2 = betterLerpHSB(c1, [0, 0, 0], 0.4);
+            let c3 = [(c1[0] + 180) % 360, c1[1] * 0.45, Math.min(c1[2] * 1.25, 100)];
+            let c4 = betterLerpHSB(c2, c3, 0.35);
+            let colors = [c1, c2, c3, c4];
+            return colors;
+        }
+    },
+    {
+        id: 83,
+        title: "Dopamine Machines",
+        colors: function() {
+            let h = R.random_int(0, 360);
+            let offsets = [75, 120, 180, 240];
+            offsets = scramble(offsets);
+            let colors = [[h, 100, 100]];
+            for (let i = 0; i < 4; i++) {
+                colors.push([(h + offsets[i]) % 360, 100, 100]);
+            }
+            return colors;
+        }
+    },
+    {
+        id: 84,
+        title: "Gumbo",
+        colors: function() {
+            let choices = [
+                [[354, 8, 95], [0, 0, 7], [31, 20, 100], [349, 40, 92], [154, 25, 74], [15, 89, 86], [39, 100, 98], [200, 100, 35]],
+                [[31, 20, 100], [0, 0, 22], [42, 90, 97], [13, 86, 93], [353, 85, 84], [328, 64, 85], [326, 77, 59], [147, 78, 49], [211, 69, 74], [228, 63, 63], [254, 53, 51]],
+                [[45, 20, 99], [166, 36, 14], [171, 70, 47], [356, 79, 100], [27, 88, 99], [37, 84, 100], [344, 51, 96], [205, 91, 93], [25, 65, 61]],
+                [[26, 20, 93], [0, 3, 13], [33, 85, 91], [359, 42, 89], [164, 76, 55], [21, 87, 85], [206, 85, 52]],
+                [[26, 32, 100], [0, 0, 13], [9, 68, 68], [13, 53, 88], [348, 24, 75], [31, 99, 88], [154, 17, 49]],
+                [[285, 2, 94], [264, 98, 2], [30, 4, 57], [26, 32, 69], [25, 28, 85], [30, 4, 21]],
+                [[47, 20, 89], [0, 0, 7], [169, 39, 55], [358, 40, 86], [38, 75, 81], [231, 45, 42], [16, 80, 75], [270, 7, 35]],
+                [[45, 17, 89], [234, 26, 15], [0, 62, 68], [179, 75, 27], [12, 66, 76]],
+                [[37, 23, 95], [199, 62, 20], [340, 63, 82], [197, 50, 46], [16, 64, 85], [116, 25, 30]],
+                [[354, 8, 95], [0, 0, 7], [0, 0, 34], [43, 22, 100], [30, 47, 70], [175, 100, 56], [18, 69, 97], [39, 76, 100], [241, 28, 76]],
+                [[282, 7, 76], [279, 39, 14], [15, 79, 94], [241, 72, 61], [130, 100, 42], [1, 89, 89]]
+            ];
+            let c = R.random_choice(choices);
+            let colors = [c[0], betterLerpHSB(c[1], c[0], 0.17)];
+            let remaining = c.slice(2);
+            remaining = scramble(remaining);
+            colors.push(...remaining);
+            return colors;
+        }
+    },
+    {
+        id: 85,
+        title: "Spaghetti Bones",
+        colors: function() {
+            let choices = [
+                [[188, 38, 47], [349, 56, 71], [112, 58, 53], [358, 76, 67], [40, 76, 73], [348, 42, 85], [49, 24, 80]],
+                [[191, 83, 40], [268, 57, 88], [33, 32, 91], [14, 69, 71], [354, 59, 59]],
+                [[214, 58, 44], [70, 38, 89], [226, 25, 60], [283, 23, 48], [163, 44, 76], [198, 59, 58], [359, 54, 82]],
+                [[345, 70, 88], [247, 48, 78], [36, 76, 94], [152, 21, 68], [92, 60, 60]],
+                [[253, 70, 74], [198, 69, 76], [189, 26, 86], [50, 57, 97], [40, 80, 95], [3, 58, 91], [329, 98, 54]],
+                [[197, 88, 43], [208, 77, 92], [44, 33, 96], [28, 94, 95], [12, 92, 67], [340, 65, 45]],
+                [[235, 62, 50], [194, 41, 49], [236, 21, 76], [331, 18, 92], [30, 51, 96]],
+                [[24, 88, 62], [28, 93, 100], [52, 46, 98], [242, 56, 47], [261, 69, 100], [159, 66, 53], [87, 49, 79]],
+                [[285, 57, 40], [36, 73, 88], [37, 32, 96], [355, 52, 89], [150, 23, 82]],
+                [[216, 59, 64], [245, 93, 70], [354, 89, 84], [61, 80, 100]],
+                [[182, 100, 35], [144, 94, 50], [98, 57, 89], [56, 77, 95], [22, 54, 100], [312, 52, 98], [343, 60, 90], [321, 91, 42]],
+                [[201, 40, 37], [240, 5, 55], [75, 63, 38], [55, 35, 86], [5, 84, 47]],
+                [[25, 47, 100], [16, 100, 87], [61, 51, 84], [283, 29, 88], [356, 43, 76], [347, 61, 62], [174, 25, 80], [170, 100, 57], [197, 98, 44]],
+            ];
+            let c = R.random_choice(choices);
+            c = scramble(c);
+            let colors = [[0, 0, 0]];
+            colors.push(...c);
+            return colors;
+        }
+    },
+    {
+        id: 86,
+        title: "Torrent",
+        colors: function() {
+            let g1 = [[17, 66, 82], [20, 48, 98], [20, 82, 97], [20, 99, 99], [25, 50, 88], [25, 100, 100], [27, 72, 83], [28, 66, 98], [30, 98, 100]];
+            let g2 = [[158, 65, 78], [165, 50, 59], [168, 98, 53], [170, 44, 80], [171, 70, 66], [174, 48, 64], [187, 100, 79], [189, 47, 79], [191, 38, 88], [192, 46, 72], [193, 56, 49]];
+            let g3 = [[200, 100, 100], [203, 73, 35], [207, 69, 80], [212, 68, 56], [212, 82, 73], [214, 33, 84], [217, 79, 54], [219, 41, 100], [223, 65, 77], [225, 76, 63], [230, 47, 98], [239, 94, 72], [241, 40, 82]];
+            let g4 = [[322, 55, 93], [325, 20, 85], [328, 47, 93], [53, 77, 95], [79, 36, 89]];
+            let g5 = [[346, 58, 78], [347, 74, 100], [350, 90, 76], [353, 70, 91], [354, 80, 85], [2, 73, 79], [4, 71, 66], [6, 37, 98], [8, 64, 78]];
+            g1 = scramble(g1);
+            g2 = scramble(g2);
+            g3 = scramble(g3);
+            g4 = scramble(g4);
+            g5 = scramble(g5);
+            let c1 = [g1[0], g2[0], g3[0], g4[0], g5[0]];
+            c1 = scramble(c1);
+            let c2 = [g1[1], g2[1], g3[1], g4[1], g5[1]];
+            c2 = scramble(c2);
+            let colors = [];
+            for (let i = 0; i < 5; i++) {
+                if (R.random_bool(0.3)) {
+                    colors.push(betterLerpHSB(c1[i], [32, 5, 97], R.random_num(0.05, 0.7)));
+                } else {
+                    colors.push(betterLerpHSB(c1[i], [32, 5, 97], R.random_num(0.05, 0.2)));
+                }
+            }
+            for (let i = 0; i < 3; i++) {
+                if (R.random_bool(0.3)) {
+                    colors.push(betterLerpHSB(c2[i], [32, 5, 97], R.random_num(0.05, 0.7)));
+                } else {
+                    colors.push(betterLerpHSB(c2[i], [32, 5, 97], R.random_num(0.05, 0.2)));
+                }
+            }
+            return colors;
+        }
+    },
+    {
+        id: 87,
+        title: "This Is Not A Rock",
+        colors: function() {
+            let choices = [
+                [[227, 78, 100], [354, 83, 87], [45, 75, 99]],
+                [[160, 100, 50], [125, 71, 58], [84, 87, 72], [68, 100, 80], [57, 86, 93]],
+                [[43, 74, 100], [341, 91, 85], [327, 67, 56], [169, 74, 51], [184, 47, 87]],
+                [[358, 73, 98], [23, 83, 95], [35, 88, 97], [47, 49, 97], [95, 40, 75], [165, 61, 67], [176, 45, 56], [200, 76, 63]],
+                [[339, 78, 55], [8, 70, 86], [45, 66, 100], [84, 39, 91], [153, 58, 83], [195, 69, 65]],
+                [[29, 100, 100], [35, 100, 100], [41, 100, 100], [265, 83, 60], [270, 67, 87]],
+                [[358, 99, 62], [7, 100, 80], [16, 99, 86], [25, 97, 91], [34, 96, 96], [44, 97, 100]],
+                [[84, 36, 93], [126, 49, 71], [168, 86, 64], [189, 85, 62], [209, 80, 57]],
+                [[197, 50, 40], [173, 72, 62], [41, 54, 91], [27, 74, 96], [12, 66, 91]],
+                [[221, 91, 100], [43, 67, 99], [6, 9, 98], [67, 33, 46], [15, 72, 100]],
+                [[43, 5, 100], [36, 8, 80], [20, 5, 30], [19, 82, 92]],
+                [[231, 35, 26], [219, 19, 68], [0, 2, 96], [355, 70, 94], [356, 95, 85]],
+                [[38, 12, 95], [26, 57, 75], [15, 60, 37], [19, 60, 54], [21, 31, 85]],
+                [[25, 81, 100], [44, 72, 99], [96, 31, 76], [172, 38, 61]],
+                [[304, 59, 48], [342, 52, 70], [4, 69, 98], [44, 56, 95]],
+                [[144, 39, 32], [128, 40, 39], [67, 60, 45], [35, 51, 70]],
+                [[253, 45, 45], [43, 66, 100], [185, 89, 64], [197, 78, 49]],
+                [[38, 6, 83], [168, 63, 73], [44, 72, 91], [34, 87, 78]]
+            ];
+            let c = R.random_choice(choices);
+            c = scramble(c);
+            let colors = [R.random_choice([[0, 0, 80], [0, 0, 30]])];
+            for (let i = 0; i < Math.min(3, c.length); i++) {
+                colors.push([c[i][0], Math.max(c[i][1] * 0.7, 10), Math.max(c[i][2] * 0.65, 30)]);
+            }
+            return colors;
+        }
+    },
+    {
+        id: 88,
+        title: "because unless until",
+        colors: function() {
+            let choices = [
+                [[349, 97, 95], [12, 98, 85], [27, 92, 95], [50, 53, 95], [86, 38, 35], [189, 97, 95], [296, 24, 65]],
+                [[27, 97, 95], [43, 97, 95], [154, 97, 40], [161, 97, 75], [191, 97, 95], [205, 100, 95], [218, 92, 95], [297, 90, 50]],
+                [[27, 97, 45], [33, 65, 75], [40, 97, 85], [145, 49, 75], [197, 97, 95]],
+                [[22, 97, 55], [16, 97, 95], [28, 97, 95], [36, 98, 95], [199, 90, 75], [297, 90, 50], [349, 69, 95]],
+                [[61, 48, 95], [71, 71, 35], [154, 97, 45], [162, 97, 85], [197, 97, 95], [217, 97, 95]],
+                [[270, 51, 45], [272, 75, 85], [290, 50, 80], [316, 31, 95], [347, 92, 75]],
+                [[33, 81, 95], [41, 73, 95], [48, 64, 95], [56, 70, 45], [68, 56, 95], [125, 43, 95], [153, 44, 85], [194, 55, 75], [211, 60, 75]],
+                [[56, 97, 65], [56, 98, 95], [180, 97, 95], [202, 97, 85], [250, 73, 85], [313, 52, 75]]
+            ];
+            let c = R.random_choice(choices);
+            c = scramble(c);
+            let colors = [[0, 0, 0]];
+            colors.push(...c);
+            return colors;
+        }
+    },
+    {
+        id: 89,
+        title: "Trichro-matic",
+        colors: function() {
+            let choices = [
+                [[168, 50, 36], [15, 36, 84], [30, 50, 97], [14, 68, 89], [196, 22, 80]],
+                [[311, 37, 50], [7, 66, 87], [33, 81, 90], [37, 20, 92], [199, 38, 50]],
+                [[159, 68, 18], [206, 25, 36], [39, 92, 70], [24, 50, 84], [153, 11, 71]],
+                [[16, 15, 50], [124, 35, 62], [216, 44, 73], [16, 74, 86], [331, 48, 79], [49, 64, 91]],
+                [[33, 77, 73], [205, 29, 88], [215, 30, 64], [164, 57, 34], [142, 13, 68], [15, 80, 89]],
+                [[167, 34, 37], [51, 38, 74], [208, 53, 63], [36, 49, 37], [20, 21, 88], [39, 65, 89], [46, 59, 93], [357, 54, 72], [358, 59, 69]],
+                [[166, 51, 29], [90, 42, 57], [42, 39, 89], [356, 19, 89], [194, 12, 95], [209, 54, 78], [179, 29, 63], [358, 59, 69]],
+                [[19, 70, 85], [144, 46, 49], [2, 71, 67], [38, 71, 89], [22, 25, 83], [193, 55, 44]],
+                [[253, 42, 45], [350, 26, 91], [159, 42, 35], [4, 70, 85], [213, 49, 23], [36, 67, 71], [213, 5, 81]],
+                [[190, 60, 29], [54, 59, 48], [22, 76, 91], [34, 83, 89], [43, 20, 96]],
+                [[190, 62, 44], [170, 61, 30], [35, 59, 91], [195, 24, 72], [202, 67, 49]],
+                [[0, 67, 80], [208, 70, 55], [269, 40, 57], [37, 94, 94], [163, 85, 51], [180, 5, 43]],
+                [[31, 75, 88], [124, 35, 62], [216, 44, 73], [11, 74, 86], [331, 48, 79], [49, 77, 91]],
+                [[222, 76, 45], [318, 18, 37], [360, 72, 81], [60, 32, 46], [21, 73, 95], [41, 84, 91]]
+                ];
+            let c = R.random_choice(choices);
+            c = scramble(c);
+            let colors = [];
+            for (let i = 0; i < Math.min(8, c.length); i++) {
+                colors.push(betterLerpHSB([c[i][0], Math.min(c[i][1] * 1.25, 100), c[i][2] * 1, 100], [32, 5, 97], R.random_num(0.05, 0.25)));
+            }
+            return colors;
+        }
+    },
+    {
+        id: 90,
+        title: "Naïve",
+        colors: function() {
+            let choices = [
+                [[48, 21, 88], [8, 55, 95], [322, 32, 69], [278, 6, 55], [282, 33, 52]],
+                [[47, 18, 85], [0, 99, 67], [240, 100, 50]],
+                [[289, 54, 24], [51, 100, 100], [337, 66, 79], [76, 99, 57], [33, 97, 95]],
+                [[42, 22, 78], [51, 100, 100], [14, 98, 95], [33, 97, 95]],
+                [[180, 80, 50], [0, 62, 66], [41, 56, 72]],
+                [[42, 22, 78], [61, 22, 95], [79, 71, 64], [320, 40, 100], [0, 100, 69],],
+                [[36, 9, 78], [41, 7, 88], [194, 8, 75], [8, 92, 82], [25, 50, 92]],
+                [[48, 21, 88], [38, 24, 80], [27, 96, 81], [269, 25, 72], [211, 26, 73]],
+                [[45, 18, 91], [61, 21, 81], [48, 99, 100], [36, 96, 78], [51, 77, 88]],
+                [[44, 22, 88], [173, 52, 73], [0, 100, 96]],
+                [[41, 37, 83], [0, 100, 74], [34, 61, 87], [0, 100, 57]],
+                [[41, 37, 83], [348, 40, 100], [28, 98, 96], [180, 93, 70], [8, 55, 95]],
+                [[73, 71, 53], [67, 86, 34], [61, 100, 100], [290, 89, 19], [292, 30, 44]],
+                [[36, 31, 78], [258, 66, 54], [12, 93, 55]],
+                [[51, 100, 83], [13, 96, 63], [208, 73, 73], [356, 92, 80], [40, 34, 93]],
+                [[9, 59, 77], [0, 100, 66], [51, 99, 99], [316, 71, 38], [317, 88, 76]],
+                [[42, 16, 69], [32, 100, 78], [117, 100, 47], [0, 99, 69], [334, 70, 46]],
+                [[162, 97, 21], [210, 87, 16], [62, 94, 56], [59, 84, 82]],
+                [[48, 21, 88], [27, 42, 70], [20, 96, 73], [222, 33, 36]],
+                [[48, 21, 88], [197, 31, 60], [187, 100, 48], [26, 93, 66], [50, 100, 95]],
+                [[45, 10, 86], [197, 31, 60], [351, 96, 80], [328, 45, 100]],
+                [[78, 57, 66], [39, 100, 95], [186, 99, 53], [0, 0, 10]],
+                [[335, 100, 100], [40, 100, 91], [77, 99, 50], [191, 90, 58], [0, 100, 58]]
+            ];
+            let c = R.random_choice(choices);
+            let bg = betterLerpHSB(c[0], [0, 0, 100], 0.25);
+            let colors = [bg];
+            for (let i = 1; i < Math.min(100, c.length); i++) {
+                colors.push(betterLerpHSB([c[i][0], Math.min(c[i][1] * 1.6, 100), Math.min(c[i][2] * 1.1, 100)], bg, 0.11));
+            }
+            return colors;
+        }
+    },
+    {
+        id: 91,
+        title: "Blind Spots",
+        colors: function() {
+            let choices = [
+                [339, 70, 25],
+                [139, 67, 24],
+                [178, 95, 30],
+                [227, 86, 35],
+                [227, 26, 43],
+                [28, 98, 75],
+                [39, 98, 75],
+                [5, 88, 64]
+            ];
+            let c = R.random_choice(choices);
+            let c1 = [c[0] + 8, c[1] * 0.75, Math.min(c[2] * R.random_num(0.7, 2), 90)];
+            let c2 = betterLerpHSB(c1, [0, 0, 100], 0.6);
+            let c3 = betterLerpHSB(c1, [5, 100, 90], 0.8);
+            let c4 = betterLerpHSB(c1, [0, 0, 0], 1);
+            let c5 = betterLerpHSB(c1, [185, 100, 90], 0.8);
+            let colors = [c1, c2, c3, c4, c5];
+            return colors;
+        }
+    },
+    {
+        id: 92,
+        title: "Cytographia",
+        colors: function() {
+            let bg = [40, R.random_num(20, 40), R.random_num(84, 96)];
+            let c1 = betterLerpHSB(bg, [0, 0, 100], 0.4);
+            let colors = [bg, c1, [0, 0, 0]];
+            return colors;
+        }
+    },
+    {
+        id: 93,
+        title: "Växt",
+        colors: function() {
+            let choices = [
+                [[157, 19, 38], [109, 33, 58], [128, 13, 71], [78, 5, 77], [183, 58, 46], [31, 46, 66], [340, 66, 67], [197, 65, 28], [273, 41, 28], [31, 39, 94], [349, 38, 49]],
+                [[36, 26, 88], [22, 24, 96], [357, 31, 67], [35, 40, 58], [16, 46, 62], [22, 16, 100], [17, 44, 93], [352, 18, 90], [8, 36, 77]],
+                [[210, 26, 49], [165, 11, 91], [210, 28, 64], [128, 9, 71], [311, 22, 82], [191, 37, 48], [37, 27, 89], [40, 13, 94], [122, 10, 60], [49, 26, 75]],
+                [[219, 58, 25], [210, 36, 60], [214, 12, 91], [214, 14, 71], [220, 15, 51], [225, 23, 31]],
+                [[8, 25, 24], [227, 28, 69], [357, 24, 76], [51, 50, 94], [260, 34, 71], [101, 34, 61], [21, 65, 83], [157, 32, 37], [46, 33, 91], [211, 20, 77]],
+                [[350, 8, 15], [10, 29, 85], [1, 64, 64], [35, 42, 82], [49, 3, 65], [196, 38, 67], [19, 47, 36], [27, 34, 55], [103, 12, 51], [341, 31, 62], [33, 14, 86]],
+                [[17, 10, 79], [2, 75, 63], [259, 27, 48], [43, 51, 89], [99, 58, 62], [3, 38, 44], [187, 11, 72], [34, 74, 71], [278, 11, 78]],
+                [[56, 5, 82], [14, 87, 58], [14, 61, 83], [112, 29, 28], [342, 54, 35], [230, 20, 75], [47, 61, 85], [88, 64, 69], [267, 32, 71], [97, 44, 51], [343, 36, 75], [249, 44, 39]],
+                [[90, 3, 86], [45, 40, 98], [17, 27, 83], [40, 73, 78], [153, 21, 35], [357, 76, 74], [44, 64, 94], [214, 14, 47], [34, 75, 63], [171, 28, 73], [248, 25, 78], [207, 24, 83]],
+                [[17, 33, 72], [47, 27, 44], [105, 7, 74], [42, 66, 90], [37, 17, 86], [36, 23, 10], [92, 22, 37], [43, 11, 38], [8, 73, 41], [67, 13, 53], [197, 11, 77], [166, 7, 75], [41, 40, 18], [205, 12, 79], [66, 6, 83], [47, 58, 63]],
+                [[15, 12, 68], [218, 33, 40], [19, 64, 83], [16, 36, 85], [277, 36, 36], [54, 11, 44], [317, 80, 60], [27, 60, 60], [27, 44, 90], [60, 17, 87], [156, 13, 55]],
+                [[43, 8, 91], [0, 34, 86], [12, 18, 91], [202, 56, 57], [206, 12, 88], [127, 10, 59], [6, 10, 93], [208, 22, 83], [103, 43, 70], [40, 24, 96], [48, 63, 46], [202, 33, 67], [107, 6, 83], [73, 39, 31]],
+                [[236, 34, 34], [14, 73, 52], [8, 21, 75], [17, 71, 81], [338, 42, 43], [332, 32, 69], [330, 33, 95], [50, 65, 95], [12, 21, 42], [221, 14, 48], [355, 49, 88], [28, 74, 93], [3, 30, 96]],
+                [[317, 20, 13], [334, 61, 42], [359, 73, 73], [14, 72, 93], [27, 77, 81]],
+                [[32, 33, 65], [3, 79, 65], [33, 32, 83], [23, 55, 67], [224, 75, 87], [27, 65, 80], [230, 49, 36], [80, 68, 45], [216, 47, 76], [111, 16, 29], [169, 15, 76]],
+                [[34, 14, 52], [166, 29, 50], [215, 16, 62], [192, 34, 94], [212, 27, 91], [222, 9, 94], [69, 61, 59], [73, 74, 35], [30, 36, 84], [25, 47, 46], [36, 21, 72]]
+            ];
+            let c = R.random_choice(choices);
+            let colors = [c[0]];
+            let remaining = c.slice(1);
+            remaining = scramble(remaining);
+            for (let i = 0; i < Math.min(7, remaining.length); i++) {
+                colors.push([remaining[i][0], Math.min(remaining[i][1] * 1.2, 100), Math.min(remaining[i][2] * 1.1, 100)]);
+            }
+            return colors;
+        }
+    },
+    {
+        id: 94,
+        title: "Proscenium",
+        colors: function() {
+            let choices = [
+                [[19, 79, 97], [11, 100, 100], [207, 74, 39], [43, 64, 96], [157, 90, 39], [356, 63, 85], [177, 41, 86], [130, 17, 93], [27, 72, 100], [348, 70, 73], [34, 66, 100], [192, 75, 72], [30, 44, 100], [154, 35, 92]],
+                [[165, 100, 92], [179, 100, 71], [186, 100, 36], [40, 43, 99], [38, 25, 98], [45, 100, 100], [15, 84, 98], [33, 90, 82], [359, 73, 93], [172, 27, 87], [185, 91, 55]],
+                [[22, 39, 94], [210, 63, 48], [39, 26, 90], [218, 48, 92], [162, 39, 88], [195, 29, 84], [38, 45, 89], [215, 25, 67], [33, 46, 67], [165, 25, 52]],
+                [[349, 70, 74], [44, 88, 92], [11, 88, 79], [38, 99, 90], [138, 22, 68], [342, 40, 84], [221, 43, 42], [32, 24, 91], [284, 31, 49], [68, 50, 84], [214, 40, 58], [70, 52, 63]],
+                [[181, 100, 40], [358, 100, 67], [45, 100, 100], [34, 100, 100], [8, 100, 90]],
+                [[98, 19, 93], [352, 59, 92], [155, 79, 53], [40, 34, 98], [181, 71, 56], [349, 26, 92], [181, 100, 40], [119, 33, 78], [34, 24, 90], [34, 100, 100], [330, 62, 43], [35, 73, 100], [157, 58, 73], [325, 36, 98]],
+                [[40, 27, 93], [203, 100, 53], [46, 100, 100], [36, 100, 100], [354, 85, 83], [179, 94, 72], [352, 98, 64], [176, 97, 39]],
+                [[203, 97, 53], [6, 45, 100], [45, 100, 100], [145, 100, 47], [43, 57, 99], [16, 74, 99], [4, 63, 100], [164, 21, 91], [188, 79, 57], [137, 58, 72], [16, 89, 73], [8, 100, 91]],
+                [[44, 84, 74], [48, 76, 83], [60, 41, 79], [142, 30, 62], [199, 60, 62], [206, 67, 59], [214, 70, 61], [214, 52, 37]],
+                [[221, 40, 33], [221, 30, 45], [214, 13, 72], [19, 18, 99], [32, 49, 100], [45, 100, 100], [8, 60, 96], [29, 85, 100], [347, 29, 87]],
+                [[10, 53, 36], [32, 25, 91], [50, 63, 78], [38, 49, 87], [50, 82, 64], [353, 70, 79], [345, 45, 86], [273, 20, 67], [20, 57, 62]],
+                [[10, 27, 98], [148, 47, 86], [48, 89, 98], [182, 100, 65], [46, 53, 98], [31, 48, 100], [172, 50, 86], [111, 23, 89], [10, 51, 100], [18, 83, 84]],
+                [[45, 100, 100], [210, 63, 45], [168, 23, 93], [313, 16, 89], [32, 40, 97], [201, 29, 95], [160, 76, 67], [46, 90, 55], [111, 22, 73], [34, 100, 100], [149, 30, 59], [73, 46, 86]],
+                [[36, 50, 95], [342, 40, 82], [17, 49, 82], [27, 31, 95], [357, 27, 98], [348, 13, 96]],
+            ];
+            let colors = R.random_choice(choices);
+            colors = scramble(colors);
+            return colors;
+        }
+    },
+    {
+        id: 95,
+        title: "Melancholic Magical Maiden",
+        colors: function() {
+            let backgrounds =[
+                [[316, 37, 82], [273, 49, 73]],
+                [[171, 54, 72], [200, 66, 75]],
+                [[300, 48, 83], [297, 28, 91]],
+                [[212, 100, 54], [189, 85, 77]],
+                [[61, 56, 76], [162, 64, 71]],
+                [[55, 55, 84], [36, 82, 82]],
+                [[81, 79, 60], [97, 63, 42]],
+                [[261, 65, 89], [293, 60, 83]],
+                [[257, 31, 79], [317, 35, 79], [185, 28, 78]],
+                [[308, 67, 90], [280, 78, 75], [198, 71, 85]],
+                [[207, 46, 84], [184, 25, 76], [169, 25, 84]],
+                [[0, 84, 76], [319, 70, 78], [342, 49, 77], [322, 28, 82]],
+                [[30, 80, 88], [273, 44, 75], [42, 64, 90], [8, 66, 79]],
+                [[181, 57, 56], [169, 29, 77], [187, 84, 43], [187, 42, 65]]
+            ];
+            let motifs =[
+                [[315, 25, 89], [38, 68, 89], [210, 35, 96], [99, 37, 85], [272, 25, 89]],
+                [[314, 38, 86], [38, 92, 85], [210, 48, 92], [99, 49, 78], [271, 34, 82]],
+                [[229, 29, 82], [194, 28, 83], [94, 23, 68], [283, 25, 71]],
+                [[199, 52, 82], [36, 65, 90], [332, 63, 81]],
+                [[199, 53, 73], [36, 67, 81], [332, 64, 72]],
+                [[330, 87, 73], [203, 73, 65], [55, 94, 94], [194, 38, 87]],
+                [[60, 100, 93], [300, 36, 93], [180, 36, 93]],
+                [[83, 34, 80], [168, 19, 81], [200, 30, 90], [47, 25, 93], [259, 20, 64], [29, 19, 94], [214, 15, 73], [337, 15, 95], [271, 17, 90]],
+                [[84, 36, 69], [167, 21, 70], [200, 32, 81], [260, 21, 50], [214, 17, 63], [336, 15, 85], [272, 18, 79]],
+                [[330, 87, 73], [83, 76, 48], [168, 72, 55], [60, 34, 91], [308, 12, 94], [260, 24, 91], [29, 62, 84], [214, 73, 48], [336, 50, 83], [271, 41, 78]],
+                [[4, 18, 75], [229, 29, 82], [194, 28, 83], [94, 23, 68], [283, 25, 71]]
+            ];
+            let text =[
+                [60, 100, 80],
+                [300, 33, 80],
+                [180, 50, 80],
+                [0, 0, 80]
+            ];
+            let b = R.random_choice(backgrounds);
+            b = scramble(b);
+            let m = R.random_choice(motifs);
+            m = scramble(m);
+            let t = R.random_choice(text);
+            t = R.random_choice(text);
+            let colors = [b[0], b[1], m[0], m[1], t];
+            return colors;
+        }
+    },
+    {
+        id: 96,
+        title: "Bokeh",
+        colors: function() {
+            let choices = [
+                [[0, 0, 92], [0, 8, 68], [140, 5, 73], [226, 15, 57], [7, 8, 83], [12, 19, 63], [291, 4, 67], [310, 6, 37]],
+                [[207, 24, 95], [215, 77, 35], [213, 86, 53], [199, 100, 67], [209, 51, 51]],
+                [[196, 62, 35], [196, 8, 45], [42, 6, 73], [28, 10, 91], [27, 24, 84], [31, 39, 67], [34, 58, 35]],
+                [[330, 12, 40], [9, 49, 71], [227, 43, 42], [17, 18, 98], [27, 38, 99], [212, 44, 91], [224, 66, 80], [67, 38, 78]],
+                [[12, 63, 40], [300, 18, 35], [22, 36, 41], [212, 10, 52], [38, 28, 95], [21, 59, 81], [14, 30, 59], [93, 8, 42]],
+                [[57, 17, 78], [188, 80, 35], [1, 65, 96], [221, 51, 35], [4, 66, 38], [206, 10, 77], [48, 44, 100], [31, 24, 85]],
+                [[213, 47, 41], [33, 19, 96], [358, 72, 84], [23, 53, 95], [22, 38, 94], [23, 5, 80], [195, 7, 56]],
+                [[51, 13, 39], [72, 3, 57], [355, 38, 86], [167, 50, 61], [44, 50, 95], [205, 69, 66], [34, 10, 93]],
+                [[3, 69, 97], [41, 18, 98], [1, 41, 92], [38, 49, 90], [20, 53, 48], [126, 5, 73], [155, 17, 35]]
+            ];
+            let colors = R.random_choice(choices);
+            colors = scramble(colors);
+            return colors;
+        }
+    },
+    {
+        id: 97,
+        title: "INK",
+        colors: function() {
+            let c1, c2, c3;
+            let colors = [];
+            let h = R.random_choice([40, 50, 60]);
+            let paper = [h,13,94];
+            let ink = [0, 0, 0];
+            if (R.random_bool(0.2)) {
+                c2 = [225, 80, 85];
+                c1 = betterLerpHSB(c2, [0, 0, 100], 0.75);
+                c3 = betterLerpHSB(c2, ink, 0.75);
+                colors = [c1, c2, c3];
+            } else {
+                c1 = betterLerpHSB(paper, ink, R.random_num(0, 0.1));
+                c2 = betterLerpHSB(paper, ink, R.random_num(0.2, 0.7));
+                c3 = betterLerpHSB(paper, ink, R.random_num(0.8, 1));
+                colors = [c1, c2, c3];
+                if (R.random_bool(0.25)) {
+                    for (let i = 0; i < colors.length; i++) {
+                        colors[i] = betterLerpHSB(colors[i], [35, 60, 25], 0.35);
+                    }
+                }
+            }
+            return colors;
+        }
+    },
+    {
+        id: 98,
+        title: "while true",
+        colors: function() {
+            let choices = [
+                [17, 100, 88],
+                [220, 88, 71],
+                [144, 47, 78],
+                [334, 51, 86],
+                [3, 96, 75],
+                [35, 96, 100],
+                [26, 100, 93],
+                [46, 85, 100],
+                [235, 55, 35],
+                [0, 3, 100],
+                [0, 0, 6],
+            ];
+            let colors = [];
+            if (R.random_bool(0.33)) {
+                let c = choices.slice(0, 8);
+                c = scramble(c);
+                for (let i = 0; i < Math.min(8, c.length); i++) {
+                    colors.push(betterLerpHSB(c[0], c[i], 0.35));
+                }
+            } else {
+                let c = scramble(choices);
+                for (let i = 0; i < Math.min(8, c.length); i++) {
+                    colors.push(c[i]);
+                }
+                if (R.random_bool(0.5)) {
+                    for (let i = 0; i < colors.length; i++) {
+                        colors[i] = betterLerpHSB(colors[i], [0, 0, (colors[i][1] + colors[i][2]) / 2], 0.8);
+                    }
+                }
+            }
+            return colors;
+        }
+    },
+    {
+        id: 99,
+        title: "Box Light Studies",
+        colors: function() {
+            let bg = [0, 0, 10];
+            let lights1 = [R.random_int(210, 270), 100, 100];
+            let lights2 = [(360 + R.random_int(-30, 30)) % 360, 100, 100];
+            let c1 = betterLerpHSB(lights1, [0, 0, 0], 0.25);
+            let c2 = betterLerpHSB(lights2, [0, 0, 100], 0.35);
+            let m = [(360 + R.random_int(-60, 60)) % 360, R.random_int(12, 27), 100];
+            let colors = [bg, c1, betterLerpHSB(c1, c2, 0.5), c2, m];
+            return colors;
+        }
+    },
+    {
+        id: 100,
+        title: "BUSY",
+        colors: function() {
+            let choices = [
+                [[180, 89, 72], [230, 100, 50], [30, 60, 100], [45, 70, 100], [0, 71, 78]],
+                [[180, 89, 72], [0, 71, 78], [230, 100, 50], [335, 89, 81], [30, 60, 100]],
+                [[180, 89, 72], [100, 52, 75], [0, 71, 78], [30, 60, 100], [335, 89, 81]],
+                [[0, 0, 0], [180, 89, 72], [45, 70, 100], [320, 63, 60]],
+                [[210, 46, 55], [230, 100, 50], [180, 89, 72], [280, 67, 45], [165, 10, 68]],
+                [[280, 67, 45], [165, 10, 68], [230, 100, 50], [45, 70, 100], [30, 70, 100]],
+                [[180, 89, 72], [230, 100, 50], [335, 89, 81]],
+                [[165, 10, 68], [205, 33, 34], [0, 0, 0], [45, 70, 100], [0, 71, 78]]
+            ];
+            let colors = R.random_choice(choices);
+            colors = scramble(colors);
+            return colors;
+        }
+    },
+    {
+        id: 101,
+        title: "Gas Wars",
+        colors: function() {
+            let patterns = [
+                [0], [1], [2], [3], [4],
+                [0, 2], [0, 3], [0, 4], [1, 3], [1, 4], [2, 4],
+                [0, 2, 4]
+            ];
+            let w = [32, 5, 97];
+            let b = [0, 0, 0];
+            let r = [0, 100, 100];
+            let colors = [w, w, w, w, w];
+            let h1 = R.random_choice(patterns);
+            let h2 = R.random_choice(patterns);
+            for (let i = 0; i < 5; i++) {
+                if (h1.includes(i)) {
+                    colors[i] = b;
+                }
+            }
+            if (R.random_bool(0.4)) {
+                for (let i = 0; i < 5; i++) {
+                    if (h2.includes(i)) {
+                        colors[i] = r;
+                    }
+                }
+            }
+            return colors;
+        }
+    },
+    {
+        id: 102,
+        title: "Quine",
+        colors: function() {
+            let choices = [
+                [[203, 79, 68], [178, 91, 61], [264, 28, 14]],
+                [[221, 91, 67], [178, 91, 61], [152, 76, 62], [264, 28, 14]],
+                [[221, 91, 67], [10, 51, 100], [264, 28, 14]],
+                [[203, 79, 68], [265, 66, 67], [27, 84, 72], [264, 28, 14]],
+                [[203, 79, 68], [264, 28, 14]],
+                [[203, 79, 68], [152, 76, 62], [27, 84, 72], [264, 28, 14]],
+                [[178, 91, 61], [347, 75, 67], [318, 94, 74], [27, 84, 72], [264, 28, 14]],
+                [[203, 79, 68], [318, 94, 74], [264, 28, 14]],
+                [[221, 91, 67], [203, 79, 68], [264, 28, 14]],
+                [[347, 75, 67], [203, 79, 68], [264, 28, 14]],
+                [[347, 75, 67], [318, 94, 74], [264, 28, 14]],
+                [[347, 75, 67], [27, 84, 72], [264, 28, 14]],
+                [[203, 79, 68], [178, 91, 61], [265, 66, 67], [264, 28, 14]],
+                [[318, 94, 74], [265, 66, 67], [264, 28, 14]],
+                [[347, 75, 67], [27, 84, 72], [265, 66, 67], [264, 28, 14]],
+                [[203, 79, 68], [178, 91, 61], [152, 76, 62], [264, 28, 14]],
+                [[203, 79, 68], [27, 84, 72], [264, 28, 14]],
+                [[178, 91, 61], [264, 28, 14]],
+                [[264, 28, 14], [10, 51, 100]]
+            ];
+            let c = R.random_choice(choices);
+            c = scramble(c);
+            let colors = [[88, 6, 69]];
+            colors.push(...c);
+            return colors;
+        }
+    },
+];
+
+// ---- Canvas 2D Drawing Functions ----
+let ctx; // global canvas context
+
+function pencilLineDraw(x1, y1, x2, y2, c, tu) {
+    let ud=tu, od=tu, minw=0.55*tu, maxw=0.75*tu;
+    let d=0.8, of=0.2, range=0.4, mina=0, maxa=1, mins=0.3*tu, maxs=tu;
+    let sx=x1, sy=y1, ex=x2, ey=y2;
+    let v=R.random_num(-ud, od);
+    if (Math.abs(x2-x1) > Math.abs(y2-y1)) {
+        if (x2>x1) { sx=x1-v; ex=x2+v; } else { sx=x1+v; ex=x2-v; }
+    } else {
+        if (y2>y1) { sy=y1-v; ey=y2+v; } else { sy=y1+v; ey=y2-v; }
+    }
+    let sw=R.random_num(minw, maxw);
+    ctx.strokeStyle = c.toCSS();
+    ctx.lineWidth = sw;
+    ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
+    let l=dist(sx,sy,ex,ey);
+    let n=Math.floor(l*d);
+    for (let i=0; i<n; i++) {
+        let t=R.random_dec();
+        let x=lerp(sx,ex,t), y=lerp(sy,ey,t);
+        let dx=ex-sx, dy=ey-sy;
+        let offset=sw*of+R.random_num(0, sw*range);
+        let side=R.random_choice([1,-1]);
+        let ppx=side*(-dy/l), ppy=side*(dx/l);
+        x+=ppx*offset; y+=ppy*offset;
+        let a=R.random_num(mina, maxa);
+        ctx.fillStyle='rgba('+Math.round(c.r)+','+Math.round(c.g)+','+Math.round(c.b)+','+a.toFixed(4)+')';
+        let rx=R.random_num(mins,maxs), ry=R.random_num(mins,maxs);
+        ctx.beginPath(); ctx.ellipse(x, y, rx/2, ry/2, 0, 0, Math.PI*2); ctx.fill();
+    }
+}
+
+function outlineLineDraw(x1, y1, x2, y2, c, tu) {
+    let ud=1.7*tu, od=0.7*tu, minw=1.8*tu, maxw=2.2*tu;
+    let d=4, of=0.2, range=0.4, mina=0.25, maxa=0.35, mins=0.3*tu, maxs=0.7*tu;
+    let sx=x1, sy=y1, ex=x2, ey=y2;
+    let v=R.random_num(-ud, od);
+    if (Math.abs(x2-x1) > Math.abs(y2-y1)) {
+        if (x2>x1) { sx=x1-v; ex=x2+v; } else { sx=x1+v; ex=x2-v; }
+    } else {
+        if (y2>y1) { sy=y1-v; ey=y2+v; } else { sy=y1+v; ey=y2-v; }
+    }
+    let sw=R.random_num(minw, maxw);
+    ctx.strokeStyle = c.toCSS();
+    ctx.lineWidth = sw;
+    ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
+    let l=dist(sx,sy,ex,ey);
+    let n=Math.floor(l*d);
+    for (let i=0; i<n; i++) {
+        let t=R.random_dec();
+        let x=lerp(sx,ex,t), y=lerp(sy,ey,t);
+        let dx=ex-sx, dy=ey-sy;
+        let offset=sw*of+R.random_num(0, sw*range);
+        let side=R.random_choice([1,-1]);
+        let ppx=side*(-dy/l), ppy=side*(dx/l);
+        x+=ppx*offset; y+=ppy*offset;
+        let a=R.random_num(mina, maxa);
+        ctx.fillStyle='rgba('+Math.round(c.r)+','+Math.round(c.g)+','+Math.round(c.b)+','+a.toFixed(4)+')';
+        let rx=R.random_num(mins,maxs), ry=R.random_num(mins,maxs);
+        ctx.beginPath(); ctx.ellipse(x, y, rx/2, ry/2, 0, 0, Math.PI*2); ctx.fill();
+    }
+}
+
+function paintRectDraw(x, y, rw, rh, c, bg, tu) {
+    let d=8, minw=0.5*tu, maxw=3.5*tu, sl=0.008, sd=0.007;
+    ctx.fillStyle = c.toCSS();
+    ctx.fillRect(x, y, rw, rh);
+    for (let i=0; i<d; i++) {
+        let sw=R.random_num(minw, maxw);
+        let sy=y+R.random_num(sw, rh-sw);
+        let sxs=x+R.random_num(sw, rw-sw);
+        let sxe=x+R.random_num(sxs-x+sw, rw-sw);
+        let strokeCol;
+        if (R.random_bool(0.5)) {
+            let lightenAmt=R.random_num(0, sl);
+            colorMode('RGB');
+            strokeCol=betterLerp(c, bg, lightenAmt);
+            colorMode('HSB');
+        } else {
+            let darken=R.random_num(1-sd, 1);
+            strokeCol=color(hue(c), saturation(c), brightness(c)*darken);
+        }
+        ctx.strokeStyle = strokeCol.toCSS();
+        ctx.lineWidth = sw;
+        ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(sxs, sy); ctx.lineTo(sxe, sy); ctx.stroke();
+    }
+    for (let i=0; i<d; i++) {
+        let sw=R.random_num(minw, maxw);
+        let sx=x+R.random_num(sw, rw-sw);
+        let sys=y+R.random_num(sw, rh-sw);
+        let sye=y+R.random_num(sys-y+sw, rh-sw);
+        let strokeCol;
+        if (R.random_bool(0.5)) {
+            let lightenAmt=R.random_num(0, sl);
+            colorMode('RGB');
+            strokeCol=betterLerp(c, bg, lightenAmt);
+            colorMode('HSB');
+        } else {
+            let darken=R.random_num(1-sd, 1.0);
+            strokeCol=color(hue(c), saturation(c), brightness(c)*darken);
+        }
+        ctx.strokeStyle = strokeCol.toCSS();
+        ctx.lineWidth = sw;
+        ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(sx, sys); ctx.lineTo(sx, sye); ctx.stroke();
+    }
+}
+
+// ---- Layout functions (from on-chain) ----
+
+function processEndcaps(ra, hrz, dbl, ecs, beg) {
+    let adj = [], current = [0];
+    for (let i = 1; i < ra.length; i++) {
+        let [ppx, ppy, ppw, pph] = ra[i-1];
+        let [cx, cy, cw, ch] = ra[i];
+        let adjacent = hrz ? (cy === ppy + pph) : (cx === ppx + ppw);
+        if (adjacent) current.push(i); else { adj.push(current); current = [i]; }
+    }
+    adj.push(current);
+    let nra = [], ei = [];
+    for (let i = 0; i < adj.length; i++) {
+        let minx=ra[adj[i][0]][0], miny=ra[adj[i][0]][1];
+        let maxx=ra[adj[i][0]][0]+ra[adj[i][0]][2], maxy=ra[adj[i][0]][1]+ra[adj[i][0]][3];
+        for (let j=1; j<adj[i].length; j++) {
+            if(ra[adj[i][j]][0]<minx) minx=ra[adj[i][j]][0];
+            if(ra[adj[i][j]][1]<miny) miny=ra[adj[i][j]][1];
+            if(ra[adj[i][j]][0]+ra[adj[i][j]][2]>maxx) maxx=ra[adj[i][j]][0]+ra[adj[i][j]][2];
+            if(ra[adj[i][j]][1]+ra[adj[i][j]][3]>maxy) maxy=ra[adj[i][j]][1]+ra[adj[i][j]][3];
+        }
+        if (dbl || (!dbl && beg)) {
+            let be = hrz ? [minx,miny,ecs,maxy-miny] : [minx,miny,maxx-minx,ecs];
+            ei.push(nra.length);
+            nra.push(be);
+        }
+        for (let j=0; j<adj[i].length; j++) {
+            let [x, y, w, h] = ra[adj[i][j]];
+            let mr;
+            if (dbl) {
+                mr = hrz ? [x+ecs, y, w-(2*ecs), h] : [x, y+ecs, w, h-(2*ecs)];
+            } else if (beg) {
+                mr = hrz ? [x+ecs, y, w-ecs, h] : [x, y+ecs, w, h-ecs];
+            } else {
+                mr = hrz ? [x, y, w-ecs, h] : [x, y, w, h-ecs];
+            }
+            nra.push(mr);
+        }
+        if (dbl || (!dbl && !beg)) {
+            let ee = hrz ? [maxx-ecs,miny,ecs,maxy-miny] : [minx,maxy-ecs,maxx-minx,ecs];
+            ei.push(nra.length);
+            nra.push(ee);
+        }
+    }
+    return { rectangles: nra, ei: ei };
+}
+
+function convertToLines(ra) {
+    let hs = [], vs = [];
+    for (let i = 0; i < ra.length; i++) {
+        let [xu, yu, wu, hu] = ra[i];
+        let top=false, bottom=false, left=false, right=false;
+        for (let j=0; j<hs.length; j++) {
+            if (hs[j][0]===yu) { hs[j][1].push([xu, xu+wu]); top=true; }
+            if (hs[j][0]===yu+hu) { hs[j][1].push([xu, xu+wu]); bottom=true; }
+        }
+        if (!top) hs.push([yu, [[xu, xu+wu]]]);
+        if (!bottom) hs.push([yu+hu, [[xu, xu+wu]]]);
+        for (let j=0; j<vs.length; j++) {
+            if (vs[j][0]===xu) { vs[j][1].push([yu, yu+hu]); left=true; }
+            if (vs[j][0]===xu+wu) { vs[j][1].push([yu, yu+hu]); right=true; }
+        }
+        if (!left) vs.push([xu, [[yu, yu+hu]]]);
+        if (!right) vs.push([xu+wu, [[yu, yu+hu]]]);
+    }
+    function mergeSegments(seg) {
+        if (seg.length===0) return [];
+        seg.sort((a,b) => a[0]-b[0]);
+        let m = [seg[0]];
+        for (let i=1; i<seg.length; i++) {
+            let cur=seg[i], last=m[m.length-1];
+            if (cur[0]<=last[1]) last[1]=Math.max(last[1],cur[1]); else m.push(cur);
+        }
+        return m;
+    }
+    let lines = [];
+    for (let i=0; i<hs.length; i++) {
+        let merged=mergeSegments(hs[i][1]);
+        for (let j=0; j<merged.length; j++) lines.push([merged[j][0], hs[i][0], merged[j][1], hs[i][0]]);
+    }
+    for (let i=0; i<vs.length; i++) {
+        let merged=mergeSegments(vs[i][1]);
+        for (let j=0; j<merged.length; j++) lines.push([vs[i][0], merged[j][0], vs[i][0], merged[j][1]]);
+    }
+    return lines;
+}
+
+
+// ---- Main generation logic ----
+
+let lastCanvasW, lastCanvasH, lastHash;
+
+function setStatus(msg, cls) {
+    let el = document.getElementById('status');
+    el.textContent = msg;
+    el.className = 'status' + (cls ? ' '+cls : '');
+}
+
+function generate() {
+    let hashVal = document.getElementById('hashInput').value.trim();
+    if (!hashVal) { setStatus('Please enter a token hash.', 'error'); return; }
+    if (!hashVal.startsWith('0x')) hashVal = '0x' + hashVal;
+    if (hashVal.length !== 66) { setStatus('Hash must be 66 characters (0x + 64 hex chars).', 'error'); return; }
+
+    document.getElementById('generateBtn').disabled = true;
+    setStatus('Initializing PRNG (1M warmup iterations)...', 'generating');
+
+    setTimeout(function() {
+        try {
+            doGenerate(hashVal);
+        } catch(e) {
+            setStatus('Error: ' + e.message, 'error');
+            console.error(e);
+            document.getElementById('generateBtn').disabled = false;
+        }
+    }, 50);
+}
+
+function doGenerate(hashVal) {
+    // Parse canvas size
+    let sizeVal = document.getElementById('sizeSelect').value.split(',');
+    let canvasW = parseInt(sizeVal[0]);
+    let canvasH = parseInt(sizeVal[1]);
+    let showRegMarks = document.getElementById('regMarks').checked;
+    let showGuideLines = document.getElementById('guideLines').checked;
+
+    // Set globals
+    tokenData = hashVal;
+    colorMode('HSB');
+    R = new Random(tokenData);
+
+    setStatus('Computing layout...', 'generating');
+
+    // ---- Setup phase (mirrors on-chain setup()) ----
+    let w = canvasW;
+    let h = canvasH;
+    let pw, ph, px, py, u, tu;
+
+    if (w/h > 4/3) {
+        ph = h; pw = h * 4/3;
+    } else {
+        pw = w; ph = w * 3/4;
+    }
+    px = (w - pw) / 2;
+    py = (h - ph) / 2;
+    u = pw / 24;
+    tu = u / 40;
+
+    colorMode('HSB');
+    let paper = color(32, 5, 97);
+    let pencil = color(0, 0, 75);
+    let crayon = color(0, 0, 26);
+
+    let project = R.random_choice(tributes);
+    // Replicate exact PRNG behavior: colors() called twice
+    let colors = project.colors().slice(0, Math.min(project.colors().length, R.random_int(5, 8)));
+    let rc = [];
+    for (let i = 0; i < colors.length; i++) {
+        rc.push([Math.round(colors[i][0]), Math.round(colors[i][1]), Math.round(colors[i][2])]);
+    }
+
+    let palette = colors.map(function(cv) { return paintColor(cv[0], cv[1], cv[2]); });
+
+    let extension = 0.5 * R.random_choice([1, 1, 2]);
+    let margin = 2 + extension;
+    let aw = 24 - 2 * margin;
+    let ah = 18 - 2 * margin;
+    let horizontal = R.random_bool(0.4);
+    let r;
+    if (horizontal) r = R.random_int(5, 12);
+    else r = R.random_int(5, 18);
+
+    let rt = R.random_int(1, 3);
+    let rx, ry, rw, rh;
+    if (horizontal) {
+        rw = aw; rh = Math.min(rt, Math.floor(ah / r));
+        rx = margin; ry = margin + (ah - r * rh) / 2;
+    } else {
+        rh = ah; rw = Math.min(rt, Math.floor(aw / r));
+        rx = margin + (aw - r * rw) / 2; ry = margin;
+    }
+    let rbase = [rx, ry, rw, rh];
+    let merge = R.random_bool(0.5);
+    let skip = R.random_bool(0.5);
+    let process_flag = R.random_bool(0.75);
+    let subdivision = R.random_bool(0.4);
+    let doublecap = R.random_bool(0.3);
+    let alternate = R.random_bool(0.5);
+    let symmetry = R.random_bool(0.2);
+    let partial = R.random_bool(0.4);
+    let random_flag = R.random_bool(0.1);
+    let consecutive = R.random_bool(0.5);
+
+    // ---- Draw phase (mirrors on-chain draw()) ----
+    // Setup canvas
+    let canvas = document.getElementById('preview');
+    canvas.width = canvasW;
+    canvas.height = canvasH;
+    canvas.style.display = 'block';
+    ctx = canvas.getContext('2d');
+
+    // Background
+    let bgRgb = _hsbToRgbInternal(32, 5, 97);
+    ctx.fillStyle = 'rgb(' + bgRgb[0] + ',' + bgRgb[1] + ',' + bgRgb[2] + ')';
+    ctx.fillRect(0, 0, canvasW, canvasH);
+
+    // Handle rotation
+    let rotated = R.random_bool(0.5);
+    if (rotated) {
+        ctx.translate(w, h);
+        ctx.rotate(Math.PI);
+    }
+
+    let pr = [], or_arr = [], sg = [], ei = [], mr = [], si = [], sr = [], sd = [], pnt = [];
+    let [bx, by, bw, bh] = rbase;
+
+    for (let i = 0; i < r; i++) {
+        let rectangle;
+        if (horizontal) rectangle = [bx, by + i * bh, bw, bh];
+        else rectangle = [bx + i * bw, by, bw, bh];
+        or_arr.push([...rectangle]);
+        pr.push([...rectangle]);
+    }
+
+    // Merge logic
+    let mi = -1, ma = 0, cc = or_arr.length;
+    if (merge && cc > 6) {
+        if (symmetry) {
+            let maxr = cc - 4, minr = 2;
+            if (cc % 2 === 1) {
+                if (minr % 2 === 0) minr++;
+                if (maxr % 2 === 0) maxr--;
+            } else {
+                if (minr % 2 === 1) minr++;
+                if (maxr % 2 === 1) maxr--;
+            }
+            if (minr <= maxr) {
+                ma = minr + R.random_int(0, Math.floor((maxr - minr) / 2)) * 2;
+                mi = Math.floor((cc - ma) / 2);
+            }
+        } else {
+            ma = R.random_int(2, cc - 4);
+            mi = R.random_int(0, cc - ma);
+        }
+    }
+    if (mi >= 0) {
+        if (horizontal) mr = [bx, by + mi * bh, bw, ma * bh];
+        else mr = [bx + mi * bw, by, ma * bw, bh];
+        pr.splice(mi, ma, [...mr]);
+        or_arr.splice(mi, ma, [...mr]);
+    }
+
+    // Skip / alternate logic
+    if (!merge && r % 2 === 1 && or_arr.length >= 7 && alternate) {
+        for (let i = 1; i < or_arr.length; i += 2) {
+            si.push(i); sr.push(or_arr[i]);
+        }
+        si.sort((a, b) => b - a);
+        for (let i = 0; i < si.length; i++) or_arr.splice(si[i], 1);
+        si.sort((a, b) => a - b);
+    } else if (skip && or_arr.length > 4) {
+        if (symmetry) {
+            let ns = 0;
+            if (Math.floor((or_arr.length - 4) / 2) > 0) ns = R.random_int(1, Math.floor((or_arr.length - 4) / 2));
+            let ai = [];
+            for (let i = 1; i < Math.floor((or_arr.length - 1) / 2); i++) ai.push(i);
+            let ci = [];
+            for (let s = 0; s < ns && ai.length > 0; s++) {
+                let sk = ai[R.random_int(0, ai.length - 1)];
+                ci.push(sk);
+                let fai = [];
+                for (let j = 0; j < ai.length; j++) {
+                    if (ai[j] !== sk && ai[j] !== sk - 1 && ai[j] !== sk + 1) fai.push(ai[j]);
+                }
+                ai = fai;
+            }
+            for (let i = 0; i < ci.length; i++) {
+                si.push(ci[i]); sr.push(or_arr[ci[i]]);
+                let mirror = or_arr.length - 1 - ci[i];
+                if (mirror !== ci[i] && mirror >= 0 && mirror < or_arr.length) {
+                    si.push(mirror); sr.push(or_arr[mirror]);
+                }
+            }
+            si.sort((a, b) => b - a);
+            for (let i = 0; i < si.length; i++) or_arr.splice(si[i], 1);
+            si.sort((a, b) => a - b);
+        } else {
+            let ai = [];
+            for (let i = 1; i < or_arr.length - 1; i++) ai.push(i);
+            for (let s = 0; s < R.random_int(1, Math.min(3, or_arr.length - 4)); s++) {
+                if (ai.length > 0) {
+                    let sk = ai[R.random_int(0, ai.length - 1)];
+                    si.push(sk); sr.push(or_arr[sk]);
+                    let fai = [];
+                    for (let j = 0; j < ai.length; j++) {
+                        if (ai[j] !== sk && ai[j] !== sk - 1 && ai[j] !== sk + 1) fai.push(ai[j]);
+                    }
+                    ai = fai;
+                }
+            }
+            si.sort((a, b) => b - a);
+            for (let i = 0; i < si.length; i++) or_arr.splice(si[i], 1);
+            si.sort((a, b) => a - b);
+        }
+    }
+
+    // Process / subdivision / endcap logic
+    if (process_flag || or_arr.length < 5) {
+        if (symmetry && or_arr.length % 2 === 0) subdivision = false;
+        if (subdivision) {
+            let sub;
+            if (symmetry) sub = Math.floor((or_arr.length - 1) / 2);
+            else sub = R.random_int(0, or_arr.length - 1);
+            let us = sub;
+            for (let i = 0; i < si.length; i++) { if (sub >= si[i]) us++; }
+            let [sx, sy, sw, sh] = or_arr[sub];
+            let sa, sb;
+            if (horizontal) { sa = sx; sb = sw; }
+            else { sa = sy; sb = sh; }
+            let dv = [];
+            for (let i = 2; i <= sb; i++) {
+                if (sb % i === 0) dv.push([sb / i, i]);
+            }
+            let di = dv[R.random_int(0, dv.length - 1)];
+            for (let i = 0; i < di[1]; i++) {
+                if (horizontal) sd.push([sa, sy, di[0], sh]);
+                else sd.push([sx, sa, sw, di[0]]);
+                sa += di[0];
+            }
+            pr.splice(us, 1);
+            for (let i = 0; i < sd.length; i++) pr.splice(us + i, 0, [...sd[i]]);
+            or_arr.splice(sub, 1, ...sd);
+            let sdi = [];
+            for (let i = 0; i < sd.length; i++) sdi.push(sub + i);
+            sg.push(sdi);
+        } else {
+            let emax, esize;
+            if (symmetry) doublecap = true;
+            if (horizontal) {
+                emax = doublecap ? Math.floor(bw / 3) : Math.floor(bw / 2);
+            } else {
+                emax = doublecap ? Math.floor(bh / 3) : Math.floor(bh / 2);
+            }
+            esize = R.random_int(1, Math.max(1, emax));
+            let beginning = R.random_bool(0.5);
+            let prp = processEndcaps(pr, horizontal, doublecap, esize, beginning);
+            pr = prp.rectangles;
+            let orp = processEndcaps(or_arr, horizontal, doublecap, esize, beginning);
+            or_arr = orp.rectangles;
+            ei = orp.ei;
+        }
+    }
+
+    // Compute bounds
+    let left = pr[0][0], right = pr[0][0] + pr[0][2];
+    let top = pr[0][1], bottom = pr[0][1] + pr[0][3];
+    for (let i = 1; i < pr.length; i++) {
+        if (pr[i][0] < left) left = pr[i][0];
+        if (pr[i][0] + pr[i][2] > right) right = pr[i][0] + pr[i][2];
+        if (pr[i][1] < top) top = pr[i][1];
+        if (pr[i][1] + pr[i][3] > bottom) bottom = pr[i][1] + pr[i][3];
+    }
+    let dw = right - left, dh = bottom - top;
+
+    // Convert to pencil lines
+    let ul = convertToLines(pr);
+
+    // Add skip rectangle guide lines
+    for (let i = 0; i < sr.length; i++) {
+        let [gx, gy, gw, gh] = sr[i];
+        if (horizontal) {
+            ul.push([left, gy, right, gy]);
+            ul.push([left, gy + gh, right, gy + gh]);
+        } else {
+            ul.push([gx, top, gx, bottom]);
+            ul.push([gx + gw, top, gx + gw, bottom]);
+        }
+    }
+
+    // Extend lines
+    for (let i = 0; i < ul.length; i++) {
+        let [x1, y1, x2, y2] = ul[i];
+        if (y1 === y2 && (x2 - x1) === dw) ul[i] = [x1 - extension, y1, x2 + extension, y2];
+        else if (x1 === x2 && (y2 - y1) === dh) ul[i] = [x1, y1 - extension, x2, y2 + extension];
+    }
+
+    // Color assignment
+    let np = Math.min(palette.length, or_arr.length);
+    if (random_flag) {
+        let ar = [];
+        for (let i = 0; i < or_arr.length; i++) {
+            let [xu, yu, wu, hu] = or_arr[i];
+            if (!(si.length > 0 && doublecap && ei.includes(i)) && wu * hu < 40) ar.push([i, [xu, yu, wu, hu]]);
+        }
+        ar = scramble(ar);
+        let selected = ar.slice(0, Math.min(np, ar.length));
+        selected.sort((a, b) => a[0] - b[0]);
+        for (let i = 0; i < selected.length; i++) {
+            let [xu, yu, wu, hu] = selected[i][1];
+            pnt.push([xu, yu, wu, hu, palette[i]]);
+        }
+    } else if (consecutive && ei.length === 0) {
+        let sti = R.random_int(0, Math.max(0, or_arr.length - (np + 2)));
+        let ri = sti, cli = 0;
+        while (cli < np && ri < or_arr.length) {
+            let [xu, yu, wu, hu] = or_arr[ri];
+            if (wu * hu < 40) { pnt.push([xu, yu, wu, hu, palette[cli]]); cli++; }
+            ri++;
+        }
+        if (cli < np && sti > 0) {
+            ri = Math.max(0, sti - np + cli);
+            cli = 0; pnt = [];
+            while (cli < np && ri < or_arr.length) {
+                let [xu, yu, wu, hu] = or_arr[ri];
+                if (wu * hu < 40) { pnt.push([xu, yu, wu, hu, palette[cli]]); cli++; }
+                ri++;
+            }
+        }
+    } else {
+        let ora = [];
+        for (let i = 0; i < or_arr.length; i++) {
+            let [xu, yu, wu, hu] = or_arr[i];
+            if (!(si.length > 0 && doublecap && ei.includes(i)) && wu * hu < 40) ora.push([i, [xu, yu, wu, hu]]);
+        }
+        ora.sort((a, b) => a[1][2] * a[1][3] - b[1][2] * b[1][3]);
+        for (let i = 0; i < Math.min(np, ora.length); i++) {
+            let [xu, yu, wu, hu] = ora[i][1];
+            if (wu * hu < 40) pnt.push([xu, yu, wu, hu, palette[i]]);
+        }
+    }
+
+    // Determine outline rectangles
+    let ol;
+    if (partial) {
+        let pc = [];
+        for (let i = 0; i < pnt.length; i++) pc.push([pnt[i][0], pnt[i][1], pnt[i][2], pnt[i][3]]);
+        let ecp = false, nep = false;
+        if (ei.length > 0) {
+            for (let i = 0; i < or_arr.length; i++) {
+                let [xu, yu, wu, hu] = or_arr[i];
+                let rp = false;
+                for (let j = 0; j < pc.length; j++) {
+                    if (pc[j][0]===xu && pc[j][1]===yu && pc[j][2]===wu && pc[j][3]===hu) rp = true;
+                }
+                if (rp) { if (ei.includes(i)) ecp = true; else nep = true; }
+            }
+        }
+        if (ecp && nep) ol = or_arr;
+        else if (ecp && !nep && ei.length > 0) {
+            ol = [];
+            for (let i = 0; i < or_arr.length; i++) { if (ei.includes(i)) ol.push([...or_arr[i]]); }
+        } else if (!ecp && nep && ei.length > 0) {
+            ol = [];
+            for (let i = 0; i < or_arr.length; i++) { if (!ei.includes(i)) ol.push([...or_arr[i]]); }
+        } else {
+            if (subdivision && sg.length > 0) {
+                let nr = [];
+                let sdp = false;
+                for (let i = 0; i < sg.length; i++) {
+                    for (let j = 0; j < sg[i].length; j++) {
+                        if (sg[i][j] < or_arr.length) {
+                            let [xu, yu, wu, hu] = or_arr[sg[i][j]];
+                            let rp = false;
+                            for (let k = 0; k < pc.length; k++) {
+                                if (pc[k][0]===xu && pc[k][1]===yu && pc[k][2]===wu && pc[k][3]===hu) rp = true;
+                            }
+                            if (rp) sdp = true;
+                        }
+                    }
+                }
+                if (sdp) {
+                    for (let i = 0; i < sg.length; i++) {
+                        for (let j = 0; j < sg[i].length; j++) {
+                            if (sg[i][j] < or_arr.length) {
+                                let [xu, yu, wu, hu] = or_arr[sg[i][j]];
+                                let rp = false;
+                                for (let k = 0; k < pc.length; k++) {
+                                    if (pc[k][0]===xu && pc[k][1]===yu && pc[k][2]===wu && pc[k][3]===hu) rp = true;
+                                }
+                                if (!rp) nr.push([xu, yu, wu, hu]);
+                            }
+                        }
+                    }
+                }
+                ol = [...pc, ...nr];
+            } else {
+                ol = pc;
+            }
+        }
+    } else {
+        ol = or_arr;
+    }
+
+    let olc = convertToLines(ol);
+
+    setStatus('Rendering pencil lines...', 'generating');
+
+    // Use setTimeout to allow UI to update between drawing phases
+    setTimeout(function() {
+        // Draw pencil lines
+        for (let i = 0; i < ul.length; i++) {
+            let [x1u, y1u, x2u, y2u] = ul[i];
+            pencilLineDraw(x1u * u + px, y1u * u + py, x2u * u + px, y2u * u + py, pencil, tu);
+        }
+
+        setStatus('Rendering paint...', 'generating');
+        setTimeout(function() {
+            // Draw paint rectangles
+            for (let i = 0; i < pnt.length; i++) {
+                let [xu, yu, wu, hu, col] = pnt[i];
+                paintRectDraw(xu * u + px, yu * u + py, wu * u, hu * u, col, paper, tu);
+            }
+
+            setStatus('Rendering outlines...', 'generating');
+            setTimeout(function() {
+                // Draw outline lines
+                for (let i = 0; i < olc.length; i++) {
+                    let [x1u, y1u, x2u, y2u] = olc[i];
+                    outlineLineDraw(x1u * u + px, y1u * u + py, x2u * u + px, y2u * u + py, crayon, tu);
+                }
+
+                // Reset transform
+                if (rotated) {
+                    ctx.setTransform(1, 0, 0, 1, 0, 0);
+                }
+
+                // Draw registration marks
+                if (showRegMarks) {
+                    let markOffset = 0.25 * 300; // 0.25" at 300 DPI = 75px
+                    let markLen = 0.5 * 300; // 0.5" marks
+                    ctx.strokeStyle = 'rgba(0,0,0,0.10)';
+                    ctx.lineWidth = 1;
+                    let corners = [
+                        [markOffset, markOffset],
+                        [canvasW - markOffset, markOffset],
+                        [markOffset, canvasH - markOffset],
+                        [canvasW - markOffset, canvasH - markOffset]
+                    ];
+                    for (let [cx, cy] of corners) {
+                        ctx.beginPath();
+                        ctx.moveTo(cx - markLen/2, cy); ctx.lineTo(cx + markLen/2, cy);
+                        ctx.moveTo(cx, cy - markLen/2); ctx.lineTo(cx, cy + markLen/2);
+                        ctx.stroke();
+                    }
+                }
+
+                // Draw structural guide lines
+                if (showGuideLines) {
+                    ctx.setLineDash([10, 20]);
+                    ctx.strokeStyle = 'rgba(0,0,0,0.05)';
+                    ctx.lineWidth = 1;
+                    // Grid lines for 24x18 grid
+                    for (let gx = 0; gx <= 24; gx++) {
+                        ctx.beginPath();
+                        ctx.moveTo(gx * u + px, py);
+                        ctx.lineTo(gx * u + px, 18 * u + py);
+                        ctx.stroke();
+                    }
+                    for (let gy = 0; gy <= 18; gy++) {
+                        ctx.beginPath();
+                        ctx.moveTo(px, gy * u + py);
+                        ctx.lineTo(24 * u + px, gy * u + py);
+                        ctx.stroke();
+                    }
+                    ctx.setLineDash([]);
+                }
+
+                // Update info panel
+                document.getElementById('infoTribute').textContent = project.title;
+                document.getElementById('infoTributeId').textContent = '#' + project.id;
+                document.getElementById('infoOrientation').textContent = horizontal ? 'Horizontal' : 'Vertical';
+                document.getElementById('infoCanvas').textContent = canvasW + ' \u00d7 ' + canvasH + ' px';
+
+                let paletteEl = document.getElementById('infoPalette');
+                paletteEl.innerHTML = '';
+                for (let i = 0; i < rc.length; i++) {
+                    let swatch = document.createElement('div');
+                    swatch.className = 'palette-swatch';
+                    let rgb = _hsbToRgbInternal(rc[i][0], rc[i][1], rc[i][2]);
+                    swatch.style.backgroundColor = 'rgb(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ')';
+                    swatch.title = 'HSB(' + rc[i][0] + ', ' + rc[i][1] + ', ' + rc[i][2] + ')';
+                    paletteEl.appendChild(swatch);
+                }
+                document.getElementById('infoPanel').className = 'info-panel visible';
+
+                lastCanvasW = canvasW;
+                lastCanvasH = canvasH;
+                lastHash = hashVal;
+
+                document.getElementById('downloadBtn').disabled = false;
+                document.getElementById('generateBtn').disabled = false;
+                setStatus('Done. ' + canvasW + '\u00d7' + canvasH + ' px (' + (canvasW/300).toFixed(1) + '\u00d7' + (canvasH/300).toFixed(1) + '\" at 300 DPI)', 'done');
+            }, 20);
+        }, 20);
+    }, 20);
+}
+
+function downloadPNG() {
+    let canvas = document.getElementById('preview');
+    let link = document.createElement('a');
+    let prefix = lastHash ? lastHash.substring(0, 10) : 'dfam';
+    link.download = 'dfam-' + prefix + '-' + lastCanvasW + 'x' + lastCanvasH + '.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+}
+</script>
+</body>
+</html>
