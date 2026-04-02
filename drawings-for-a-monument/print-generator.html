@@ -13,9 +13,8 @@ h1 span{font-weight:600}
 .controls{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;margin-bottom:24px;background:#242424;padding:20px;border-radius:8px}
 .control-group{display:flex;flex-direction:column;gap:6px}
 .control-group label{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#888}
-input[type="text"]{background:#333;border:1px solid #444;color:#fff;padding:8px 12px;border-radius:4px;font-family:'SF Mono','Fira Code',monospace;font-size:13px;width:520px}
-input[type="text"]:focus{outline:none;border-color:#666}
-select{background:#333;border:1px solid #444;color:#fff;padding:8px 12px;border-radius:4px;font-size:13px;cursor:pointer}
+input[type="number"]{background:#333;border:1px solid #444;color:#fff;padding:8px 12px;border-radius:4px;font-family:'SF Mono','Fira Code',monospace;font-size:13px;width:120px}
+input[type="number"]:focus{outline:none;border-color:#666}
 .checkbox-group{display:flex;align-items:center;gap:6px;padding-top:18px}
 .checkbox-group input{cursor:pointer}
 .checkbox-group label{font-size:13px;color:#ccc;cursor:pointer;text-transform:none;letter-spacing:0}
@@ -40,35 +39,28 @@ button.secondary:disabled{background:#2a2a2a;color:#555;cursor:not-allowed}
 .status.generating{color:#4a9eff}
 .status.done{color:#4aff7a}
 .status.error{color:#ff4a4a}
+.size-info{font-size:11px;color:#666;padding-top:20px}
 </style>
 </head>
 <body>
 <div class="container">
 <h1><span>DfaM</span> Print Generator</h1>
 <div class="controls">
-  <div class="control-group"><label>Token Hash</label>
-    <input type="text" id="hashInput" placeholder="0x3fef2c4e3ebee55fb1ce27bc3aa9f8de5fb1bd9d8bc09cbdd8a4bf049ff3edd8" spellcheck="false">
+  <div class="control-group"><label>Token Number</label>
+    <input type="number" id="tokenInput" min="0" max="999" placeholder="0–999" spellcheck="false">
   </div>
-  <div class="control-group"><label>Print Size</label>
-    <select id="sizeSelect">
-      <option value="4200,3150">14&times;10.5&Prime; (exact 4:3)</option>
-      <option value="4200,3300">14&times;11&Prime;</option>
-      <option value="5700,3900">19&times;13&Prime;</option>
-      <option value="6000,4500">20&times;15&Prime; (exact 4:3)</option>
-      <option value="6600,5100">22&times;17&Prime;</option>
-    </select>
-  </div>
-  <div class="checkbox-group"><input type="checkbox" id="regMarks"><label for="regMarks">Registration marks</label></div>
-  <div class="checkbox-group"><input type="checkbox" id="guideLines"><label for="guideLines">Structure guides</label></div>
+  <div class="checkbox-group"><input type="checkbox" id="regDots"><label for="regDots">Registration dots</label></div>
   <div class="control-group" style="padding-top:16px"><button class="primary" id="generateBtn" onclick="generate()">Generate</button></div>
   <div class="control-group" style="padding-top:16px"><button class="secondary" id="downloadBtn" onclick="downloadPNG()" disabled>Download PNG</button></div>
+  <div class="size-info">11&times;17&Prime; landscape &middot; 300 DPI &middot; 5100&times;3300 px &middot; 9&times;12&Prime; image area</div>
 </div>
 <div class="info-panel" id="infoPanel">
   <div class="info-row">
+    <div class="info-item"><span class="info-label">Token</span><span class="info-value" id="infoToken">&mdash;</span></div>
+    <div class="info-item"><span class="info-label">Hash</span><span class="info-value" id="infoHash" style="font-family:'SF Mono','Fira Code',monospace;font-size:11px">&mdash;</span></div>
     <div class="info-item"><span class="info-label">Tribute</span><span class="info-value" id="infoTribute">&mdash;</span></div>
     <div class="info-item"><span class="info-label">Tribute ID</span><span class="info-value" id="infoTributeId">&mdash;</span></div>
     <div class="info-item"><span class="info-label">Orientation</span><span class="info-value" id="infoOrientation">&mdash;</span></div>
-    <div class="info-item"><span class="info-label">Canvas</span><span class="info-value" id="infoCanvas">&mdash;</span></div>
     <div class="info-item"><span class="info-label">Palette (HSB)</span><div class="palette-display" id="infoPalette"></div></div>
   </div>
 </div>
@@ -77,7 +69,8 @@ button.secondary:disabled{background:#2a2a2a;color:#555;cursor:not-allowed}
 </div>
 <script>
 // ============================================================
-// DfaM Print Generator — Canvas 2D port of on-chain p5.js script
+// DfaM Print Generator — 11×17" Print Layout (300 DPI)
+// Canvas 2D port of on-chain p5.js script
 // ============================================================
 
 // ---- Color system (replaces p5.js color objects) ----
@@ -3281,9 +3274,11 @@ let tributes = [
     },
 ];
 
+
 // ---- Canvas 2D Drawing Functions ----
 let ctx; // global canvas context
 
+// pencilLineDraw kept for PRNG advancement during layout computation
 function pencilLineDraw(x1, y1, x2, y2, c, tu) {
     let ud=tu, od=tu, minw=0.55*tu, maxw=0.75*tu;
     let d=0.8, of=0.2, range=0.4, mina=0, maxa=1, mins=0.3*tu, maxs=tu;
@@ -3295,10 +3290,6 @@ function pencilLineDraw(x1, y1, x2, y2, c, tu) {
         if (y2>y1) { sy=y1-v; ey=y2+v; } else { sy=y1+v; ey=y2-v; }
     }
     let sw=R.random_num(minw, maxw);
-    ctx.strokeStyle = c.toCSS();
-    ctx.lineWidth = sw;
-    ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
     let l=dist(sx,sy,ex,ey);
     let n=Math.floor(l*d);
     for (let i=0; i<n; i++) {
@@ -3310,12 +3301,11 @@ function pencilLineDraw(x1, y1, x2, y2, c, tu) {
         let ppx=side*(-dy/l), ppy=side*(dx/l);
         x+=ppx*offset; y+=ppy*offset;
         let a=R.random_num(mina, maxa);
-        ctx.fillStyle='rgba('+Math.round(c.r)+','+Math.round(c.g)+','+Math.round(c.b)+','+a.toFixed(4)+')';
         let rx=R.random_num(mins,maxs), ry=R.random_num(mins,maxs);
-        ctx.beginPath(); ctx.ellipse(x, y, rx/2, ry/2, 0, 0, Math.PI*2); ctx.fill();
     }
 }
 
+// outlineLineDraw kept for PRNG advancement
 function outlineLineDraw(x1, y1, x2, y2, c, tu) {
     let ud=1.7*tu, od=0.7*tu, minw=1.8*tu, maxw=2.2*tu;
     let d=4, of=0.2, range=0.4, mina=0.25, maxa=0.35, mins=0.3*tu, maxs=0.7*tu;
@@ -3327,10 +3317,6 @@ function outlineLineDraw(x1, y1, x2, y2, c, tu) {
         if (y2>y1) { sy=y1-v; ey=y2+v; } else { sy=y1+v; ey=y2-v; }
     }
     let sw=R.random_num(minw, maxw);
-    ctx.strokeStyle = c.toCSS();
-    ctx.lineWidth = sw;
-    ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
     let l=dist(sx,sy,ex,ey);
     let n=Math.floor(l*d);
     for (let i=0; i<n; i++) {
@@ -3342,55 +3328,34 @@ function outlineLineDraw(x1, y1, x2, y2, c, tu) {
         let ppx=side*(-dy/l), ppy=side*(dx/l);
         x+=ppx*offset; y+=ppy*offset;
         let a=R.random_num(mina, maxa);
-        ctx.fillStyle='rgba('+Math.round(c.r)+','+Math.round(c.g)+','+Math.round(c.b)+','+a.toFixed(4)+')';
         let rx=R.random_num(mins,maxs), ry=R.random_num(mins,maxs);
-        ctx.beginPath(); ctx.ellipse(x, y, rx/2, ry/2, 0, 0, Math.PI*2); ctx.fill();
     }
 }
 
-function paintRectDraw(x, y, rw, rh, c, bg, tu) {
+// paintRectDraw PRNG advancement (no rendering — just consuming PRNG calls)
+function paintRectAdvancePRNG(x, y, rw, rh, c, bg, tu) {
     let d=8, minw=0.5*tu, maxw=3.5*tu, sl=0.008, sd=0.007;
-    ctx.fillStyle = c.toCSS();
-    ctx.fillRect(x, y, rw, rh);
     for (let i=0; i<d; i++) {
         let sw=R.random_num(minw, maxw);
-        let sy=y+R.random_num(sw, rh-sw);
-        let sxs=x+R.random_num(sw, rw-sw);
-        let sxe=x+R.random_num(sxs-x+sw, rw-sw);
-        let strokeCol;
+        let sy2=R.random_num(sw, rh-sw);
+        let sxs=R.random_num(sw, rw-sw);
+        let sxe=R.random_num(sxs+sw, rw-sw);
         if (R.random_bool(0.5)) {
             let lightenAmt=R.random_num(0, sl);
-            colorMode('RGB');
-            strokeCol=betterLerp(c, bg, lightenAmt);
-            colorMode('HSB');
         } else {
             let darken=R.random_num(1-sd, 1);
-            strokeCol=color(hue(c), saturation(c), brightness(c)*darken);
         }
-        ctx.strokeStyle = strokeCol.toCSS();
-        ctx.lineWidth = sw;
-        ctx.lineCap = 'round';
-        ctx.beginPath(); ctx.moveTo(sxs, sy); ctx.lineTo(sxe, sy); ctx.stroke();
     }
     for (let i=0; i<d; i++) {
         let sw=R.random_num(minw, maxw);
-        let sx=x+R.random_num(sw, rw-sw);
-        let sys=y+R.random_num(sw, rh-sw);
-        let sye=y+R.random_num(sys-y+sw, rh-sw);
-        let strokeCol;
+        let sx2=R.random_num(sw, rw-sw);
+        let sys=R.random_num(sw, rh-sw);
+        let sye=R.random_num(sys+sw, rh-sw);
         if (R.random_bool(0.5)) {
             let lightenAmt=R.random_num(0, sl);
-            colorMode('RGB');
-            strokeCol=betterLerp(c, bg, lightenAmt);
-            colorMode('HSB');
         } else {
             let darken=R.random_num(1-sd, 1.0);
-            strokeCol=color(hue(c), saturation(c), brightness(c)*darken);
         }
-        ctx.strokeStyle = strokeCol.toCSS();
-        ctx.lineWidth = sw;
-        ctx.lineCap = 'round';
-        ctx.beginPath(); ctx.moveTo(sx, sys); ctx.lineTo(sx, sye); ctx.stroke();
     }
 }
 
@@ -3484,7 +3449,7 @@ function convertToLines(ra) {
 
 // ---- Main generation logic ----
 
-let lastCanvasW, lastCanvasH, lastHash;
+let lastTokenNumber, lastHash;
 
 function setStatus(msg, cls) {
     let el = document.getElementById('status');
@@ -3492,33 +3457,74 @@ function setStatus(msg, cls) {
     el.className = 'status' + (cls ? ' '+cls : '');
 }
 
-function generate() {
-    let hashVal = document.getElementById('hashInput').value.trim();
-    if (!hashVal) { setStatus('Please enter a token hash.', 'error'); return; }
-    if (!hashVal.startsWith('0x')) hashVal = '0x' + hashVal;
-    if (hashVal.length !== 66) { setStatus('Hash must be 66 characters (0x + 64 hex chars).', 'error'); return; }
+async function generate() {
+    let tokenNum = parseInt(document.getElementById('tokenInput').value);
+    if (isNaN(tokenNum) || tokenNum < 0 || tokenNum > 999) {
+        setStatus('Please enter a token number between 0 and 999.', 'error');
+        return;
+    }
 
     document.getElementById('generateBtn').disabled = true;
-    setStatus('Initializing PRNG (1M warmup iterations)...', 'generating');
+    setStatus('Fetching token hash from Art Blocks...', 'generating');
 
-    setTimeout(function() {
-        try {
-            doGenerate(hashVal);
-        } catch(e) {
-            setStatus('Error: ' + e.message, 'error');
-            console.error(e);
-            document.getElementById('generateBtn').disabled = false;
+    try {
+        let fullTokenId = 3000000 + tokenNum;
+        let query = JSON.stringify({
+            query: '{ tokens_metadata(where: {project: {contract_address: {_eq: "0xababababab20053426ad1c782de9ea8444358070"}, project_id: {_eq: "3"}}, token_id: {_eq: "' + fullTokenId + '"}}) { hash } }'
+        });
+
+        let response = await fetch('https://data.artblocks.io/v1/graphql', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: query
+        });
+
+        if (!response.ok) throw new Error('API returned ' + response.status);
+
+        let data = await response.json();
+        if (!data.data || !data.data.tokens_metadata || data.data.tokens_metadata.length === 0) {
+            throw new Error('Token #' + tokenNum + ' not found. Is it minted?');
         }
-    }, 50);
+
+        let hashVal = data.data.tokens_metadata[0].hash;
+        if (!hashVal || hashVal.length !== 66) {
+            throw new Error('Invalid hash returned: ' + hashVal);
+        }
+
+        lastTokenNumber = tokenNum;
+        lastHash = hashVal;
+
+        setStatus('Initializing PRNG (1M warmup iterations)...', 'generating');
+
+        setTimeout(function() {
+            try {
+                doGenerate(hashVal, tokenNum);
+            } catch(e) {
+                setStatus('Error: ' + e.message, 'error');
+                console.error(e);
+                document.getElementById('generateBtn').disabled = false;
+            }
+        }, 50);
+
+    } catch(e) {
+        setStatus('Error: ' + e.message, 'error');
+        console.error(e);
+        document.getElementById('generateBtn').disabled = false;
+    }
 }
 
-function doGenerate(hashVal) {
-    // Parse canvas size
-    let sizeVal = document.getElementById('sizeSelect').value.split(',');
-    let canvasW = parseInt(sizeVal[0]);
-    let canvasH = parseInt(sizeVal[1]);
-    let showRegMarks = document.getElementById('regMarks').checked;
-    let showGuideLines = document.getElementById('guideLines').checked;
+function doGenerate(hashVal, tokenNum) {
+    // Fixed canvas size: 11×17" landscape at 300 DPI
+    let canvasW = 5100;
+    let canvasH = 3300;
+
+    // Image area: 12" wide × 9" tall = 3600×2700 px, centered
+    let imageW = 3600;
+    let imageH = 2700;
+    let imageLeft = (canvasW - imageW) / 2;  // 750px = 2.5"
+    let imageTop = (canvasH - imageH) / 2;   // 300px = 1"
+
+    let showRegDots = document.getElementById('regDots').checked;
 
     // Set globals
     tokenData = hashVal;
@@ -3528,8 +3534,17 @@ function doGenerate(hashVal) {
     setStatus('Computing layout...', 'generating');
 
     // ---- Setup phase (mirrors on-chain setup()) ----
-    let w = canvasW;
-    let h = canvasH;
+    // On-chain: the composition fits a 4:3 aspect ratio within the canvas.
+    // pw/ph = the 4:3 container, u = pw/24.
+    // For the print version, the image area IS the container.
+    // imageW/imageH = 3600/2700 = 4:3 ✓
+    // So: pw = imageW = 3600, ph = imageH = 2700, u = 3600/24 = 150
+
+    // But we need to replicate the EXACT on-chain setup for PRNG sequence.
+    // On-chain uses w/h of the canvas to compute pw/ph, then u.
+    // We use the image area dimensions directly since they're 4:3.
+    let w = imageW;
+    let h = imageH;
     let pw, ph, px, py, u, tu;
 
     if (w/h > 4/3) {
@@ -3537,8 +3552,8 @@ function doGenerate(hashVal) {
     } else {
         pw = w; ph = w * 3/4;
     }
-    px = (w - pw) / 2;
-    py = (h - ph) / 2;
+    px = imageLeft;  // offset to image area on the print sheet
+    py = imageTop;
     u = pw / 24;
     tu = u / 40;
 
@@ -3595,17 +3610,10 @@ function doGenerate(hashVal) {
     canvas.style.display = 'block';
     ctx = canvas.getContext('2d');
 
-    // Background
-    let bgRgb = _hsbToRgbInternal(32, 5, 97);
-    ctx.fillStyle = 'rgb(' + bgRgb[0] + ',' + bgRgb[1] + ',' + bgRgb[2] + ')';
-    ctx.fillRect(0, 0, canvasW, canvasH);
+    // DO NOT fill background — canvas defaults to transparent/white
 
-    // Handle rotation
+    // Handle rotation — consume the PRNG call
     let rotated = R.random_bool(0.5);
-    if (rotated) {
-        ctx.translate(w, h);
-        ctx.rotate(Math.PI);
-    }
 
     let pr = [], or_arr = [], sg = [], ei = [], mr = [], si = [], sr = [], sd = [], pnt = [];
     let [bx, by, bw, bh] = rbase;
@@ -3758,7 +3766,7 @@ function doGenerate(hashVal) {
     }
     let dw = right - left, dh = bottom - top;
 
-    // Convert to pencil lines
+    // Convert to pencil lines (needed for registration dots)
     let ul = convertToLines(pr);
 
     // Add skip rectangle guide lines
@@ -3825,7 +3833,7 @@ function doGenerate(hashVal) {
         }
     }
 
-    // Determine outline rectangles
+    // Determine outline rectangles (needed for PRNG sequence fidelity)
     let ol;
     if (partial) {
         let pc = [];
@@ -3889,113 +3897,126 @@ function doGenerate(hashVal) {
 
     let olc = convertToLines(ol);
 
-    setStatus('Rendering pencil lines...', 'generating');
+    // ========================================
+    // RENDERING — Print-specific (no texture)
+    // ========================================
 
-    // Use setTimeout to allow UI to update between drawing phases
+    setStatus('Rendering...', 'generating');
+
     setTimeout(function() {
-        // Draw pencil lines
-        for (let i = 0; i < ul.length; i++) {
-            let [x1u, y1u, x2u, y2u] = ul[i];
-            pencilLineDraw(x1u * u + px, y1u * u + py, x2u * u + px, y2u * u + py, pencil, tu);
+        // If rotated, apply 180° rotation around image center
+        if (rotated) {
+            ctx.translate(canvasW, canvasH);
+            ctx.rotate(Math.PI);
         }
 
-        setStatus('Rendering paint...', 'generating');
-        setTimeout(function() {
-            // Draw paint rectangles
-            for (let i = 0; i < pnt.length; i++) {
-                let [xu, yu, wu, hu, col] = pnt[i];
-                paintRectDraw(xu * u + px, yu * u + py, wu * u, hu * u, col, paper, tu);
+        // Draw paint rectangles as flat solid fills (no texture)
+        for (let i = 0; i < pnt.length; i++) {
+            let [xu, yu, wu, hu, col] = pnt[i];
+            ctx.fillStyle = col.toCSS();
+            ctx.fillRect(xu * u + px, yu * u + py, wu * u, hu * u);
+        }
+
+        // Reset transform before drawing trim marks and dots
+        if (rotated) {
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+        }
+
+        // ---- Trim marks ----
+        // Standard printer's corner trim marks at the 9×12" image boundary
+        let trimLen = 75;  // 0.25" at 300 DPI
+        let trimGap = 0;   // marks start right at the corner
+        ctx.strokeStyle = 'rgba(0,0,0,0.30)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([]);
+
+        // Top-left corner
+        ctx.beginPath();
+        ctx.moveTo(imageLeft - trimLen, imageTop); ctx.lineTo(imageLeft - 1, imageTop);
+        ctx.moveTo(imageLeft, imageTop - trimLen); ctx.lineTo(imageLeft, imageTop - 1);
+        ctx.stroke();
+
+        // Top-right corner
+        ctx.beginPath();
+        ctx.moveTo(imageLeft + imageW + 1, imageTop); ctx.lineTo(imageLeft + imageW + trimLen, imageTop);
+        ctx.moveTo(imageLeft + imageW, imageTop - trimLen); ctx.lineTo(imageLeft + imageW, imageTop - 1);
+        ctx.stroke();
+
+        // Bottom-left corner
+        ctx.beginPath();
+        ctx.moveTo(imageLeft - trimLen, imageTop + imageH); ctx.lineTo(imageLeft - 1, imageTop + imageH);
+        ctx.moveTo(imageLeft, imageTop + imageH + 1); ctx.lineTo(imageLeft, imageTop + imageH + trimLen);
+        ctx.stroke();
+
+        // Bottom-right corner
+        ctx.beginPath();
+        ctx.moveTo(imageLeft + imageW + 1, imageTop + imageH); ctx.lineTo(imageLeft + imageW + trimLen, imageTop + imageH);
+        ctx.moveTo(imageLeft + imageW, imageTop + imageH + 1); ctx.lineTo(imageLeft + imageW, imageTop + imageH + trimLen);
+        ctx.stroke();
+
+        // ---- Registration dots ----
+        if (showRegDots) {
+            ctx.fillStyle = 'rgba(0,0,0,0.20)';
+            let dotR = 3;
+
+            // Collect all unique endpoints from pencil lines (ul) and outline lines (olc)
+            let endpoints = new Set();
+            function addPt(x, y) {
+                // Convert unit coords to canvas coords
+                let cx, cy;
+                if (rotated) {
+                    // When rotated, the composition is flipped 180° around center
+                    cx = canvasW - (x * u + px);
+                    cy = canvasH - (y * u + py);
+                } else {
+                    cx = x * u + px;
+                    cy = y * u + py;
+                }
+                let key = Math.round(cx) + ',' + Math.round(cy);
+                if (!endpoints.has(key)) {
+                    endpoints.add(key);
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, dotR, 0, Math.PI * 2);
+                    ctx.fill();
+                }
             }
 
-            setStatus('Rendering outlines...', 'generating');
-            setTimeout(function() {
-                // Draw outline lines
-                for (let i = 0; i < olc.length; i++) {
-                    let [x1u, y1u, x2u, y2u] = olc[i];
-                    outlineLineDraw(x1u * u + px, y1u * u + py, x2u * u + px, y2u * u + py, crayon, tu);
-                }
+            for (let i = 0; i < ul.length; i++) {
+                addPt(ul[i][0], ul[i][1]);
+                addPt(ul[i][2], ul[i][3]);
+            }
+        }
 
-                // Reset transform
-                if (rotated) {
-                    ctx.setTransform(1, 0, 0, 1, 0, 0);
-                }
+        // Update info panel
+        document.getElementById('infoToken').textContent = '#' + tokenNum;
+        document.getElementById('infoHash').textContent = hashVal.substring(0, 18) + '...';
+        document.getElementById('infoTribute').textContent = project.title;
+        document.getElementById('infoTributeId').textContent = '#' + project.id;
+        document.getElementById('infoOrientation').textContent = horizontal ? 'Horizontal' : 'Vertical';
 
-                // Draw registration marks
-                if (showRegMarks) {
-                    let markOffset = 0.25 * 300; // 0.25" at 300 DPI = 75px
-                    let markLen = 0.5 * 300; // 0.5" marks
-                    ctx.strokeStyle = 'rgba(0,0,0,0.10)';
-                    ctx.lineWidth = 1;
-                    let corners = [
-                        [markOffset, markOffset],
-                        [canvasW - markOffset, markOffset],
-                        [markOffset, canvasH - markOffset],
-                        [canvasW - markOffset, canvasH - markOffset]
-                    ];
-                    for (let [cx, cy] of corners) {
-                        ctx.beginPath();
-                        ctx.moveTo(cx - markLen/2, cy); ctx.lineTo(cx + markLen/2, cy);
-                        ctx.moveTo(cx, cy - markLen/2); ctx.lineTo(cx, cy + markLen/2);
-                        ctx.stroke();
-                    }
-                }
+        let paletteEl = document.getElementById('infoPalette');
+        paletteEl.innerHTML = '';
+        for (let i = 0; i < rc.length; i++) {
+            let swatch = document.createElement('div');
+            swatch.className = 'palette-swatch';
+            let rgb = _hsbToRgbInternal(rc[i][0], rc[i][1], rc[i][2]);
+            swatch.style.backgroundColor = 'rgb(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ')';
+            swatch.title = 'HSB(' + rc[i][0] + ', ' + rc[i][1] + ', ' + rc[i][2] + ')';
+            paletteEl.appendChild(swatch);
+        }
+        document.getElementById('infoPanel').className = 'info-panel visible';
 
-                // Draw structural guide lines
-                if (showGuideLines) {
-                    ctx.setLineDash([10, 20]);
-                    ctx.strokeStyle = 'rgba(0,0,0,0.05)';
-                    ctx.lineWidth = 1;
-                    // Grid lines for 24x18 grid
-                    for (let gx = 0; gx <= 24; gx++) {
-                        ctx.beginPath();
-                        ctx.moveTo(gx * u + px, py);
-                        ctx.lineTo(gx * u + px, 18 * u + py);
-                        ctx.stroke();
-                    }
-                    for (let gy = 0; gy <= 18; gy++) {
-                        ctx.beginPath();
-                        ctx.moveTo(px, gy * u + py);
-                        ctx.lineTo(24 * u + px, gy * u + py);
-                        ctx.stroke();
-                    }
-                    ctx.setLineDash([]);
-                }
-
-                // Update info panel
-                document.getElementById('infoTribute').textContent = project.title;
-                document.getElementById('infoTributeId').textContent = '#' + project.id;
-                document.getElementById('infoOrientation').textContent = horizontal ? 'Horizontal' : 'Vertical';
-                document.getElementById('infoCanvas').textContent = canvasW + ' \u00d7 ' + canvasH + ' px';
-
-                let paletteEl = document.getElementById('infoPalette');
-                paletteEl.innerHTML = '';
-                for (let i = 0; i < rc.length; i++) {
-                    let swatch = document.createElement('div');
-                    swatch.className = 'palette-swatch';
-                    let rgb = _hsbToRgbInternal(rc[i][0], rc[i][1], rc[i][2]);
-                    swatch.style.backgroundColor = 'rgb(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ')';
-                    swatch.title = 'HSB(' + rc[i][0] + ', ' + rc[i][1] + ', ' + rc[i][2] + ')';
-                    paletteEl.appendChild(swatch);
-                }
-                document.getElementById('infoPanel').className = 'info-panel visible';
-
-                lastCanvasW = canvasW;
-                lastCanvasH = canvasH;
-                lastHash = hashVal;
-
-                document.getElementById('downloadBtn').disabled = false;
-                document.getElementById('generateBtn').disabled = false;
-                setStatus('Done. ' + canvasW + '\u00d7' + canvasH + ' px (' + (canvasW/300).toFixed(1) + '\u00d7' + (canvasH/300).toFixed(1) + '\" at 300 DPI)', 'done');
-            }, 20);
-        }, 20);
+        document.getElementById('downloadBtn').disabled = false;
+        document.getElementById('generateBtn').disabled = false;
+        setStatus('Done. 5100\u00d73300 px (17\u00d711\u2033 at 300 DPI) \u2014 Token #' + tokenNum, 'done');
     }, 20);
 }
 
 function downloadPNG() {
     let canvas = document.getElementById('preview');
     let link = document.createElement('a');
-    let prefix = lastHash ? lastHash.substring(0, 10) : 'dfam';
-    link.download = 'dfam-' + prefix + '-' + lastCanvasW + 'x' + lastCanvasH + '.png';
+    let hashPrefix = lastHash ? lastHash.substring(2, 10) : 'unknown';
+    link.download = 'dfam-' + lastTokenNumber + '-' + hashPrefix + '.png';
     link.href = canvas.toDataURL('image/png');
     link.click();
 }
