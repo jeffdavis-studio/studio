@@ -74,6 +74,44 @@ const materials = [
   { hsb: [352, 77, 88], name: "280 Ruby Red" },
 ];
 
+// ============ CONSTANTS ============
+const ANGLES = [22.5, 67.5, 112.5, 157.5];
+const CURVE_EXP = 1.4;
+const LINE_SPACING_MM = 25 / 30;
+const LINE_WIDTH_MM = 25 / 32;
+const LINE_ALPHA = 128;
+
+// Paper and image dimensions (mm)
+const PAPER_W = 560;
+const PAPER_H = 760;
+const IMG_W = 450;
+const IMG_H = 650;
+
+const GRID_OPTIONS = [
+  { cols: 9,  rows: 52 },
+  { cols: 10, rows: 47 },
+  { cols: 11, rows: 43 },
+  { cols: 12, rows: 39 },
+  { cols: 13, rows: 36 },
+  { cols: 14, rows: 33 },
+  { cols: 15, rows: 31 },
+  { cols: 16, rows: 29 },
+  { cols: 17, rows: 28 },
+  { cols: 18, rows: 26 },
+  { cols: 19, rows: 25 },
+  { cols: 20, rows: 23 },
+  { cols: 21, rows: 22 },
+  { cols: 22, rows: 21 },
+  { cols: 23, rows: 20 },
+  { cols: 25, rows: 19 },
+  { cols: 26, rows: 18 },
+  { cols: 28, rows: 17 },
+  { cols: 29, rows: 16 },
+  { cols: 31, rows: 15 },
+  { cols: 33, rows: 14 },
+  { cols: 36, rows: 13 },
+];
+
 // ============ GLOBAL STATE ============
 let R;
 let p1, p2, p3, p4;
@@ -83,7 +121,9 @@ let colParams, rowParams;
 let blendMode;
 let gapAxis;
 let gapGroupMap;
+let cornerAngles;
 
+// ============ GAP LOGIC ============
 function canHaveGaps(n) {
   for (let k = 1; k <= 3; k++) {
     const remaining = n - k;
@@ -158,94 +198,6 @@ function computeBlendParams(activeIndices, total, mode) {
   return params;
 }
 
-// Paper and image dimensions (mm)
-const PAPER_W = 560;
-const PAPER_H = 760;
-const IMG_W = 450;
-const IMG_H = 650;
-
-const GRID_OPTIONS = [
-  { cols: 9,  rows: 52 },
-  { cols: 10, rows: 47 },
-  { cols: 11, rows: 43 },
-  { cols: 12, rows: 39 },
-  { cols: 13, rows: 36 },
-  { cols: 14, rows: 33 },
-  { cols: 15, rows: 31 },
-  { cols: 16, rows: 29 },
-  { cols: 17, rows: 28 },
-  { cols: 18, rows: 26 },
-  { cols: 19, rows: 25 },
-  { cols: 20, rows: 23 },
-  { cols: 21, rows: 22 },
-  { cols: 22, rows: 21 },
-  { cols: 23, rows: 20 },
-  { cols: 25, rows: 19 },
-  { cols: 26, rows: 18 },
-  { cols: 28, rows: 17 },
-  { cols: 29, rows: 16 },
-  { cols: 31, rows: 15 },
-  { cols: 33, rows: 14 },
-  { cols: 36, rows: 13 },
-];
-
-// ============ COLOR INTERPOLATION ============
-function rgbToLab(c) {
-  let r = red(c) / 255;
-  let g = green(c) / 255;
-  let b = blue(c) / 255;
-  if (r > 0.04045) r = Math.pow((r + 0.055) / 1.055, 2.4);
-  else r = r / 12.92;
-  if (g > 0.04045) g = Math.pow((g + 0.055) / 1.055, 2.4);
-  else g = g / 12.92;
-  if (b > 0.04045) b = Math.pow((b + 0.055) / 1.055, 2.4);
-  else b = b / 12.92;
-  let x = (r * 0.4124 + g * 0.3576 + b * 0.1805) * 100;
-  let y = (r * 0.2126 + g * 0.7152 + b * 0.0722) * 100;
-  let z = (r * 0.0193 + g * 0.1192 + b * 0.9505) * 100;
-  x = x / 95.047; y = y / 100; z = z / 108.883;
-  if (x > 0.008856) x = Math.pow(x, 1/3);
-  else x = (7.787 * x) + 16/116;
-  if (y > 0.008856) y = Math.pow(y, 1/3);
-  else y = (7.787 * y) + 16/116;
-  if (z > 0.008856) z = Math.pow(z, 1/3);
-  else z = (7.787 * z) + 16/116;
-  return [(116 * y) - 16, 500 * (x - y), 200 * (y - z)];
-}
-
-function labToRgb(lab) {
-  let y = (lab[0] + 16) / 116;
-  let x = lab[1] / 500 + y;
-  let z = y - lab[2] / 200;
-  if (Math.pow(y, 3) > 0.008856) y = Math.pow(y, 3);
-  else y = (y - 16/116) / 7.787;
-  if (Math.pow(x, 3) > 0.008856) x = Math.pow(x, 3);
-  else x = (x - 16/116) / 7.787;
-  if (Math.pow(z, 3) > 0.008856) z = Math.pow(z, 3);
-  else z = (z - 16/116) / 7.787;
-  x = x * 95.047; y = y * 100; z = z * 108.883;
-  let r = (x * 3.2406 + y * -1.5372 + z * -0.4986) / 100;
-  let g = (x * -0.9689 + y * 1.8758 + z * 0.0415) / 100;
-  let b = (x * 0.0557 + y * -0.2040 + z * 1.0570) / 100;
-  if (r > 0.0031308) r = 1.055 * Math.pow(r, 1/2.4) - 0.055;
-  else r = 12.92 * r;
-  if (g > 0.0031308) g = 1.055 * Math.pow(g, 1/2.4) - 0.055;
-  else g = 12.92 * g;
-  if (b > 0.0031308) b = 1.055 * Math.pow(b, 1/2.4) - 0.055;
-  else b = 12.92 * b;
-  return color(Math.round(r * 255), Math.round(g * 255), Math.round(b * 255));
-}
-
-function betterLerp(col1, col2, t) {
-  let arr1 = rgbToLab(col1);
-  let arr2 = rgbToLab(col2);
-  return labToRgb([
-    arr1[0] + t * (arr2[0] - arr1[0]),
-    arr1[1] + t * (arr2[1] - arr1[1]),
-    arr1[2] + t * (arr2[2] - arr1[2])
-  ]);
-}
-
 // ============ COLOR SELECTION ============
 function hasConsecutivePair(indices) {
   const n = materials.length;
@@ -289,6 +241,73 @@ function chooseColors() {
   } while (hasConsecutivePair(selected.map(s => s.materialIndex)) && attempts < 100);
 
   [p1, p2, p3, p4] = selected.map(s => s.color);
+}
+
+// ============ LINE GENERATION ============
+function generateAngledLines(cellX, cellY, cellWidth, cellHeight, coverage, lineSpacing, angleDeg) {
+  const lines = [];
+  const theta = angleDeg * Math.PI / 180;
+  const sinA = Math.sin(theta);
+  const cosA = Math.cos(theta);
+
+  const corners = [
+    [cellX, cellY],
+    [cellX + cellWidth, cellY],
+    [cellX, cellY + cellHeight],
+    [cellX + cellWidth, cellY + cellHeight]
+  ];
+  const dVals = corners.map(([x, y]) => -x * sinA + y * cosA);
+  const dMin = Math.min(...dVals);
+  const dMax = Math.max(...dVals);
+  const perpSpan = dMax - dMin;
+
+  const numLines = Math.max(1, Math.round(coverage * perpSpan / lineSpacing));
+  const spacing = perpSpan / numLines;
+  const firstD = dMin + spacing / 2;
+
+  const xMin = cellX;
+  const xMax = cellX + cellWidth;
+  const yMin = cellY;
+  const yMax = cellY + cellHeight;
+
+  for (let i = 0; i < numLines; i++) {
+    const d = firstD + i * spacing;
+
+    let tMin = -1e9;
+    let tMax = 1e9;
+
+    if (Math.abs(cosA) > 1e-12) {
+      const tLeft  = (xMin + d * sinA) / cosA;
+      const tRight = (xMax + d * sinA) / cosA;
+      const tLo = Math.min(tLeft, tRight);
+      const tHi = Math.max(tLeft, tRight);
+      tMin = Math.max(tMin, tLo);
+      tMax = Math.min(tMax, tHi);
+    }
+
+    if (Math.abs(sinA) > 1e-12) {
+      const tTop    = (yMin - d * cosA) / sinA;
+      const tBottom = (yMax - d * cosA) / sinA;
+      const tLo = Math.min(tTop, tBottom);
+      const tHi = Math.max(tTop, tBottom);
+      tMin = Math.max(tMin, tLo);
+      tMax = Math.min(tMax, tHi);
+    }
+
+    if (tMin >= tMax - 1e-9) continue;
+
+    let x1 = -d * sinA + tMin * cosA;
+    let y1 =  d * cosA + tMin * sinA;
+    let x2 = -d * sinA + tMax * cosA;
+    let y2 =  d * cosA + tMax * sinA;
+
+    if (x1 > x2) {
+      [x1, y1, x2, y2] = [x2, y2, x1, y1];
+    }
+
+    lines.push({ x1, y1, x2, y2 });
+  }
+  return lines;
 }
 
 // ============ CANVAS SIZING ============
@@ -350,12 +369,18 @@ function setup() {
     blendMode = transforms[R.random_int(0, transforms.length - 1)];
   }
 
-  const effectiveMode = blendMode;
-  const gapBlend = effectiveMode === 'inverse' ? 'repeat'
-                 : effectiveMode === 'rotate' ? 'reflect'
-                 : effectiveMode;
+  const gapBlend = blendMode === 'inverse' ? 'repeat'
+                 : blendMode === 'rotate' ? 'reflect'
+                 : blendMode;
   colParams = computeBlendParams(activeCols, horizSubs, gapBlend);
   rowParams = computeBlendParams(activeRows, vertSubs, gapBlend);
+
+  const shuffled = ANGLES.slice();
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = R.random_int(0, i);
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  cornerAngles = { p1: shuffled[0], p2: shuffled[1], p3: shuffled[2], p4: shuffled[3] };
 
   const size = canvasSize();
   createCanvas(size.w, size.h);
@@ -366,38 +391,61 @@ function draw() {
   colorMode(RGB);
   background(0);
 
-  const scale = width / PAPER_W;
+  const sc = width / PAPER_W;
 
-  noStroke()
+  noStroke();
   fill(255);
   rect(0, 0, width, height);
 
-  const ox = (PAPER_W - IMG_W) / 2 * scale;
-  const oy = (PAPER_H - IMG_H) / 2 * scale;
-  const imgW = IMG_W * scale;
-  const imgH = IMG_H * scale;
+  const ox = (PAPER_W - IMG_W) / 2 * sc;
+  const oy = (PAPER_H - IMG_H) / 2 * sc;
+  const cellWmm = IMG_W / horizSubs;
+  const cellHmm = IMG_H / vertSubs;
 
-  const cellW = imgW / horizSubs;
-  const cellH = imgH / vertSubs;
+  const sw = LINE_WIDTH_MM * sc;
+  strokeWeight(sw);
+  strokeCap(SQUARE);
+  noFill();
 
-  for (let j = 0; j < activeRows.length; j++) {
-    for (let i = 0; i < activeCols.length; i++) {
-      let nx = colParams[i];
-      let ny = rowParams[j];
-      const eMode = blendMode;
-      if ((eMode === 'inverse' || eMode === 'rotate') && gapGroupMap) {
-        const g = gapAxis === 'cols' ? gapGroupMap[i] : gapGroupMap[j];
-        if (g % 2 === 1) {
-          if (gapAxis === 'cols') ny = 1 - ny;
-          else nx = 1 - nx;
+  const corners = [
+    { key: 'p1', col: p1, wFn: (nx, ny) => (1 - nx) * (1 - ny) },
+    { key: 'p2', col: p2, wFn: (nx, ny) => nx * (1 - ny) },
+    { key: 'p3', col: p3, wFn: (nx, ny) => nx * ny },
+    { key: 'p4', col: p4, wFn: (nx, ny) => (1 - nx) * ny },
+  ];
+
+  for (const corner of corners) {
+    const r = red(corner.col);
+    const g = green(corner.col);
+    const b = blue(corner.col);
+    stroke(r, g, b, LINE_ALPHA);
+
+    const angleDeg = cornerAngles[corner.key];
+
+    for (let j = 0; j < activeRows.length; j++) {
+      for (let i = 0; i < activeCols.length; i++) {
+        let nx = colParams[i];
+        let ny = rowParams[j];
+        if ((blendMode === 'inverse' || blendMode === 'rotate') && gapGroupMap) {
+          const grp = gapAxis === 'cols' ? gapGroupMap[i] : gapGroupMap[j];
+          if (grp % 2 === 1) {
+            if (gapAxis === 'cols') ny = 1 - ny;
+            else nx = 1 - nx;
+          }
+        }
+
+        const weight = corner.wFn(nx, ny);
+        if (weight < 0.001) continue;
+
+        const coverage = 1 - Math.pow(1 - weight, CURVE_EXP);
+        const cx = activeCols[i] * cellWmm;
+        const cy = activeRows[j] * cellHmm;
+        const lines = generateAngledLines(cx, cy, cellWmm, cellHmm, coverage, LINE_SPACING_MM, angleDeg);
+
+        for (const l of lines) {
+          line(ox + l.x1 * sc, oy + l.y1 * sc, ox + l.x2 * sc, oy + l.y2 * sc);
         }
       }
-      let topColor = betterLerp(p1, p2, nx);
-      let bottomColor = betterLerp(p4, p3, nx);
-      let c = betterLerp(topColor, bottomColor, ny);
-      c = betterLerp(color(255), c, 0.65);
-      fill(c);
-      rect(ox + activeCols[i] * cellW, oy + activeRows[j] * cellH, cellW + 1, cellH + 1);
     }
   }
 }
