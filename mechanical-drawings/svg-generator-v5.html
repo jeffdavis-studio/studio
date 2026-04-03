@@ -625,7 +625,7 @@
 
       const cells = generateCellData(imgWidth, imgHeight, horizSubs, vertSubs, cellWidth, cellHeight, corner, lineWidth);
       const batches = packBatches(cells, getGroupSize());
-      showSVGPreview(buildBatchedSVG(imgWidth, imgHeight, batches));
+      showSVGPreview(buildBatchedSVG(imgWidth, imgHeight, batches, corner));
     }
 
     function updateColorDisplay() {
@@ -754,7 +754,7 @@
       const lineWidth = getLineWidth();
       const cells = generateCellData(imgWidth, imgHeight, horizSubs, vertSubs, cellWidth, cellHeight, corner, lineWidth);
       const batches = packBatches(cells, getGroupSize());
-      downloadSVG(filenames[corner], buildBatchedSVG(imgWidth, imgHeight, batches));
+      downloadSVG(filenames[corner], buildBatchedSVG(imgWidth, imgHeight, batches, corner));
     }
 
     function generateCombinedSVG() {
@@ -960,14 +960,15 @@ ${lineElements}
 </svg>`;
     }
 
-    function buildBatchedSVG(width, height, batches) {
+    function buildBatchedSVG(width, height, batches, corner) {
+      const prefix = corner || 'batch';
       const batchGroups = batches.map((batch, i) => {
         const lineElements = batch.cells
           .flatMap(cell => cell.lines)
           .map(l => `      <line x1="${l.x1.toFixed(6)}" y1="${l.y1.toFixed(6)}" x2="${l.x2.toFixed(6)}" y2="${l.y2.toFixed(6)}"/>`)
           .join('\n');
         const cellList = batch.cells.map(c => `(${c.col},${c.row})`).join(' ');
-        return `    <g id="batch-${i + 1}" data-distance="${Math.round(batch.distance)}" data-cells="${cellList}">
+        return `    <g id="${i}-group-${prefix}" data-distance="${Math.round(batch.distance)}" data-cells="${cellList}">
 ${lineElements}
     </g>`;
       }).join('\n');
