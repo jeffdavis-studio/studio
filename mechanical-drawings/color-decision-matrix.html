@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mechanical Drawings — Color Decision Matrix</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 24px;
+      font-family: aktiv-grotesk, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f6f4ef;
+      color: #222;
+    }
+    .app {
+      max-width: 1440px;
+      margin: 0 auto;
+      display: grid;
+      gap: 20px;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .title {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+    .subtitle {
+      margin: 6px 0 0 0;
+      max-width: 760px;
+      font-size: 14px;
+      line-height: 1.5;
+      color: #666;
+    }
+    .meta {
+      font-size: 12px;
+      color: #777;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      white-space: nowrap;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.9fr;
+      gap: 20px;
+      align-items: start;
+    }
+    .panel {
+      background: #fff;
+      border: 1px solid #ddd7cb;
+      padding: 18px;
+    }
+    .panel h2 {
+      margin: 0 0 14px 0;
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: #888;
+    }
+    .pencil-strip {
+      display: grid;
+      grid-template-columns: repeat(24, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+    .pencil-card {
+      min-width: 0;
+    }
+    .pencil-swatch {
+      height: 56px;
+      border: 1px solid rgba(0,0,0,0.15);
+      margin-bottom: 8px;
+    }
+    .pencil-number {
+      font-size: 10px;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 2px;
+    }
+    .pencil-name {
+      font-size: 11px;
+      line-height: 1.25;
+      overflow-wrap: anywhere;
+    }
+    .adjacency-wrap {
+      overflow: auto;
+      border: 1px solid #eee7db;
+    }
+    .adjacency-grid {
+      display: grid;
+      grid-template-columns: 96px repeat(24, 24px);
+      width: max-content;
+      background: #fff;
+    }
+    .cell,
+    .label-cell,
+    .top-label {
+      width: 24px;
+      height: 24px;
+      border-right: 1px solid #f0ebe2;
+      border-bottom: 1px solid #f0ebe2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      color: #777;
+    }
+    .label-cell {
+      width: 96px;
+      justify-content: flex-start;
+      padding: 0 8px;
+      background: #faf8f3;
+      font-size: 10px;
+    }
+    .top-left {
+      width: 96px;
+      background: #faf8f3;
+      border-right: 1px solid #f0ebe2;
+      border-bottom: 1px solid #f0ebe2;
+    }
+    .top-label {
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      height: 96px;
+      width: 24px;
+      background: #faf8f3;
+      padding: 6px 0;
+    }
+    .adjacent { background: #222; }
+    .self { background: #d8d1c3; }
+    .safe { background: #fff; }
+    .legend {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+      font-size: 12px;
+      color: #666;
+    }
+    .legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .dot {
+      width: 12px;
+      height: 12px;
+      border: 1px solid rgba(0,0,0,0.15);
+      background: #fff;
+    }
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+    .control label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 10px;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    .control select,
+    .control input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #d9d2c5;
+      background: #fff;
+      font: inherit;
+      color: #222;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .stat {
+      border: 1px solid #eee7db;
+      padding: 10px 12px;
+      background: #faf8f3;
+    }
+    .stat-label {
+      font-size: 10px;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 6px;
+    }
+    .stat-value {
+      font-size: 18px;
+      line-height: 1;
+    }
+    .combos {
+      display: grid;
+      gap: 10px;
+      max-height: 900px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+    .combo {
+      border: 1px solid #eee7db;
+      padding: 12px;
+      background: #fff;
+    }
+    .combo-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: baseline;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+    .combo-name {
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .combo-score {
+      font-size: 12px;
+      color: #666;
+      white-space: nowrap;
+    }
+    .combo-swatches {
+      display: grid;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .combo-strip {
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: 1fr;
+      gap: 6px;
+      height: 30px;
+    }
+    .combo-strip div,
+    .blend-strip div {
+      border: 1px solid rgba(0,0,0,0.14);
+    }
+    .blend-strip {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 0;
+      height: 18px;
+    }
+    .combo-meta {
+      font-size: 12px;
+      line-height: 1.45;
+      color: #555;
+    }
+    .empty {
+      padding: 24px;
+      border: 1px dashed #d9d2c5;
+      color: #777;
+      background: #faf8f3;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    @media (max-width: 1120px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 860px) {
+      body { padding: 16px; }
+      .pencil-strip { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+      .controls, .stats { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="header">
+      <div>
+        <h1 class="title">Mechanical Drawings — Color Decision Matrix</h1>
+        <p class="subtitle">All 24 Caran d'Ache Pablo pencils, ordered by hue. Black squares in the matrix mark adjacency conflicts, the exact pairs the current consecutive-pair rule blocks. Use the finder to surface valid 2–5 pencil sets and sort by hue spread.</p>
+      </div>
+      <div class="meta" id="summaryMeta"></div>
+    </div>
+
+    <div class="grid">
+      <div class="panel">
+        <h2>Hue-ordered pencil set</h2>
+        <div class="pencil-strip" id="pencilStrip"></div>
+
+        <h2>Adjacency matrix</h2>
+        <div class="adjacency-wrap">
+          <div class="adjacency-grid" id="adjacencyGrid"></div>
+        </div>
+        <div class="legend">
+          <span><i class="dot" style="background:#222;border-color:#222"></i> blocked adjacent pair</span>
+          <span><i class="dot" style="background:#d8d1c3"></i> same pencil</span>
+          <span><i class="dot"></i> allowed pair</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Combination finder</h2>
+        <div class="controls">
+          <div class="control">
+            <label for="countSelect">Pencil count</label>
+            <select id="countSelect">
+              <option value="2">2 pencils</option>
+              <option value="3">3 pencils</option>
+              <option value="4" selected>4 pencils</option>
+              <option value="5">5 pencils</option>
+            </select>
+          </div>
+          <div class="control">
+            <label for="sortSelect">Sort by</label>
+            <select id="sortSelect">
+              <option value="spread-desc">Hue spread, wide to narrow</option>
+              <option value="spread-asc">Hue spread, narrow to wide</option>
+              <option value="name">First pencil in hue order</option>
+            </select>
+          </div>
+          <div class="control">
+            <label for="limitInput">Results shown</label>
+            <input id="limitInput" type="number" min="1" max="200" value="24">
+          </div>
+          <div class="control">
+            <label for="anchorSelect">Require pencil</label>
+            <select id="anchorSelect"></select>
+          </div>
+        </div>
+
+        <div class="stats">
+          <div class="stat">
+            <div class="stat-label">Valid combinations</div>
+            <div class="stat-value" id="validCount">0</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Widest spread</div>
+            <div class="stat-value" id="widestSpread">0°</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Narrowest spread</div>
+            <div class="stat-value" id="narrowestSpread">0°</div>
+          </div>
+        </div>
+
+        <div class="combos" id="comboList"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const materials = [
+      { h: 359, s: 78, b: 85, code: '070', name: 'Scarlet' },
+      { h: 10, s: 79, b: 97, code: '060', name: 'Vermilion' },
+      { h: 19, s: 80, b: 100, code: '040', name: 'Reddish Orange' },
+      { h: 33, s: 97, b: 100, code: '030', name: 'Orange' },
+      { h: 38, s: 99, b: 100, code: '300', name: 'Fast Orange' },
+      { h: 45, s: 100, b: 100, code: '020', name: 'Golden Yellow' },
+      { h: 50, s: 100, b: 100, code: '010', name: 'Yellow' },
+      { h: 54, s: 77, b: 97, code: '250', name: 'Canary Yellow' },
+      { h: 59, s: 68, b: 94, code: '240', name: 'Lemon Yellow' },
+      { h: 71, s: 65, b: 90, code: '470', name: 'Spring Green' },
+      { h: 95, s: 60, b: 88, code: '230', name: 'Yellow Green' },
+      { h: 163, s: 100, b: 69, code: '201', name: 'Veronese Green' },
+      { h: 180, s: 100, b: 73, code: '191', name: 'Turquoise Green' },
+      { h: 189, s: 100, b: 81, code: '171', name: 'Turquoise Blue' },
+      { h: 200, s: 93, b: 88, code: '161', name: 'Light Blue' },
+      { h: 205, s: 100, b: 75, code: '370', name: 'Gentian Blue' },
+      { h: 209, s: 100, b: 63, code: '260', name: 'Blue' },
+      { h: 236, s: 69, b: 56, code: '140', name: 'Ultramarine' },
+      { h: 243, s: 51, b: 56, code: '130', name: 'Royal Blue' },
+      { h: 261, s: 54, b: 48, code: '120', name: 'Violet' },
+      { h: 297, s: 46, b: 54, code: '110', name: 'Lilac' },
+      { h: 325, s: 61, b: 66, code: '100', name: 'Purple Violet' },
+      { h: 343, s: 80, b: 79, code: '080', name: 'Carmine' },
+      { h: 352, s: 77, b: 88, code: '280', name: 'Ruby Red' },
+    ].map((material, index) => ({ ...material, index }));
+
+    const pencilStrip = document.getElementById('pencilStrip');
+    const adjacencyGrid = document.getElementById('adjacencyGrid');
+    const countSelect = document.getElementById('countSelect');
+    const sortSelect = document.getElementById('sortSelect');
+    const limitInput = document.getElementById('limitInput');
+    const anchorSelect = document.getElementById('anchorSelect');
+    const comboList = document.getElementById('comboList');
+    const validCount = document.getElementById('validCount');
+    const widestSpread = document.getElementById('widestSpread');
+    const narrowestSpread = document.getElementById('narrowestSpread');
+    const summaryMeta = document.getElementById('summaryMeta');
+
+    function hsbToRgb(h, s, b) {
+      const sat = s / 100;
+      const val = b / 100;
+      const c = val * sat;
+      const hh = ((h % 360) + 360) % 360 / 60;
+      const x = c * (1 - Math.abs((hh % 2) - 1));
+      let r = 0, g = 0, bl = 0;
+      if (hh >= 0 && hh < 1) [r, g, bl] = [c, x, 0];
+      else if (hh < 2) [r, g, bl] = [x, c, 0];
+      else if (hh < 3) [r, g, bl] = [0, c, x];
+      else if (hh < 4) [r, g, bl] = [0, x, c];
+      else if (hh < 5) [r, g, bl] = [x, 0, c];
+      else [r, g, bl] = [c, 0, x];
+      const m = val - c;
+      return {
+        r: Math.round((r + m) * 255),
+        g: Math.round((g + m) * 255),
+        b: Math.round((bl + m) * 255),
+      };
+    }
+
+    function rgbString(rgb) {
+      return `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+    }
+
+    function isAdjacent(a, b) {
+      const diff = Math.abs(a - b);
+      return diff === 1 || diff === materials.length - 1;
+    }
+
+    function hasConsecutivePair(indices) {
+      for (let i = 0; i < indices.length; i++) {
+        for (let j = i + 1; j < indices.length; j++) {
+          if (isAdjacent(indices[i], indices[j])) return true;
+        }
+      }
+      return false;
+    }
+
+    function combinations(source, size, start = 0, prefix = [], result = []) {
+      if (prefix.length === size) {
+        result.push(prefix.slice());
+        return result;
+      }
+      for (let i = start; i <= source.length - (size - prefix.length); i++) {
+        prefix.push(source[i]);
+        combinations(source, size, i + 1, prefix, result);
+        prefix.pop();
+      }
+      return result;
+    }
+
+    function unwrapHues(indices) {
+      const hues = indices.map(index => materials[index].h).sort((a, b) => a - b);
+      const doubled = hues.concat(hues.map(h => h + 360));
+      let best = null;
+      for (let start = 0; start < hues.length; start++) {
+        const window = doubled.slice(start, start + hues.length);
+        const span = window[window.length - 1] - window[0];
+        if (!best || span < best.span) best = { span, hues: window };
+      }
+      return best;
+    }
+
+    function hueSpread(indices) {
+      const best = unwrapHues(indices);
+      return {
+        arc: Math.round((360 - best.span) * 10) / 10,
+        span: Math.round(best.span * 10) / 10,
+      };
+    }
+
+    function blendSteps(indices, steps = 12) {
+      const ordered = unwrapHues(indices).hues.map(h => (h + 360) % 360);
+      const colors = ordered.map(h => materials.find(m => m.h === h || ((m.h + 360) % 360) === h));
+      const result = [];
+      for (let i = 0; i < steps; i++) {
+        const t = steps === 1 ? 0 : i / (steps - 1);
+        const pos = t * (colors.length - 1);
+        const leftIndex = Math.floor(pos);
+        const rightIndex = Math.min(colors.length - 1, leftIndex + 1);
+        const localT = pos - leftIndex;
+        const left = hsbToRgb(colors[leftIndex].h, colors[leftIndex].s, colors[leftIndex].b);
+        const right = hsbToRgb(colors[rightIndex].h, colors[rightIndex].s, colors[rightIndex].b);
+        result.push({
+          r: Math.round(left.r + (right.r - left.r) * localT),
+          g: Math.round(left.g + (right.g - left.g) * localT),
+          b: Math.round(left.b + (right.b - left.b) * localT),
+        });
+      }
+      return result;
+    }
+
+    function renderPencils() {
+      pencilStrip.innerHTML = materials.map(material => {
+        const rgb = rgbString(hsbToRgb(material.h, material.s, material.b));
+        return `
+          <div class="pencil-card">
+            <div class="pencil-swatch" style="background:${rgb}"></div>
+            <div class="pencil-number">${material.code} · ${Math.round(material.h)}°</div>
+            <div class="pencil-name">${material.name}</div>
+          </div>
+        `;
+      }).join('');
+
+      anchorSelect.innerHTML = ['<option value="">Any pencil</option>'].concat(
+        materials.map(material => `<option value="${material.index}">${material.code} ${material.name}</option>`)
+      ).join('');
+
+      summaryMeta.textContent = `${materials.length} pencils · wraparound adjacency blocked`;
+    }
+
+    function renderAdjacency() {
+      const topLabels = materials.map(material => `<div class="top-label">${material.code}</div>`).join('');
+      const rows = materials.map(row => {
+        const cells = materials.map(col => {
+          const cls = row.index === col.index ? 'self' : (isAdjacent(row.index, col.index) ? 'adjacent' : 'safe');
+          return `<div class="cell ${cls}" title="${row.code} ${row.name} × ${col.code} ${col.name}"></div>`;
+        }).join('');
+        return `<div class="label-cell">${row.code} ${row.name}</div>${cells}`;
+      }).join('');
+      adjacencyGrid.innerHTML = `<div class="top-left"></div>${topLabels}${rows}`;
+    }
+
+    function renderCombinations() {
+      const size = Number(countSelect.value);
+      const sortMode = sortSelect.value;
+      const limit = Math.max(1, Math.min(200, Number(limitInput.value) || 24));
+      const anchor = anchorSelect.value === '' ? null : Number(anchorSelect.value);
+
+      const combos = combinations(materials.map(m => m.index), size)
+        .filter(indices => !hasConsecutivePair(indices))
+        .filter(indices => anchor === null || indices.includes(anchor))
+        .map(indices => ({
+          indices,
+          spread: hueSpread(indices),
+        }));
+
+      combos.sort((a, b) => {
+        if (sortMode === 'spread-desc') return b.spread.arc - a.spread.arc || a.indices[0] - b.indices[0];
+        if (sortMode === 'spread-asc') return a.spread.arc - b.spread.arc || a.indices[0] - b.indices[0];
+        return a.indices[0] - b.indices[0];
+      });
+
+      validCount.textContent = combos.length.toLocaleString();
+      widestSpread.textContent = combos.length ? `${combos.reduce((max, combo) => Math.max(max, combo.spread.arc), 0).toFixed(1)}°` : '0°';
+      narrowestSpread.textContent = combos.length ? `${combos.reduce((min, combo) => Math.min(min, combo.spread.arc), Infinity).toFixed(1)}°` : '0°';
+
+      if (!combos.length) {
+        comboList.innerHTML = '<div class="empty">No valid sets match this filter. Try a smaller pencil count or clear the required-pencil filter.</div>';
+        return;
+      }
+
+      comboList.innerHTML = combos.slice(0, limit).map(combo => {
+        const labels = combo.indices.map(index => materials[index]);
+        const strips = labels.map(material => `<div style="background:${rgbString(hsbToRgb(material.h, material.s, material.b))}" title="${material.code} ${material.name}"></div>`).join('');
+        const blend = blendSteps(combo.indices).map(rgb => `<div style="background:${rgbString(rgb)}"></div>`).join('');
+        const names = labels.map(material => `${material.code} ${material.name}`).join(' · ');
+        return `
+          <div class="combo">
+            <div class="combo-top">
+              <div class="combo-name">${names}</div>
+              <div class="combo-score">spread ${combo.spread.arc.toFixed(1)}° · tightest arc ${combo.spread.span.toFixed(1)}°</div>
+            </div>
+            <div class="combo-swatches">
+              <div class="combo-strip">${strips}</div>
+              <div class="blend-strip">${blend}</div>
+            </div>
+            <div class="combo-meta">Hue order: ${labels.map(material => `${material.name} (${material.h}°)`).join(' → ')}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    [countSelect, sortSelect, limitInput, anchorSelect].forEach(element => {
+      element.addEventListener('input', renderCombinations);
+      element.addEventListener('change', renderCombinations);
+    });
+
+    renderPencils();
+    renderAdjacency();
+    renderCombinations();
+  </script>
+</body>
+</html>
