@@ -80,6 +80,8 @@ const CURVE_EXP = 1.4;
 const LINE_SPACING_MM = 25 / 30;
 const LINE_WIDTH_MM = 25 / 32;
 const LINE_ALPHA = 128;
+const SVG_LINE_WIDTH = 25 / 32;
+const SVG_GROUP_SIZE = 4;
 
 // Paper and image dimensions (mm)
 const PAPER_W = 560;
@@ -115,6 +117,7 @@ const GRID_OPTIONS = [
 // ============ GLOBAL STATE ============
 let R;
 let p1, p2, p3, p4;
+let p1Name, p2Name, p3Name, p4Name;
 let horizSubs, vertSubs;
 let activeCols, activeRows;
 let colParams, rowParams;
@@ -241,6 +244,7 @@ function chooseColors() {
   } while (hasConsecutivePair(selected.map(s => s.materialIndex)) && attempts < 100);
 
   [p1, p2, p3, p4] = selected.map(s => s.color);
+  [p1Name, p2Name, p3Name, p4Name] = selected.map(s => s.name);
 }
 
 // ============ LINE GENERATION ============
@@ -382,6 +386,13 @@ function setup() {
   }
   cornerAngles = { p1: shuffled[0], p2: shuffled[1], p3: shuffled[2], p4: shuffled[3] };
 
+  console.log(`Grid: ${horizSubs} cols × ${vertSubs} rows | Blend: ${blendMode}`);
+  console.log(`Hash: ${tokenData}`);
+  console.log(`P1: ${p1Name}`);
+  console.log(`P2: ${p2Name}`);
+  console.log(`P3: ${p3Name}`);
+  console.log(`P4: ${p4Name}`);
+
   const size = canvasSize();
   createCanvas(size.w, size.h);
   noLoop();
@@ -454,4 +465,246 @@ function windowResized() {
   const size = canvasSize();
   resizeCanvas(size.w, size.h);
   redraw();
+}
+
+// ============ SVG GENERATION ============
+function lineDistance(l) {
+  const dx = l.x2 - l.x1;
+  const dy = l.y2 - l.y1;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+function svgAngledLines(cellX, cellY, cellWidth, cellHeight, coverage, lineWidth, angleDeg) {
+  const lines = [];
+  const theta = angleDeg * Math.PI / 180;
+  const sinA = Math.sin(theta);
+  const cosA = Math.cos(theta);
+
+  const cs = [
+    [cellX, cellY],
+    [cellX + cellWidth, cellY],
+    [cellX, cellY + cellHeight],
+    [cellX + cellWidth, cellY + cellHeight]
+  ];
+  const dVals = cs.map(([x, y]) => -x * sinA + y * cosA);
+  const dMin = Math.min(...dVals);
+  const dMax = Math.max(...dVals);
+  const perpSpan = dMax - dMin;
+
+  const numLines = Math.max(1, Math.round(coverage * perpSpan / lineWidth));
+  const spacing = perpSpan / numLines;
+  const firstD = dMin + spacing / 2;
+
+  const xMin = cellX, xMax = cellX + cellWidth;
+  const yMin = cellY, yMax = cellY + cellHeight;
+
+  for (let i = 0; i < numLines; i++) {
+    const d = firstD + i * spacing;
+    let tMin = -1e9, tMax = 1e9;
+
+    if (Math.abs(cosA) > 1e-12) {
+      const tL = (xMin + d * sinA) / cosA;
+      const tR = (xMax + d * sinA) / cosA;
+      tMin = Math.max(tMin, Math.min(tL, tR));
+      tMax = Math.min(tMax, Math.max(tL, tR));
+    }
+    if (Math.abs(sinA) > 1e-12) {
+      const tT = (yMin - d * cosA) / sinA;
+      const tB = (yMax - d * cosA) / sinA;
+      tMin = Math.max(tMin, Math.min(tT, tB));
+      tMax = Math.min(tMax, Math.max(tT, tB));
+    }
+    if (tMin >= tMax - 1e-9) continue;
+
+    let x1 = -d * sinA + tMin * cosA;
+    let y1 =  d * cosA + tMin * sinA;
+    let x2 = -d * sinA + tMax * cosA;
+    let y2 =  d * cosA + tMax * sinA;
+    if (x1 > x2) [x1, y1, x2, y2] = [x2, y2, x1, y1];
+    lines.push({ x1, y1, x2, y2 });
+  }
+  return lines;
+}
+
+function generateCellData(cornerKey) {
+  const ox = (PAPER_W - IMG_W) / 2;
+  const oy = (PAPER_H - IMG_H) / 2;
+  const cellW = IMG_W / horizSubs;
+  const cellH = IMG_H / vertSubs;
+  const angleDeg = cornerAngles[cornerKey];
+  const wFns = {
+    p1: (nx, ny) => (1 - nx) * (1 - ny),
+    p2: (nx, ny) => nx * (1 - ny),
+    p3: (nx, ny) => nx * ny,
+    p4: (nx, ny) => (1 - nx) * ny,
+  };
+  const wFn = wFns[cornerKey];
+  const cells = [];
+
+  for (let j = 0; j < activeRows.length; j++) {
+    for (let i = 0; i < activeCols.length; i++) {
+      let nx = colParams[i];
+      let ny = rowParams[j];
+      if ((blendMode === 'inverse' || blendMode === 'rotate') && gapGroupMap) {
+        const grp = gapAxis === 'cols' ? gapGroupMap[i] : gapGroupMap[j];
+        if (grp % 2 === 1) {
+          if (gapAxis === 'cols') ny = 1 - ny;
+          else nx = 1 - nx;
+        }
+      }
+
+      const weight = wFn(nx, ny);
+      if (weight < 0.001) continue;
+
+      const coverage = 1 - Math.pow(1 - weight, CURVE_EXP);
+      const cx = ox + activeCols[i] * cellW;
+      const cy = oy + activeRows[j] * cellH;
+      const lines = svgAngledLines(cx, cy, cellW, cellH, coverage, SVG_LINE_WIDTH, angleDeg);
+      const distance = lines.reduce((sum, l) => sum + lineDistance(l), 0);
+      const cluster = gapGroupMap
+        ? (gapAxis === 'cols' ? gapGroupMap[i] : gapGroupMap[j])
+        : 0;
+      cells.push({ col: activeCols[i], row: activeRows[j], lines, distance, cluster });
+    }
+  }
+  return cells;
+}
+
+function packBatches(cells) {
+  if (cells.length === 0) return [];
+
+  const sorted = cells.slice().sort((a, b) => a.distance - b.distance);
+  const n = sorted.length;
+  const leftoverCount = n % SVG_GROUP_SIZE;
+  const leftoverCells = sorted.slice(0, leftoverCount);
+  const main = sorted.slice(leftoverCount);
+  const numGroups = Math.max(1, main.length / SVG_GROUP_SIZE);
+
+  const anchors = main.slice(0, numGroups);
+  const highFills = main.slice(main.length - numGroups).reverse();
+  const midPool = main.slice(numGroups, main.length - numGroups);
+
+  const batches = [];
+  for (let i = 0; i < numGroups; i++) {
+    batches.push({
+      cells: [anchors[i], highFills[i]],
+      distance: anchors[i].distance + highFills[i].distance
+    });
+  }
+
+  const totalDistance = main.reduce((sum, c) => sum + c.distance, 0);
+  const targetPerGroup = totalDistance / numGroups;
+
+  const remaining = midPool.slice();
+  while (remaining.length > 0) {
+    let bestBatch = 0;
+    let bestBudget = targetPerGroup - batches[0].distance;
+    for (let i = 1; i < batches.length; i++) {
+      const budget = targetPerGroup - batches[i].distance;
+      if (budget > bestBudget) {
+        bestBudget = budget;
+        bestBatch = i;
+      }
+    }
+
+    let bestMed = 0;
+    let bestDiff = Math.abs(remaining[0].distance - bestBudget);
+    for (let j = 1; j < remaining.length; j++) {
+      const diff = Math.abs(remaining[j].distance - bestBudget);
+      if (diff < bestDiff) {
+        bestDiff = diff;
+        bestMed = j;
+      }
+    }
+
+    const picked = remaining.splice(bestMed, 1)[0];
+    batches[bestBatch].cells.push(picked);
+    batches[bestBatch].distance += picked.distance;
+  }
+
+  for (const batch of batches) {
+    batch.cells.sort((a, b) => a.distance - b.distance);
+  }
+
+  for (const cell of leftoverCells) {
+    batches.sort((a, b) => a.distance - b.distance);
+    batches[0].cells.push(cell);
+    batches[0].distance += cell.distance;
+  }
+
+  for (const batch of batches) {
+    batch.cells.sort((a, b) => a.distance - b.distance);
+  }
+
+  batches.sort((a, b) => b.cells[b.cells.length - 1].distance - a.cells[a.cells.length - 1].distance);
+
+  return batches;
+}
+
+function buildBatchedSVG(batches, corner) {
+  const colors = { p1, p2, p3, p4 };
+  const c = colors[corner];
+  colorMode(RGB);
+  const hex = '#' + [red(c), green(c), blue(c)].map(v => Math.round(v).toString(16).padStart(2, '0')).join('');
+
+  const batchGroups = batches.map((batch, i) => {
+    const lineElements = batch.cells
+      .flatMap(cell => cell.lines)
+      .map(l => `      <line x1="${l.x1.toFixed(6)}" y1="${l.y1.toFixed(6)}" x2="${l.x2.toFixed(6)}" y2="${l.y2.toFixed(6)}"/>`)
+      .join('\n');
+    const cellList = batch.cells.map(c => `(${c.col},${c.row})`).join(' ');
+    return `    <g id="${i}-group-${corner}" data-distance="${Math.round(batch.distance)}" data-cells="${cellList}">
+${lineElements}
+    </g>`;
+  }).join('\n');
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" 
+     width="${PAPER_W}mm" 
+     height="${PAPER_H}mm" 
+     viewBox="0 0 ${PAPER_W} ${PAPER_H}">
+  <rect x="0" y="0" width="${PAPER_W}" height="${PAPER_H}" fill="none" stroke="none"/>
+  <g stroke="${hex}" stroke-width="${SVG_LINE_WIDTH}" stroke-linecap="butt">
+${batchGroups}
+  </g>
+</svg>`;
+}
+
+function downloadSVG(filename, svgContent) {
+  const blob = new Blob([svgContent], { type: 'image/svg+xml' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function keyPressed() {
+  const cornerMap = { '1': 'p1', '2': 'p2', '3': 'p3', '4': 'p4' };
+  const corner = cornerMap[key];
+  if (!corner) return;
+
+  const cells = generateCellData(corner);
+  let batches;
+
+  if (blendMode === 'continuous') {
+    batches = packBatches(cells);
+  } else {
+    const clusters = {};
+    for (const cell of cells) {
+      (clusters[cell.cluster] = clusters[cell.cluster] || []).push(cell);
+    }
+    batches = [];
+    for (const k of Object.keys(clusters).sort((a, b) => a - b)) {
+      batches.push(...packBatches(clusters[k]));
+    }
+  }
+
+  const hashId = tokenData.substring(0, 8);
+  const filename = `${hashId}-${corner.toUpperCase()}.svg`;
+  downloadSVG(filename, buildBatchedSVG(batches, corner));
+  console.log(`Downloaded ${filename} (${batches.length} groups, ${blendMode === 'continuous' ? 'global' : 'per-cluster'} batching)`);
 }

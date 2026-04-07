@@ -826,11 +826,14 @@
 
       const sorted = cells.slice().sort((a, b) => a.distance - b.distance);
       const n = sorted.length;
-      const numGroups = Math.max(1, Math.ceil(n / groupSize));
+      const leftoverCount = n % groupSize;
+      const leftoverCells = sorted.slice(0, leftoverCount);
+      const main = sorted.slice(leftoverCount);
+      const numGroups = Math.max(1, main.length / groupSize);
 
-      const anchors = sorted.slice(0, numGroups);
-      const highFills = sorted.slice(n - numGroups).reverse();
-      const midPool = sorted.slice(numGroups, n - numGroups);
+      const anchors = main.slice(0, numGroups);
+      const highFills = main.slice(main.length - numGroups).reverse();
+      const midPool = main.slice(numGroups, main.length - numGroups);
 
       const batches = [];
       for (let i = 0; i < numGroups; i++) {
@@ -840,7 +843,7 @@
         });
       }
 
-      const totalDistance = sorted.reduce((sum, c) => sum + c.distance, 0);
+      const totalDistance = main.reduce((sum, c) => sum + c.distance, 0);
       const targetPerGroup = totalDistance / numGroups;
 
       const remaining = midPool.slice();
@@ -873,6 +876,18 @@
       for (const batch of batches) {
         batch.cells.sort((a, b) => a.distance - b.distance);
       }
+
+      for (const cell of leftoverCells) {
+        batches.sort((a, b) => a.distance - b.distance);
+        batches[0].cells.push(cell);
+        batches[0].distance += cell.distance;
+      }
+
+      for (const batch of batches) {
+        batch.cells.sort((a, b) => a.distance - b.distance);
+      }
+
+      batches.sort((a, b) => b.cells[b.cells.length - 1].distance - a.cells[a.cells.length - 1].distance);
 
       return batches;
     }
