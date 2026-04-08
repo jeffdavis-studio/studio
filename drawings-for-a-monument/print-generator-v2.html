@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DfaM Print Generator</title>
+<title>DfaM Print Generator v2</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#1a1a1a;color:#e0e0e0;min-height:100vh}
@@ -44,17 +44,15 @@ button.secondary:disabled{background:#2a2a2a;color:#555;cursor:not-allowed}
 </head>
 <body>
 <div class="container">
-<h1><span>DfaM</span> Print Generator</h1>
+<h1><span>DfaM</span> Print Generator v2</h1>
 <div class="controls">
   <div class="control-group"><label>Token Number</label>
     <input type="number" id="tokenInput" min="0" max="999" value="0" spellcheck="false">
   </div>
-  <div class="checkbox-group"><input type="checkbox" id="lineDots" checked><label for="lineDots">Line registration dots</label></div>
-  <div class="checkbox-group"><input type="checkbox" id="trimMarks" checked><label for="trimMarks">Trim marks</label></div>
   <div class="control-group" style="padding-top:16px"><button class="primary" id="generateBtn" onclick="generate()">Generate</button></div>
-  <div class="control-group" style="padding-top:16px"><button class="secondary" id="downloadBtn" onclick="downloadPNG()" disabled>Download Print PNG</button></div>
-  <div class="control-group" style="padding-top:16px"><button class="secondary" id="downloadGuideBtn" onclick="downloadGuide()" disabled>Download Drawing Guide</button></div>
-  <div class="size-info">11&times;17&Prime; landscape &middot; 300 DPI &middot; 5100&times;3300 px &middot; 9&times;12&Prime; image area</div>
+  <div class="control-group" style="padding-top:16px"><button class="secondary" id="downloadPrintBtn" onclick="downloadPrint()" disabled>Download Print PNG</button></div>
+  <div class="control-group" style="padding-top:16px"><button class="secondary" id="downloadGuideBtn" onclick="downloadGuide()" disabled>Download Guide PNG</button></div>
+  <div class="size-info">Print: 9&times;12&Prime; on 11&times;17&Prime; @ 300 DPI &middot; Guide: same scale on 8.5&times;11&Prime;</div>
 </div>
 <div class="info-panel" id="infoPanel">
   <div class="info-row">
@@ -67,8 +65,10 @@ button.secondary:disabled{background:#2a2a2a;color:#555;cursor:not-allowed}
   </div>
 </div>
 <div class="status" id="status"></div>
-<div class="preview-container"><canvas id="preview" style="display:none"></canvas></div>
-<div class="preview-container"><div id="guidePreviewLabel" style="display:none;font-size:13px;color:#888;margin-bottom:8px">Drawing Guide Preview (8.5×11″)</div><canvas id="guidePreview" style="display:none"></canvas></div>
+<div id="printPreviewLabel" style="display:none;font-size:13px;color:#888;margin-bottom:8px">Print Preview (11×17″)</div>
+<div class="preview-container"><canvas id="printPreview" style="display:none"></canvas></div>
+<div id="guidePreviewLabel" style="display:none;font-size:13px;color:#888;margin-bottom:8px">Guide Preview (8.5×11″)</div>
+<div class="preview-container"><canvas id="guidePreview" style="display:none"></canvas></div>
 </div>
 <script>
 // ============================================================
@@ -123,10 +123,10 @@ function _hsbToRgbInternal(h, s, b) {
 // p5.js compatibility layer
 let _colorMode = 'HSB';
 function colorMode(m) { _colorMode = m; }
-function color(a, b, c) {
+function color(a, b, c, alpha) {
     if (Array.isArray(a)) return color(a[0], a[1], a[2]);
-    if (_colorMode === 'HSB') { let rgb = _hsbToRgbInternal(a, b, c); return new Color(rgb[0], rgb[1], rgb[2]); }
-    return new Color(a, b, c);
+    if (_colorMode === 'HSB') { let rgb = _hsbToRgbInternal(a, b, c); return new Color(rgb[0], rgb[1], rgb[2], alpha); }
+    return new Color(a, b, c, alpha);
 }
 function red(c) { return c.r; }
 function green(c) { return c.g; }
@@ -267,6 +267,7 @@ function scramble(array) {
 // ---- Global state ----
 let R; // PRNG - set before tributes color fns are called
 let tokenData; // global hash
+let tu; // texture unit - set in doGenerate, used by rendering functions
 
 let tributes = [
     {
@@ -3278,88 +3279,189 @@ let tributes = [
 ];
 
 
-// ---- Canvas 2D Drawing Functions ----
-let ctx; // global canvas context
+// ---- Rendering functions (Canvas 2D ports of on-chain p5.js) ----
+// Each "compute" function consumes PRNG and returns render data.
+// Each "render" function draws to a canvas context from pre-computed data.
+// This allows rendering the same PRNG-faithful data to multiple canvases.
 
-// pencilLineDraw kept for PRNG advancement during layout computation
-function pencilLineDraw(x1, y1, x2, y2, c, tu) {
-    let ud=tu, od=tu, minw=0.55*tu, maxw=0.75*tu;
-    let d=0.8, of=0.2, range=0.4, mina=0, maxa=1, mins=0.3*tu, maxs=tu;
-    let sx=x1, sy=y1, ex=x2, ey=y2;
-    let v=R.random_num(-ud, od);
-    if (Math.abs(x2-x1) > Math.abs(y2-y1)) {
-        if (x2>x1) { sx=x1-v; ex=x2+v; } else { sx=x1+v; ex=x2-v; }
+function computePencilLine(x1, y1, x2, y2) {
+    var ud = tu, od = tu;
+    var minw = 0.55 * tu, maxw = 0.75 * tu;
+    var density = 0.8, of = 0.2, range = 0.4;
+    var mina = 0, maxa = 1;
+    var mins = 0.3 * tu, maxs = tu;
+    var sx = x1, sy = y1, ex = x2, ey = y2;
+    var v = R.random_num(-ud, od);
+    if (Math.abs(x2 - x1) > Math.abs(y2 - y1)) {
+        if (x2 > x1) { sx = x1 - v; ex = x2 + v; }
+        else { sx = x1 + v; ex = x2 - v; }
     } else {
-        if (y2>y1) { sy=y1-v; ey=y2+v; } else { sy=y1+v; ey=y2-v; }
+        if (y2 > y1) { sy = y1 - v; ey = y2 + v; }
+        else { sy = y1 + v; ey = y2 - v; }
     }
-    let sw=R.random_num(minw, maxw);
-    let l=dist(sx,sy,ex,ey);
-    let n=Math.floor(l*d);
-    for (let i=0; i<n; i++) {
-        let t=R.random_dec();
-        let x=lerp(sx,ex,t), y=lerp(sy,ey,t);
-        let dx=ex-sx, dy=ey-sy;
-        let offset=sw*of+R.random_num(0, sw*range);
-        let side=R.random_choice([1,-1]);
-        let ppx=side*(-dy/l), ppy=side*(dx/l);
-        x+=ppx*offset; y+=ppy*offset;
-        let a=R.random_num(mina, maxa);
-        let rx=R.random_num(mins,maxs), ry=R.random_num(mins,maxs);
+    var sw = R.random_num(minw, maxw);
+    var l = dist(sx, sy, ex, ey);
+    var n = Math.floor(l * density);
+    var dots = [];
+    for (var i = 0; i < n; i++) {
+        var t = R.random_dec();
+        var x = lerp(sx, ex, t);
+        var y = lerp(sy, ey, t);
+        var dx = ex - sx, dy = ey - sy;
+        var offset = sw * of + R.random_num(0, sw * range);
+        var side = R.random_choice([1, -1]);
+        var px = side * (-dy / l), py = side * (dx / l);
+        x += px * offset;
+        y += py * offset;
+        var a = R.random_num(mina, maxa);
+        var ew = R.random_num(mins, maxs);
+        var eh = R.random_num(mins, maxs);
+        dots.push([x, y, a, ew, eh]);
+    }
+    return { sx: sx, sy: sy, ex: ex, ey: ey, sw: sw, dots: dots };
+}
+
+function renderPencilLine(ctx, params, c) {
+    ctx.strokeStyle = c.toCSS();
+    ctx.lineWidth = params.sw;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(params.sx, params.sy);
+    ctx.lineTo(params.ex, params.ey);
+    ctx.stroke();
+    for (var i = 0; i < params.dots.length; i++) {
+        var d = params.dots[i];
+        var dotColor = color(hue(c), saturation(c), brightness(c), d[2]);
+        ctx.fillStyle = dotColor.toCSS();
+        ctx.beginPath();
+        ctx.ellipse(d[0], d[1], d[3] / 2, d[4] / 2, 0, 0, Math.PI * 2);
+        ctx.fill();
     }
 }
 
-// outlineLineDraw kept for PRNG advancement
-function outlineLineDraw(x1, y1, x2, y2, c, tu) {
-    let ud=1.7*tu, od=0.7*tu, minw=1.8*tu, maxw=2.2*tu;
-    let d=4, of=0.2, range=0.4, mina=0.25, maxa=0.35, mins=0.3*tu, maxs=0.7*tu;
-    let sx=x1, sy=y1, ex=x2, ey=y2;
-    let v=R.random_num(-ud, od);
-    if (Math.abs(x2-x1) > Math.abs(y2-y1)) {
-        if (x2>x1) { sx=x1-v; ex=x2+v; } else { sx=x1+v; ex=x2-v; }
+function computeOutlineLine(x1, y1, x2, y2) {
+    var ud = 1.7 * tu, od = 0.7 * tu;
+    var minw = 1.8 * tu, maxw = 2.2 * tu;
+    var density = 4, of = 0.2, range = 0.4;
+    var mina = 0.25, maxa = 0.35;
+    var mins = 0.3 * tu, maxs = 0.7 * tu;
+    var sx = x1, sy = y1, ex = x2, ey = y2;
+    var v = R.random_num(-ud, od);
+    if (Math.abs(x2 - x1) > Math.abs(y2 - y1)) {
+        if (x2 > x1) { sx = x1 - v; ex = x2 + v; }
+        else { sx = x1 + v; ex = x2 - v; }
     } else {
-        if (y2>y1) { sy=y1-v; ey=y2+v; } else { sy=y1+v; ey=y2-v; }
+        if (y2 > y1) { sy = y1 - v; ey = y2 + v; }
+        else { sy = y1 + v; ey = y2 - v; }
     }
-    let sw=R.random_num(minw, maxw);
-    let l=dist(sx,sy,ex,ey);
-    let n=Math.floor(l*d);
-    for (let i=0; i<n; i++) {
-        let t=R.random_dec();
-        let x=lerp(sx,ex,t), y=lerp(sy,ey,t);
-        let dx=ex-sx, dy=ey-sy;
-        let offset=sw*of+R.random_num(0, sw*range);
-        let side=R.random_choice([1,-1]);
-        let ppx=side*(-dy/l), ppy=side*(dx/l);
-        x+=ppx*offset; y+=ppy*offset;
-        let a=R.random_num(mina, maxa);
-        let rx=R.random_num(mins,maxs), ry=R.random_num(mins,maxs);
+    var sw = R.random_num(minw, maxw);
+    var l = dist(sx, sy, ex, ey);
+    var n = Math.floor(l * density);
+    var dots = [];
+    for (var i = 0; i < n; i++) {
+        var t = R.random_dec();
+        var x = lerp(sx, ex, t);
+        var y = lerp(sy, ey, t);
+        var dx = ex - sx, dy = ey - sy;
+        var offset = sw * of + R.random_num(0, sw * range);
+        var side = R.random_choice([1, -1]);
+        var px = side * (-dy / l), py = side * (dx / l);
+        x += px * offset;
+        y += py * offset;
+        var a = R.random_num(mina, maxa);
+        var ew = R.random_num(mins, maxs);
+        var eh = R.random_num(mins, maxs);
+        dots.push([x, y, a, ew, eh]);
+    }
+    return { sx: sx, sy: sy, ex: ex, ey: ey, sw: sw, dots: dots };
+}
+
+function renderOutlineLine(ctx, params, c) {
+    ctx.strokeStyle = c.toCSS();
+    ctx.lineWidth = params.sw;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(params.sx, params.sy);
+    ctx.lineTo(params.ex, params.ey);
+    ctx.stroke();
+    for (var i = 0; i < params.dots.length; i++) {
+        var d = params.dots[i];
+        var dotColor = color(hue(c), saturation(c), brightness(c), d[2]);
+        ctx.fillStyle = dotColor.toCSS();
+        ctx.beginPath();
+        ctx.ellipse(d[0], d[1], d[3] / 2, d[4] / 2, 0, 0, Math.PI * 2);
+        ctx.fill();
     }
 }
 
-// paintRectDraw PRNG advancement (no rendering — just consuming PRNG calls)
-function paintRectAdvancePRNG(x, y, rw, rh, c, bg, tu) {
-    let d=8, minw=0.5*tu, maxw=3.5*tu, sl=0.008, sd=0.007;
-    for (let i=0; i<d; i++) {
-        let sw=R.random_num(minw, maxw);
-        let sy2=R.random_num(sw, rh-sw);
-        let sxs=R.random_num(sw, rw-sw);
-        let sxe=R.random_num(sxs+sw, rw-sw);
+function computePaintRect(x, y, rw, rh, c, bg) {
+    var d = 8, minw = 0.5 * tu, maxw = 3.5 * tu, sl = 0.008, sd = 0.007;
+    var hStrokes = [], vStrokes = [];
+    for (var i = 0; i < d; i++) {
+        var sw = R.random_num(minw, maxw);
+        var sy = y + R.random_num(sw, rh - sw);
+        var sxs = x + R.random_num(sw, rw - sw);
+        var sxe = x + R.random_num(sxs - x + sw, rw - sw);
+        var strokeColor;
         if (R.random_bool(0.5)) {
-            let lightenAmt=R.random_num(0, sl);
+            var lighten = R.random_num(0, sl);
+            colorMode('RGB');
+            strokeColor = betterLerp(c, bg, lighten);
+            colorMode('HSB');
         } else {
-            let darken=R.random_num(1-sd, 1);
+            var darken = R.random_num(1 - sd, 1);
+            strokeColor = color(hue(c), saturation(c), brightness(c) * darken);
         }
+        hStrokes.push([sxs, sy, sxe, sy, sw, strokeColor]);
     }
-    for (let i=0; i<d; i++) {
-        let sw=R.random_num(minw, maxw);
-        let sx2=R.random_num(sw, rw-sw);
-        let sys=R.random_num(sw, rh-sw);
-        let sye=R.random_num(sys+sw, rh-sw);
+    for (var i = 0; i < d; i++) {
+        var sw = R.random_num(minw, maxw);
+        var sx = x + R.random_num(sw, rw - sw);
+        var sys = y + R.random_num(sw, rh - sw);
+        var sye = y + R.random_num(sys - y + sw, rh - sw);
+        var strokeColor;
         if (R.random_bool(0.5)) {
-            let lightenAmt=R.random_num(0, sl);
+            var lighten = R.random_num(0, sl);
+            colorMode('RGB');
+            strokeColor = betterLerp(c, bg, lighten);
+            colorMode('HSB');
         } else {
-            let darken=R.random_num(1-sd, 1.0);
+            var darken = R.random_num(1 - sd, 1.0);
+            strokeColor = color(hue(c), saturation(c), brightness(c) * darken);
         }
+        vStrokes.push([sx, sys, sx, sye, sw, strokeColor]);
     }
+    return { x: x, y: y, rw: rw, rh: rh, fillColor: c, hStrokes: hStrokes, vStrokes: vStrokes };
+}
+
+function renderPaintRect(ctx, params) {
+    ctx.fillStyle = params.fillColor.toCSS();
+    ctx.fillRect(params.x, params.y, params.rw, params.rh);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(params.x, params.y, params.rw, params.rh);
+    ctx.clip();
+    for (var i = 0; i < params.hStrokes.length; i++) {
+        var s = params.hStrokes[i];
+        ctx.strokeStyle = s[5].toCSS();
+        ctx.lineWidth = s[4];
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(s[0], s[1]);
+        ctx.lineTo(s[2], s[3]);
+        ctx.stroke();
+    }
+    for (var i = 0; i < params.vStrokes.length; i++) {
+        var s = params.vStrokes[i];
+        ctx.strokeStyle = s[5].toCSS();
+        ctx.lineWidth = s[4];
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(s[0], s[1]);
+        ctx.lineTo(s[2], s[3]);
+        ctx.stroke();
+    }
+    ctx.restore();
 }
 
 // ---- Layout functions (from on-chain) ----
@@ -3453,7 +3555,6 @@ function convertToLines(ra) {
 // ---- Main generation logic ----
 
 let lastTokenNumber, lastHash;
-let lastLayout = null;
 
 function setStatus(msg, cls) {
     let el = document.getElementById('status');
@@ -3528,8 +3629,7 @@ function doGenerate(hashVal, tokenNum) {
     let imageLeft = (canvasW - imageW) / 2;  // 750px = 2.5"
     let imageTop = (canvasH - imageH) / 2;   // 300px = 1"
 
-    let showLineDots = document.getElementById('lineDots').checked;
-    let showTrimMarks = document.getElementById('trimMarks').checked;
+
 
     // Set globals
     tokenData = hashVal;
@@ -3550,7 +3650,7 @@ function doGenerate(hashVal, tokenNum) {
     // We use the image area dimensions directly since they're 4:3.
     let w = imageW;
     let h = imageH;
-    let pw, ph, px, py, u, tu;
+    let pw, ph, px, py, u;
 
     if (w/h > 4/3) {
         ph = h; pw = h * 4/3;
@@ -3608,15 +3708,29 @@ function doGenerate(hashVal, tokenNum) {
     let consecutive = R.random_bool(0.5);
 
     // ---- Draw phase (mirrors on-chain draw()) ----
-    // Setup canvas
-    let canvas = document.getElementById('preview');
-    canvas.width = canvasW;
-    canvas.height = canvasH;
-    canvas.style.display = 'block';
-    ctx = canvas.getContext('2d');
+    // Setup print canvas (11×17" at 300 DPI)
+    let printCanvas = document.getElementById('printPreview');
+    printCanvas.width = canvasW;
+    printCanvas.height = canvasH;
+    printCanvas.style.display = 'block';
+    let printCtx = printCanvas.getContext('2d');
+    printCtx.fillStyle = '#ffffff';
+    printCtx.fillRect(0, 0, canvasW, canvasH);
 
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvasW, canvasH);
+    // Setup guide canvas (11×8.5" at 300 DPI, same artwork scale, cropped)
+    let guideW = 3300, guideH = 2550;
+    let guideCanvas = document.getElementById('guidePreview');
+    guideCanvas.width = guideW;
+    guideCanvas.height = guideH;
+    guideCanvas.style.display = 'block';
+    let guideCtx = guideCanvas.getContext('2d');
+    guideCtx.fillStyle = '#ffffff';
+    guideCtx.fillRect(0, 0, guideW, guideH);
+    // Translate guide context so print coords map to guide (artwork centered)
+    let guideOffX = (guideW - canvasW) / 2;
+    let guideOffY = (guideH - canvasH) / 2;
+    guideCtx.save();
+    guideCtx.translate(guideOffX, guideOffY);
 
     // Handle rotation — consume the PRNG call
     let rotated = R.random_bool(0.5);
@@ -3913,100 +4027,113 @@ function doGenerate(hashVal, tokenNum) {
 
     let olc = convertToLines(ol);
 
-    // Store layout for guide download
-    lastLayout = { ul: ul, olc: olc, pnt: pnt, rotated: rotated, u: u, px: px, py: py };
-
     // ========================================
-    // RENDERING — Print-specific (no texture)
+    // RENDERING — Faithful reproduction of on-chain rendering
+    // Pencil lines → Paint rects → Outline lines
+    // Paint goes to both canvases; pencil/outline to guide only
     // ========================================
 
     setStatus('Rendering...', 'generating');
 
     setTimeout(function() {
-        // If rotated, apply 180° rotation around image center
+        // Apply rotation to both contexts
         if (rotated) {
-            ctx.translate(canvasW, canvasH);
-            ctx.rotate(Math.PI);
+            printCtx.translate(canvasW, canvasH);
+            printCtx.rotate(Math.PI);
+            guideCtx.translate(canvasW, canvasH);
+            guideCtx.rotate(Math.PI);
         }
 
-        // Draw paint rectangles as flat solid fills
+        // Phase 1: Pencil lines (guide only, PRNG consumed)
+        for (let i = 0; i < ul.length; i++) {
+            let [x1u, y1u, x2u, y2u] = ul[i];
+            let params = computePencilLine(x1u * u + px, y1u * u + py, x2u * u + px, y2u * u + py);
+            renderPencilLine(guideCtx, params, pencil);
+        }
+
+        // Phase 2: Paint rects (both canvases, PRNG consumed once per rect)
         for (let i = 0; i < pnt.length; i++) {
             let [xu, yu, wu, hu, col] = pnt[i];
-            ctx.fillStyle = col.toCSS();
-            ctx.fillRect(xu * u + px, yu * u + py, wu * u, hu * u);
+            let params = computePaintRect(xu * u + px, yu * u + py, wu * u, hu * u, col, paper);
+            renderPaintRect(printCtx, params);
+            renderPaintRect(guideCtx, params);
         }
 
-        // Reset transform before drawing trim marks and dots
-        if (rotated) {
-            ctx.setTransform(1, 0, 0, 1, 0, 0);
+        // Phase 3: Outline lines (guide only, PRNG consumed)
+        for (let i = 0; i < olc.length; i++) {
+            let [x1u, y1u, x2u, y2u] = olc[i];
+            let params = computeOutlineLine(x1u * u + px, y1u * u + py, x2u * u + px, y2u * u + py);
+            renderOutlineLine(guideCtx, params, crayon);
         }
 
-        // ---- Trim marks ----
-        if (showTrimMarks) {
-            let trimLen = 75;  // 0.25" at 300 DPI
-            ctx.strokeStyle = 'rgba(0,0,0,0.30)';
-            ctx.lineWidth = 1;
-            ctx.setLineDash([]);
+        // Restore guide context translation
+        guideCtx.restore();
 
-            ctx.beginPath();
-            ctx.moveTo(imageLeft - trimLen, imageTop); ctx.lineTo(imageLeft - 1, imageTop);
-            ctx.moveTo(imageLeft, imageTop - trimLen); ctx.lineTo(imageLeft, imageTop - 1);
-            ctx.stroke();
+        // Reset print transform for trim marks and hatches
+        printCtx.setTransform(1, 0, 0, 1, 0, 0);
 
-            ctx.beginPath();
-            ctx.moveTo(imageLeft + imageW + 1, imageTop); ctx.lineTo(imageLeft + imageW + trimLen, imageTop);
-            ctx.moveTo(imageLeft + imageW, imageTop - trimLen); ctx.lineTo(imageLeft + imageW, imageTop - 1);
-            ctx.stroke();
+        // ---- Trim marks (print only) ----
+        let trimLen = 75;
+        printCtx.strokeStyle = 'rgba(0,0,0,0.30)';
+        printCtx.lineWidth = 1;
+        printCtx.setLineDash([]);
 
-            ctx.beginPath();
-            ctx.moveTo(imageLeft - trimLen, imageTop + imageH); ctx.lineTo(imageLeft - 1, imageTop + imageH);
-            ctx.moveTo(imageLeft, imageTop + imageH + 1); ctx.lineTo(imageLeft, imageTop + imageH + trimLen);
-            ctx.stroke();
+        printCtx.beginPath();
+        printCtx.moveTo(imageLeft - trimLen, imageTop); printCtx.lineTo(imageLeft - 1, imageTop);
+        printCtx.moveTo(imageLeft, imageTop - trimLen); printCtx.lineTo(imageLeft, imageTop - 1);
+        printCtx.stroke();
 
-            ctx.beginPath();
-            ctx.moveTo(imageLeft + imageW + 1, imageTop + imageH); ctx.lineTo(imageLeft + imageW + trimLen, imageTop + imageH);
-            ctx.moveTo(imageLeft + imageW, imageTop + imageH + 1); ctx.lineTo(imageLeft + imageW, imageTop + imageH + trimLen);
-            ctx.stroke();
+        printCtx.beginPath();
+        printCtx.moveTo(imageLeft + imageW + 1, imageTop); printCtx.lineTo(imageLeft + imageW + trimLen, imageTop);
+        printCtx.moveTo(imageLeft + imageW, imageTop - trimLen); printCtx.lineTo(imageLeft + imageW, imageTop - 1);
+        printCtx.stroke();
+
+        printCtx.beginPath();
+        printCtx.moveTo(imageLeft - trimLen, imageTop + imageH); printCtx.lineTo(imageLeft - 1, imageTop + imageH);
+        printCtx.moveTo(imageLeft, imageTop + imageH + 1); printCtx.lineTo(imageLeft, imageTop + imageH + trimLen);
+        printCtx.stroke();
+
+        printCtx.beginPath();
+        printCtx.moveTo(imageLeft + imageW + 1, imageTop + imageH); printCtx.lineTo(imageLeft + imageW + trimLen, imageTop + imageH);
+        printCtx.moveTo(imageLeft + imageW, imageTop + imageH + 1); printCtx.lineTo(imageLeft + imageW, imageTop + imageH + trimLen);
+        printCtx.stroke();
+
+        // ---- Line registration hashes (print only) ----
+        printCtx.strokeStyle = '#bbbbbb';
+        printCtx.lineWidth = 2;
+        printCtx.lineCap = 'round';
+        let hashLen = 12;
+
+        let drawn = new Set();
+        function toCanvas(x, y) {
+            if (rotated) return [canvasW - (x * u + px), canvasH - (y * u + py)];
+            return [x * u + px, y * u + py];
         }
 
-        // ---- Line registration hashes (short strokes at pencil line endpoints) ----
-        if (showLineDots) {
-            ctx.strokeStyle = '#bbbbbb';
-            ctx.lineWidth = 2;
-            ctx.lineCap = 'round';
-            let hashLen = 12;
+        for (let i = 0; i < ul.length; i++) {
+            let p1 = toCanvas(ul[i][0], ul[i][1]);
+            let p2 = toCanvas(ul[i][2], ul[i][3]);
+            let dx = p2[0] - p1[0], dy = p2[1] - p1[1];
+            let len = Math.sqrt(dx * dx + dy * dy);
+            if (len === 0) continue;
+            let nx = dx / len, ny = dy / len;
 
-            let drawn = new Set();
-            function toCanvas(x, y) {
-                if (rotated) return [canvasW - (x * u + px), canvasH - (y * u + py)];
-                return [x * u + px, y * u + py];
+            let k1 = Math.round(p1[0]) + ',' + Math.round(p1[1]);
+            if (!drawn.has(k1)) {
+                drawn.add(k1);
+                printCtx.beginPath();
+                printCtx.moveTo(p1[0], p1[1]);
+                printCtx.lineTo(p1[0] + nx * hashLen, p1[1] + ny * hashLen);
+                printCtx.stroke();
             }
 
-            for (let i = 0; i < ul.length; i++) {
-                let p1 = toCanvas(ul[i][0], ul[i][1]);
-                let p2 = toCanvas(ul[i][2], ul[i][3]);
-                let dx = p2[0] - p1[0], dy = p2[1] - p1[1];
-                let len = Math.sqrt(dx * dx + dy * dy);
-                if (len === 0) continue;
-                let nx = dx / len, ny = dy / len;
-
-                let k1 = Math.round(p1[0]) + ',' + Math.round(p1[1]);
-                if (!drawn.has(k1)) {
-                    drawn.add(k1);
-                    ctx.beginPath();
-                    ctx.moveTo(p1[0], p1[1]);
-                    ctx.lineTo(p1[0] + nx * hashLen, p1[1] + ny * hashLen);
-                    ctx.stroke();
-                }
-
-                let k2 = Math.round(p2[0]) + ',' + Math.round(p2[1]);
-                if (!drawn.has(k2)) {
-                    drawn.add(k2);
-                    ctx.beginPath();
-                    ctx.moveTo(p2[0], p2[1]);
-                    ctx.lineTo(p2[0] - nx * hashLen, p2[1] - ny * hashLen);
-                    ctx.stroke();
-                }
+            let k2 = Math.round(p2[0]) + ',' + Math.round(p2[1]);
+            if (!drawn.has(k2)) {
+                drawn.add(k2);
+                printCtx.beginPath();
+                printCtx.moveTo(p2[0], p2[1]);
+                printCtx.lineTo(p2[0] - nx * hashLen, p2[1] - ny * hashLen);
+                printCtx.stroke();
             }
         }
 
@@ -4029,12 +4156,12 @@ function doGenerate(hashVal, tokenNum) {
         }
         document.getElementById('infoPanel').className = 'info-panel visible';
 
-        document.getElementById('downloadBtn').disabled = false;
+        document.getElementById('downloadPrintBtn').disabled = false;
         document.getElementById('downloadGuideBtn').disabled = false;
         document.getElementById('generateBtn').disabled = false;
-        renderGuide(document.getElementById('guidePreview'));
+        document.getElementById('printPreviewLabel').style.display = 'block';
         document.getElementById('guidePreviewLabel').style.display = 'block';
-        setStatus('Done. 5100\u00d73300 px (17\u00d711\u2033 at 300 DPI) \u2014 Token #' + tokenNum, 'done');
+        setStatus('Done — Token #' + tokenNum, 'done');
     }, 20);
 }
 
@@ -4098,10 +4225,10 @@ function crc32(buf) {
     return (crc ^ 0xFFFFFFFF) >>> 0;
 }
 
-function downloadPNG() {
-    var canvas = document.getElementById('preview');
+function downloadPrint() {
+    var canvas = document.getElementById('printPreview');
     var hashPrefix = lastHash ? lastHash.substring(2, 10) : 'unknown';
-    var filename = 'dfam-' + lastTokenNumber + '-' + hashPrefix + '.png';
+    var filename = 'dfam-' + lastTokenNumber + '-' + hashPrefix + '-print.png';
     canvas.toBlob(function(blob) {
         injectPngDpi(blob, 300).then(function(dpiBlob) {
             var url = URL.createObjectURL(dpiBlob);
@@ -4114,89 +4241,11 @@ function downloadPNG() {
     }, 'image/png');
 }
 
-function renderGuide(targetCanvas) {
-    if (!lastLayout) return null;
-    var lay = lastLayout;
-
-    var gW = 3300, gH = 2550; // 11×8.5" landscape at 300 DPI
-    var marginPx = 150;
-    var usableW = gW - marginPx * 2;
-    var usableH = gH - marginPx * 2;
-
-    var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    function toGuideCoord(ux, uy) {
-        var cx = ux * lay.u + lay.px, cy = uy * lay.u + lay.py;
-        if (lay.rotated) { cx = -cx; cy = -cy; }
-        return [cx, cy];
-    }
-    for (var i = 0; i < lay.ul.length; i++) {
-        var p1 = toGuideCoord(lay.ul[i][0], lay.ul[i][1]);
-        var p2 = toGuideCoord(lay.ul[i][2], lay.ul[i][3]);
-        minX = Math.min(minX, p1[0], p2[0]); maxX = Math.max(maxX, p1[0], p2[0]);
-        minY = Math.min(minY, p1[1], p2[1]); maxY = Math.max(maxY, p1[1], p2[1]);
-    }
-
-    var compW = maxX - minX, compH = maxY - minY;
-    var scale = Math.min(usableW / compW, usableH / compH);
-    var offX = marginPx + (usableW - compW * scale) / 2;
-    var offY = marginPx + (usableH - compH * scale) / 2;
-
-    function mapX(v) { return (v - minX) * scale + offX; }
-    function mapY(v) { return (v - minY) * scale + offY; }
-
-    targetCanvas.width = gW;
-    targetCanvas.height = gH;
-    targetCanvas.style.display = 'block';
-    var gctx = targetCanvas.getContext('2d');
-
-    gctx.fillStyle = '#ffffff';
-    gctx.fillRect(0, 0, gW, gH);
-
-    for (var p = 0; p < lay.pnt.length; p++) {
-        var rect = lay.pnt[p];
-        var rx1 = rect[0] * lay.u + lay.px;
-        var ry1 = rect[1] * lay.u + lay.py;
-        var rw = rect[2] * lay.u;
-        var rh = rect[3] * lay.u;
-        if (lay.rotated) { rx1 = -rx1 - rw; ry1 = -ry1 - rh; }
-        gctx.fillStyle = rect[4].toCSS();
-        gctx.fillRect(mapX(rx1), mapY(ry1), rw * scale, rh * scale);
-    }
-
-    gctx.strokeStyle = '#bbbbbb';
-    gctx.lineWidth = Math.max(1, Math.round(1.8 * scale));
-
-    for (var j = 0; j < lay.ul.length; j++) {
-        var q1 = toGuideCoord(lay.ul[j][0], lay.ul[j][1]);
-        var q2 = toGuideCoord(lay.ul[j][2], lay.ul[j][3]);
-        gctx.beginPath();
-        gctx.moveTo(mapX(q1[0]), mapY(q1[1]));
-        gctx.lineTo(mapX(q2[0]), mapY(q2[1]));
-        gctx.stroke();
-    }
-
-    gctx.strokeStyle = '#222222';
-    gctx.lineWidth = Math.max(4, Math.round(7 * scale));
-    gctx.lineCap = 'round';
-
-    for (var k = 0; k < lay.olc.length; k++) {
-        var op1 = toGuideCoord(lay.olc[k][0], lay.olc[k][1]);
-        var op2 = toGuideCoord(lay.olc[k][2], lay.olc[k][3]);
-        gctx.beginPath();
-        gctx.moveTo(mapX(op1[0]), mapY(op1[1]));
-        gctx.lineTo(mapX(op2[0]), mapY(op2[1]));
-        gctx.stroke();
-    }
-
-    return targetCanvas;
-}
-
 function downloadGuide() {
-    var gc = document.createElement('canvas');
-    if (!renderGuide(gc)) return;
+    var canvas = document.getElementById('guidePreview');
     var hashPrefix = lastHash ? lastHash.substring(2, 10) : 'unknown';
     var filename = 'dfam-' + lastTokenNumber + '-' + hashPrefix + '-guide.png';
-    gc.toBlob(function(blob) {
+    canvas.toBlob(function(blob) {
         injectPngDpi(blob, 300).then(function(dpiBlob) {
             var url = URL.createObjectURL(dpiBlob);
             var link = document.createElement('a');
