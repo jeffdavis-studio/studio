@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mechanical Drawings — Production Tracker</title>
+<style>
+  :root {
+    --bg: #1a1a1a;
+    --surface: #242424;
+    --surface2: #2e2e2e;
+    --border: #3a3a3a;
+    --text: #e0e0e0;
+    --text-dim: #888;
+    --accent: #6ba3d6;
+    --accent-dim: #4a7faa;
+    --green: #5cb85c;
+    --yellow: #e8b84a;
+    --red: #d9534f;
+    --orange: #e88a4a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 24px;
+    line-height: 1.5;
+  }
+  h1 { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+  .subtitle { color: var(--text-dim); font-size: 13px; margin-bottom: 24px; }
+  .subtitle span { color: var(--accent); }
+
+  /* Summary bar */
+  .summary {
+    display: flex; gap: 16px; flex-wrap: wrap;
+    margin-bottom: 24px; padding: 16px;
+    background: var(--surface); border-radius: 8px; border: 1px solid var(--border);
+  }
+  .stat { text-align: center; min-width: 80px; }
+  .stat-val { font-size: 28px; font-weight: 700; }
+  .stat-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-val.green { color: var(--green); }
+  .stat-val.yellow { color: var(--yellow); }
+  .stat-val.red { color: var(--red); }
+  .stat-val.accent { color: var(--accent); }
+
+  /* Timeline */
+  .timeline-section { margin-bottom: 24px; }
+  .timeline-header { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+  .timeline {
+    background: var(--surface); border-radius: 8px; border: 1px solid var(--border);
+    padding: 16px; overflow-x: auto;
+  }
+  .timeline-grid {
+    display: grid; gap: 2px; min-width: 700px;
+  }
+  .timeline-row { display: contents; }
+  .timeline-label {
+    font-size: 11px; color: var(--text-dim); padding: 4px 8px 4px 0;
+    white-space: nowrap; text-align: right; align-self: center;
+  }
+  .timeline-cells { display: flex; gap: 2px; }
+  .timeline-cell {
+    width: 18px; height: 24px; border-radius: 3px;
+    background: var(--surface2); position: relative;
+    cursor: default; flex-shrink: 0;
+  }
+  .timeline-cell.today { outline: 2px solid var(--accent); outline-offset: -1px; }
+  .timeline-cell.milestone { background: var(--yellow); opacity: 0.7; }
+  .timeline-cell.deadline { background: var(--red); opacity: 0.7; }
+  .timeline-cell.production { background: var(--green); opacity: 0.3; }
+  .timeline-cell:hover .tooltip {
+    display: block;
+  }
+  .tooltip {
+    display: none; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+    background: #111; color: var(--text); padding: 4px 8px; border-radius: 4px;
+    font-size: 11px; white-space: nowrap; z-index: 10; pointer-events: none;
+    margin-bottom: 4px;
+  }
+  .week-markers { display: flex; gap: 2px; padding-left: 0; }
+  .week-marker {
+    width: 18px; text-align: center; font-size: 9px; color: var(--text-dim);
+    flex-shrink: 0;
+  }
+
+  /* Pieces table */
+  .pieces-section { margin-bottom: 24px; }
+  .section-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 12px;
+  }
+  .section-title { font-size: 14px; font-weight: 600; }
+  .btn {
+    background: var(--accent-dim); color: white; border: none;
+    padding: 6px 14px; border-radius: 6px; cursor: pointer;
+    font-size: 12px; font-weight: 500;
+  }
+  .btn:hover { background: var(--accent); }
+  .btn-small {
+    background: transparent; border: 1px solid var(--border);
+    color: var(--text-dim); padding: 3px 8px; border-radius: 4px;
+    cursor: pointer; font-size: 11px;
+  }
+  .btn-small:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-danger { background: transparent; border: 1px solid var(--red); color: var(--red); }
+  .btn-danger:hover { background: var(--red); color: white; }
+
+  table {
+    width: 100%; border-collapse: collapse;
+    background: var(--surface); border-radius: 8px;
+    overflow: hidden; border: 1px solid var(--border);
+  }
+  th {
+    text-align: left; padding: 10px 12px; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    color: var(--text-dim); background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 10px 12px; font-size: 13px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .status-badge {
+    display: inline-block; padding: 2px 8px; border-radius: 10px;
+    font-size: 11px; font-weight: 500; cursor: pointer;
+    user-select: none;
+  }
+  .status-queue { background: var(--surface2); color: var(--text-dim); }
+  .status-composition { background: rgba(107,163,214,0.15); color: var(--accent); }
+  .status-svg { background: rgba(232,186,74,0.15); color: var(--yellow); }
+  .status-plotting { background: rgba(232,138,74,0.15); color: var(--orange); }
+  .status-qc { background: rgba(217,83,79,0.15); color: var(--red); }
+  .status-done { background: rgba(92,184,92,0.15); color: var(--green); }
+
+  .pencil-chips { display: flex; gap: 3px; flex-wrap: wrap; }
+  .pencil-chip {
+    width: 18px; height: 18px; border-radius: 50%;
+    border: 2px solid var(--border); cursor: default;
+    position: relative;
+  }
+  .pencil-chip:hover .tooltip { display: block; }
+
+  /* Pencil palette picker */
+  .palette-picker {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px; margin-bottom: 16px;
+    display: none;
+  }
+  .palette-picker.active { display: block; }
+  .palette-picker h3 { font-size: 13px; margin-bottom: 8px; }
+  .palette-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .palette-swatch {
+    width: 32px; height: 32px; border-radius: 6px; cursor: pointer;
+    border: 2px solid transparent; position: relative; transition: transform 0.1s;
+  }
+  .palette-swatch:hover { transform: scale(1.15); }
+  .palette-swatch.selected { border-color: white; box-shadow: 0 0 0 2px var(--accent); }
+  .palette-swatch .tooltip { font-size: 10px; }
+  .adjacency-warning {
+    color: var(--red); font-size: 12px; margin-top: 8px;
+    display: none;
+  }
+  .adjacency-warning.visible { display: block; }
+
+  /* Paper inventory */
+  .inventory {
+    background: var(--surface); border-radius: 8px; border: 1px solid var(--border);
+    padding: 16px; margin-bottom: 24px;
+  }
+  .inventory-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 0;
+  }
+  .inventory-label { font-size: 13px; }
+  .inventory-val { font-size: 13px; font-weight: 600; }
+  .inventory-input {
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); padding: 4px 8px; border-radius: 4px;
+    width: 60px; text-align: center; font-size: 13px;
+  }
+
+  /* Notes */
+  .notes-area {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); padding: 12px; border-radius: 6px;
+    font-family: inherit; font-size: 13px; resize: vertical;
+    min-height: 80px;
+  }
+
+  /* Edit modal */
+  .modal-overlay {
+    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.6); z-index: 100;
+    justify-content: center; align-items: center;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px; width: 480px; max-width: 90vw;
+    max-height: 80vh; overflow-y: auto;
+  }
+  .modal h2 { font-size: 16px; margin-bottom: 16px; }
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 11px; color: var(--text-dim); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .field input, .field select, .field textarea {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); padding: 8px 12px; border-radius: 6px;
+    font-family: inherit; font-size: 13px;
+  }
+  .field textarea { resize: vertical; min-height: 60px; }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+
+  /* Export section */
+  .export-section { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); }
+  .export-row { display: flex; gap: 8px; }
+
+  @media (max-width: 640px) {
+    body { padding: 12px; }
+    .summary { flex-direction: column; gap: 8px; }
+    .stat { text-align: left; display: flex; gap: 8px; align-items: baseline; }
+    .stat-val { font-size: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Mechanical Drawings — Production Tracker</h1>
+<div class="subtitle">Office Impart, Berlin · <span>Jun 9 - 27, 2026</span> · Target: 10 large drawings</div>
+
+<!-- Summary -->
+<div class="summary" id="summary"></div>
+
+<!-- Timeline -->
+<div class="timeline-section">
+  <div class="timeline-header">Production Window</div>
+  <div class="timeline" id="timeline"></div>
+</div>
+
+<!-- Paper Inventory -->
+<div class="inventory">
+  <div class="section-header" style="margin-bottom:8px">
+    <div class="section-title">Materials</div>
+  </div>
+  <div class="inventory-row">
+    <span class="inventory-label">Fabriano Artistico sheets (56x76cm, 300gsm, satin, extra white)</span>
+    <span><input type="number" class="inventory-input" id="paperStock" min="0" value="0" onchange="save()"> in stock</span>
+  </div>
+  <div class="inventory-row">
+    <span class="inventory-label">Sheets needed (1 per piece + 2 spare)</span>
+    <span class="inventory-val" id="paperNeeded">12</span>
+  </div>
+  <div class="inventory-row">
+    <span class="inventory-label">Caran d'Ache Pablo pencil sets verified</span>
+    <span class="inventory-val" id="pencilStatus">-</span>
+  </div>
+</div>
+
+<!-- Pencil palette reference (collapsed) -->
+<div style="margin-bottom:24px">
+  <button class="btn-small" onclick="document.getElementById('paletteRef').classList.toggle('active')">Toggle pencil palette reference</button>
+  <div class="palette-picker" id="paletteRef">
+    <h3>Full 24-Pencil Caran d'Ache Pablo Palette (Hue Order)</h3>
+    <div class="palette-grid" id="fullPalette"></div>
+    <div style="font-size:11px;color:var(--text-dim);margin-top:8px">
+      Adjacent pencils in hue order cannot be combined (hasConsecutivePair rule). The tracker validates this automatically when you assign pencil sets.
+    </div>
+  </div>
+</div>
+
+<!-- Pieces -->
+<div class="pieces-section">
+  <div class="section-header">
+    <div class="section-title">Pieces</div>
+    <button class="btn" onclick="addPiece()">+ Add Piece</button>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:30px">#</th>
+        <th>Title / Composition</th>
+        <th>Pencils</th>
+        <th>Size</th>
+        <th>Status</th>
+        <th>Target</th>
+        <th style="width:80px"></th>
+      </tr>
+    </thead>
+    <tbody id="piecesBody"></tbody>
+  </table>
+</div>
+
+<!-- Notes -->
+<div style="margin-bottom:24px">
+  <div class="section-title" style="margin-bottom:8px">Production Notes</div>
+  <textarea class="notes-area" id="productionNotes" placeholder="General production notes, Sofie coordination, shipping logistics..." onchange="save()"></textarea>
+</div>
+
+<!-- Export -->
+<div class="export-section">
+  <div class="section-title" style="margin-bottom:8px">Data</div>
+  <div class="export-row">
+    <button class="btn-small" onclick="exportJSON()">Export JSON</button>
+    <button class="btn-small" onclick="importJSON()">Import JSON</button>
+    <button class="btn-small" onclick="exportMarkdown()">Export Markdown Summary</button>
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <h2 id="modalTitle">Edit Piece</h2>
+    <div class="field">
+      <label>Title / Composition ID</label>
+      <input type="text" id="editTitle" placeholder="e.g. Composition #47 or a descriptive title">
+    </div>
+    <div class="field">
+      <label>Token Hash (optional)</label>
+      <input type="text" id="editHash" placeholder="0x...">
+    </div>
+    <div class="field">
+      <label>Size</label>
+      <select id="editSize">
+        <option value="56x76cm">56 x 76 cm (standard)</option>
+        <option value="custom">Custom</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Pencil Set (click to select/deselect)</label>
+      <div class="palette-grid" id="pencilPicker"></div>
+      <div class="adjacency-warning" id="adjacencyWarn">Adjacent pencils selected — violates hasConsecutivePair rule</div>
+    </div>
+    <div class="field">
+      <label>Target Completion</label>
+      <input type="date" id="editTarget" min="2026-04-16" max="2026-06-08">
+    </div>
+    <div class="field">
+      <label>Notes</label>
+      <textarea id="editNotes" placeholder="Composition details, plotting notes, issues..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-small" onclick="closeModal()">Cancel</button>
+      <button class="btn" onclick="saveModal()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// === Pencil Data (24 Caran d'Ache Pablos in hue order) ===
+const PENCILS = [
+  { id: 'scarlet', name: 'Scarlet', hue: 359, hex: '#d63031' },
+  { id: 'ruby-red', name: 'Ruby Red', hue: 352, hex: '#c0392b' },
+  { id: 'carmine', name: 'Carmine', hue: 345, hex: '#a93226' },
+  { id: 'purple', name: 'Purple', hue: 300, hex: '#8e44ad' },
+  { id: 'violet', name: 'Violet', hue: 280, hex: '#6c3483' },
+  { id: 'blue-violet', name: 'Blue Violet', hue: 260, hex: '#5b2c6f' },
+  { id: 'ultramarine', name: 'Ultramarine', hue: 240, hex: '#2e4057' },
+  { id: 'cobalt-blue', name: 'Cobalt Blue', hue: 220, hex: '#2471a3' },
+  { id: 'sky-blue', name: 'Sky Blue', hue: 200, hex: '#5dade2' },
+  { id: 'turquoise-blue', name: 'Turquoise Blue', hue: 185, hex: '#48c9b0' },
+  { id: 'turquoise-green', name: 'Turquoise Green', hue: 170, hex: '#1abc9c' },
+  { id: 'emerald-green', name: 'Emerald Green', hue: 155, hex: '#27ae60' },
+  { id: 'green', name: 'Green', hue: 140, hex: '#229954' },
+  { id: 'moss-green', name: 'Moss Green', hue: 120, hex: '#6b8e23' },
+  { id: 'olive', name: 'Olive', hue: 100, hex: '#808000' },
+  { id: 'khaki-green', name: 'Khaki Green', hue: 85, hex: '#a0a030' },
+  { id: 'spring-green', name: 'Spring Green', hue: 70, hex: '#c8d020' },
+  { id: 'lemon-yellow', name: 'Lemon Yellow', hue: 58, hex: '#f1c40f' },
+  { id: 'golden-yellow', name: 'Golden Yellow', hue: 48, hex: '#f39c12' },
+  { id: 'orange', name: 'Orange', hue: 30, hex: '#e67e22' },
+  { id: 'flame-red', name: 'Flame Red', hue: 15, hex: '#d35400' },
+  { id: 'burnt-sienna', name: 'Burnt Sienna', hue: 20, hex: '#a0522d' },
+  { id: 'brown', name: 'Brown', hue: 25, hex: '#6e3b12' },
+  { id: 'dark-brown', name: 'Dark Brown', hue: 18, hex: '#3e1f0a' },
+];
+
+// Status flow
+const STATUSES = [
+  { id: 'queue', label: 'Queue', cls: 'status-queue' },
+  { id: 'composition', label: 'Composition', cls: 'status-composition' },
+  { id: 'svg', label: 'SVG Ready', cls: 'status-svg' },
+  { id: 'plotting', label: 'Plotting', cls: 'status-plotting' },
+  { id: 'qc', label: 'QC', cls: 'status-qc' },
+  { id: 'done', label: 'Done', cls: 'status-done' },
+];
+
+// Key dates
+const MILESTONES = {
+  '2026-04-17': 'Mainnet deployment',
+  '2026-04-20': 'Production starts',
+  '2026-05-03': 'ABS Prize deadline',
+  '2026-06-01': 'Ship to Berlin (latest)',
+  '2026-06-09': 'Office Impart opens',
+  '2026-06-27': 'Office Impart closes',
+};
+
+// State
+let state = {
+  pieces: [],
+  paperStock: 0,
+  notes: '',
+};
+
+// === Persistence (JSON file-based, no localStorage) ===
+function save() {
+  state.paperStock = parseInt(document.getElementById('paperStock').value) || 0;
+  state.notes = document.getElementById('productionNotes').value;
+  // State is saved via export; in-memory during session
+  render();
+}
+
+function render() {
+  renderSummary();
+  renderTimeline();
+  renderPieces();
+  renderInventory();
+}
+
+function renderSummary() {
+  const total = state.pieces.length;
+  const done = state.pieces.filter(p => p.status === 'done').length;
+  const inProgress = state.pieces.filter(p => !['queue','done'].includes(p.status)).length;
+  const remaining = total - done;
+  const target = 10;
+
+  const today = new Date('2026-04-16');
+  const opening = new Date('2026-06-09');
+  const shipBy = new Date('2026-06-01');
+  const daysToShip = Math.ceil((shipBy - today) / 86400000);
+
+  document.getElementById('summary').innerHTML = `
+    <div class="stat"><div class="stat-val accent">${total}</div><div class="stat-label">Pieces</div></div>
+    <div class="stat"><div class="stat-val green">${done}</div><div class="stat-label">Complete</div></div>
+    <div class="stat"><div class="stat-val yellow">${inProgress}</div><div class="stat-label">In Progress</div></div>
+    <div class="stat"><div class="stat-val ${remaining > 8 ? 'red' : remaining > 4 ? 'yellow' : 'green'}">${remaining}</div><div class="stat-label">Remaining</div></div>
+    <div class="stat"><div class="stat-val">${daysToShip}</div><div class="stat-label">Days to Ship</div></div>
+    <div class="stat"><div class="stat-val">${target - total > 0 ? target - total : 0}</div><div class="stat-label">Slots Open</div></div>
+  `;
+}
+
+function renderTimeline() {
+  const start = new Date('2026-04-16');
+  const end = new Date('2026-06-27');
+  const days = [];
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    days.push(new Date(d));
+  }
+
+  const today = '2026-04-16';
+  const prodStart = new Date('2026-04-20');
+  const shipBy = new Date('2026-06-01');
+
+  let weekMarkersHTML = '<div class="week-markers" style="margin-left:100px">';
+  days.forEach((d, i) => {
+    const label = d.getDay() === 1 ? `${d.getMonth()+1}/${d.getDate()}` : '';
+    weekMarkersHTML += `<div class="week-marker">${label}</div>`;
+  });
+  weekMarkersHTML += '</div>';
+
+  // Main timeline row
+  let cellsHTML = '';
+  days.forEach(d => {
+    const ds = d.toISOString().slice(0,10);
+    let cls = 'timeline-cell';
+    let tip = `${ds} (${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()]})`;
+
+    if (ds === today) cls += ' today';
+    if (MILESTONES[ds]) {
+      cls += ds.includes('06-09') || ds.includes('06-01') || ds.includes('05-03') ? ' deadline' : ' milestone';
+      tip += ' — ' + MILESTONES[ds];
+    } else if (d >= prodStart && d <= shipBy) {
+      cls += ' production';
+    }
+
+    cellsHTML += `<div class="${cls}"><div class="tooltip">${tip}</div></div>`;
+  });
+
+  document.getElementById('timeline').innerHTML = `
+    ${weekMarkersHTML}
+    <div style="display:flex;align-items:center;margin-top:4px">
+      <div class="timeline-label" style="width:100px">Production</div>
+      <div class="timeline-cells">${cellsHTML}</div>
+    </div>
+    <div style="margin-top:8px;display:flex;gap:16px;font-size:11px;color:var(--text-dim)">
+      <span><span style="display:inline-block;width:10px;height:10px;background:var(--accent);border-radius:2px;margin-right:4px"></span>Today</span>
+      <span><span style="display:inline-block;width:10px;height:10px;background:var(--yellow);opacity:0.7;border-radius:2px;margin-right:4px"></span>Milestone</span>
+      <span><span style="display:inline-block;width:10px;height:10px;background:var(--red);opacity:0.7;border-radius:2px;margin-right:4px"></span>Deadline</span>
+      <span><span style="display:inline-block;width:10px;height:10px;background:var(--green);opacity:0.3;border-radius:2px;margin-right:4px"></span>Production window</span>
+    </div>
+  `;
+}
+
+function renderPieces() {
+  const tbody = document.getElementById('piecesBody');
+  if (state.pieces.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--text-dim);padding:32px">
+      No pieces yet. Click "+ Add Piece" to start building the production list.<br>
+      <span style="font-size:12px">Add compositions from the playground shortlist once mainnet launches.</span>
+    </td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = state.pieces.map((p, i) => {
+    const statusObj = STATUSES.find(s => s.id === p.status) || STATUSES[0];
+    const pencilHTML = (p.pencils || []).map(pid => {
+      const pencil = PENCILS.find(pp => pp.id === pid);
+      if (!pencil) return '';
+      return `<div class="pencil-chip" style="background:${pencil.hex}"><div class="tooltip">${pencil.name}</div></div>`;
+    }).join('');
+
+    return `<tr>
+      <td style="color:var(--text-dim)">${i + 1}</td>
+      <td>
+        <div style="font-weight:500">${p.title || '<em style="color:var(--text-dim)">Untitled</em>'}</div>
+        ${p.hash ? `<div style="font-size:11px;color:var(--text-dim);font-family:monospace">${p.hash.slice(0,10)}...</div>` : ''}
+        ${p.notes ? `<div style="font-size:11px;color:var(--text-dim);margin-top:2px">${p.notes}</div>` : ''}
+      </td>
+      <td><div class="pencil-chips">${pencilHTML || '<span style="color:var(--text-dim);font-size:11px">none</span>'}</div></td>
+      <td style="font-size:12px">${p.size || '56x76cm'}</td>
+      <td><span class="status-badge ${statusObj.cls}" onclick="cycleStatus(${i})">${statusObj.label}</span></td>
+      <td style="font-size:12px">${p.target || '-'}</td>
+      <td>
+        <button class="btn-small" onclick="editPiece(${i})" style="margin-right:4px">Edit</button>
+        <button class="btn-small btn-danger" onclick="removePiece(${i})">x</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function renderInventory() {
+  document.getElementById('paperStock').value = state.paperStock;
+  document.getElementById('productionNotes').value = state.notes;
+  const needed = state.pieces.length + 2;
+  document.getElementById('paperNeeded').textContent = needed;
+  const deficit = needed - state.paperStock;
+  document.getElementById('paperNeeded').style.color = deficit > 0 ? 'var(--red)' : 'var(--green)';
+
+  const allPencils = new Set();
+  state.pieces.forEach(p => (p.pencils || []).forEach(id => allPencils.add(id)));
+  document.getElementById('pencilStatus').textContent = allPencils.size > 0
+    ? `${allPencils.size} unique pencils across ${state.pieces.filter(p => p.pencils?.length).length} pieces`
+    : 'No pencil sets assigned yet';
+}
+
+// Render full palette reference
+function renderFullPalette() {
+  document.getElementById('fullPalette').innerHTML = PENCILS.map(p =>
+    `<div class="palette-swatch" style="background:${p.hex}" title="${p.name}">
+      <div class="tooltip">${p.name} (${p.hue}°)</div>
+    </div>`
+  ).join('');
+}
+
+// === Pencil picker in modal ===
+let selectedPencils = [];
+
+function renderPencilPicker() {
+  document.getElementById('pencilPicker').innerHTML = PENCILS.map(p => {
+    const sel = selectedPencils.includes(p.id) ? 'selected' : '';
+    return `<div class="palette-swatch ${sel}" style="background:${p.hex}"
+      onclick="togglePencil('${p.id}')" title="${p.name}">
+      <div class="tooltip">${p.name}</div>
+    </div>`;
+  }).join('');
+  checkAdjacency();
+}
+
+function togglePencil(id) {
+  const idx = selectedPencils.indexOf(id);
+  if (idx >= 0) selectedPencils.splice(idx, 1);
+  else selectedPencils.push(id);
+  renderPencilPicker();
+}
+
+function checkAdjacency() {
+  // Check if any two selected pencils are adjacent in the hue-ordered list
+  const indices = selectedPencils.map(id => PENCILS.findIndex(p => p.id === id)).filter(i => i >= 0).sort((a,b) => a-b);
+  let hasAdj = false;
+  for (let i = 1; i < indices.length; i++) {
+    if (indices[i] - indices[i-1] === 1) { hasAdj = true; break; }
+  }
+  // Also check wrap-around (first and last in the 24-pencil circle)
+  if (indices.length >= 2 && indices[indices.length-1] - indices[0] === PENCILS.length - 1) hasAdj = true;
+
+  const warn = document.getElementById('adjacencyWarn');
+  warn.classList.toggle('visible', hasAdj);
+}
+
+// === Piece CRUD ===
+function addPiece() {
+  state.pieces.push({
+    title: '',
+    hash: '',
+    size: '56x76cm',
+    pencils: [],
+    status: 'queue',
+    target: '',
+    notes: '',
+  });
+  save();
+  editPiece(state.pieces.length - 1);
+}
+
+let editingIndex = -1;
+
+function editPiece(i) {
+  editingIndex = i;
+  const p = state.pieces[i];
+  document.getElementById('modalTitle').textContent = `Edit Piece #${i + 1}`;
+  document.getElementById('editTitle').value = p.title || '';
+  document.getElementById('editHash').value = p.hash || '';
+  document.getElementById('editSize').value = p.size || '56x76cm';
+  document.getElementById('editTarget').value = p.target || '';
+  document.getElementById('editNotes').value = p.notes || '';
+  selectedPencils = [...(p.pencils || [])];
+  renderPencilPicker();
+  document.getElementById('editModal').classList.add('active');
+}
+
+function closeModal() {
+  document.getElementById('editModal').classList.remove('active');
+  editingIndex = -1;
+}
+
+function saveModal() {
+  if (editingIndex < 0) return;
+  const p = state.pieces[editingIndex];
+  p.title = document.getElementById('editTitle').value;
+  p.hash = document.getElementById('editHash').value;
+  p.size = document.getElementById('editSize').value;
+  p.target = document.getElementById('editTarget').value;
+  p.notes = document.getElementById('editNotes').value;
+  p.pencils = [...selectedPencils];
+  closeModal();
+  save();
+}
+
+function removePiece(i) {
+  state.pieces.splice(i, 1);
+  save();
+}
+
+function cycleStatus(i) {
+  const p = state.pieces[i];
+  const idx = STATUSES.findIndex(s => s.id === p.status);
+  p.status = STATUSES[(idx + 1) % STATUSES.length].id;
+  save();
+}
+
+// === Export / Import ===
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'mech-drawings-production.json';
+  a.click();
+}
+
+function importJSON() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (data.pieces) {
+          state = data;
+          save();
+        }
+      } catch (err) {
+        alert('Invalid JSON file');
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+function exportMarkdown() {
+  const done = state.pieces.filter(p => p.status === 'done').length;
+  let md = `# Mechanical Drawings Production Status\n\n`;
+  md += `**Date:** ${new Date().toISOString().slice(0,10)}\n`;
+  md += `**Progress:** ${done}/${state.pieces.length} complete\n`;
+  md += `**Paper:** ${state.paperStock} sheets in stock, ${state.pieces.length + 2} needed\n\n`;
+  md += `| # | Title | Pencils | Status | Target |\n`;
+  md += `|---|-------|---------|--------|--------|\n`;
+  state.pieces.forEach((p, i) => {
+    const pencilNames = (p.pencils || []).map(id => PENCILS.find(pp => pp.id === id)?.name || id).join(', ');
+    const statusLabel = STATUSES.find(s => s.id === p.status)?.label || p.status;
+    md += `| ${i+1} | ${p.title || 'Untitled'} | ${pencilNames || '-'} | ${statusLabel} | ${p.target || '-'} |\n`;
+  });
+  if (state.notes) md += `\n## Notes\n\n${state.notes}\n`;
+
+  const blob = new Blob([md], { type: 'text/markdown' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'mech-drawings-status.md';
+  a.click();
+}
+
+// Close modal on overlay click
+document.getElementById('editModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('editModal')) closeModal();
+});
+
+// Init
+renderFullPalette();
+render();
+</script>
+</body>
+</html>
