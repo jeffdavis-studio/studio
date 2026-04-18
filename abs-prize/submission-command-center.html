@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ABS Prize Submission — Command Center</title>
+<style>
+  :root {
+    --bg: #0b0b0c;
+    --panel: #141416;
+    --panel-2: #1c1c1f;
+    --line: #2a2a2e;
+    --ink: #e9e9eb;
+    --ink-dim: #9a9aa0;
+    --ink-soft: #6d6d74;
+    --accent: #d0b46a;
+    --good: #6bbf7a;
+    --warn: #e0b24b;
+    --bad: #d9635f;
+    --blue: #6ba3c9;
+  }
+  * { box-sizing: border-box; }
+  html, body { background: var(--bg); color: var(--ink); margin: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    padding: 28px 32px 80px;
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+  h1 { font-size: 22px; margin: 0 0 2px; letter-spacing: 0.2px; }
+  h2 { font-size: 15px; margin: 0 0 12px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--ink-dim); font-weight: 600; }
+  h3 { font-size: 13px; margin: 0 0 6px; text-transform: uppercase; letter-spacing: 1px; color: var(--ink-soft); font-weight: 600; }
+  p { margin: 0 0 10px; }
+  a { color: var(--blue); text-decoration: none; border-bottom: 1px dotted var(--line); }
+  a:hover { color: var(--ink); }
+  .meta { color: var(--ink-dim); font-size: 12px; margin-bottom: 22px; }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 18px 20px;
+    margin-bottom: 16px;
+  }
+  .panel.tight { padding: 14px 18px; }
+  .grid { display: grid; gap: 16px; }
+  .grid.two { grid-template-columns: 1fr 1fr; }
+  .grid.three { grid-template-columns: repeat(3, 1fr); }
+  @media (max-width: 900px) {
+    .grid.two, .grid.three { grid-template-columns: 1fr; }
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--ink-dim); font-weight: 500; font-size: 11px; letter-spacing: 0.8px; text-transform: uppercase; }
+  tr:last-child td { border-bottom: 0; }
+  .countdown {
+    display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap;
+  }
+  .countdown .days { font-size: 52px; font-weight: 300; letter-spacing: -1px; color: var(--accent); line-height: 1; }
+  .countdown .label { color: var(--ink-dim); font-size: 12px; text-transform: uppercase; letter-spacing: 1.2px; }
+  .countdown .deadline { color: var(--ink); font-size: 14px; }
+  .tl { border-left: 2px solid var(--line); padding-left: 14px; margin-left: 4px; }
+  .tl .row { margin-bottom: 10px; position: relative; }
+  .tl .row::before {
+    content: ''; position: absolute; left: -20px; top: 7px;
+    width: 8px; height: 8px; background: var(--ink-soft); border-radius: 50%;
+  }
+  .tl .row.done::before { background: var(--good); }
+  .tl .row.now::before { background: var(--accent); box-shadow: 0 0 0 3px rgba(208, 180, 106, 0.2); }
+  .tl .row.late::before { background: var(--bad); }
+  .tl .date { color: var(--ink-dim); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; display: block; }
+  .pill {
+    display: inline-block; padding: 2px 8px; border-radius: 10px;
+    font-size: 11px; font-weight: 500; letter-spacing: 0.4px;
+    border: 1px solid var(--line); color: var(--ink-dim);
+  }
+  .pill.good { color: var(--good); border-color: rgba(107, 191, 122, 0.4); }
+  .pill.warn { color: var(--warn); border-color: rgba(224, 178, 75, 0.4); }
+  .pill.bad { color: var(--bad); border-color: rgba(217, 99, 95, 0.4); }
+  .pill.accent { color: var(--accent); border-color: rgba(208, 180, 106, 0.4); }
+  .status-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; background: var(--ink-soft); vertical-align: middle; }
+  .status-dot.done { background: var(--good); }
+  .status-dot.inprog { background: var(--warn); }
+  .status-dot.blocked { background: var(--bad); }
+  select, input[type="text"], textarea, button {
+    background: var(--panel-2); color: var(--ink); border: 1px solid var(--line);
+    border-radius: 5px; padding: 6px 9px; font-family: inherit; font-size: 13px;
+  }
+  textarea { width: 100%; resize: vertical; min-height: 70px; font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 12px; }
+  button { cursor: pointer; }
+  button:hover { background: var(--line); }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .counter { font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 11px; color: var(--ink-dim); }
+  .counter.warn { color: var(--warn); }
+  .counter.bad { color: var(--bad); }
+  .field-label { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+  .field-label b { font-weight: 500; }
+  .kv { display: grid; grid-template-columns: 150px 1fr; gap: 4px 14px; font-size: 13px; margin-bottom: 8px; }
+  .kv .k { color: var(--ink-dim); }
+  .check { display: flex; align-items: center; gap: 8px; padding: 3px 0; font-size: 13px; }
+  .check input[type="checkbox"] { accent-color: var(--accent); }
+  .flag {
+    background: rgba(217, 99, 95, 0.08);
+    border: 1px solid rgba(217, 99, 95, 0.3);
+    border-radius: 5px;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    font-size: 13px;
+  }
+  .flag b { color: var(--bad); }
+  .note {
+    background: rgba(107, 163, 201, 0.07);
+    border-left: 2px solid var(--blue);
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    color: var(--ink);
+  }
+  .note b { color: var(--blue); }
+  .subtle { color: var(--ink-dim); font-size: 12px; }
+  .sticky-bar {
+    position: sticky; top: 0; background: var(--bg);
+    padding: 10px 0 14px; margin-bottom: 6px;
+    border-bottom: 1px solid var(--line); z-index: 10;
+    display: flex; justify-content: space-between; align-items: center; gap: 20px;
+  }
+  .nav { display: flex; gap: 14px; flex-wrap: wrap; }
+  .nav a { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--ink-dim); border: 0; }
+  .nav a:hover { color: var(--accent); }
+  .jury-grid { font-size: 12px; }
+  .jury-grid th { font-size: 10px; }
+  .piece-card {
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px;
+    padding: 12px 14px; margin-bottom: 10px;
+  }
+  .piece-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+  .piece-head b { font-size: 14px; }
+  .piece-head .subtle { font-size: 11px; }
+  .row-3 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; font-size: 12px; margin-top: 6px; }
+  .row-3 label { display: block; color: var(--ink-dim); font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 2px; }
+  .row-3 select { width: 100%; font-size: 12px; padding: 4px 6px; }
+  .footnote { color: var(--ink-soft); font-size: 11px; margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--line); }
+  details summary { cursor: pointer; color: var(--ink-dim); font-size: 12px; text-transform: uppercase; letter-spacing: 1px; padding: 6px 0; }
+  details[open] summary { color: var(--accent); margin-bottom: 8px; }
+</style>
+</head>
+<body>
+
+<div class="sticky-bar">
+  <div>
+    <h1>ABS Prize — Submission Command Center</h1>
+    <div class="meta">Arab Bank Switzerland Digital Art Prize 2026 · Deadline May 3, 2026 · Exhibition NFC Lisbon, Jun 4-6</div>
+  </div>
+  <div class="nav">
+    <a href="#timeline">Timeline</a>
+    <a href="#pieces">Pieces</a>
+    <a href="#form">Form</a>
+    <a href="#docs">Docs</a>
+    <a href="#jury">Jury</a>
+    <a href="#risks">Risks</a>
+    <a href="#runbook">Run</a>
+  </div>
+</div>
+
+<!-- ================= COUNTDOWN + TIMELINE ================= -->
+<div class="panel" id="timeline">
+  <div class="countdown">
+    <span class="days" id="dayCount">—</span>
+    <span class="label">days to deadline</span>
+    <span class="deadline" id="deadlineLine">May 3, 2026 · 23:59 CET</span>
+  </div>
+  <div style="height: 18px;"></div>
+  <h3>Working-backward milestones</h3>
+  <div class="tl" id="milestones"></div>
+</div>
+
+<!-- ================= FIVE PIECES ================= -->
+<div class="panel" id="pieces">
+  <h2>The five pieces</h2>
+  <p class="subtle">Physical drawings on Moab Entrada Rag Natural 300gsm. Epson P900, color print + graphite/colored-pencil overdrawing. Update status per piece; state persists via Save / Export.</p>
+  <div id="piecesList"></div>
+  <div class="btn-row">
+    <button onclick="saveState()">Save</button>
+    <button onclick="exportState()">Export JSON</button>
+    <button onclick="importState()">Import JSON</button>
+    <button onclick="resetState()" style="color: var(--bad); border-color: rgba(217,99,95,0.3);">Reset</button>
+  </div>
+</div>
+
+<!-- ================= FORM FIELD VALIDATION ================= -->
+<div class="panel" id="form">
+  <h2>Application form — character counts</h2>
+  <p class="subtle">Paste draft text into each field; character counter validates against the form limits. Canonical draft is the Apr 6 Google Doc: <a href="https://docs.google.com/document/d/1G7CG6m3sEWjZLnBrYxf9H0dC5itSdM_NKmdAfUeW5cM/edit" target="_blank">ABS Prize Application Text — DfaM Selection</a>.</p>
+  <div id="formFields"></div>
+</div>
+
+<!-- ================= DOCUMENTATION UPLOADS ================= -->
+<div class="panel" id="docs">
+  <h2>Section 4 — documentation uploads</h2>
+  <p class="subtle">Up to 5 files, max 10MB each. Target file plan: one hero photo per piece, one installation render, plus optional video or process reel. Verify file size before upload.</p>
+  <table id="docTable">
+    <thead>
+      <tr><th>Slot</th><th>Proposed content</th><th>Format</th><th>Target size</th><th>Status</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <h3 style="margin-top: 16px;">Supplementary links (non-upload)</h3>
+  <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: var(--ink-dim);">
+    <li>Art Blocks collection page (DfaM): <span style="color:var(--ink);">artblocks.io/collections/presents/projects/0xababababab20053426ad1c782de9ea8444358070-3</span></li>
+    <li>Artist site: jeffgdavis.com</li>
+    <li>Process / studio documentation: add short link or IG reel once ready</li>
+    <li>Blockchain references: five token URLs, one per selected work</li>
+  </ul>
+</div>
+
+<!-- ================= JURY RESONANCE MAP ================= -->
+<div class="panel" id="jury">
+  <h2>Jury resonance map</h2>
+  <p class="subtle">Which juror each selection speaks to most directly. Based on jury dossiers in kb/people/. Use this for final-pass language choices and for in-person framing at NFC Lisbon if Jeff becomes a finalist.</p>
+  <div class="grid two">
+    <div>
+      <h3>Juror anchors</h3>
+      <table class="jury-grid">
+        <thead><tr><th>Juror</th><th>Anchor the work on…</th></tr></thead>
+        <tbody>
+          <tr><td><b>Giulia Bini</b><br><span class="subtle">CERN / ZKM / EPFL</span></td><td>Art–science rigor. Integer relationships, whole-number ratios, systematic color theory. Transdisciplinary (works across disciplines, not about science). Historical awareness of media art lineage.</td></tr>
+          <tr><td><b>Armin Blasbichler</b><br><span class="subtle">Basel, HEK, DYOR</span></td><td>Architecture + systems thinking. Color as structured material. Art-historical continuity (not novelty). Physical + blockchain bridge.</td></tr>
+          <tr><td><b>Malte Rauch</b><br><span class="subtle">Tribute Labs / glitch Marfa</span></td><td>"Protocol art" — blockchain as medium, not receipt. Deterministic systems revealing indeterminacy. Theoretical seriousness about what generative art IS.</td></tr>
+          <tr><td><b>Abigail Miller</b><br><span class="subtle">Avant Arte / Byte Project</span></td><td>Production quality and editionability. Physical/digital bridge as market-ready form. Warm: Jeff already well acquainted (Mar 9, 2026).</td></tr>
+          <tr><td><b>Nina Roehrs</b><br><span class="subtle">ABS curator + jury</span></td><td>Now curating the full SYSTEMS exhibition at NFC. Wide "systems in code, nature, society, AI, human body" framing. Warm: DYOR history + Feb 11 Zurich dinner.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <h3>Piece × juror resonance</h3>
+      <table class="jury-grid">
+        <thead><tr><th>Piece</th><th>Strongest juror read</th><th>Second</th></tr></thead>
+        <tbody>
+          <tr><td><b>Polychrome Music</b><br><span class="subtle">#953 · Rozendaal + Legowelt</span></td><td>Bini — procedural sound/color, transdisciplinary</td><td>Rauch — protocol as compound system</td></tr>
+          <tr><td><b>Construction Token</b><br><span class="subtle">#151 · Jeff Davis, AB #0</span></td><td>Blasbichler — lineage and foundational form</td><td>Rauch — self-reference, field-defining work</td></tr>
+          <tr><td><b>Archetype</b><br><span class="subtle">#129 · Kjetil Golid</span></td><td>Blasbichler — layered grid logic</td><td>Miller — iconic peer work; edition legibility</td></tr>
+          <tr><td><b>Fragments of an Infinite Field</b><br><span class="subtle">#817 · Monica Rizzolli</span></td><td>Roehrs — systems in nature, gesture</td><td>Bini — simulation as art-science method</td></tr>
+          <tr><td><b>Ancient Courses of Fictional Rivers</b><br><span class="subtle">#443 · Robert Hodgin</span></td><td>Bini — simulation modeling flow and erosion</td><td>Roehrs — natural-system framing</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <h3 style="margin-top: 18px;">Final-pass language suggestions</h3>
+  <ul style="font-size: 13px; margin: 0 0 0 20px; padding: 0; line-height: 1.7;">
+    <li><b>Bio:</b> Consider adding one line tying the mathematics BA to current systematic color work. Bini will read this closely.</li>
+    <li><b>Artist statement:</b> The Albers + LeWitt sentences are strong. Blasbichler and Roehrs both value explicit lineage — the statement already does this well; don't dilute.</li>
+    <li><b>SYSTEMS field:</b> The three-level structure (archive system → translation between systems → diversity within generative systems) is a clean argument. Rauch's "protocol art" lens would read this favorably; no change needed.</li>
+    <li><b>Work description:</b> The phrase "archive and monument" lands. Consider naming DfaM's scale (1,000 works across 102 Curated projects) once in this section — gives Bini and Blasbichler a fact to anchor to.</li>
+    <li><b>Plain language over art-speak:</b> Everywhere. The draft is already in that register. Keep it.</li>
+  </ul>
+</div>
+
+<!-- ================= RISKS + SWAPS ================= -->
+<div class="panel" id="risks">
+  <h2>Risk flags and swap scenarios</h2>
+
+  <div class="flag">
+    <b>Human Unreadable swap.</b> If Jeff acquires DfaM #303 (<i>Human Unreadable</i> / Operator) before submission, swap into the suite by replacing <i>Ancient Courses of Fictional Rivers</i>. Rationale: Operator is in the NFC Lisbon curated artist lineup (Ania Catherine + Dejha Ti), Fanny Lakoubay manages them, and a tribute to a co-exhibited artist reads strongly. Only two enumerations in the draft name the five works — see the Google Doc, update both and the SYSTEMS paragraph mapping. Watchlist status as of Apr 4: not listed, was 0.038 ETH Apr 3.
+  </div>
+
+  <div class="flag">
+    <b>Section 5+ unknown.</b> The application form couldn't be advanced past Section 4 during initial review. There may be additional sections (project statement, references, CV, prior exhibitions). Budget an afternoon on submission day for anything that appears beyond Section 4.
+  </div>
+
+  <div class="flag">
+    <b>Documentation timeline tight.</b> Physical drawings planned Apr 24-27, documentation Apr 29, submit Apr 30. Only three days between last drawing and submit. Protect Apr 28 as a reserve day — drying, fixative decision, photo retake if needed.
+  </div>
+
+  <div class="flag">
+    <b>File size ceiling.</b> 10MB per file × 5 files. High-resolution photos at full P900 print fidelity will exceed 10MB if uncompressed. Pre-commit to JPEG at quality 90, ~3000px long edge, sRGB, stripped EXIF. Verify size before adding to the form.
+  </div>
+
+  <div class="flag">
+    <b>Jury connection activation — hold, don't reach out.</b> Abigail (well acquainted) and Nina (warm) are jurors. Direct contact about the application during the open-submission window would be inappropriate and could compromise the read. Passive warmth only. NFC Lisbon is the natural next touchpoint for both.
+  </div>
+
+  <div class="note">
+    <b>Flamingo DAO angle (ambient, do not use in application).</b> Malte is Head of Artist Relations at Tribute Labs. Flamingo DAO (Tribute-operated) is a significant holder of Jeff's work. Relevant background for post-prize follow-up, not for the submission itself.
+  </div>
+</div>
+
+<!-- ================= SUBMISSION RUNBOOK ================= -->
+<div class="panel" id="runbook">
+  <h2>Submission-day runbook</h2>
+  <p class="subtle">Target submission: Apr 30 or May 1. Three-day buffer to May 3 deadline. Do not submit on May 3 — budget for form surprises.</p>
+
+  <h3>T-1 (day before submit)</h3>
+  <div id="runDayBefore"></div>
+
+  <h3>Submission day</h3>
+  <div id="runSubmit"></div>
+
+  <h3>After submit</h3>
+  <div id="runAfter"></div>
+</div>
+
+<!-- ================= FOOTER ================= -->
+<div class="footnote">
+  ABS Digital Art Prize 2026 · Arab Bank Switzerland · Prize USD $10,000 + acquisition · Exhibition: Fábrica de Moagem da Manutenção Militar, Lisbon, Jun 4-6, 2026. Nina Roehrs is both jury member and lead curator of the full SYSTEMS exhibition at NFC 2026 — curated artists include Kim Asendorf, Viktoria Binschtok, Jack Butcher, Linda Dounia, Andreas Gysin, Larva Labs, Cezar Mocan, Operator, Helena Sarin, Paul Seidler. Three prize finalists exhibit alongside. Jeff has a main-stage NFC talk the same weekend regardless of finalist status.
+  <br><br>
+  Source: kb/opportunities/abs-digital-art-prize.md · kb/opportunities/abs-prize-application-text-final-dfam.md · kb/people/{giulia-bini,armin-blasbichler,malte-rauch,abigail-miller,nina-roehrs}.md · Apr 17, 2026.
+</div>
+
+<script>
+// =============== DATA ===============
+const DEADLINE = new Date("2026-05-03T23:59:00+02:00");
+
+const PIECES = [
+  { id: "polychrome", token: "#953", title: "Polychrome Music", source: "Rafaël Rozendaal + Legowelt" },
+  { id: "construction", token: "#151", title: "Construction Token", source: "Jeff Davis (AB Project #0)" },
+  { id: "archetype", token: "#129", title: "Archetype", source: "Kjetil Golid" },
+  { id: "fragments", token: "#817", title: "Fragments of an Infinite Field", source: "Monica Rizzolli" },
+  { id: "rivers", token: "#443", title: "Ancient Courses of Fictional Rivers", source: "Robert Hodgin" },
+];
+
+const MILESTONES = [
+  { date: "Apr 17", label: "Mechanical Drawings mainnet · P900 formal testing", state: "now" },
+  { date: "Apr 18-20", label: "Confirm paper stock, ink profile, print all 5 source files", state: "" },
+  { date: "Apr 21-23", label: "Overdraw pieces 1–2 (pencil + graphite)", state: "" },
+  { date: "Apr 24-26", label: "Overdraw pieces 3–5", state: "" },
+  { date: "Apr 27", label: "Reserve / rework buffer — do nothing irreversible", state: "" },
+  { date: "Apr 28", label: "Fixative decision (Lascaux UV / skip + Museum Glass). Frame/display test.", state: "" },
+  { date: "Apr 29", label: "Photograph all 5 pieces. Color-corrected sRGB masters.", state: "" },
+  { date: "Apr 30", label: "Finalize application text (last-pass edits). Prepare 5 upload files.", state: "" },
+  { date: "May 1", label: "Submit. Three-day buffer before deadline.", state: "" },
+  { date: "May 3", label: "Absolute deadline, 23:59 CET. Do not submit on this day.", state: "late" },
+];
+
+const FORM_FIELDS = [
+  { id: "bio", label: "Short Bio", max: 1000, section: "Section 2" },
+  { id: "statement", label: "Artist Statement", max: 2000, section: "Section 2" },
+  { id: "summary", label: "Work Summary", max: 300, section: "Section 3" },
+  { id: "description", label: "Work Description", max: 2000, section: "Section 3" },
+  { id: "systems", label: "How It Engages with SYSTEMS", max: 2000, section: "Section 3" },
+];
+
+const DOCS = [
+  { slot: "File 1", content: "Hero photo — 5-piece suite, wall installation view", format: "JPEG sRGB q90", size: "~5MB" },
+  { slot: "File 2", content: "Detail photo — single piece showing hand-drawn overlay on print", format: "JPEG sRGB q90", size: "~4MB" },
+  { slot: "File 3", content: "Full set — 5 pieces photographed individually, assembled contact-sheet style", format: "JPEG sRGB q90", size: "~6MB" },
+  { slot: "File 4", content: "Process shot — printing + overdrawing in studio (or short process reel frame)", format: "JPEG or MP4 <10MB", size: "~6MB" },
+  { slot: "File 5", content: "Optional — token screenshots overlaid with corresponding drawing (source ↔ response)", format: "JPEG sRGB q90", size: "~4MB" },
+];
+
+const RUNBOOK = {
+  dayBefore: [
+    "Final-pass read of all 5 text fields against character limits here.",
+    "Verify all 5 upload files are under 10MB each (check Finder info).",
+    "Confirm five token URLs (artblocks.io/token/...) are in the supplementary links field.",
+    "Check website / social URLs are current.",
+    "Draft the short work summary one more time — 300 chars is tight.",
+    "Print the application draft to paper and read on paper once.",
+  ],
+  submit: [
+    "Open the form URL fresh (no cached tabs): docs.google.com/forms/d/e/1FAIpQLScRCI_Nyd9iSx81oN9KRmUol-7kGF3szPXg2MxIISArbXNFWw/viewform",
+    "Work through Sections 1–4 with the draft doc side-by-side.",
+    "Upload files one at a time — confirm each upload completes before next.",
+    "Check for Section 5+ content. Have the draft doc handy for any additional field.",
+    "Review all answers on the summary page before submit.",
+    "Screenshot the confirmation page.",
+    "Save confirmation email to /abs-prize/submitted/",
+  ],
+  after: [
+    "Log submission to kb/opportunities/abs-digital-art-prize.md (status → submitted).",
+    "Update kb/INDEX.md pending actions.",
+    "Disable dfam-watchlist script (set enabled: false in config).",
+    "Wait. Finalist notifications typically precede exhibition by several weeks.",
+    "Do not follow up with jurors during review window. Passive warmth only.",
+  ],
+};
+
+const DEFAULT_STATE = {
+  pieces: Object.fromEntries(PIECES.map(p => [p.id, { print: "not-started", draw: "not-started", fix: "not-started", photo: "not-started", notes: "" }])),
+  fields: Object.fromEntries(FORM_FIELDS.map(f => [f.id, ""])),
+  docs: Array(DOCS.length).fill(false),
+  dayBefore: Array(RUNBOOK.dayBefore.length).fill(false),
+  submit: Array(RUNBOOK.submit.length).fill(false),
+  after: Array(RUNBOOK.after.length).fill(false),
+};
+
+const STORAGE_KEY = "abs-prize-command-center";
+
+function loadState() {
+  // In-session only; no localStorage (per environment).
+  return window._absState || JSON.parse(JSON.stringify(DEFAULT_STATE));
+}
+
+function setState(s) { window._absState = s; }
+
+let state = loadState();
+setState(state);
+
+// =============== COUNTDOWN ===============
+function renderCountdown() {
+  const now = new Date();
+  const ms = DEADLINE - now;
+  const days = Math.ceil(ms / 86400000);
+  document.getElementById("dayCount").textContent = days >= 0 ? days : 0;
+  document.getElementById("deadlineLine").textContent =
+    "May 3, 2026 · 23:59 CET · " + (days >= 0 ? days + " days remaining" : "deadline passed");
+}
+renderCountdown();
+setInterval(renderCountdown, 60000);
+
+// =============== MILESTONES ===============
+function renderMilestones() {
+  const now = new Date();
+  const container = document.getElementById("milestones");
+  container.innerHTML = MILESTONES.map(m => {
+    const cls = m.state || "";
+    return `<div class="row ${cls}"><span class="date">${m.date}</span>${m.label}</div>`;
+  }).join("");
+}
+renderMilestones();
+
+// =============== PIECES ===============
+const STATUS_OPTIONS = [
+  { v: "not-started", l: "Not started" },
+  { v: "in-progress", l: "In progress" },
+  { v: "done", l: "Done" },
+  { v: "blocked", l: "Blocked" },
+];
+
+function statusSelect(pieceId, field, current) {
+  return `<select onchange="updatePiece('${pieceId}','${field}',this.value)">` +
+    STATUS_OPTIONS.map(o => `<option value="${o.v}" ${o.v === current ? "selected" : ""}>${o.l}</option>`).join("") +
+    `</select>`;
+}
+
+function renderPieces() {
+  const container = document.getElementById("piecesList");
+  container.innerHTML = PIECES.map(p => {
+    const s = state.pieces[p.id];
+    return `<div class="piece-card" id="piece-${p.id}">
+      <div class="piece-head">
+        <div>
+          <b>${p.title}</b> <span class="subtle">${p.token} · tribute to ${p.source}</span>
+        </div>
+        <div>
+          ${statusPill("print", s.print)}
+          ${statusPill("draw", s.draw)}
+          ${statusPill("fix", s.fix)}
+          ${statusPill("photo", s.photo)}
+        </div>
+      </div>
+      <div class="row-3">
+        <div><label>Print</label>${statusSelect(p.id, "print", s.print)}</div>
+        <div><label>Overdraw</label>${statusSelect(p.id, "draw", s.draw)}</div>
+        <div><label>Fixative / finish</label>${statusSelect(p.id, "fix", s.fix)}</div>
+        <div><label>Photograph</label>${statusSelect(p.id, "photo", s.photo)}</div>
+      </div>
+      <div style="margin-top:8px;">
+        <input type="text" placeholder="Notes (pencil palette, issues, retake flags…)" value="${escapeAttr(s.notes)}"
+               style="width:100%;" oninput="updatePiece('${p.id}','notes',this.value)">
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function statusPill(label, v) {
+  const cls = v === "done" ? "good" : (v === "in-progress" ? "warn" : (v === "blocked" ? "bad" : ""));
+  const short = ({ print: "Print", draw: "Draw", fix: "Fix", photo: "Photo" })[label];
+  return `<span class="pill ${cls}">${short}</span>`;
+}
+
+function escapeAttr(s) {
+  return String(s || "").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+}
+
+function updatePiece(id, field, value) {
+  state.pieces[id][field] = value;
+  setState(state);
+  renderPieces();
+}
+
+renderPieces();
+
+// =============== FORM FIELDS ===============
+function renderFormFields() {
+  const c = document.getElementById("formFields");
+  c.innerHTML = FORM_FIELDS.map(f => {
+    const val = state.fields[f.id] || "";
+    return `<div style="margin-bottom:14px;">
+      <div class="field-label">
+        <b>${f.label}</b>
+        <span><span class="subtle">${f.section} · max ${f.max}</span>
+          &nbsp;<span id="cnt-${f.id}" class="counter">${val.length} / ${f.max}</span>
+        </span>
+      </div>
+      <textarea id="fld-${f.id}" oninput="updateField('${f.id}',this.value)" placeholder="Paste draft text…">${escapeAttr(val)}</textarea>
+    </div>`;
+  }).join("");
+  FORM_FIELDS.forEach(f => updateCounter(f.id));
+}
+
+function updateField(id, value) {
+  state.fields[id] = value;
+  setState(state);
+  updateCounter(id);
+}
+
+function updateCounter(id) {
+  const f = FORM_FIELDS.find(x => x.id === id);
+  const val = state.fields[id] || "";
+  const el = document.getElementById("cnt-" + id);
+  if (!el) return;
+  const over = val.length > f.max;
+  const warn = val.length > 0.9 * f.max && !over;
+  el.className = "counter" + (over ? " bad" : (warn ? " warn" : ""));
+  el.textContent = `${val.length} / ${f.max}`;
+}
+
+renderFormFields();
+
+// =============== DOCS ===============
+function renderDocs() {
+  const tbody = document.querySelector("#docTable tbody");
+  tbody.innerHTML = DOCS.map((d, i) => `<tr>
+    <td><b>${d.slot}</b></td>
+    <td>${d.content}</td>
+    <td class="subtle">${d.format}</td>
+    <td class="subtle">${d.size}</td>
+    <td>
+      <label class="check">
+        <input type="checkbox" ${state.docs[i] ? "checked" : ""} onchange="toggleDoc(${i})">
+        ${state.docs[i] ? "Ready" : "Pending"}
+      </label>
+    </td>
+  </tr>`).join("");
+}
+
+function toggleDoc(i) {
+  state.docs[i] = !state.docs[i];
+  setState(state);
+  renderDocs();
+}
+
+renderDocs();
+
+// =============== RUNBOOK ===============
+function renderRunbook(key, elId) {
+  const el = document.getElementById(elId);
+  el.innerHTML = RUNBOOK[key].map((item, i) => `<div class="check">
+    <input type="checkbox" ${state[key][i] ? "checked" : ""} onchange="toggleRun('${key}',${i})">
+    <span style="${state[key][i] ? "color:var(--ink-soft);text-decoration:line-through;" : ""}">${item}</span>
+  </div>`).join("");
+}
+
+function toggleRun(key, i) {
+  state[key][i] = !state[key][i];
+  setState(state);
+  renderRunbook(key, runbookTargets[key]);
+}
+
+const runbookTargets = { dayBefore: "runDayBefore", submit: "runSubmit", after: "runAfter" };
+Object.entries(runbookTargets).forEach(([k, id]) => renderRunbook(k, id));
+
+// =============== PERSISTENCE ===============
+function saveState() {
+  // Offer as downloadable JSON (no localStorage)
+  exportState();
+}
+
+function exportState() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "abs-submission-state-" + new Date().toISOString().slice(0, 10) + ".json";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function importState() {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "application/json";
+  input.onchange = e => {
+    const f = e.target.files[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = ev => {
+      try {
+        const imported = JSON.parse(ev.target.result);
+        state = Object.assign(JSON.parse(JSON.stringify(DEFAULT_STATE)), imported);
+        setState(state);
+        renderPieces();
+        renderFormFields();
+        renderDocs();
+        Object.entries(runbookTargets).forEach(([k, id]) => renderRunbook(k, id));
+      } catch (err) {
+        alert("Import failed: " + err.message);
+      }
+    };
+    r.readAsText(f);
+  };
+  input.click();
+}
+
+function resetState() {
+  if (!confirm("Reset all tracked state?")) return;
+  state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+  setState(state);
+  renderPieces();
+  renderFormFields();
+  renderDocs();
+  Object.entries(runbookTargets).forEach(([k, id]) => renderRunbook(k, id));
+}
+</script>
+
+</body>
+</html>
