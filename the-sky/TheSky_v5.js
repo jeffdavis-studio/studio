@@ -1,9 +1,8 @@
-// sample token hash/id - REMOVE
-let tokenData = "";
-for (let i = 0; i < 66; i++) {
-  tokenData = tokenData + (Math.floor(Math.random() * 16)).toString(16);
+// Sample token hash (comment out for Art Blocks deployment)
+let tokenData = { hash: "0x" };
+for (let i = 0; i < 64; i++) {
+  tokenData.hash = tokenData.hash + (Math.floor(Math.random() * 16)).toString(16);
 }
-//tokenData = tokenData.hash;
 
 // ============================================================================
 // SHADER SOURCE
@@ -441,7 +440,7 @@ function setup() {
 
   skyShader = createShader(vertSrc, fragSrc);
 
-  R = new Random();
+  R = new Random(tokenData.hash);
 
   let startKey = pickCondition();
   currentConditionKey = startKey;
@@ -492,7 +491,7 @@ function easeInOut(t) {
 
 function keyPressed() {
   if (key === 's' || key === 'S') {
-    saveCanvas(tokenData, 'png');
+    saveCanvas(tokenData.hash, 'png');
   }
 }
 
@@ -669,7 +668,7 @@ function betterLerp(col1, col2, t) {
 // ============================================================================
 
 class Random {
-  constructor() {
+  constructor(token) {
     this.useA = false;
     let sfc32 = function(uint128Hex) {
       let a = parseInt(uint128Hex.substr(0, 8), 16);
@@ -690,8 +689,8 @@ class Random {
         return (t >>> 0) / 4294967296;
       };
     };
-    this.prngA = new sfc32(tokenData.substr(2, 32));
-    this.prngB = new sfc32(tokenData.substr(34, 32));
+    this.prngA = new sfc32(token.substr(2, 32));
+    this.prngB = new sfc32(token.substr(34, 32));
     for (let i = 0; i < 1e6; i += 2) {
       this.prngA();
       this.prngB();
