@@ -109,9 +109,13 @@ let swatchPolys;   // per-swatch vertex array in mm
 let cdata;         // { 0: [cells], 1: [cells], 2: [cells] }
 
 // ============ PENCIL SELECTION ============
-// Pick 3 random pencils from mats. Reject any palette where two ring-adjacent
-// parents are neighbors in the mats list (cyclical — indices 0 and mats-1 are
-// adjacent too). Finally, sort by hue so the wheel flows naturally.
+// Pick 3 random pencils from mats. Reject any palette where two parents are
+// neighbors in the mats list (cyclical — indices 0 and mats-1 are adjacent
+// too). With only 3 parents, every unordered pair is ring-adjacent on the
+// wheel, so checking consecutive() on the picked array covers all pairs.
+// No post-sort needed: for 3 hues, any random pick order is already a valid
+// cyclic sequence around the wheel (CW or CCW depending on the draw), which
+// gives us rotation and direction variety for free.
 function consecutive(indices) {
   let nm = mats.length;
   for (let i = 0; i < indices.length; i++) {
@@ -133,21 +137,17 @@ function pickPencils() {
       picked.push(avail.splice(idx, 1)[0]);
     }
     if (!consecutive(picked)) {
-      let entries = picked.map(function(mi) {
+      return picked.map(function(mi) {
         let m = mats[mi];
         return { matIdx: mi, color: color(m.hsb[0], m.hsb[1], m.hsb[2]), name: m.name };
       });
-      entries.sort(function(a, b) { return hue(a.color) - hue(b.color); });
-      return entries;
     }
   }
   console.warn('pickPencils: gave up after ' + MAX_TRIES + ' tries; returning last sample.');
-  let fallback = [0, 8, 16].map(function(mi) {
+  return [0, 8, 16].map(function(mi) {
     let m = mats[mi];
     return { matIdx: mi, color: color(m.hsb[0], m.hsb[1], m.hsb[2]), name: m.name };
   });
-  fallback.sort(function(a, b) { return hue(a.color) - hue(b.color); });
-  return fallback;
 }
 
 // ============ GEOMETRY ============
