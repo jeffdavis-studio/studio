@@ -112,9 +112,9 @@ let numParents = 3;
 let midOpts = [3, 4, 5, 7, 9, 11, 14, 15, 19];
 let fhueprob = 0.5;
 let hmin = 60;       // required hue diff between adjacent parents (degrees)
-let lmin = 20;       // required L* diff between adjacent parents (0-100)
-let lParentMin = 45; // min L* for any individual parent color (0-100)
-let lParentMax = 96; // max L* for any individual parent color (0-100)
+let lmin = 10;       // required L* diff between adjacent parents (0-100)
+let lParentMin = 40; // min L* for any individual parent color (0-100)
+let lParentMax = 100; // max L* for any individual parent color (0-100)
 
 // ============ GLOBAL STATE ============
 let R, w, h;

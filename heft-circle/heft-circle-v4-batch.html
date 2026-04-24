@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Heft Circle v4 — Batch</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #111;
+      color: #eee;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 13px;
+      display: flex;
+      gap: 24px;
+      align-items: flex-start;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+    #ui { flex: 0 0 320px; }
+    #canvas-wrap {
+      flex: 1 1 auto;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-width: 0;
+    }
+    canvas {
+      display: block;
+      width: auto !important;
+      height: auto !important;
+      max-width: 100%;
+      max-height: 90vh;
+      aspect-ratio: 1 / 1;
+      border: 1px solid #333;
+    }
+    h2 { margin: 0 0 16px 0; font-weight: 500; }
+    label { display: block; margin: 10px 0; }
+    input[type=number] {
+      background: #222;
+      color: #eee;
+      border: 1px solid #444;
+      padding: 4px 8px;
+      width: 100px;
+      font: inherit;
+    }
+    button {
+      background: #2a2a2a;
+      color: #eee;
+      border: 1px solid #444;
+      padding: 8px 20px;
+      margin: 4px 4px 4px 0;
+      cursor: pointer;
+      font: inherit;
+    }
+    button:hover { background: #383838; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    #progress {
+      margin-top: 20px;
+      padding: 12px;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      min-height: 40px;
+      font-family: monospace;
+      font-size: 12px;
+      white-space: pre-wrap;
+    }
+    .note { margin-top: 16px; font-size: 11px; color: #888; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <div id="ui">
+    <h2>Heft Circle v4 — Batch</h2>
+    <label>Count: <input type="number" id="count" value="1000" min="1" max="100000"></label>
+    <label>Size (px): <input type="number" id="size" value="3000" min="256" max="8000"></label>
+    <label>Delay (ms): <input type="number" id="delay" value="150" min="0" max="5000"></label>
+    <button id="start">Choose folder &amp; start</button>
+    <button id="stop" disabled>Stop</button>
+    <div id="progress">Idle.</div>
+    <div class="note">
+      Clicking Start prompts you to pick an output folder. Files are written
+      silently as &lt;hash&gt;.png — no per-file save dialogs.
+      Requires Chrome, Edge, Brave, or Arc (File System Access API).
+      Increase Delay if writes drop; decrease for speed.
+    </div>
+  </div>
+  <div id="canvas-wrap"></div>
+  <script src="heft-circle-v4.js"></script>
+  <script src="heft-circle-v4-batch.js"></script>
+</body>
+</html>
