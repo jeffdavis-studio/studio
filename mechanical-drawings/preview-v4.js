@@ -538,11 +538,14 @@ function keyPressed() {
       clusters[cl].push(cells[i]);
     }
     batches = [];
-    let ks = Object.keys(clusters).sort(function(a, b) { return a - b; });
+    let ks = Object.keys(clusters);
     for (let i = 0; i < ks.length; i++) {
       let pb = pack(clusters[ks[i]]);
       for (let j = 0; j < pb.length; j++) batches.push(pb[j]);
     }
+    batches.sort(function(a, b) {
+      return b.cells[b.cells.length - 1].distance - a.cells[a.cells.length - 1].distance;
+    });
   }
 
   let fname = 'MechanicalDrawing' + tokenData.tokenId + '-' + corner.toUpperCase() + '.svg';
