@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2026 Studio Revenue Model — Jeff Davis</title>
+<style>
+  :root {
+    --bg: #fafaf8;
+    --text: #1a1a1a;
+    --muted: #666;
+    --border: #e0ddd8;
+    --accent: #2c5f2d;
+    --accent-light: #e8f0e8;
+    --card-bg: #fff;
+    --highlight: #f5f0e6;
+    --bar-1: #2c5f2d;
+    --bar-2: #4a8c4b;
+    --bar-3: #6db36e;
+    --bar-4: #a3d1a4;
+    --bar-5: #c8e6c9;
+    --bar-6: #ddd;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    padding: 24px;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  h1 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .subtitle {
+    color: var(--muted);
+    font-size: 0.85rem;
+    margin-bottom: 24px;
+  }
+  .total-bar {
+    background: var(--accent);
+    color: #fff;
+    padding: 16px 20px;
+    border-radius: 8px;
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .total-bar .label { font-size: 0.9rem; opacity: 0.9; }
+  .total-bar .amount { font-size: 2rem; font-weight: 700; letter-spacing: -0.5px; }
+  .section { margin-bottom: 20px; }
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+  .section-total {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  .input-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+    padding: 8px 12px;
+    background: var(--card-bg);
+    border-radius: 6px;
+    border: 1px solid var(--border);
+  }
+  .input-row label {
+    font-size: 0.82rem;
+    color: var(--muted);
+    min-width: 100px;
+    flex-shrink: 0;
+  }
+  .input-row input[type="range"] {
+    flex: 1;
+    accent-color: var(--accent);
+    height: 6px;
+  }
+  .input-row .val {
+    font-size: 0.85rem;
+    font-weight: 600;
+    min-width: 70px;
+    text-align: right;
+  }
+  .chart-container {
+    margin: 24px 0;
+    padding: 16px;
+    background: var(--card-bg);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  .chart-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  .bar-chart { width: 100%; }
+  .bar-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+    gap: 8px;
+  }
+  .bar-label {
+    font-size: 0.75rem;
+    min-width: 130px;
+    text-align: right;
+    color: var(--muted);
+  }
+  .bar-track {
+    flex: 1;
+    height: 22px;
+    background: #f0ede8;
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+    min-width: 0;
+  }
+  .bar-amount {
+    font-size: 0.75rem;
+    font-weight: 600;
+    min-width: 65px;
+  }
+  .notes {
+    margin-top: 24px;
+    padding: 12px 16px;
+    background: var(--highlight);
+    border-radius: 6px;
+    font-size: 0.78rem;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  .notes strong { color: var(--text); }
+  @media (max-width: 600px) {
+    body { padding: 16px; }
+    .input-row label { min-width: 80px; font-size: 0.75rem; }
+    .bar-label { min-width: 90px; font-size: 0.7rem; }
+    .total-bar .amount { font-size: 1.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<h1>2026 Studio Revenue Model</h1>
+<p class="subtitle">Adjust assumptions below. All figures are gross revenue before production costs.</p>
+
+<div class="total-bar">
+  <span class="label">Projected 2026 Gross Revenue</span>
+  <span class="amount" id="grandTotal">$0</span>
+</div>
+
+<!-- DfaM Commissions -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-title">DfaM Commissions</span>
+    <span class="section-total" id="dfamTotal">$0</span>
+  </div>
+  <div class="input-row">
+    <label>Price per commission</label>
+    <input type="range" min="250" max="1000" step="50" value="500" id="dfamPrice" oninput="update()">
+    <span class="val" id="dfamPriceVal">$500</span>
+  </div>
+  <div class="input-row">
+    <label>Commissions sold</label>
+    <input type="range" min="0" max="100" step="1" value="25" id="dfamQty" oninput="update()">
+    <span class="val" id="dfamQtyVal">25</span>
+  </div>
+</div>
+
+<!-- Mechanical Sketches (Artist Books) -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-title">Mechanical Sketches — Artist Books</span>
+    <span class="section-total" id="mechTotal">$0</span>
+  </div>
+  <div class="input-row">
+    <label>Price per book</label>
+    <input type="range" min="500" max="5000" step="100" value="2000" id="mechPrice" oninput="update()">
+    <span class="val" id="mechPriceVal">$2,000</span>
+  </div>
+  <div class="input-row">
+    <label>Edition size</label>
+    <input type="range" min="1" max="50" step="1" value="20" id="mechQty" oninput="update()">
+    <span class="val" id="mechQtyVal">20</span>
+  </div>
+</div>
+
+<!-- In Conversation Box Set -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-title">In Conversation — Box Set</span>
+    <span class="section-total" id="icTotal">$0</span>
+  </div>
+  <div class="input-row">
+    <label>Price per set</label>
+    <input type="range" min="1000" max="5000" step="100" value="3000" id="icPrice" oninput="update()">
+    <span class="val" id="icPriceVal">$3,000</span>
+  </div>
+  <div class="input-row">
+    <label>Edition size</label>
+    <input type="range" min="10" max="200" step="5" value="100" id="icQty" oninput="update()">
+    <span class="val" id="icQtyVal">100</span>
+  </div>
+  <div class="input-row">
+    <label>Jeff's revenue share</label>
+    <input type="range" min="25" max="75" step="5" value="50" id="icShare" oninput="update()">
+    <span class="val" id="icShareVal">50%</span>
+  </div>
+</div>
+
+<!-- Heft Circle Mint -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-title">Heft Circle — Mint Revenue</span>
+    <span class="section-total" id="heftTotal">$0</span>
+  </div>
+  <div class="input-row">
+    <label>Mint price (ETH)</label>
+    <input type="range" min="0.01" max="0.5" step="0.01" value="0.08" id="heftMintPrice" oninput="update()">
+    <span class="val" id="heftMintPriceVal">0.08 ETH</span>
+  </div>
+  <div class="input-row">
+    <label>Editions minted</label>
+    <input type="range" min="10" max="500" step="10" value="200" id="heftMintQty" oninput="update()">
+    <span class="val" id="heftMintQtyVal">200</span>
+  </div>
+  <div class="input-row">
+    <label>Jeff's share</label>
+    <input type="range" min="25" max="100" step="5" value="50" id="heftShare" oninput="update()">
+    <span class="val" id="heftShareVal">50%</span>
+  </div>
+</div>
+
+<!-- Secondary Royalties -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-title">Secondary Market Royalties</span>
+    <span class="section-total" id="royaltyTotal">$0</span>
+  </div>
+  <div class="input-row">
+    <label>Monthly avg (USD)</label>
+    <input type="range" min="0" max="2000" step="50" value="300" id="royaltyMonthly" oninput="update()">
+    <span class="val" id="royaltyMonthlyVal">$300</span>
+  </div>
+  <div class="input-row">
+    <label>Remaining months</label>
+    <input type="range" min="1" max="9" step="1" value="8" id="royaltyMonths" oninput="update()">
+    <span class="val" id="royaltyMonthsVal">8</span>
+  </div>
+</div>
+
+<!-- ETH Assumption -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-title">ETH Price Assumption</span>
+    <span class="section-total" id="ethNote"></span>
+  </div>
+  <div class="input-row">
+    <label>ETH / USD</label>
+    <input type="range" min="1000" max="5000" step="100" value="2300" id="ethPrice" oninput="update()">
+    <span class="val" id="ethPriceVal">$2,300</span>
+  </div>
+</div>
+
+<!-- Chart -->
+<div class="chart-container">
+  <div class="chart-title">Revenue by Stream</div>
+  <div class="bar-chart" id="barChart"></div>
+</div>
+
+<div class="notes">
+  <strong>How to use this:</strong> Slide the inputs to test assumptions. DfaM commissions at $500 with 25 sold is a conservative baseline — the holder list has 889 unique wallets. Mechanical Sketches pricing is wide open ahead of the May 10 decision with Adam. In Conversation assumes a 50/50 split with Martin. Heft Circle mint details TBD (mint May 6). Secondary royalties based on recent monthly averages across all Art Blocks projects. All ETH-denominated streams convert at the price assumption above. Production costs are NOT subtracted — see the artist book BOM research ($320–540/book) and box set research ($88–560/set at 100 copies) for cost modeling.
+</div>
+
+<script>
+const streams = [
+  { id: 'dfam',    label: 'DfaM Commissions',   color: '#2c5f2d' },
+  { id: 'mech',    label: 'Mechanical Sketches', color: '#4a8c4b' },
+  { id: 'ic',      label: 'In Conversation',     color: '#6db36e' },
+  { id: 'heft',    label: 'Heft Circle Mint',    color: '#a3d1a4' },
+  { id: 'royalty', label: 'Secondary Royalties',  color: '#c8a96e' },
+];
+
+function fmt(n) {
+  return '$' + Math.round(n).toLocaleString('en-US');
+}
+
+function getVal(id) {
+  return parseFloat(document.getElementById(id).value);
+}
+
+function update() {
+  const ethPrice = getVal('ethPrice');
+
+  // DfaM
+  const dfamPrice = getVal('dfamPrice');
+  const dfamQty = getVal('dfamQty');
+  const dfamRev = dfamPrice * dfamQty;
+  document.getElementById('dfamPriceVal').textContent = fmt(dfamPrice);
+  document.getElementById('dfamQtyVal').textContent = dfamQty;
+  document.getElementById('dfamTotal').textContent = fmt(dfamRev);
+
+  // Mechanical Sketches
+  const mechPrice = getVal('mechPrice');
+  const mechQty = getVal('mechQty');
+  const mechRev = mechPrice * mechQty;
+  document.getElementById('mechPriceVal').textContent = fmt(mechPrice);
+  document.getElementById('mechQtyVal').textContent = mechQty;
+  document.getElementById('mechTotal').textContent = fmt(mechRev);
+
+  // In Conversation
+  const icPrice = getVal('icPrice');
+  const icQty = getVal('icQty');
+  const icShare = getVal('icShare') / 100;
+  const icRev = icPrice * icQty * icShare;
+  document.getElementById('icPriceVal').textContent = fmt(icPrice);
+  document.getElementById('icQtyVal').textContent = icQty;
+  document.getElementById('icShareVal').textContent = Math.round(icShare * 100) + '%';
+  document.getElementById('icTotal').textContent = fmt(icRev);
+
+  // Heft Circle
+  const heftMintPrice = getVal('heftMintPrice');
+  const heftMintQty = getVal('heftMintQty');
+  const heftShare = getVal('heftShare') / 100;
+  const heftRev = heftMintPrice * heftMintQty * ethPrice * heftShare;
+  document.getElementById('heftMintPriceVal').textContent = heftMintPrice.toFixed(2) + ' ETH';
+  document.getElementById('heftMintQtyVal').textContent = heftMintQty;
+  document.getElementById('heftShareVal').textContent = Math.round(heftShare * 100) + '%';
+  document.getElementById('heftTotal').textContent = fmt(heftRev);
+
+  // Royalties
+  const royaltyMonthly = getVal('royaltyMonthly');
+  const royaltyMonths = getVal('royaltyMonths');
+  const royaltyRev = royaltyMonthly * royaltyMonths;
+  document.getElementById('royaltyMonthlyVal').textContent = fmt(royaltyMonthly);
+  document.getElementById('royaltyMonthsVal').textContent = royaltyMonths;
+  document.getElementById('royaltyTotal').textContent = fmt(royaltyRev);
+
+  // ETH note
+  document.getElementById('ethPriceVal').textContent = fmt(ethPrice);
+  document.getElementById('ethNote').textContent = 'Affects Heft Circle';
+
+  // Grand total
+  const grand = dfamRev + mechRev + icRev + heftRev + royaltyRev;
+  document.getElementById('grandTotal').textContent = fmt(grand);
+
+  // Bar chart
+  const values = [dfamRev, mechRev, icRev, heftRev, royaltyRev];
+  const maxVal = Math.max(...values, 1);
+  let chartHtml = '';
+  for (let i = 0; i < streams.length; i++) {
+    const pct = (values[i] / maxVal) * 100;
+    chartHtml += '<div class="bar-row">' +
+      '<span class="bar-label">' + streams[i].label + '</span>' +
+      '<div class="bar-track"><div class="bar-fill" style="width:' + pct + '%;background:' + streams[i].color + '"></div></div>' +
+      '<span class="bar-amount">' + fmt(values[i]) + '</span>' +
+      '</div>';
+  }
+  document.getElementById('barChart').innerHTML = chartHtml;
+}
+
+update();
+</script>
+
+</body>
+</html>
