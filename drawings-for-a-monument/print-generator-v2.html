@@ -4072,9 +4072,12 @@ function doGenerate(hashVal, tokenNum) {
         // Reset print transform for trim marks and hatches
         printCtx.setTransform(1, 0, 0, 1, 0, 0);
 
+        // ---- Registration color (shared by trim marks and line hatches) ----
+        let regColor = '#e6e6e6';
+
         // ---- Trim marks (print only) ----
         let trimLen = 75;
-        printCtx.strokeStyle = 'rgba(0,0,0,0.30)';
+        printCtx.strokeStyle = regColor;
         printCtx.lineWidth = 1;
         printCtx.setLineDash([]);
 
@@ -4099,7 +4102,7 @@ function doGenerate(hashVal, tokenNum) {
         printCtx.stroke();
 
         // ---- Line registration hashes (print only) ----
-        printCtx.strokeStyle = '#bbbbbb';
+        printCtx.strokeStyle = regColor;
         printCtx.lineWidth = 2;
         printCtx.lineCap = 'round';
         let hashLen = 12;
