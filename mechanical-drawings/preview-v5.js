@@ -12,7 +12,7 @@ let blend, gaps, gaxis, gmap, angles, cdata;
 let ox, oy, cw, ch;
 let pc, grid, colgap, rowgap;
 let a1, a2, a3, a4, r, g, b;
-let sel, ci;
+let sel, ci, hues, maxarc;
 let hatched = false;
 let angs = [22.5, 67.5, 112.5, 157.5];
 let curve = 1.4;
@@ -62,8 +62,8 @@ let pencils = [
 function setup() {
   R = new Random(tokenData.hash);
   colorMode(HSB);
-  let consecutive = true;
-  while (consecutive) {
+  let retry = true;
+  while (retry) {
     let avail = [];
     for (let i = 0; i < pencils.length; i++) {
       avail.push(i);
@@ -92,14 +92,31 @@ function setup() {
     for (let i = 0; i < sel.length; i++) {
       ci.push(sel[i].mi);
     }
-    consecutive = false;
+    retry = false;
     let nm = pencils.length;
     for (let i = 0; i < ci.length; i++) {
       let j = (i + 1) % ci.length;
       let d = abs(ci[i] - ci[j]);
       if (d === 1 || d === nm - 1) {
-        consecutive = true;
+        retry = true;
       }
+    }
+    hues = [];
+    for (let i = 0; i < sel.length; i++) {
+      hues.push(round(hue(sel[i].c)));
+    }
+    hues.sort(function(a, b) {
+      return a - b;
+    });
+    maxarc = 360 - hues[hues.length - 1] + hues[0];
+    for (let i = 1; i < hues.length; i++) {
+      let arc = hues[i] - hues[i - 1];
+      if (arc > maxarc) {
+        maxarc = arc;
+      }
+    }
+    if (maxarc > 210) {
+      retry = true;
     }
   }
   p1 = sel[0].c;
