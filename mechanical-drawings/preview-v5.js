@@ -4,12 +4,16 @@ for (let i = 0; i < 64; i++) {
   tokenData.hash = tokenData.hash + (Math.floor(Math.random() * 16)).toString(16);
 }
 
-let R, w, h;
+let R, w, h, sc;
 let p1, p2, p3, p4, n1, n2, n3, n4;
 let p1rgb, p2rgb, p3rgb, p4rgb, prgb;
 let cols, rows, acols, arows, cparam, rparam;
-let blend, gaxis, gmap, angles, cdata;
-let showlines = false;
+let blend, gaps, gaxis, gmap, angles, cdata;
+let ox, oy, cw, ch;
+let pc, grid, colgap, rowgap;
+let a1, a2, a3, a4, r, g, b;
+let sel, ci;
+let hatched = false;
 let angs = [22.5, 67.5, 112.5, 157.5];
 let curve = 1.4;
 let spacing = 25 / 30;
@@ -17,7 +21,7 @@ let lw = 25 / 32;
 let la = 128;
 let threshold = 1500;
 let opacity = 0.46;
-let phsb = [0, 0, 100];
+let phsb = [45, 3, 99];
 let pw = 560;
 let ph = 760;
 let iw = 450;
@@ -58,9 +62,8 @@ let pencils = [
 function setup() {
   R = new Random(tokenData.hash);
   colorMode(HSB);
-  let sel, ci;
-  let bad = true;
-  while (bad) {
+  let consecutive = true;
+  while (consecutive) {
     let avail = [];
     for (let i = 0; i < pencils.length; i++) {
       avail.push(i);
@@ -89,13 +92,13 @@ function setup() {
     for (let i = 0; i < sel.length; i++) {
       ci.push(sel[i].mi);
     }
-    bad = false;
+    consecutive = false;
     let nm = pencils.length;
     for (let i = 0; i < ci.length; i++) {
       let j = (i + 1) % ci.length;
       let d = abs(ci[i] - ci[j]);
       if (d === 1 || d === nm - 1) {
-        bad = true;
+        consecutive = true;
       }
     }
   }
@@ -111,21 +114,32 @@ function setup() {
   p2rgb = [red(p2), green(p2), blue(p2)];
   p3rgb = [red(p3), green(p3), blue(p3)];
   p4rgb = [red(p4), green(p4), blue(p4)];
-  let pc = color(phsb[0], phsb[1], phsb[2]);
+  pc = color(phsb[0], phsb[1], phsb[2]);
   prgb = [red(pc), green(pc), blue(pc)];
-  let g = grids[R.random_int(0, grids.length - 1)];
-  cols = g[0];
-  rows = g[1];
-  let colgap = canHaveGaps(cols);
-  let rowgap = canHaveGaps(rows);
-  let csize = iw / cols;
-  let rsize = ih / rows;
-  if (colgap && (!rowgap || csize > rsize || (csize === rsize && R.random_bool(0.5)))) {
+  grid = grids[R.random_int(0, grids.length - 1)];
+  cols = grid[0];
+  rows = grid[1];
+  ox = (pw - iw) / 2;
+  oy = (ph - ih) / 2;
+  cw = iw / cols;
+  ch = ih / rows;
+  colgap = false;
+  rowgap = false;
+  for (let i = 1; i <= 3; i++) {
+    if ((cols - i) % (i + 1) === 0 && (cols - i) / (i + 1) >= 3) {
+      colgap = true;
+    }
+    if ((rows - i) % (i + 1) === 0 && (rows - i) / (i + 1) >= 3) {
+      rowgap = true;
+    }
+  }
+  if (colgap && (!rowgap || cw > ch || (cw === ch && R.random_bool(0.5)))) {
     acols = activeIdx(cols);
     arows = [];
     for (let i = 0; i < rows; i++) {
       arows.push(i);
     }
+    gaps = true;
     gaxis = 'cols';
   } else if (rowgap) {
     acols = [];
@@ -133,6 +147,7 @@ function setup() {
       acols.push(i);
     }
     arows = activeIdx(rows);
+    gaps = true;
     gaxis = 'rows';
   } else {
     acols = [];
@@ -143,35 +158,41 @@ function setup() {
     for (let i = 0; i < rows; i++) {
       arows.push(i);
     }
-    gaxis = null;
+    gaps = false;
   }
-  if (gaxis === 'cols') {
-    gmap = groupMap(acols);
-  } else if (gaxis === 'rows') {
-    gmap = groupMap(arows);
-  } else {
-    gmap = null;
-  }
-  let ngaps = 0;
-  if (gmap) {
-    ngaps = gmap[gmap.length - 1];
-  }
-  let ga = null;
-  if (gaxis === 'cols') {
-    ga = acols;
-  } else if (gaxis === 'rows') {
-    ga = arows;
-  }
-  let mingrp = Infinity;
-  if (ga) {
-    let sg = splitGrp(ga);
-    for (let i = 0; i < sg.length; i++) {
-      if (sg[i].length < mingrp) {
-        mingrp = sg[i].length;
+  if (gaps) {
+    let gidx;
+    if (gaxis === 'cols') {
+      gidx = acols;
+    } else {
+      gidx = arows;
+    }
+    gmap = [];
+    let grp = 0;
+    for (let i = 0; i < gidx.length; i++) {
+      if (i > 0 && gidx[i] !== gidx[i - 1] + 1) {
+        grp++;
       }
+      gmap.push(grp);
     }
   }
-  if (mingrp <= 3 || R.random_bool(0.5)) {
+  let ngaps = 0;
+  if (gaps) {
+    ngaps = gmap[gmap.length - 1];
+  }
+  let smallgrp = false;
+  if (gaps) {
+    let total;
+    if (gaxis === 'cols') {
+      total = cols;
+    } else {
+      total = rows;
+    }
+    if ((total - ngaps) / (ngaps + 1) <= 3) {
+      smallgrp = true;
+    }
+  }
+  if (smallgrp || R.random_bool(0.5)) {
     blend = 'continuous';
   } else {
     let tr = ['repeat', 'reflect', 'inverse', 'rotate'];
@@ -195,20 +216,10 @@ function setup() {
     }
     blend = tr[R.random_int(0, tr.length - 1)];
   }
-  let gb = blend;
-  if (blend === 'inverse') {
-    gb = 'repeat';
-  } else if (blend === 'rotate') {
-    gb = 'reflect';
-  }
-  cparam = blendParams(acols, gb);
-  rparam = blendParams(arows, gb);
-  let shuf = angs.slice();
-  for (let i = shuf.length - 1; i > 0; i--) {
-    let j = R.random_int(0, i);
-    [shuf[i], shuf[j]] = [shuf[j], shuf[i]];
-  }
-  angles = { p1: shuf[0], p2: shuf[1], p3: shuf[2], p4: shuf[3] };
+  cparam = blendParams(acols, blend);
+  rparam = blendParams(arows, blend);
+  angs = scramble(angs);
+  angles = { p1: angs[0], p2: angs[1], p3: angs[2], p4: angs[3] };
   cdata = {};
   cdata.p1 = buildCells('p1');
   cdata.p2 = buildCells('p2');
@@ -218,6 +229,7 @@ function setup() {
   console.log('P2: ' + n2);
   console.log('P3: ' + n3);
   console.log('P4: ' + n4);
+  window.$features = { P1: n1, P2: n2, P3: n3, P4: n4 };
   if (windowWidth / windowHeight > pw / ph) {
     h = windowHeight;
     w = h * pw / ph;
@@ -225,24 +237,21 @@ function setup() {
     w = windowWidth;
     h = w * ph / pw;
   }
+  sc = w / pw;
   createCanvas(w, h);
+  colorMode(RGB);
+  strokeWeight(lw * sc);
+  strokeCap(SQUARE);
 }
 
 function draw() {
-  colorMode(RGB);
-  background(0);
-  let sc = width / pw;
-  noStroke();
-  fill(prgb[0], prgb[1], prgb[2]);
-  rect(0, 0, width, height);
-  if (showlines) {
-    strokeWeight(lw * sc);
-    strokeCap(SQUARE);
+  background(prgb[0], prgb[1], prgb[2]);
+  if (hatched) {
     noFill();
     let rgbs = [p1rgb, p2rgb, p3rgb, p4rgb];
-    for (let ci = 0; ci < 4; ci++) {
-      stroke(rgbs[ci][0], rgbs[ci][1], rgbs[ci][2], la);
-      let cells = cdata['p' + (ci + 1)];
+    for (let i = 0; i < 4; i++) {
+      stroke(rgbs[i][0], rgbs[i][1], rgbs[i][2], la);
+      let cells = cdata['p' + (i + 1)];
       for (let j = 0; j < cells.length; j++) {
         let ls = cells[j].lines;
         for (let k = 0; k < ls.length; k++) {
@@ -251,15 +260,12 @@ function draw() {
       }
     }
   } else {
-    let ox = (pw - iw) / 2 * sc;
-    let oy = (ph - ih) / 2 * sc;
-    let cw = iw * sc / cols;
-    let ch = ih * sc / rows;
+    noStroke();
     for (let j = 0; j < arows.length; j++) {
       for (let i = 0; i < acols.length; i++) {
         let nx = cparam[i];
         let ny = rparam[j];
-        if ((blend === 'inverse' || blend === 'rotate') && gmap) {
+        if ((blend === 'inverse' || blend === 'rotate') && gaps) {
           let grp;
           if (gaxis === 'cols') {
             grp = gmap[i];
@@ -274,97 +280,52 @@ function draw() {
             }
           }
         }
-        let a1 = opacity * (1 - pow(1 - (1 - nx) * (1 - ny), curve));
-        let a2 = opacity * (1 - pow(1 - nx * (1 - ny), curve));
-        let a3 = opacity * (1 - pow(1 - nx * ny, curve));
-        let a4 = opacity * (1 - pow(1 - (1 - nx) * ny, curve));
-        let r = prgb[0];
-        let gr = prgb[1];
-        let bl = prgb[2];
-        r  = lerp(r,  p1rgb[0], a1);
-        gr = lerp(gr, p1rgb[1], a1);
-        bl = lerp(bl, p1rgb[2], a1);
-        r  = lerp(r,  p2rgb[0], a2);
-        gr = lerp(gr, p2rgb[1], a2);
-        bl = lerp(bl, p2rgb[2], a2);
-        r  = lerp(r,  p3rgb[0], a3);
-        gr = lerp(gr, p3rgb[1], a3);
-        bl = lerp(bl, p3rgb[2], a3);
-        r  = lerp(r,  p4rgb[0], a4);
-        gr = lerp(gr, p4rgb[1], a4);
-        bl = lerp(bl, p4rgb[2], a4);
-        fill(r, gr, bl);
-        rect(ox + acols[i] * cw, oy + arows[j] * ch, cw + 1, ch + 1);
+        a1 = opacity * (1 - pow(1 - (1 - nx) * (1 - ny), curve));
+        a2 = opacity * (1 - pow(1 - nx * (1 - ny), curve));
+        a3 = opacity * (1 - pow(1 - nx * ny, curve));
+        a4 = opacity * (1 - pow(1 - (1 - nx) * ny, curve));
+        r = prgb[0];
+        g = prgb[1];
+        b = prgb[2];
+        r = lerp(r, p1rgb[0], a1);
+        g = lerp(g, p1rgb[1], a1);
+        b = lerp(b, p1rgb[2], a1);
+        r = lerp(r, p2rgb[0], a2);
+        g = lerp(g, p2rgb[1], a2);
+        b = lerp(b, p2rgb[2], a2);
+        r = lerp(r, p3rgb[0], a3);
+        g = lerp(g, p3rgb[1], a3);
+        b = lerp(b, p3rgb[2], a3);
+        r = lerp(r, p4rgb[0], a4);
+        g = lerp(g, p4rgb[1], a4);
+        b = lerp(b, p4rgb[2], a4);
+        fill(r, g, b);
+        rect((ox + acols[i] * cw) * sc, (oy + arows[j] * ch) * sc, cw * sc + 1, ch * sc + 1);
       }
     }
   }
   noLoop();
 }
 
-function canHaveGaps(n) {
-  let result = false;
-  for (let k = 1; k <= 3; k++) {
-    let rem = n - k;
-    if (rem % (k + 1) === 0 && rem / (k + 1) >= 3) {
-      result = true;
-    }
-  }
-  return result;
-}
-
 function activeIdx(n) {
   let valid = [];
-  for (let k = 1; k <= 3; k++) {
-    let rem = n - k;
-    if (rem % (k + 1) === 0 && rem / (k + 1) >= 3) {
-      valid.push(k);
+  for (let i = 1; i <= 3; i++) {
+    if ((n - i) % (i + 1) === 0 && (n - i) / (i + 1) >= 3) {
+      valid.push(i);
     }
   }
-  let out = [];
-  if (valid.length === 0) {
-    for (let i = 0; i < n; i++) {
-      out.push(i);
-    }
-  } else {
-    let ng = valid[R.random_int(0, valid.length - 1)];
-    let gaps = {};
-    for (let j = 0; j < ng; j++) {
-      gaps[(j + 1) * (n - ng) / (ng + 1) + j] = true;
-    }
-    for (let i = 0; i < n; i++) {
-      if (!gaps[i]) {
-        out.push(i);
-      }
+  let ng = valid[R.random_int(0, valid.length - 1)];
+  let skip = {};
+  for (let i = 0; i < ng; i++) {
+    skip[(i + 1) * (n - ng) / (ng + 1) + i] = true;
+  }
+  let indices = [];
+  for (let i = 0; i < n; i++) {
+    if (!skip[i]) {
+      indices.push(i);
     }
   }
-  return out;
-}
-
-function splitGrp(idx) {
-  let groups = [];
-  let cur = [idx[0]];
-  for (let i = 1; i < idx.length; i++) {
-    if (idx[i] !== idx[i - 1] + 1) {
-      groups.push(cur);
-      cur = [];
-    }
-    cur.push(idx[i]);
-  }
-  groups.push(cur);
-  return groups;
-}
-
-function groupMap(idx) {
-  let m = new Array(idx.length);
-  m[0] = 0;
-  let g = 0;
-  for (let i = 1; i < idx.length; i++) {
-    if (idx[i] !== idx[i - 1] + 1) {
-      g++;
-    }
-    m[i] = g;
-  }
-  return m;
+  return indices;
 }
 
 function blendParams(idx, mode) {
@@ -379,16 +340,24 @@ function blendParams(idx, mode) {
       params.push(i / (n - 1));
     }
   } else {
-    let groups = splitGrp(idx);
-    for (let g = 0; g < groups.length; g++) {
-      let grp = groups[g];
-      let rev = mode === 'reflect' && g % 2 === 1;
-      for (let i = 0; i < grp.length; i++) {
+    let groups = [];
+    let cur = [idx[0]];
+    for (let i = 1; i < idx.length; i++) {
+      if (idx[i] !== idx[i - 1] + 1) {
+        groups.push(cur);
+        cur = [];
+      }
+      cur.push(idx[i]);
+    }
+    groups.push(cur);
+    for (let i = 0; i < groups.length; i++) {
+      let grp = groups[i];
+      for (let j = 0; j < grp.length; j++) {
         let t = 0.5;
         if (grp.length > 1) {
-          t = i / (grp.length - 1);
+          t = j / (grp.length - 1);
         }
-        if (rev) {
+        if ((mode === 'reflect' || mode === 'rotate') && i % 2 === 1) {
           params.push(1 - t);
         } else {
           params.push(t);
@@ -400,19 +369,15 @@ function blendParams(idx, mode) {
 }
 
 function buildCells(corner) {
-  let ox = (pw - iw) / 2;
-  let oy = (ph - ih) / 2;
-  let cw = iw / cols;
-  let ch = ih / rows;
   let theta = angles[corner] * PI / 180;
   let sa = sin(theta);
   let ca = cos(theta);
-  let out = [];
+  let cells = [];
   for (let j = 0; j < arows.length; j++) {
     for (let i = 0; i < acols.length; i++) {
       let nx = cparam[i];
       let ny = rparam[j];
-      if ((blend === 'inverse' || blend === 'rotate') && gmap) {
+      if ((blend === 'inverse' || blend === 'rotate') && gaps) {
         let grp;
         if (gaxis === 'cols') {
           grp = gmap[i];
@@ -437,7 +402,7 @@ function buildCells(corner) {
       } else {
         wt = (1 - nx) * ny;
       }
-      if (wt >= 0.001) {
+      if (wt > 0) {
         let cx = ox + acols[i] * cw;
         let cy = oy + arows[j] * ch;
         let d0 = -cx * sa + cy * ca;
@@ -454,51 +419,35 @@ function buildCells(corner) {
         let ymax = cy + ch;
         let ls = [];
         let tdist = 0;
-        for (let m = 0; m < nlines; m++) {
-          let dd = dmin + step / 2 + m * step;
-          let tlo = -1e9;
-          let thi = 1e9;
-          if (abs(ca) > 1e-12) {
-            let tl = (xmin + dd * sa) / ca;
-            let tr = (xmax + dd * sa) / ca;
-            tlo = max(tlo, min(tl, tr));
-            thi = min(thi, max(tl, tr));
+        for (let k = 0; k < nlines; k++) {
+          let dd = dmin + step / 2 + k * step;
+          let tl = (xmin + dd * sa) / ca;
+          let tr = (xmax + dd * sa) / ca;
+          let tt = (ymin - dd * ca) / sa;
+          let tb = (ymax - dd * ca) / sa;
+          let tlo = max(min(tl, tr), min(tt, tb));
+          let thi = min(max(tl, tr), max(tt, tb));
+          let x1 = -dd * sa + tlo * ca;
+          let y1 =  dd * ca + tlo * sa;
+          let x2 = -dd * sa + thi * ca;
+          let y2 =  dd * ca + thi * sa;
+          if (x1 > x2) {
+            [x1, y1, x2, y2] = [x2, y2, x1, y1];
           }
-          if (abs(sa) > 1e-12) {
-            let tt = (ymin - dd * ca) / sa;
-            let tb = (ymax - dd * ca) / sa;
-            tlo = max(tlo, min(tt, tb));
-            thi = min(thi, max(tt, tb));
-          }
-          if (tlo < thi - 1e-9) {
-            let x1 = -dd * sa + tlo * ca;
-            let y1 =  dd * ca + tlo * sa;
-            let x2 = -dd * sa + thi * ca;
-            let y2 =  dd * ca + thi * sa;
-            if (x1 > x2) {
-              [x1, y1, x2, y2] = [x2, y2, x1, y1];
-            }
-            ls.push({ x1: x1, y1: y1, x2: x2, y2: y2 });
-            tdist += dist(x1, y1, x2, y2);
-          }
+          ls.push({ x1: x1, y1: y1, x2: x2, y2: y2 });
+          tdist += dist(x1, y1, x2, y2);
         }
         let cl = 0;
-        if (gmap) {
-          if (gaxis === 'cols') {
-            cl = gmap[i];
-          } else {
-            cl = gmap[j];
-          }
+        if (gaxis === 'cols') {
+          cl = gmap[i];
+        } else if (gaxis === 'rows') {
+          cl = gmap[j];
         }
-        out.push({ col: acols[i], row: arows[j], lines: ls, distance: tdist, cluster: cl });
+        cells.push({ col: acols[i], row: arows[j], lines: ls, distance: tdist, cluster: cl });
       }
     }
   }
-  return out;
-}
-
-function sortPeakDesc(a, b) {
-  return b.cells[b.cells.length - 1].distance - a.cells[a.cells.length - 1].distance;
+  return cells;
 }
 
 function pack(cells) {
@@ -521,82 +470,100 @@ function pack(cells) {
       });
       batches.push({ cells: group, distance: total });
     }
-    batches.sort(sortPeakDesc);
+    batches.sort(function(a, b) {
+      return b.cells[b.cells.length - 1].distance - a.cells[a.cells.length - 1].distance;
+    });
   }
   return batches;
 }
 
-function keyPressed() {
-  if (key === 't' || key === 'T') {
-    showlines = !showlines;
-    redraw();
+function buildSVG(corner) {
+  let cells = cdata[corner];
+  let batches;
+  if (blend === 'continuous') {
+    batches = pack(cells);
   } else {
-    let corner = { '1': 'p1', '2': 'p2', '3': 'p3', '4': 'p4' }[key];
-    if (corner) {
-      let cells = cdata[corner];
-      let batches;
-      if (blend === 'continuous') {
-        batches = pack(cells);
-      } else {
-        let clusters = {};
-        for (let i = 0; i < cells.length; i++) {
-          let cl = cells[i].cluster;
-          if (!clusters[cl]) {
-            clusters[cl] = [];
-          }
-          clusters[cl].push(cells[i]);
-        }
-        batches = [];
-        let ks = Object.keys(clusters);
-        for (let i = 0; i < ks.length; i++) {
-          let pb = pack(clusters[ks[i]]);
-          for (let j = 0; j < pb.length; j++) {
-            batches.push(pb[j]);
-          }
-        }
-        batches.sort(sortPeakDesc);
+    let clusters = {};
+    for (let i = 0; i < cells.length; i++) {
+      let cl = cells[i].cluster;
+      if (!clusters[cl]) {
+        clusters[cl] = [];
       }
-      let crgb = { p1: p1rgb, p2: p2rgb, p3: p3rgb, p4: p4rgb }[corner];
-      let hexstr = '#' + hex(round(crgb[0]), 2) + hex(round(crgb[1]), 2) + hex(round(crgb[2]), 2);
-      let svg = '<?xml version="1.0" encoding="UTF-8"?>\n';
-      svg += '<svg xmlns="http://www.w3.org/2000/svg"\n';
-      svg += '     width="' + pw + 'mm"\n';
-      svg += '     height="' + ph + 'mm"\n';
-      svg += '     viewBox="0 0 ' + pw + ' ' + ph + '">\n';
-      svg += '  <rect x="0" y="0" width="' + pw + '" height="' + ph + '" fill="none" stroke="none"/>\n';
-      svg += '  <g stroke="' + hexstr + '" stroke-width="' + lw + '" stroke-linecap="butt">\n';
-      for (let i = 0; i < batches.length; i++) {
-        let batch = batches[i];
-        let clist = '';
-        for (let j = 0; j < batch.cells.length; j++) {
-          if (j > 0) {
-            clist += ' ';
-          }
-          clist += '(' + batch.cells[j].col + ',' + batch.cells[j].row + ')';
-        }
-        svg += '    <g id="' + i + '-group-' + corner + '" data-distance="' + round(batch.distance) + '" data-cells="' + clist + '">\n';
-        for (let j = 0; j < batch.cells.length; j++) {
-          let ls = batch.cells[j].lines;
-          for (let k = 0; k < ls.length; k++) {
-            svg += '      <line x1="' + ls[k].x1.toFixed(6) + '" y1="' + ls[k].y1.toFixed(6) +
-                   '" x2="' + ls[k].x2.toFixed(6) + '" y2="' + ls[k].y2.toFixed(6) + '"/>\n';
-          }
-        }
-        svg += '    </g>\n';
-      }
-      svg += '  </g>\n';
-      svg += '</svg>';
-      let fname = 'MechanicalDrawing' + tokenData.tokenId + '-' + corner.toUpperCase() + '.svg';
-      let blob = new Blob([svg], { type: 'image/svg+xml' });
-      let url = URL.createObjectURL(blob);
-      let a = document.createElement('a');
-      a.href = url;
-      a.download = fname;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      clusters[cl].push(cells[i]);
     }
+    batches = [];
+    let ks = Object.keys(clusters);
+    for (let i = 0; i < ks.length; i++) {
+      let pb = pack(clusters[ks[i]]);
+      for (let j = 0; j < pb.length; j++) {
+        batches.push(pb[j]);
+      }
+    }
+    batches.sort(function(a, b) {
+      return b.cells[b.cells.length - 1].distance - a.cells[a.cells.length - 1].distance;
+    });
+  }
+  let crgb = { p1: p1rgb, p2: p2rgb, p3: p3rgb, p4: p4rgb }[corner];
+  let hexstr = '#' + hex(round(crgb[0]), 2) + hex(round(crgb[1]), 2) + hex(round(crgb[2]), 2);
+  let svg = '<?xml version="1.0" encoding="UTF-8"?>\n';
+  svg += '<svg xmlns="http://www.w3.org/2000/svg"\n';
+  svg += '     width="' + pw + 'mm"\n';
+  svg += '     height="' + ph + 'mm"\n';
+  svg += '     viewBox="0 0 ' + pw + ' ' + ph + '">\n';
+  svg += '  <rect x="0" y="0" width="' + pw + '" height="' + ph + '" fill="none" stroke="none"/>\n';
+  svg += '  <g stroke="' + hexstr + '" stroke-width="' + lw + '" stroke-linecap="butt">\n';
+  for (let i = 0; i < batches.length; i++) {
+    let batch = batches[i];
+    let clist = '';
+    for (let j = 0; j < batch.cells.length; j++) {
+      if (j > 0) {
+        clist += ' ';
+      }
+      clist += '(' + batch.cells[j].col + ',' + batch.cells[j].row + ')';
+    }
+    svg += '    <g id="' + i + '-group-' + corner + '" data-distance="' + round(batch.distance) + '" data-cells="' + clist + '">\n';
+    for (let j = 0; j < batch.cells.length; j++) {
+      let ls = batch.cells[j].lines;
+      for (let k = 0; k < ls.length; k++) {
+        svg += '      <line x1="' + ls[k].x1.toFixed(6) + '" y1="' + ls[k].y1.toFixed(6) +
+               '" x2="' + ls[k].x2.toFixed(6) + '" y2="' + ls[k].y2.toFixed(6) + '"/>\n';
+      }
+    }
+    svg += '    </g>\n';
+  }
+  svg += '  </g>\n';
+  svg += '</svg>';
+  return svg;
+}
+
+function scramble(arr) {
+  let shuffled = arr.slice();
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    let j = R.random_int(0, i);
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
+function mousePressed() {
+  hatched = !hatched;
+  redraw();
+}
+
+function keyPressed() {
+  let corner = { '1': 'p1', '2': 'p2', '3': 'p3', '4': 'p4' }[key];
+  if (corner) {
+    let svg = buildSVG(corner);
+    let fname = 'MechanicalDrawing' + (Number(tokenData.tokenId) % 1000000) + '-' + corner.toUpperCase() + '.svg';
+    let blob = new Blob([svg], { type: 'image/svg+xml' });
+    let url = URL.createObjectURL(blob);
+    let a = document.createElement('a');
+    a.href = url;
+    a.download = fname;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 }
 

@@ -15,6 +15,10 @@ in this repo.
 - Functions live at module level; no nesting.
 - `setup()` does all configuration and calculation; `draw()` does all
   rendering.
+- Configuration calls that don't change during `draw()` —
+  `colorMode`, `strokeWeight`, `strokeCap` — belong in `setup()`.
+  `background()` stays in `draw()` only when a `redraw()` toggle
+  requires repainting.
 - `keyPressed()` or `keyTyped()` for save and control:
   `if (key === 's') saveCanvas(tokenData, 'png')`.
 
@@ -51,6 +55,12 @@ Order top to bottom:
   `new Random(tokenData.hash)`.
 - Reference `tokenData.hash` / `tokenData.tokenId` by property
   throughout (console logs, SVG filenames, etc.).
+- Expose deterministic token traits via `window.$features = { ... }`
+  at the end of `setup()`. Values must derive from the seeded `R`
+  PRNG so the same hash always produces the same features.
+- Strip the project-id prefix when naming export files:
+  `Number(tokenData.tokenId) % 1000000` gives the per-project output
+  number; number-to-string conversion drops leading zeros naturally.
 
 ## Declarations
 
@@ -64,6 +74,11 @@ Order top to bottom:
   `let ph = 760;`
 - If a variable holds a simple formula and is referenced only once,
   inline the formula instead of declaring the variable.
+- Variables should hold one kind of value. If a name carries both
+  "absent vs present" (e.g. `null` vs an object) and a meaningful
+  value, split into a boolean and the value (e.g. `gaps` boolean +
+  `gaxis` string + `gmap` array, not a single `gmap` that's `null`
+  or array).
 
 ## Functions
 
@@ -85,6 +100,9 @@ Order top to bottom:
   `hashPairs`, `orientation`.
 - Boolean flags as bare words: `night`, `smooth`, `stepped`,
   `horizontal`, `reverse`, `beam`, `tinted`, `saturated`.
+- Name the local accumulator after what the function returns:
+  `indices`, `cells`, `shuffled`. Use generic `arr` only when the
+  output truly has no more specific identity.
 - Keep Art Blocks conventions intact: `tokenData`, `tokenId`,
   `useA`, `prngA`, `prngB`.
 
@@ -179,6 +197,18 @@ Order top to bottom:
   "thank you easyrgb.com") are fine.
 - Do not add redundant comments that just narrate what the code is
   doing.
+
+## Defensive code
+
+- Do not add defensive checks when the math or data structure
+  guarantees the invariant. If `tlo < thi` is mathematically
+  guaranteed by construction, do not write `if (tlo < thi - 1e-9)`.
+- Avoid sentinel "infinity" values (`-1e9`, `1e9`) when the bound
+  can be computed directly. Compute `tlo` as `max(min-bounds)` and
+  `thi` as `min(max-bounds)` rather than progressively tightening
+  from infinity.
+- Avoid degenerate-input guards (`abs(x) > 1e-12`) when the inputs
+  are constrained by the algorithm to avoid the degenerate case.
 
 ## Efficiency
 
