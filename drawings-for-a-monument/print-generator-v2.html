@@ -4103,9 +4103,9 @@ function doGenerate(hashVal, tokenNum) {
 
         // ---- Line registration hashes (print only) ----
         printCtx.strokeStyle = regColor;
-        printCtx.lineWidth = 2;
+        printCtx.lineWidth = 1;
         printCtx.lineCap = 'round';
-        let hashLen = 12;
+        let hashLen = 8;
 
         let drawn = new Set();
         function toCanvas(x, y) {
