@@ -97,6 +97,13 @@
     margin-top: 0.4rem;
   }
 
+  .dfam-token-card .token-vault {
+    margin-top: 0.15rem;
+    font-size: 0.7rem;
+    opacity: 0.65;
+    letter-spacing: 0.05em;
+  }
+
   .dfam-purchase-section {
     margin-top: 1.5rem;
   }
@@ -148,13 +155,13 @@
 
     <div id="dfam-loading" style="display:none;">
       <div class="dfam-status">
-        <span class="dfam-spinner"></span> Checking your wallet for DfaM tokens…
+        <span class="dfam-spinner"></span> Checking your wallet (and delegated vaults) for DfaM tokens…
       </div>
     </div>
 
     <div id="dfam-empty" style="display:none;">
       <div class="dfam-status">
-        This wallet doesn't hold any Drawings for a Monument tokens.<br><br>
+        No Drawings for a Monument tokens found in this wallet or any wallets delegated to it.<br><br>
         <a href="https://www.artblocks.io/collections/presents/projects/0xababababab20053426ad1c782de9ea8444358070-3" target="_blank">View DfaM on Art Blocks →</a>
       </div>
     </div>
@@ -177,7 +184,7 @@
 
     <div id="dfam-tokens" style="display:none;">
       <div class="dfam-wallet-info">
-        Connected: <span id="dfam-wallet-addr"></span>
+        Connected: <span id="dfam-wallet-addr"></span><span id="dfam-vault-info"></span>
         <button class="dfam-disconnect" onclick="dfamDisconnect()">DISCONNECT</button>
       </div>
       <!-- <p>Select the token you'd like painted:</p> -->
@@ -200,6 +207,8 @@
   var THUMBNAIL_URL = 'https://media.artblocks.io/' + DFAM_CONTRACT + '/{id}.png';
   var SQUARESPACE_PRODUCT_URL = 'https://www.jeffgdavis.com/dfam';
   var SQS_FORM_FIELD_LABEL = 'Token ID';
+  var DELEGATE_API_V1 = 'https://api.delegate.xyz/registry/v1/';
+  var DELEGATE_API_V2 = 'https://api.delegate.xyz/registry/v2/';
 
   var selectedTokenId = null;
   var connectedAddress = null;
@@ -287,6 +296,8 @@
   window.dfamDisconnect = function() {
     connectedAddress = null;
     selectedTokenId = null;
+    var vaultEl = document.getElementById('dfam-vault-info');
+    if (vaultEl) vaultEl.textContent = '';
     hideAll();
     show('dfam-connect');
     var btn = document.getElementById('dfam-connect-btn');
@@ -294,17 +305,69 @@
     btn.textContent = 'CONNECT WALLET';
   };
 
+  // Fetch one delegate registry endpoint and normalize the response to { to, from, type, contract }.
+  // v1 uses delegate/vault field names; v2 uses to/from. Both have the same type enum.
+  async function fetchDelegateRegistry(endpoint, hotWallet) {
+    try {
+      var res = await fetch(endpoint + hotWallet);
+      if (!res.ok) return [];
+      var delegations = await res.json();
+      if (!Array.isArray(delegations)) return [];
+      return delegations.map(function(d) {
+        return {
+          type: d.type,
+          to: (d.to || d.delegate || '').toLowerCase(),
+          from: (d.from || d.vault || '').toLowerCase(),
+          contract: d.contract ? d.contract.toLowerCase() : null
+        };
+      });
+    } catch (err) {
+      return [];
+    }
+  }
+
+  // Query Delegate.xyz v1 + v2 for incoming delegations that grant rights over DfaM tokens.
+  // Returns an array of unique vault addresses (lowercased) that have delegated to the hot wallet.
+  // Fails gracefully (returns []) so a delegate API outage never blocks direct holders.
+  async function fetchDelegatedVaults(hotWallet) {
+    var hot = hotWallet.toLowerCase();
+    var contract = DFAM_CONTRACT.toLowerCase();
+
+    var results = await Promise.all([
+      fetchDelegateRegistry(DELEGATE_API_V1, hotWallet),
+      fetchDelegateRegistry(DELEGATE_API_V2, hotWallet)
+    ]);
+    var delegations = results[0].concat(results[1]);
+
+    var vaults = new Set();
+    for (var i = 0; i < delegations.length; i++) {
+      var d = delegations[i];
+      if (!d.to || !d.from) continue;
+      if (d.to !== hot) continue; // only incoming
+      if (d.type === 'NONE') continue;
+      if (d.type === 'ALL') {
+        vaults.add(d.from);
+      } else if (d.type === 'CONTRACT' || d.type === 'TOKEN') {
+        if (d.contract && d.contract === contract) vaults.add(d.from);
+      }
+    }
+    return Array.from(vaults);
+  }
+
   async function loadTokens(address) {
     hideAll();
     show('dfam-loading');
     try {
-      var owner = address.toLowerCase();
+      var hot = address.toLowerCase();
+      var vaults = await fetchDelegatedVaults(hot);
+      var owners = [hot].concat(vaults);
+
       var res = await fetch(ART_BLOCKS_GRAPHQL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          query: 'query DfaMTokens($owner: String!, $contract: String!, $projectId: String!) { tokens_metadata(where: { owner_address: { _eq: $owner }, contract_address: { _eq: $contract }, project_id: { _eq: $projectId } }, limit: 200) { token_id media_thumb_url features } }',
-          variables: { owner: owner, contract: DFAM_CONTRACT, projectId: DFAM_PROJECT_ID }
+          query: 'query DfaMTokens($owners: [String!]!, $contract: String!, $projectId: String!) { tokens_metadata(where: { owner_address: { _in: $owners }, contract_address: { _eq: $contract }, project_id: { _eq: $projectId } }, limit: 200) { token_id media_thumb_url features owner_address } }',
+          variables: { owners: owners, contract: DFAM_CONTRACT, projectId: DFAM_PROJECT_ID }
         })
       });
       var json = await res.json();
@@ -314,17 +377,20 @@
       var dfamTokens = list
         .map(function(t) {
           var features = t.features || {};
+          var ownerAddr = (t.owner_address || '').toLowerCase();
           return {
             tokenId: t.token_id,
             thumb: t.media_thumb_url || null,
-            claimed: (features.Drawing === 'Claimed')
+            claimed: (features.Drawing === 'Claimed'),
+            owner: ownerAddr,
+            isDelegated: ownerAddr && ownerAddr !== hot
           };
         })
         .sort(function(a, b) { return Number(a.tokenId) - Number(b.tokenId); });
 
       hideAll();
       if (dfamTokens.length === 0) { show('dfam-empty'); return; }
-      renderTokens(dfamTokens, address);
+      renderTokens(dfamTokens, address, vaults);
       show('dfam-tokens');
     } catch (err) {
       hideAll();
@@ -334,10 +400,21 @@
     }
   }
 
-  function renderTokens(tokens, address) {
+  function shortAddr(addr) {
+    if (!addr) return '';
+    return addr.slice(0, 6) + '\u2026' + addr.slice(-4);
+  }
+
+  function renderTokens(tokens, address, vaults) {
     var grid = document.getElementById('dfam-token-grid');
     var addrEl = document.getElementById('dfam-wallet-addr');
-    addrEl.textContent = address.slice(0, 6) + '\u2026' + address.slice(-4);
+    var vaultEl = document.getElementById('dfam-vault-info');
+    addrEl.textContent = shortAddr(address);
+    if (vaults && vaults.length > 0) {
+      vaultEl.textContent = ' + ' + vaults.length + ' delegated ' + (vaults.length === 1 ? 'wallet' : 'wallets');
+    } else {
+      vaultEl.textContent = '';
+    }
     grid.innerHTML = '';
     selectedTokenId = null;
 
@@ -375,6 +452,14 @@
 
       card.appendChild(thumbWrap);
       card.appendChild(label);
+
+      if (t.isDelegated) {
+        var vaultLabel = document.createElement('div');
+        vaultLabel.className = 'token-vault';
+        vaultLabel.textContent = 'via ' + shortAddr(t.owner);
+        vaultLabel.title = 'Owned by ' + t.owner + ' (delegated to your wallet)';
+        card.appendChild(vaultLabel);
+      }
 
       if (!t.claimed) {
         card.addEventListener('click', function() {

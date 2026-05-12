@@ -1,10 +1,3 @@
-// to-do
-// universal stroke weight
-// generalize subdivision: extend the shapeGrid concept to shapeProgression (one concentric
-//   shape becomes a sub-progression) and to grid (one group becomes a denser sub-grid)
-// unify color schemes: shared colorScheme knob across engines (single / alternating /
-//   gradient / varied), replacing per-engine ad hoc multi-element coloring
-
 // Sample token hash (comment out for Art Blocks deployment)
 let tokenData = { hash: "0x" };
 for (let i = 0; i < 64; i++) {
@@ -44,34 +37,60 @@ let methods = {
   // ---------------------------------------------------------------------------
   // SHAPE PROGRESSION
   // Nested/concentric shapes stepping inward from edge or center.
-  // Knobs: alternate, outline, alignment, elementChoices, spacing, range
+  // Knobs: colorScheme, outline, alignment, elementChoices, spacing, range, subdivision
+  //   colorScheme: shared with grid/shapeGrid. "single" → every element c1; "binary" →
+  //     each element independently c1 or c2 (strict alternation is a sub-case that
+  //     occasionally appears); "gradient" → smooth lerp across elements, with random
+  //     direction reversal per draw. Constraint: "single" is forced when `outline=true`
+  //     (outlines need monochrome to read as composition rather than noise), and
+  //     conversely "single" is re-rolled to a varied scheme when `outline=false` (a filled
+  //     nested progression in single color renders as a solid c1 canvas — the largest
+  //     element covers everything and inner elements are c1-on-c1 invisible).
   //   range: outer-envelope relation to canvas, using the shared edge-state vocabulary
   //     ("inset" / "touching" / "extended"). A single knob — not per-edge — because the
   //     progression is nested. Which canvas edges respond is determined by `alignment`:
   //     corner → 2 edges fixed at the anchor, 2 edges follow `range`; center → all 4
   //     edges follow `range` (4-way symmetric); edge → 1 edge fixed (top in local coords,
   //     rotated to any side by the global canvas rotation), 3 edges follow `range`.
+  //   subdivision: parallel to shapeGrid.subdivision and grid.subdivision. Picks one slot
+  //     between two adjacent elements and inserts M extra evenly-spaced elements into that
+  //     gap, producing a "thicker band" of close-together shapes in one part of the
+  //     progression. Original element sizes are preserved; total count grows from nt to
+  //     nt+M, so the color palette adapts across the new count.
   // ---------------------------------------------------------------------------
   shapeProgression: {
     shapes: ["Line", "Circle", "Square", "Triangle"],
     defaults: {
-      alternate: 0.2,
+      colorScheme: "random",
       outline: 0.2,
       alignment: "random",
       elementChoices: [2, 3, 4, 6, 8],
       spacing: "random",
-      range: "random"
+      range: "random",
+      subdivision: "random"
     },
     subtopics: {
-      "Repetition": { alternate: true, elementChoices: [4, 6, 8] },
-      "Structure": { outline: true },
-      "Proportion": { alignment: "corner", allowedShapes: ["Circle", "Square", "Triangle"] },
-      "Symmetry": { alignment: "center", allowedShapes: ["Line", "Circle", "Square"] },
-      "Asymmetry": { alignment: "corner", allowedShapes: ["Circle", "Square", "Triangle"], outline: false }
+      "Repetition": { colorScheme: "binary", elementChoices: [4, 6, 8], subdivision: "none" },
+      "Structure": { outline: true, subdivision: "none" },
+      "Proportion": { alignment: "corner", allowedShapes: ["Circle", "Square", "Triangle"], subdivision: "none" },
+      "Symmetry": { alignment: "center", allowedShapes: ["Line", "Circle", "Square"], subdivision: "none" },
+      "Asymmetry": { alignment: "corner", allowedShapes: ["Circle", "Square", "Triangle"], outline: false, subdivision: "none" }
     },
     draw: function(shape, config) {
-      let alternate = chance(config.alternate);
+      let colorScheme = resolveChoice(config.colorScheme, ["single", "binary", "gradient"]);
       let outline = chance(config.outline);
+      // Line is a full-width rect — outlining it just produces a rect stroke that reads
+      // identically to the filled version at most sizes. Suppress outlines for Line.
+      if (shape === "Line") outline = false;
+      // Outlined shapes are strokes, not solid fills — per-element color variation reads as
+      // visual noise rather than composition. Force single when outlined.
+      // Conversely, filled nested progressions need color variation to read as a sequence:
+      // every element drawn in c1 would be c1-on-c1 from the second element onward, and
+      // the largest element often covers the canvas at corner/touching/extended alignments
+      // producing a uniform c1 canvas with no visible composition. Re-roll single to a
+      // varied scheme when not outlined.
+      if (outline) colorScheme = "single";
+      else if (colorScheme === "single") colorScheme = R.random_choice(["binary", "gradient"]);
       // alignment: "corner" (anchored at TL, rotated to any corner by the global canvas rotation),
       //   "center" (4-way symmetric), or "edge" (anchored at top-midpoint, rotated to any edge).
       // Per-shape restrictions:
@@ -159,50 +178,107 @@ let methods = {
         }
       }
 
+      // --- Subdivision (densify one slot with extra elements) ---
+      // Pick a random slot between two adjacent elements and insert M extras evenly within
+      // that gap. Visually produces a "thicker band" of close-together shapes in one part
+      // of the progression. Original sizes are preserved; nt grows by M.
+      // In extended mode, restrict subSlot so both neighbors are on-canvas (positions ≤
+      // canvasUnits) — otherwise the sub-elements would also fall off-canvas with no
+      // visible effect.
+      let subdivision = resolveChoice(config.subdivision, ["none", "subdivided"]);
+      let subSlot = -1, subM = 0;
+      let firstVisible = 0;
+      while (firstVisible < nt && positions[firstVisible] > canvasUnits) firstVisible++;
+      let maxSubSlot = nt - 2;
+      let minSubSlot = firstVisible;
+      if (subdivision === "subdivided" && nt >= 2 && minSubSlot <= maxSubSlot) {
+        subSlot = R.random_int(minSubSlot, maxSubSlot);
+        subM = R.random_int(1, 2);
+        let p0 = positions[subSlot];
+        let p1 = positions[subSlot + 1];
+        let inserted = [];
+        for (let k = 1; k <= subM; k++) {
+          inserted.push(p0 - (p0 - p1) * k / (subM + 1));
+        }
+        positions = positions.slice(0, subSlot + 1).concat(inserted, positions.slice(subSlot + 1));
+        nt = positions.length;
+      } else {
+        subdivision = "none";
+      }
+
       // Compute sizes as fractions of canvas
       let sizes = positions.map(p => p / canvasUnits);
 
-      let reverseGradient = !alternate && R.random_bool(0.5);
+      // Build a single palette shared by fills and outlines so they stay consistent within
+      // each element. Palette length is the final nt (after subdivision insertions).
+      let palette = buildColorPalette(colorScheme, nt);
 
-      print("Color Pattern:", alternate ? "Alternating" : "Gradient" + (reverseGradient ? " (reversed)" : ""));
+      // Visibility guard for binary: with filled progressions at extended range, the
+      // outermost elements extend past the canvas and may be fully occluded by subsequent
+      // elements. Ensure visible elements (positions ≤ canvasUnits) contain both c1 AND c2
+      // so there is always a visible color boundary — having only c1 or only c2 among
+      // visible elements produces a near-monochrome canvas (especially for triangles where
+      // the contrasting sliver can be tiny and imperceptible at low ldif).
+      if (colorScheme === "binary") {
+        let visibleIdx = [];
+        for (let i = 0; i < nt; i++) {
+          if (positions[i] <= canvasUnits) visibleIdx.push(i);
+        }
+        if (visibleIdx.length >= 2) {
+          if (!visibleIdx.some(i => palette[i] === c1)) {
+            palette[R.random_choice(visibleIdx)] = c1;
+          }
+          if (!visibleIdx.some(i => palette[i] === c2)) {
+            palette[R.random_choice(visibleIdx)] = c2;
+          }
+        }
+      }
+
+      print("Color Scheme:", colorScheme);
       print("Outline:", outline ? "Yes" : "No");
       print("Alignment:", alignment);
       print("Elements:", nt, "| Grid:", nt + " × " + multiplier + " = " + grid + "u");
       print("Spacing:", evenSpacing ? "Even" : "Variable", "| Gaps:", gaps.join(":"));
-      print("Range:", range, "| Canvas:", canvasUnits + "u", "| Positions:", positions.join(", "));
+      print("Range:", range, "| Canvas:", canvasUnits + "u", "| Positions:", positions.map(p => +p.toFixed(2)).join(", "));
+      // Stroke weight is chosen once for the whole progression so the compensating offsets
+      // (which hide the stroke overshoot at canvas edges) stay in sync with the actual weight.
+      let sw = outline ? pickStrokeWidth(sd, ["medium", "thin", "fine", "hairline"]) : 0;
+      print("Subdivision:", subdivision, subSlot >= 0 ? "at slot " + subSlot + " (+" + subM + ")" : "");
 
       for (let i = 0; i < nt; i++) {
         let sz = sizes[i];
-        let gt = reverseGradient ? (nt - 1 - i) / nt : i / (nt - 1);
-        let gt_outline = reverseGradient ? (nt - 1 - i) / nt : i / nt;
-        if (alternate) {
-          fill(i % 2 === 0 ? c1 : c2);
-        } else {
-          fill(betterLerp(c1, c2, gt));
-        }
+        fill(palette[i]);
 
         if (outline) {
           push();
           translate(sd / 2, sd / 2);
+          // Compensate for stroke overshoot at canvas edges. Strokes are centered on the
+          // geometry and extend sw/2 outward, so the anchor point is shifted off-canvas by
+          // sw/2 to hide the bleed. Each shape family needs a different transform:
           if (shape === "Circle") {
-            scale(120 / 121);
+            // Scale inward from center so the circle edge retreats by sw/2.
+            scale(1 - sw / sd);
           } else if (shape === "Triangle") {
             if (corner) {
-              translate(-sd / 240, -sd / 240);
+              translate(-sw / 2, -sw / 2);
             } else {
-              translate(0, -sd / 120);
+              // Edge alignment: base sits on top edge; shift up by sw to hide base stroke.
+              translate(0, -sw);
             }
+          } else if (corner) {
+            // Corner-aligned Square/Line: translate the anchor off-canvas by sw/2.
+            // Using translate (not scale) avoids dilating the opposite edges onto the
+            // canvas boundary, which produces sub-pixel anti-aliasing artifacts.
+            translate(-sw / 2, -sw / 2);
           } else {
-            scale(121 / 120);
+            // Center-aligned Square/Line: scale inward from center so all edges retreat
+            // uniformly by sw/2.
+            scale(1 - sw / sd);
           }
           translate(-sd / 2, -sd / 2);
           noFill();
-          if (alternate) {
-            stroke(i % 2 === 0 ? c1 : c2);
-          } else {
-            stroke(betterLerp(c1, c2, gt_outline));
-          }
-          strokeWeight(pickStrokeWidth(sd, [120]));
+          stroke(palette[i]);
+          strokeWeight(sw);
         }
 
         // Unified locus principle: each shape's "natural center" sits at the locus point.
@@ -263,28 +339,34 @@ let methods = {
   // ---------------------------------------------------------------------------
   // GRID
   // Line-based grid patterns with outer/inner groupings.
-  // Knobs: layout (single/linear/stacked), tbEdge, lrEdge, tbHatched, lrHatched, varied,
-  //   spacing, coverage (all/scattered), anomaly (none/hole).
+  // Knobs: layout (single/linear/stacked), tbEdge, lrEdge, varied, spacing,
+  //   coverage (all/scattered), anomaly (none/hole), subdivision (none/subdivided).
+  //   Color: always c1 (single). The unified colorScheme vocabulary is intentionally
+  //     skipped here — grid renders strokes, not solid shapes, and per-line color
+  //     variation reads as visual noise rather than composition.
   //   layout:
   //     single — one outer group (gc=gr=1). Both axes are single-group, so both touching
   //       directions are available.
   //     linear — multi-group along one axis (gr=1 with gc≥2, or gc=1 with gr≥2). Touching
   //       allowed on the single-group axis only.
   //     stacked — multi-group along both axes, gc=gr (nested square clusters). Always
-  //       all-inset, no hatching.
+  //       all-inset.
   //   Edge framing is tied per-axis: top+bottom share state (tbEdge), left+right share (lrEdge):
   //     inset:    positive margin on that axis (lines stop short of canvas edges).
   //     touching: zero margin on that axis. Allowed only when there is a single group along
   //               that axis — multi-group axes force inset (the gaps between groups would
   //               break the flow visually, producing fragmented strips). Stacked layouts are
   //               always all-inset.
-  //   Hatched is the outer-line-removal effect, also tied per-axis (tbHatched, lrHatched):
-  //     tbHatched: removes outermost horizontal lines (top + bottom of every group).
-  //     lrHatched: removes outermost vertical lines (left + right of every group).
-  //   Touching forces the corresponding hatched flag true. Hatched can also occur
-  //   independently on inset edges (positive margin + outer-line removal).
+  //   Hatched (outermost-line removal) is purely a rendering consequence of touching: when
+  //   an axis is at zero margin, the outermost lines on that axis are skipped so the grid
+  //   extends to the canvas edge without a visible border line. It is no longer a standalone
+  //   random choice — only touching produces hatched edges.
   //   coverage: distribution of lines across line-slots, parallel to shapeGrid.coverage.
   //   anomaly: single deliberate outlier (one missing line). Suppressed when coverage="scattered".
+  //   subdivision: one inner cell becomes a denser sub-grid of additional lines, parallel to
+  //     shapeGrid.subdivision. The sub-grid has independent inner dimensions (subIc × subIr)
+  //     since it isn't holding shapes — more compositional freedom than shapeGrid's square
+  //     mini-grid. Same stroke weight as the outer grid (swInner for the sub-lines).
   // ---------------------------------------------------------------------------
   grid: {
     shapes: ["Line", "Square"],
@@ -292,17 +374,16 @@ let methods = {
       layout: "random",
       tbEdge: "random",
       lrEdge: "random",
-      tbHatched: 0.3,
-      lrHatched: 0.3,
       varied: 0.5,
       spacing: "random",
       coverage: "random",
-      anomaly: "random"
+      anomaly: "random",
+      subdivision: "random"
     },
     subtopics: {
-      "Repetition": {},
-      "Structure": {},
-      "Symmetry": {}
+      "Repetition": { subdivision: "none" },
+      "Structure": { subdivision: "none" },
+      "Symmetry": { subdivision: "none" }
     },
     draw: function(shape, config) {
       let layout = resolveChoice(config.layout, ["single", "linear", "stacked"]);
@@ -310,6 +391,7 @@ let methods = {
       let spacing = resolveChoice(config.spacing, ["even", "variable"]);
       let coverage = resolveChoice(config.coverage, ["all", "scattered"]);
       let anomaly = resolveChoice(config.anomaly, ["none", "hole"]);
+      let subdivision = resolveChoice(config.subdivision, ["none", "subdivided"]);
       // Suppress single-segment anomaly when scattered: a one-segment removal is imperceptible
       // amid the probabilistic whole-line removals of scattered.
       if (coverage === "scattered") anomaly = "none";
@@ -317,8 +399,6 @@ let methods = {
       // Per-axis edge framing (tied top+bottom, tied left+right).
       let tbEdge = resolveChoice(config.tbEdge, ["inset", "touching"]);
       let lrEdge = resolveChoice(config.lrEdge, ["inset", "touching"]);
-      let tbHatched = chance(config.tbHatched);
-      let lrHatched = chance(config.lrHatched);
 
       // --- Grid dimensions ---
       let gr, gc, ir, ic;
@@ -353,21 +433,14 @@ let methods = {
       // strips rather than a continuous extension past the canvas edge.
       if (gc > 1) lrEdge = "inset";
       if (gr > 1) tbEdge = "inset";
-      // Stacked additionally disables hatched to preserve its nested-squares character.
-      if (layout === "stacked") {
-        tbHatched = false;
-        lrHatched = false;
-      }
-      // Hatched requires ≥3 inner lines in the affected direction (so removing the
-      // outermost still leaves ≥2 visible). If forced by touching but the constraint
-      // fails, downgrade touching → inset (and disable hatched on that axis).
-      if (tbHatched && ir < 3) tbHatched = false;
-      if (lrHatched && ic < 3) lrHatched = false;
+      // Touching requires ≥3 inner lines in the affected direction (so removing the
+      // outermost still leaves ≥2 visible). Otherwise downgrade to inset.
       if (tbEdge === "touching" && ir < 3) tbEdge = "inset";
       if (lrEdge === "touching" && ic < 3) lrEdge = "inset";
-      // Touching forces hatched on that axis.
-      if (tbEdge === "touching") tbHatched = true;
-      if (lrEdge === "touching") lrHatched = true;
+      // Hatched is derived from touching: zero-margin axes have their outermost lines removed
+      // so the grid extends to the canvas edge.
+      let tbHatched = tbEdge === "touching";
+      let lrHatched = lrEdge === "touching";
 
       // --- Margins ---
       let margins = [sd / 16, sd / 8, sd / 4];
@@ -396,22 +469,42 @@ let methods = {
       sizes = computeSizes();
 
       // --- Stroke weight (proportional to cell size) ---
+      // All catalog weights from thick to fine are available (hairline excluded — too thin
+      // for grid lines to read as composition). As cells get smaller relative to the canvas,
+      // the thinnest weights are dropped so strokes stay legible.
       let unit = Math.min(sizes.iw, sizes.ih);
-      let swThick = unit / 4, swMed = unit / 8, swThin = unit / 16;
-      let sw, swOuter, swInner;
+      let r = unit / sd;
+      let weights = ["thick", "heavy", "medium"];
+      if (r >= 1/20) weights.push("thin");
+      if (r >= 1/10) weights.push("fine");
+      let sw, swOuter, swInner, swName;
+      // Varied needs at least 2 distinct weights to form a pair.
+      if (varied && weights.length < 2) varied = false;
       if (varied) {
-        let pair = R.random_choice([[swThick, swMed], [swMed, swThin], [swThick, swThin]]);
-        swOuter = pair[0]; swInner = pair[1]; sw = swOuter;
+        // Pick any pair where outer > inner (earlier in the list = heavier).
+        let pairs = [];
+        for (let a = 0; a < weights.length - 1; a++) {
+          for (let b = a + 1; b < weights.length; b++) {
+            pairs.push([a, b]);
+          }
+        }
+        let pair = R.random_choice(pairs);
+        swOuter = strokeWidth(unit, weights[pair[0]]);
+        swInner = strokeWidth(unit, weights[pair[1]]);
+        sw = swOuter;
+        swName = weights[pair[0]] + "/" + weights[pair[1]];
       } else {
-        sw = R.random_choice([swThick, swMed, swThin]);
+        let pick = R.random_choice(weights);
+        sw = strokeWidth(unit, pick);
+        swName = pick;
       }
 
-      // Enforce outer-margin clearance per the shared stroke-weight policy: stroke is centered
-      // on the line position and extends sw/2 outward, so vm ≥ 1.5·sw leaves one stroke-width
-      // of clear space between the canvas edge and the inside of the stroke. Inter-line clearance
-      // is already satisfied by construction: `iw = cm` (and `ih = rm`), and `sw ≤ unit/4 ≤ cm/4`
-      // so cm − sw ≥ 0.75·cm ≥ 3·sw — well above the policy minimum of 2·sw.
-      let minMargin = (varied ? swOuter : sw) * 1.5;
+      // Enforce outer-margin clearance per the universal stroke-weight policy: stroke is centered
+      // on the line position and extends sw/2 outward, so vm ≥ EDGE_CLEARANCE·sw (1.5·sw) leaves
+      // one stroke-width of clear space between the canvas edge and the inside of the stroke.
+      // Inter-line clearance is already satisfied by construction: `iw = cm` (and `ih = rm`), and
+      // `sw ≤ unit/4 ≤ cm/4` so cm − sw ≥ 0.75·cm ≥ 3·sw — well above the policy minimum.
+      let minMargin = (varied ? swOuter : sw) * STROKE_EDGE_CLEARANCE;
       if (vm > 0 && vm < minMargin) vm = minMargin;
       if (hm > 0 && hm < minMargin) hm = minMargin;
       sizes = computeSizes();
@@ -493,15 +586,69 @@ let methods = {
       }
       for (let key in holeMap) holeMap[key].sort((a, b) => a - b);
 
+      // --- Subdivision (one inner cell becomes a denser sub-grid) ---
+      // Pick a random cell and inject sub-lines inside it that mirror the parent's inner
+      // structure: subIc = ic, subIr = ir. The densified cell visually echoes the larger
+      // grid (a self-similar nested motif).
+      // Excluded cells: those with an internal edge removed by anomaly (single segment) or
+      // scattered coverage (whole internal lines probabilistically removed). Subdividing
+      // inside a partially-open cell would read as a floating fragment rather than a
+      // contained densification. Hatched outer borders (from touching) are not excluded —
+      // a touching perimeter cell is meant to extend past the canvas edge, and a sub-grid
+      // inside it extends naturally with the parent.
+      // In varied stroke mode, also restrict to fully-interior cells (all four bounding
+      // edges are inner-weight) — otherwise a thick outer-group edge bordering the cell
+      // clashes visually with the thin sub-grid lines.
+      // Stroke clearance: each sub-cell width/height must be ≥ 2·sw (matches outer grid policy).
+      // Skipped entirely when ic=1 and ir=1 (no internal lines to mirror).
+      let subCell = null, subIc = ic, subIr = ir;
+      if (subdivision === "subdivided") {
+        if (ic < 2 && ir < 2) {
+          subdivision = "none";
+        } else {
+          let cellSw = varied ? swInner : sw;
+          let cellHasMissingEdge = function(gi, gj, k, l) {
+            for (let h of holes) {
+              if (h.gi !== gi || h.gj !== gj) continue;
+              if (h.dir === "vertical" && h.gap === l && (h.pos === k || h.pos === k + 1)) return true;
+              if (h.dir === "horizontal" && h.gap === k && (h.pos === l || h.pos === l + 1)) return true;
+            }
+            return false;
+          };
+          let candidates = [];
+          for (let gi = 0; gi < gc; gi++) {
+            for (let gj = 0; gj < gr; gj++) {
+              for (let k = 0; k < ic; k++) {
+                for (let l = 0; l < ir; l++) {
+                  if (cellHasMissingEdge(gi, gj, k, l)) continue;
+                  if (varied && (k === 0 || k === ic - 1 || l === 0 || l === ir - 1)) continue;
+                  // Sub-cell clearance: cellW[k]/subIc ≥ INTER_CLEARANCE·sw on each axis.
+                  // Axes with no internal sub-lines (subIc=1 or subIr=1) skip the check.
+                  if (subIc >= 2 && cellW[k] < subIc * STROKE_INTER_CLEARANCE * cellSw) continue;
+                  if (subIr >= 2 && cellH[l] < subIr * STROKE_INTER_CLEARANCE * cellSw) continue;
+                  candidates.push([gi, gj, k, l]);
+                }
+              }
+            }
+          }
+          if (candidates.length > 0) {
+            subCell = R.random_choice(candidates);
+          } else {
+            subdivision = "none";
+          }
+        }
+      }
+
       print("Layout:", layout);
       print("Grid Size:", gc + "×" + gr, "(outer), " + ic + "×" + ir, "(inner)");
       print("Edges: TB=" + tbEdge + (tbHatched ? "+hatched" : ""),
                   "LR=" + lrEdge + (lrHatched ? "+hatched" : ""));
       print("Margins: vm=" + vm.toFixed(0) + " hm=" + hm.toFixed(0));
-      print("Varied:", varied ? "Yes" : "No");
+      print("Varied:", varied ? "Yes" : "No", "| Stroke:", swName);
       print("Spacing:", spacing);
       print("Coverage:", coverage);
       print("Anomaly:", anomaly, holes.length > 0 ? "(" + holes.length + " holes)" : "");
+      print("Subdivision:", subdivision, subCell ? "at group (" + subCell[0] + "," + subCell[1] + ") cell (" + subCell[2] + "," + subCell[3] + ") mirror " + subIc + "×" + subIr : "");
 
       // --- Draw ---
       noFill();
@@ -550,6 +697,23 @@ let methods = {
               line(gx, iy, gx + gw, iy);
             }
           }
+
+          // Sub-grid lines inside the selected cell. Sub-lines use the inner stroke
+          // weight in varied mode.
+          if (subCell && subCell[0] === i && subCell[1] === j) {
+            let sk = subCell[2], sl = subCell[3];
+            let cx0 = gx + offX[sk], cy0 = gy + offY[sl];
+            let cw = cellW[sk], ch = cellH[sl];
+            strokeWeight(varied ? swInner : sw);
+            for (let m = 1; m < subIc; m++) {
+              let sx = cx0 + cw * m / subIc;
+              line(sx, cy0, sx, cy0 + ch);
+            }
+            for (let m = 1; m < subIr; m++) {
+              let sy = cy0 + ch * m / subIr;
+              line(cx0, sy, cx0 + cw, sy);
+            }
+          }
         }
       }
     }
@@ -558,7 +722,13 @@ let methods = {
   // ---------------------------------------------------------------------------
   // SHAPE GRID
   // Array of shapes in a uniform grid with optional anomaly.
-  // Knobs: outline, coverage (all/scattered/clustered), aspect (square/wide/tall), anomaly (none/hole/emphasis), subdivision, spacing (even/variable), topEdge / rightEdge / bottomEdge / leftEdge
+  // Knobs: colorScheme, outline, coverage (all/scattered/clustered), aspect (square/wide/tall),
+  //   anomaly (none/hole/emphasis), subdivision, spacing (even/variable),
+  //   topEdge / rightEdge / bottomEdge / leftEdge
+  //   colorScheme: shared with shapeProgression/grid. Iteration unit is the cell. For
+  //     gradient, a direction (horizontal/vertical/diagonal) is picked per draw — cells
+  //     fade along that axis. For binary, each cell is an independent c1-or-c2 pick (not a
+  //     strict checkerboard).
   //   coverage: distribution of shapes across cells, parallel to grid.coverage
   //   anomaly: single deliberate outlier — hole (cell removed) or emphasis (cell highlighted).
   //   No "scattered" anomaly value because that's just coverage="scattered" — the layout knob
@@ -569,6 +739,7 @@ let methods = {
   shapeGrid: {
     shapes: ["Circle", "Square", "Triangle"],
     defaults: {
+      colorScheme: "random",
       outline: 0.25,
       coverage: "random",
       aspect: "random",
@@ -586,8 +757,12 @@ let methods = {
       "Symmetry": { coverage: "all", anomaly: "none", aspect: "square", subdivision: "none", spacing: "even", topEdge: "inset", rightEdge: "inset", bottomEdge: "inset", leftEdge: "inset", allowedShapes: ["Circle", "Square"] }
     },
     draw: function(shape, config) {
+      let colorScheme = resolveChoice(config.colorScheme, ["single", "binary", "gradient"]);
       let outline = chance(config.outline);
       if (!shapeCaps[shape].gridAllowsOutline) outline = false;
+      // Outlined cells are strokes, not solid fills — per-cell color variation reads as
+      // visual noise rather than composition. Force single when outlined.
+      if (outline) colorScheme = "single";
       let coverage = resolveChoice(config.coverage, ["all", "scattered", "clustered"]);
       let aspect = resolveChoice(config.aspect, ["square", "wide", "tall"]);
       let anomaly = resolveChoice(config.anomaly, ["none", "hole", "emphasis"]);
@@ -759,21 +934,11 @@ let methods = {
       let offY = [0];
       for (let j = 0; j < rows; j++) offY.push(offY[j] + cellH[j] + spV);
 
-      // --- Stroke weight (proportional to cell unit, only used in outline mode) ---
-      let sw = outline ? pickStrokeWidth(unit, [10, 16, 25], sp) : 0;
-
       // --- Subdivision (one cell becomes a mini-grid of the same shape) ---
-      // Pick a non-anomaly drawn cell; downgrade if no candidate exists.
-      // Inner spacing scales with N as sp/N (½, ⅓, ¼). For outlined shapes it's clamped
-      // to a minimum of sw so adjacent strokes don't overlap.
-      // For circles, the subdivision area is the cell's bounding square (so mini-shapes
-      // occupy the same footprint as the shape they replace, centered in the cell).
+      // Determined before stroke weight so the weight can be constrained to work for both
+      // outer shapes and the smaller subdivision shapes (consistent sw across the composition).
       let subCell = null, subN = 0, subSp = 0;
-      let subAvailW = 0, subAvailH = 0;
-      // Outlined shapes need at least one stroke width of visible gap between strokes.
-      // Strokes are centered on shape boundaries (extend sw/2 outward), so a spacing of 2*sw
-      // leaves exactly one stroke width of clear space between adjacent strokes.
-      let subSpFor = function(n) { return outline ? Math.max(sw * 2, sp / n) : sp / n; };
+      let subAvailW = 0, subAvailH = 0, subAvail = 0;
       if (subdivision === "subdivided") {
         // Skip the anomaly cell, and skip any cell that sits on an extended edge: a half-cell
         // bleed never aligns with an N-mini-cell grid (the cell has 2N-1 chunks, half is non-integer),
@@ -795,23 +960,104 @@ let methods = {
           let cellUnit = Math.min(cw, ch);
           subAvailW = shape === "Circle" ? cellUnit : cw;
           subAvailH = shape === "Circle" ? cellUnit : ch;
-          // Subdivision is square (rows === cols). Find the largest N (≤4) where mini-shapes remain viable.
-          let avail = Math.min(subAvailW, subAvailH);
-          let minInner = outline ? sw * 2 : 1;
-          let maxN = 2;
-          for (let n = 4; n >= 2; n--) {
-            let s = subSpFor(n);
-            if ((avail - (n - 1) * s) / n >= minInner) { maxN = n; break; }
-          }
-          subN = R.random_int(2, maxN);
-          subSp = subSpFor(subN);
+          subAvail = Math.min(subAvailW, subAvailH);
+          subN = R.random_int(2, 4);
         } else {
           subdivision = "none";
         }
       }
 
+      // --- Stroke weight (proportional to cell unit, only used in outline mode) ---
+      // All catalog weights from thick to fine, filtered by cell-to-canvas ratio and the
+      // inter-cell spacing constraint (stroke must fit within the gap between shapes).
+      // When subdivision is active, the stroke must also work for the mini-shapes: each
+      // mini-shape needs at least INTER_CLEARANCE·sw of interior, so we use the subdivision
+      // cell's available space as an additional constraint to prevent thick strokes from
+      // overwhelming the smaller shapes.
+      let r2 = unit / sd;
+      let swWeights = ["thick", "heavy", "medium"];
+      if (r2 >= 1/20) swWeights.push("thin");
+      if (r2 >= 1/10) swWeights.push("fine");
+      let maxGap = sp;
+      if (outline && subCell) {
+        // The mini-shape interior = (subAvail - (subN-1)*subSp) / subN, where subSp ≥
+        // INTER_CLEARANCE·sw. For the shape to remain visible, interior ≥ INTER_CLEARANCE·sw.
+        // Solving: sw ≤ subAvail / (subN * INTER_CLEARANCE + (subN-1) * INTER_CLEARANCE)
+        //        = subAvail / (INTER_CLEARANCE * (2*subN - 1))
+        let subMaxSw = subAvail / (STROKE_INTER_CLEARANCE * (2 * subN - 1));
+        maxGap = Math.min(maxGap, subMaxSw * STROKE_INTER_CLEARANCE);
+      }
+      let sw = outline ? pickStrokeWidth(unit, swWeights, maxGap) : 0;
+
+      // Finalize subdivision spacing now that sw is known.
+      let subSpFor = function(n) { return outline ? Math.max(sw * STROKE_INTER_CLEARANCE, sp / n) : sp / n; };
+      if (subCell) {
+        // Verify the chosen N is still viable with the actual sw; downgrade if needed.
+        let minInner = outline ? sw * STROKE_INTER_CLEARANCE : 1;
+        while (subN > 2) {
+          let s = subSpFor(subN);
+          if ((subAvail - (subN - 1) * s) / subN >= minInner) break;
+          subN--;
+        }
+        let s = subSpFor(subN);
+        if ((subAvail - (subN - 1) * s) / subN < minInner) {
+          subdivision = "none"; subCell = null; subN = 0;
+        } else {
+          subSp = subSpFor(subN);
+        }
+      }
+
+      // --- Color palette ---
+      // Per-cell coloring. For gradient, pick a sweep direction once per draw so cells fade
+      // along a single visual axis (horizontal / vertical / diagonal). For binary, each cell
+      // is an independent c1-or-c2 pick (not strict checkerboard). For single, every cell c1.
+      let gradientAxis = colorScheme === "gradient"
+        ? R.random_choice(["horizontal", "vertical", "diagonal"]) : "none";
+      let palette;
+      if (colorScheme === "binary") {
+        palette = buildColorPalette("binary", cols * rows);
+      } else if (colorScheme === "gradient") {
+        let n = gradientAxis === "horizontal" ? cols
+              : gradientAxis === "vertical" ? rows
+              : Math.max(1, cols + rows - 1);
+        palette = buildColorPalette("gradient", n);
+      } else {
+        palette = null;
+      }
+      let cellColor = function(i, j) {
+        if (colorScheme === "single") return c1;
+        if (colorScheme === "binary") return palette[j * cols + i];
+        if (gradientAxis === "horizontal") return palette[i];
+        if (gradientAxis === "vertical") return palette[j];
+        return palette[i + j];
+      };
+
+      // Visibility guard: for binary/gradient, the palette entries that map to actually-drawn
+      // cells (drawn[] is a subset under scattered/clustered, and anomaly=hole drops another)
+      // might all happen to be c2 or near-c2, making the composition invisible against the c2
+      // background. Ensure at least one rendered cell uses c1.
+      // For gradient, the palette contains lerp'd values so we can't use === c1; instead force
+      // c1 directly into the cell's palette slot.
+      if (colorScheme !== "single") {
+        let visibleCells = drawn.filter(p => !(anomaly === "hole" && p[0] === ac && p[1] === ar));
+        if (visibleCells.length > 0 && !visibleCells.some(p => cellColor(p[0], p[1]) === c1)) {
+          let p = R.random_choice(visibleCells);
+          // For binary, fix the flat palette. For gradient, replace the axis entry so
+          // cellColor() returns c1 for this cell.
+          if (colorScheme === "binary") {
+            palette[p[1] * cols + p[0]] = c1;
+          } else {
+            let idx = gradientAxis === "horizontal" ? p[0]
+                    : gradientAxis === "vertical" ? p[1]
+                    : p[0] + p[1];
+            palette[idx] = c1;
+          }
+        }
+      }
+
+      print("Color Scheme:", colorScheme + (colorScheme === "gradient" ? " (" + gradientAxis + ")" : ""));
       print("Grid Size:", cols + "×" + rows);
-      print("Outline:", outline ? "Yes" : "No");
+      print("Outline:", outline ? "Yes" : "No", outline && sw > 0 ? "| Stroke: " + (swWeights.find(n => Math.abs(strokeWidth(unit, n) - sw) < 0.01) || sw.toFixed(1)) : "");
       print("Aspect:", aspect, "| Spacing: H=" + Math.round(spH) + " V=" + Math.round(spV) + " (" + spacingMode + ")");
       print("Edges: T=" + topEdge + " R=" + rightEdge + " B=" + bottomEdge + " L=" + leftEdge);
       print("Margins: T=" + Math.round(marginTop) + " R=" + Math.round(marginRight) + " B=" + Math.round(marginBottom) + " L=" + Math.round(marginLeft));
@@ -831,20 +1077,25 @@ let methods = {
           let cw = cellW[i];
           let ch = cellH[j];
 
+          let cc = cellColor(i, j);
           if (outline) {
-            stroke(c1);
+            stroke(cc);
             strokeWeight(sw);
-            if (isAnomaly && anomaly === "emphasis") fill(c1);
+            if (isAnomaly && anomaly === "emphasis") fill(cc);
             else noFill();
           } else {
             noStroke();
-            fill(isAnomaly && anomaly === "emphasis" ? betterLerp(c1, c2, 0.5) : c1);
+            // Emphasis uses the midpoint of c1↔c2 to stand out regardless of the cell's
+            // own palette color (which could happen to match c1 or c2).
+            fill(isAnomaly && anomaly === "emphasis" ? betterLerp(c1, c2, 0.5) : cc);
           }
 
           let isSub = subCell && i === subCell[0] && j === subCell[1];
           if (isSub) {
             // Draw a smaller grid of the same shape inside this cell.
-            // Stroke weight matches the outer cell; spacing is sp (outlined) or sp/N (filled).
+            // Stroke weight is the same as the outer shapes (consistent across composition);
+            // thick weights that would overwhelm the mini-shapes are prevented upstream by
+            // constraining the weight selection with the subdivision's available space.
             // For circles, mini-shapes fill the original circle's bounding square (centered in cell).
             let subX = x + (cw - subAvailW) / 2;
             let subY = y + (ch - subAvailH) / 2;
@@ -1049,24 +1300,50 @@ function drawShape(shape, x, y, w, h) {
 }
 
 // --- Stroke-weight policy ---
-// All engines size strokes as `sw = unit / divisor`, where:
-//   - `unit` is the natural scale of the stroked element (cell size for cell-based engines,
-//      canvas size for canvas-spanning engines like shapeProgression).
-//   - `divisor` comes from an engine-tuned list reflecting visual role: small divisors (thick
-//      strokes) for primary-geometry engines (grid lines); larger divisors (thinner strokes)
-//      for secondary detail (shape outlines, overlay outlines).
-//   - When two adjacent strokes share a gap g, the chosen divisor must satisfy `2·sw ≤ g` so
-//      one full stroke-width of clear space remains between the two strokes.
-// pickStrokeWidth applies this policy: it filters the divisor list by the optional `maxGap`
-// constraint, picks uniformly from what remains, and falls back to `maxGap / 2` if no divisor
-// qualifies (the tightest stroke that still satisfies the gap rule).
-function pickStrokeWidth(unit, divisors, maxGap) {
+// Universal stroke-weight system shared by all engines. Centralizes both the named
+// vocabulary (STROKE_WEIGHTS) and the clearance rules (STROKE_*_CLEARANCE) so each
+// engine doesn't redefine its own scale inline.
+//
+// STROKE_WEIGHTS catalog: each entry maps a named weight to a divisor. The actual
+// stroke width is `unit / divisor`, where `unit` is the engine-supplied reference
+// scale (cell size for cell-based engines, canvas size for canvas-spanning ones).
+// Engines pick the named subset appropriate to their visual character — grid prefers
+// heavier weights, shapeGrid prefers refined weights, shapeProgression uses hairline.
+// The catalog is the union of all current per-engine values; named entries can be
+// added later without touching engine code.
+const STROKE_WEIGHTS = {
+  thick:     4,   // unit/4   — grid's heaviest
+  heavy:     8,   // unit/8   — grid's medium
+  medium:   10,   // unit/10  — shapeGrid's heaviest
+  thin:     16,   // unit/16  — grid's thinnest, shapeGrid's medium
+  fine:     25,   // unit/25  — shapeGrid's thinnest
+  hairline:120    // unit/120 — shapeProgression's single weight (canvas-scale)
+};
+
+// Clearance policy: strokes are centered on the rendered position (line, shape edge)
+// and extend sw/2 to each side. Two coefficients capture the universal rules:
+//   EDGE  — minimum canvas-edge margin = 1.5·sw (0.5·sw stroke + 1.0·sw clear).
+//   INTER — minimum spacing between adjacent strokes = 2.0·sw (two half-strokes + 1 sw clear).
+const STROKE_EDGE_CLEARANCE = 1.5;
+const STROKE_INTER_CLEARANCE = 2;
+
+// Resolve a named weight to a pixel width against the given reference unit.
+function strokeWidth(unit, name) {
+  return unit / STROKE_WEIGHTS[name];
+}
+
+// Pick one weight uniformly from a list of names, optionally filtered so the chosen
+// width fits within `maxGap` (one full stroke of clear space between adjacent strokes,
+// i.e. `2·sw ≤ maxGap`). Falls back to `maxGap / 2` — the tightest weight that still
+// satisfies the gap rule — when no named weight qualifies.
+function pickStrokeWidth(unit, names, maxGap) {
+  let widths = names.map(function(n) { return strokeWidth(unit, n); });
   if (maxGap !== undefined) {
-    let valid = divisors.filter(function(d) { return unit / d <= maxGap / 2; });
-    if (valid.length === 0) return maxGap / 2;
-    divisors = valid;
+    let valid = widths.filter(function(w) { return w <= maxGap / STROKE_INTER_CLEARANCE; });
+    if (valid.length === 0) return maxGap / STROKE_INTER_CLEARANCE;
+    widths = valid;
   }
-  return unit / R.random_choice(divisors);
+  return R.random_choice(widths);
 }
 
 // --- Edge layout ---
@@ -1092,6 +1369,44 @@ function solveAxis(span, props, stateStart, stateEnd, marginStart, marginEnd, sp
   let actualStart = stateStart === "extended" ? -cells[0] / 2 : usedStart;
   let actualEnd = stateEnd === "extended" ? -cells[n - 1] / 2 : usedEnd;
   return { total: total, cells: cells, marginStart: actualStart, marginEnd: actualEnd };
+}
+
+// --- Color palette ---
+// Build an array of n colors using the shared colorScheme vocabulary. Engines call this
+// once per draw and index into the returned palette by their iteration unit (element,
+// cell, line index, etc).
+//   single   — every entry is c1 (monochrome).
+//   binary   — each entry is an independent random pick of c1 or c2. Strict alternation
+//              (c1, c2, c1, c2…) is a special case that occasionally falls out by chance.
+//              Background = c2, so all-c2 palettes would draw nothing visible — we force
+//              at least one c1 entry to guarantee the palette has visible potential.
+//              (Per-engine logic further ensures the visible drawn entities — cells
+//              actually rendered, lines actually drawn — contain at least one c1.)
+//   gradient — smooth lerp from c1 to c2 across n entries (with a random 50% reversal
+//              so the gradient direction varies across draws).
+function buildColorPalette(scheme, n) {
+  let palette = [];
+  if (n <= 0) return palette;
+  if (scheme === "single") {
+    for (let i = 0; i < n; i++) palette.push(c1);
+  } else if (scheme === "binary") {
+    for (let i = 0; i < n; i++) palette.push(R.random_bool(0.5) ? c1 : c2);
+    if (!palette.some(col => col === c1)) {
+      palette[R.random_int(0, n - 1)] = c1;
+    }
+  } else {
+    // gradient
+    if (n === 1) {
+      palette.push(c1);
+    } else {
+      let reverse = R.random_bool(0.5);
+      for (let i = 0; i < n; i++) {
+        let t = i / (n - 1);
+        palette.push(betterLerp(c1, c2, reverse ? 1 - t : t));
+      }
+    }
+  }
+  return palette;
 }
 
 // Per-shape capability table. Replaces scattered `if (shape === "X")` branches across engines.
