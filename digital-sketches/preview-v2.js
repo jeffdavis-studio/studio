@@ -719,12 +719,26 @@ function greedyBatchTemplateLocalKeys(wrapped) {
   let template = [];
   while (pool.length > 0) {
     let anchor = pool.pop();
-    let keys = [anchor.lk];
+    let group = [anchor];
     let total = anchor.cell.distance;
     while (pool.length > 0 && total + pool[0].cell.distance <= threshold) {
       let w = pool.shift();
-      keys.push(w.lk);
+      group.push(w);
       total += w.cell.distance;
+    }
+    group.sort(function(a, b) {
+      let d = a.cell.distance - b.cell.distance;
+      if (d !== 0) {
+        return d;
+      }
+      if (a.lr !== b.lr) {
+        return a.lr - b.lr;
+      }
+      return a.lc - b.lc;
+    });
+    let keys = [];
+    for (let i = 0; i < group.length; i++) {
+      keys.push(group[i].lk);
     }
     template.push(keys);
   }
@@ -765,7 +779,10 @@ function hatchBatchesNonContinuousSynced(clusters, ids) {
     if (lk === null) {
       return null;
     }
-    refw.push({ cell: cell, lk: lk });
+    let s = lk.indexOf('/');
+    let lc = parseInt(lk.substring(0, s), 10);
+    let lr = parseInt(lk.substring(s + 1), 10);
+    refw.push({ cell: cell, lk: lk, lc: lc, lr: lr });
   }
   let template = greedyBatchTemplateLocalKeys(refw);
   let maps = [];
@@ -791,33 +808,15 @@ function hatchBatchesNonContinuousSynced(clusters, ids) {
   for (let ti = 0; ti < template.length; ti++) {
     let keys = template[ti];
     for (let ci = 0; ci < ids.length; ci++) {
-      let pairs = [];
+      let bcells = [];
       let tot = 0;
       for (let k = 0; k < keys.length; k++) {
-        let lk = keys[k];
-        let cell = maps[ci][lk];
+        let cell = maps[ci][keys[k]];
         if (!cell) {
           return null;
         }
-        let s = lk.indexOf('/');
-        let lc = parseInt(lk.substring(0, s), 10);
-        let lr = parseInt(lk.substring(s + 1), 10);
-        pairs.push({ cell: cell, lc: lc, lr: lr });
+        bcells.push(cell);
         tot += cell.distance;
-      }
-      pairs.sort(function(a, b) {
-        let d = a.cell.distance - b.cell.distance;
-        if (d !== 0) {
-          return d;
-        }
-        if (a.lr !== b.lr) {
-          return a.lr - b.lr;
-        }
-        return a.lc - b.lc;
-      });
-      let bcells = [];
-      for (let p = 0; p < pairs.length; p++) {
-        bcells.push(pairs[p].cell);
       }
       cbatches[ci].push({ cells: bcells, distance: tot });
     }
