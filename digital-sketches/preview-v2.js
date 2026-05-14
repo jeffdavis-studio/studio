@@ -896,42 +896,6 @@ function buildPlotQueue(corner) {
   return queue;
 }
 
-function buildSVG(corner) {
-  let batches = hatchBatchesForCorner(corner);
-  let crgb = { p1: p1rgb, p2: p2rgb, p3: p3rgb, p4: p4rgb }[corner];
-  let hexstr = '#' + hex(round(crgb[0]), 2) + hex(round(crgb[1]), 2) + hex(round(crgb[2]), 2);
-  let svg = '<?xml version="1.0" encoding="UTF-8"?>\n';
-  svg += '<svg xmlns="http://www.w3.org/2000/svg"\n';
-  svg += '     width="' + pw + 'in"\n';
-  svg += '     height="' + ph + 'in"\n';
-  svg += '     viewBox="0 0 ' + pw + ' ' + ph + '">\n';
-  svg += '  <rect x="0" y="0" width="' + pw + '" height="' + ph + '" fill="none" stroke="none"/>\n';
-  svg += '  <g stroke="' + hexstr + '" stroke-width="' + lw + '" stroke-linecap="butt">\n';
-  for (let i = 0; i < batches.length; i++) {
-    let batch = batches[i];
-    let clist = '';
-    for (let j = 0; j < batch.cells.length; j++) {
-      if (j > 0) {
-        clist += ' ';
-      }
-      clist += '(' + batch.cells[j].col + ',' + batch.cells[j].row + ')';
-    }
-    svg += '    <g id="' + i + '-group-' + corner + '" data-distance="' + round(batch.distance) + '" data-cells="' + clist + '">\n';
-    for (let j = 0; j < batch.cells.length; j++) {
-      let ls = batch.cells[j].lines;
-      for (let k = 0; k < ls.length; k++) {
-        let l = orientSegmentPlotter(ls[k]);
-        svg += '      <line x1="' + l.x1.toFixed(6) + '" y1="' + l.y1.toFixed(6) +
-               '" x2="' + l.x2.toFixed(6) + '" y2="' + l.y2.toFixed(6) + '"/>\n';
-      }
-    }
-    svg += '    </g>\n';
-  }
-  svg += '  </g>\n';
-  svg += '</svg>';
-  return svg;
-}
-
 function scramble(arr) {
   let shuffled = arr.slice();
   for (let i = shuffled.length - 1; i > 0; i--) {
@@ -960,23 +924,6 @@ function mousePressed() {
       cel.classList.add('visible');
     }
     loop();
-  }
-}
-
-function keyPressed() {
-  let corner = { '1': 'p1', '2': 'p2', '3': 'p3', '4': 'p4' }[key];
-  if (corner) {
-    let svg = buildSVG(corner);
-    let fname = 'DigitalSketch' + (Number(tokenData.tokenId) % 1000000) + '-' + corner.toUpperCase() + '.svg';
-    let blob = new Blob([svg], { type: 'image/svg+xml' });
-    let url = URL.createObjectURL(blob);
-    let a = document.createElement('a');
-    a.href = url;
-    a.download = fname;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
   }
 }
 
