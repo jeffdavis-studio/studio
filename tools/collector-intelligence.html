@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Collector Intelligence — Jeff Davis Studio</title>
+<style>
+:root {
+  --bg: #0a0a0a;
+  --surface: #141414;
+  --border: #2a2a2a;
+  --text: #e0e0e0;
+  --text-dim: #888;
+  --accent: #4a9eff;
+  --accent2: #ff6b4a;
+  --accent3: #4aff8b;
+  --accent4: #ffd54a;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
+.container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+h1 { font-size: 1.4em; font-weight: 600; margin-bottom: 4px; }
+.subtitle { color: var(--text-dim); font-size: 0.85em; margin-bottom: 24px; }
+.kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+.kpi-value { font-size: 1.6em; font-weight: 700; color: var(--accent); }
+.kpi-label { font-size: 0.75em; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+.section { margin-bottom: 28px; }
+.section-title { font-size: 1.05em; font-weight: 600; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+.tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+.tab { padding: 6px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-size: 0.8em; color: var(--text-dim); transition: all 0.15s; }
+.tab.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
+.tab:hover { border-color: var(--accent); }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+table { width: 100%; border-collapse: collapse; font-size: 0.82em; }
+th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+th { color: var(--text-dim); font-weight: 500; font-size: 0.75em; text-transform: uppercase; letter-spacing: 0.5px; }
+td { font-variant-numeric: tabular-nums; }
+.bar-cell { position: relative; }
+.bar { height: 4px; border-radius: 2px; background: var(--accent); margin-top: 4px; transition: width 0.3s; }
+.bar.accent2 { background: var(--accent2); }
+.bar.accent3 { background: var(--accent3); }
+.bar.accent4 { background: var(--accent4); }
+.segment-row { display: grid; grid-template-columns: 1fr auto auto auto; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--border); align-items: center; font-size: 0.85em; }
+.segment-label { font-weight: 500; }
+.segment-pct { color: var(--accent); font-weight: 600; }
+.heatmap { overflow-x: auto; }
+.heatmap table { min-width: 700px; }
+.heatmap td, .heatmap th { text-align: center; padding: 4px; font-size: 0.7em; min-width: 50px; }
+.heatmap th { white-space: nowrap; }
+.heatmap .cell { border-radius: 3px; padding: 3px 4px; }
+.insight { background: var(--surface); border-left: 3px solid var(--accent); padding: 12px 16px; margin-bottom: 12px; border-radius: 0 6px 6px 0; font-size: 0.85em; }
+.insight strong { color: var(--accent); }
+.wallet { font-family: 'SF Mono', Monaco, monospace; font-size: 0.8em; color: var(--text-dim); }
+.pct { color: var(--accent3); }
+.negative { color: var(--accent2); }
+@media (max-width: 600px) {
+  .kpi-row { grid-template-columns: repeat(2, 1fr); }
+  .heatmap { font-size: 0.7em; }
+  .container { padding: 12px; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>Collector Intelligence</h1>
+<p class="subtitle">On-chain behavior across 20 projects &middot; Data: May 15, 2026 &middot; Phase 1 (token ownership only)</p>
+
+<div class="kpi-row">
+  <div class="kpi"><div class="kpi-value" id="kpi-wallets"></div><div class="kpi-label">Unique Wallets</div></div>
+  <div class="kpi"><div class="kpi-value" id="kpi-tokens"></div><div class="kpi-label">Total Tokens</div></div>
+  <div class="kpi"><div class="kpi-value" id="kpi-multi"></div><div class="kpi-label">Multi-Project</div></div>
+  <div class="kpi"><div class="kpi-value" id="kpi-deep"></div><div class="kpi-label">Deep (6+ proj)</div></div>
+</div>
+
+<div class="section">
+  <div class="section-title">Key Findings</div>
+  <div class="insight"><strong>OCMT is the strongest gateway.</strong> 71% of collectors who entered through On Chain Memory Token went on to collect additional projects — more than double the next best (Inflection at 35%).</div>
+  <div class="insight"><strong>399 wallets hold half the supply.</strong> 18.6% of collectors own 2+ projects and hold 49% of all tokens. The 32 deepest collectors (6+ projects) alone hold 15%.</div>
+  <div class="insight"><strong>DfaM is acquisition, not yet retention.</strong> 672 collectors — the largest base — but 0% have crossed into other projects. Expected for the newest large edition, but the conversion pipeline starts here.</div>
+  <div class="insight"><strong>OCMT↔Progression is the strongest pair</strong> (90 shared wallets). The recent projects cluster tightly. Earlier projects (Construction Token, Rhythm) share collectors more broadly.</div>
+</div>
+
+<div class="section">
+  <div class="tabs">
+    <div class="tab active" data-tab="segments">Segments</div>
+    <div class="tab" data-tab="projects">Projects</div>
+    <div class="tab" data-tab="gateway">Gateway & Retention</div>
+    <div class="tab" data-tab="affinity">Affinity Map</div>
+    <div class="tab" data-tab="top">Top Collectors</div>
+  </div>
+
+  <div class="tab-content active" id="tab-segments">
+    <div id="segments-container"></div>
+    <div style="margin-top:16px">
+      <canvas id="segments-chart" width="600" height="200"></canvas>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-projects">
+    <table id="projects-table">
+      <thead><tr><th>Project</th><th>Collectors</th><th>Tokens</th><th>Avg/Collector</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="tab-content" id="tab-gateway">
+    <p style="font-size:0.82em;color:var(--text-dim);margin-bottom:12px">For multi-project collectors: which project they entered through (earliest held), and what percentage returned for more.</p>
+    <table id="retention-table">
+      <thead><tr><th>Entry Project</th><th>Entrants</th><th>Returned</th><th>Retention</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="tab-content" id="tab-affinity">
+    <p style="font-size:0.82em;color:var(--text-dim);margin-bottom:12px">Shared collectors between project pairs. Darker = more overlap.</p>
+    <div class="heatmap" id="affinity-heatmap"></div>
+  </div>
+
+  <div class="tab-content" id="tab-top">
+    <p style="font-size:0.82em;color:var(--text-dim);margin-bottom:12px">Top 50 wallets by total tokens held.</p>
+    <table id="top-table">
+      <thead><tr><th>#</th><th>Wallet</th><th>Tokens</th><th>Projects</th><th>Largest Hold</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section" style="margin-top:32px;padding-top:16px;border-top:1px solid var(--border)">
+  <p style="font-size:0.75em;color:var(--text-dim)">Phase 1 data — token ownership from Art Blocks MCP. Phase 2 (wallet identity enrichment via OpenSea) pending. 
+  Color Study sampled at 650/2000 tokens. Mechanical Drawing reflects single-wallet contract hold pre-mint. 
+  Built by Morgan, May 18, 2026.</p>
+</div>
+</div>
+
+<script>
+const D = {"generated": "2026-05-15", "total_tokens": 6746, "total_wallets": 2142, "projects_scanned": 20, "project_order": ["Construction Token", "Variant Plan", "View Card", "Portal", "Rhythm", "Reflection", "Transcendence", "Inflection", "Formation", "LED", "Color Study", "Cuadro", "Culmination", "Mechanical Drawing", "Neighborhood", "Optimism", "Rectangles for Herbert", "On Chain Memory Token", "Progression", "Drawings for a Monument"], "project_stats": {"Construction Token": {"collectors": 261, "tokens": 500}, "Variant Plan": {"collectors": 183, "tokens": 199}, "View Card": {"collectors": 25, "tokens": 41}, "Portal": {"collectors": 10, "tokens": 10}, "Rhythm": {"collectors": 161, "tokens": 334}, "Reflection": {"collectors": 87, "tokens": 100}, "Transcendence": {"collectors": 8, "tokens": 11}, "Inflection": {"collectors": 75, "tokens": 100}, "Formation": {"collectors": 78, "tokens": 100}, "LED": {"collectors": 70, "tokens": 100}, "Color Study": {"collectors": 224, "tokens": 1200}, "Cuadro": {"collectors": 77, "tokens": 200}, "Culmination": {"collectors": 82, "tokens": 200}, "Mechanical Drawing": {"collectors": 1, "tokens": 24}, "Neighborhood": {"collectors": 216, "tokens": 624}, "Optimism": {"collectors": 5, "tokens": 26}, "Rectangles for Herbert": {"collectors": 241, "tokens": 1000}, "On Chain Memory Token": {"collectors": 164, "tokens": 200}, "Progression": {"collectors": 281, "tokens": 777}, "Drawings for a Monument": {"collectors": 672, "tokens": 1000}}, "segments": {"deep": {"label": "Deep (6+ projects)", "count": 32, "tokens": 1027}, "committed": {"label": "Committed (3-5)", "count": 133, "tokens": 1098}, "exploring": {"label": "Exploring (2)", "count": 234, "tokens": 1127}, "single": {"label": "Single project", "count": 1743, "tokens": 3494}}, "gateway": {"Construction Token": 90, "Variant Plan": 17, "View Card": 6, "Portal": 2, "Rhythm": 42, "Reflection": 18, "Inflection": 16, "Formation": 15, "LED": 16, "Color Study": 40, "Cuadro": 14, "Culmination": 12, "Mechanical Drawing": 1, "Neighborhood": 19, "Rectangles for Herbert": 14, "On Chain Memory Token": 64, "Progression": 13}, "retention": {"Construction Token": {"entrants": 261, "returned": 90, "rate": 34.5}, "Variant Plan": {"entrants": 168, "returned": 17, "rate": 10.1}, "View Card": {"entrants": 10, "returned": 6, "rate": 60.0}, "Portal": {"entrants": 4, "returned": 2, "rate": 50.0}, "Rhythm": {"entrants": 126, "returned": 42, "rate": 33.3}, "Reflection": {"entrants": 56, "returned": 18, "rate": 32.1}, "Inflection": {"entrants": 45, "returned": 16, "rate": 35.6}, "Formation": {"entrants": 45, "returned": 15, "rate": 33.3}, "LED": {"entrants": 47, "returned": 16, "rate": 34.0}, "Color Study": {"entrants": 148, "returned": 40, "rate": 27.0}, "Cuadro": {"entrants": 48, "returned": 14, "rate": 29.2}, "Culmination": {"entrants": 39, "returned": 12, "rate": 30.8}, "Neighborhood": {"entrants": 168, "returned": 19, "rate": 11.3}, "Optimism": {"entrants": 4, "returned": 0, "rate": 0.0}, "Rectangles for Herbert": {"entrants": 201, "returned": 14, "rate": 7.0}, "On Chain Memory Token": {"entrants": 90, "returned": 64, "rate": 71.1}, "Progression": {"entrants": 158, "returned": 13, "rate": 8.2}, "Drawings for a Monument": {"entrants": 521, "returned": 0, "rate": 0.0}}, "top_pairs": [{"p1": "On Chain Memory Token", "p2": "Progression", "shared": 90}, {"p1": "Drawings for a Monument", "p2": "On Chain Memory Token", "shared": 58}, {"p1": "Drawings for a Monument", "p2": "Progression", "shared": 53}, {"p1": "Color Study", "p2": "Construction Token", "shared": 41}, {"p1": "Color Study", "p2": "Rhythm", "shared": 38}, {"p1": "Color Study", "p2": "Drawings for a Monument", "shared": 38}, {"p1": "Construction Token", "p2": "Rhythm", "shared": 31}, {"p1": "Construction Token", "p2": "Drawings for a Monument", "shared": 28}, {"p1": "Color Study", "p2": "On Chain Memory Token", "shared": 27}, {"p1": "Color Study", "p2": "Progression", "shared": 25}, {"p1": "On Chain Memory Token", "p2": "Rectangles for Herbert", "shared": 24}, {"p1": "Formation", "p2": "Inflection", "shared": 23}, {"p1": "Color Study", "p2": "Neighborhood", "shared": 22}, {"p1": "Color Study", "p2": "Reflection", "shared": 21}, {"p1": "Neighborhood", "p2": "Rhythm", "shared": 21}, {"p1": "Reflection", "p2": "Rhythm", "shared": 21}, {"p1": "Cuadro", "p2": "Culmination", "shared": 20}, {"p1": "Culmination", "p2": "Inflection", "shared": 20}, {"p1": "Inflection", "p2": "Reflection", "shared": 20}, {"p1": "Drawings for a Monument", "p2": "Neighborhood", "shared": 20}, {"p1": "Drawings for a Monument", "p2": "Rectangles for Herbert", "shared": 20}, {"p1": "Construction Token", "p2": "Progression", "shared": 19}, {"p1": "Construction Token", "p2": "Reflection", "shared": 18}, {"p1": "Culmination", "p2": "Progression", "shared": 18}, {"p1": "Formation", "p2": "Progression", "shared": 18}, {"p1": "Neighborhood", "p2": "Rectangles for Herbert", "shared": 18}, {"p1": "Neighborhood", "p2": "On Chain Memory Token", "shared": 17}, {"p1": "Progression", "p2": "Rectangles for Herbert", "shared": 17}, {"p1": "Drawings for a Monument", "p2": "Rhythm", "shared": 17}, {"p1": "Color Study", "p2": "Inflection", "shared": 16}], "top_collectors": [{"wallet": "0xb99a6171df6ecd6b90abef6af6452fef0ffef9c9", "tokens": 191, "projects": 18, "holdings": {"Construction Token": 10, "Variant Plan": 3, "View Card": 1, "Portal": 1, "Rhythm": 21, "Reflection": 2, "Transcendence": 2, "Inflection": 5, "Formation": 3, "LED": 5, "Color Study": 17, "Cuadro": 24, "Culmination": 8, "Neighborhood": 20, "Optimism": 18, "Rectangles for Herbert": 22, "On Chain Memory Token": 2, "Progression": 27}}, {"wallet": "0xe4597dc7ee729b1ef3f1bdf0d121749a71b7e912", "tokens": 80, "projects": 6, "holdings": {"Formation": 4, "Neighborhood": 4, "Rectangles for Herbert": 50, "Drawings for a Monument": 10, "On Chain Memory Token": 2, "Progression": 10}}, {"wallet": "0xc896866e927e6f8a416ba209976115e79fa0a66f", "tokens": 78, "projects": 9, "holdings": {"Construction Token": 9, "Variant Plan": 1, "View Card": 2, "Portal": 1, "Rhythm": 16, "Reflection": 1, "Color Study": 44, "Neighborhood": 2, "Rectangles for Herbert": 2}}, {"wallet": "0xae26b20104f4b7ef39d23e01b83048f28cbae01d", "tokens": 75, "projects": 1, "holdings": {"Color Study": 75}}, {"wallet": "0x1ba171cd1fbfd0a0226ca9ecb50019ba8fb618b6", "tokens": 74, "projects": 1, "holdings": {"Rectangles for Herbert": 74}}, {"wallet": "0x3b0e003793011c012d8261b0aafd993eab01f2cf", "tokens": 68, "projects": 1, "holdings": {"Color Study": 68}}, {"wallet": "0x149fd340ca0df54228aacdad7755b05d0e2b23d9", "tokens": 65, "projects": 1, "holdings": {"Color Study": 65}}, {"wallet": "0xe2eef3d95b0549fe1a2f28903daae24bef6940b3", "tokens": 64, "projects": 9, "holdings": {"Construction Token": 2, "Rhythm": 3, "Formation": 1, "Color Study": 2, "Cuadro": 4, "Neighborhood": 6, "Rectangles for Herbert": 2, "On Chain Memory Token": 2, "Progression": 42}}, {"wallet": "0x9df947cd8a9810964473339c38a95201ecbe112d", "tokens": 62, "projects": 6, "holdings": {"Construction Token": 2, "Variant Plan": 1, "Inflection": 1, "LED": 1, "Color Study": 55, "Rectangles for Herbert": 2}}, {"wallet": "0x45ddff0190d30c33889460dccef840f68a41076d", "tokens": 61, "projects": 2, "holdings": {"LED": 7, "Rectangles for Herbert": 54}}, {"wallet": "0xd3e2e76e4ab0322614fe7aaa3be0b04bed83d0d0", "tokens": 51, "projects": 5, "holdings": {"Rhythm": 25, "Reflection": 2, "Inflection": 4, "Color Study": 16, "Neighborhood": 4}}, {"wallet": "0x11a15784a229ec5a5001c67b8bf76cb2c88f03b6", "tokens": 51, "projects": 1, "holdings": {"Color Study": 51}}, {"wallet": "0x2a538000a53f38d89f37fa43a301cee2c0f9e331", "tokens": 50, "projects": 2, "holdings": {"Construction Token": 46, "View Card": 4}}, {"wallet": "0xe995a353a97a33e2dbac9e70ba6778db86728f4e", "tokens": 48, "projects": 1, "holdings": {"Color Study": 48}}, {"wallet": "0xa4711c27924a900625bda3c63dc1eb86b44c48a6", "tokens": 46, "projects": 18, "holdings": {"Construction Token": 1, "Variant Plan": 2, "View Card": 1, "Portal": 1, "Rhythm": 1, "Reflection": 1, "Transcendence": 1, "Inflection": 1, "Formation": 1, "LED": 1, "Color Study": 2, "Cuadro": 4, "Culmination": 2, "Neighborhood": 2, "Rectangles for Herbert": 6, "Drawings for a Monument": 1, "On Chain Memory Token": 1, "Progression": 17}}, {"wallet": "0x044dd988e68902c5d6d24fe2054cbb2445bd1e12", "tokens": 46, "projects": 9, "holdings": {"Variant Plan": 3, "Rhythm": 2, "Reflection": 1, "Inflection": 3, "LED": 4, "Color Study": 5, "Culmination": 6, "Neighborhood": 2, "Progression": 20}}, {"wallet": "0xb88f61e6fbda83fbfffabe364112137480398018", "tokens": 45, "projects": 6, "holdings": {"Construction Token": 9, "Variant Plan": 1, "View Card": 4, "Reflection": 1, "Inflection": 2, "Color Study": 28}}, {"wallet": "0xdf9749659a797f991693f16a9ace4b5347f77e5e", "tokens": 39, "projects": 6, "holdings": {"Rhythm": 1, "Reflection": 1, "Inflection": 1, "Formation": 4, "Neighborhood": 22, "Rectangles for Herbert": 10}}, {"wallet": "0x6ad8fe4e495e9709be1a2cc8a04646078e6b1ab0", "tokens": 38, "projects": 3, "holdings": {"Construction Token": 1, "Rhythm": 2, "Color Study": 35}}, {"wallet": "0x7d42611012fdbe366bf4a0481fc0e1abf15e245a", "tokens": 36, "projects": 2, "holdings": {"Mechanical Drawing": 24, "Drawings for a Monument": 12}}, {"wallet": "0xb4ea60e9cd017aa8bcbf0f9ffac3ed7c1592f565", "tokens": 34, "projects": 13, "holdings": {"Construction Token": 1, "Rhythm": 1, "Reflection": 2, "Inflection": 1, "Formation": 2, "LED": 4, "Color Study": 4, "Cuadro": 2, "Culmination": 4, "Neighborhood": 6, "Rectangles for Herbert": 2, "On Chain Memory Token": 3, "Progression": 2}}, {"wallet": "0xeb86e881f7fa952622e8f99d6f92e88602a30df6", "tokens": 34, "projects": 3, "holdings": {"Formation": 1, "LED": 1, "Progression": 32}}, {"wallet": "0xf1e1c701b49b1dc2405a9e8ef40f9f88802b80fa", "tokens": 33, "projects": 5, "holdings": {"Construction Token": 1, "View Card": 1, "Rhythm": 5, "Reflection": 1, "Color Study": 25}}, {"wallet": "0xdfcb8ce60abee2a9ea5bdf163e874aa50b8023b0", "tokens": 32, "projects": 2, "holdings": {"Neighborhood": 8, "Rectangles for Herbert": 24}}, {"wallet": "0xa8c181e1ce31c5ac4e5737b3465eebac286f415e", "tokens": 32, "projects": 1, "holdings": {"Rectangles for Herbert": 32}}, {"wallet": "0x7ac8882faca42db885424c1a0ff233020192ea37", "tokens": 31, "projects": 3, "holdings": {"Construction Token": 1, "Inflection": 1, "Color Study": 29}}, {"wallet": "0x7af2e406bcc85580f2994f6cee959b280c6e0c32", "tokens": 31, "projects": 2, "holdings": {"Color Study": 17, "Progression": 14}}, {"wallet": "0x742fd09cbbeb1ec4e3d6404dfc959a324deb50e6", "tokens": 29, "projects": 1, "holdings": {"Construction Token": 29}}, {"wallet": "0xd4100a2e1aacdeb18bcda92a280124a7111a12b6", "tokens": 28, "projects": 6, "holdings": {"View Card": 1, "Rhythm": 4, "Reflection": 3, "Color Study": 4, "Neighborhood": 8, "Rectangles for Herbert": 8}}, {"wallet": "0x591660bf3ae48260bd21aef41e7dfd795fe4406a", "tokens": 28, "projects": 1, "holdings": {"Rectangles for Herbert": 28}}, {"wallet": "0x92cc55c36e5bdb4453d1a54c1b77a857a0b80607", "tokens": 27, "projects": 9, "holdings": {"Construction Token": 1, "Variant Plan": 1, "Reflection": 1, "LED": 1, "Color Study": 12, "Cuadro": 2, "Neighborhood": 6, "On Chain Memory Token": 2, "Progression": 1}}, {"wallet": "0x4322aa46ffed67809862da613725728e2fb8eae3", "tokens": 26, "projects": 3, "holdings": {"Rhythm": 13, "Transcendence": 1, "Color Study": 12}}, {"wallet": "0x207b3c1083a62e282d375a11f52730879cbfbbbb", "tokens": 25, "projects": 6, "holdings": {"Construction Token": 4, "Variant Plan": 5, "Rhythm": 2, "Inflection": 1, "Neighborhood": 10, "Color Study": 3}}, {"wallet": "0xfa2ac18d907e0dce330b5d24f6f6f31d8fc14394", "tokens": 24, "projects": 2, "holdings": {"Neighborhood": 2, "Rectangles for Herbert": 22}}, {"wallet": "0x66cc1dd0ff1c6fb9315444ed3679b5877fa219b2", "tokens": 24, "projects": 1, "holdings": {"Color Study": 24}}, {"wallet": "0xa3e49fea82d17326636cece9c8c090edf013dccb", "tokens": 23, "projects": 11, "holdings": {"Construction Token": 1, "Rhythm": 3, "Reflection": 2, "Transcendence": 1, "Inflection": 2, "Formation": 1, "LED": 2, "Color Study": 5, "Culmination": 2, "Neighborhood": 2, "Progression": 2}}, {"wallet": "0x931e8194d361571cc8476b15f8ce2f6e72d593f5", "tokens": 20, "projects": 2, "holdings": {"Construction Token": 3, "Color Study": 17}}, {"wallet": "0x555a10863a6e9f61e6688657c8ed1c3c861ff41b", "tokens": 19, "projects": 7, "holdings": {"Construction Token": 3, "Rhythm": 1, "Formation": 1, "Color Study": 2, "Rectangles for Herbert": 4, "Drawings for a Monument": 1, "Progression": 7}}, {"wallet": "0xa5e5d3afe7daf372972559c7fa3b75cb7a4ae0d7", "tokens": 19, "projects": 5, "holdings": {"Formation": 2, "Rectangles for Herbert": 4, "Drawings for a Monument": 4, "On Chain Memory Token": 1, "Progression": 8}}, {"wallet": "0xba7cfbd459dfa75ddbb9901c661804d06fd4dbac", "tokens": 19, "projects": 4, "holdings": {"Rhythm": 13, "Formation": 2, "Cuadro": 2, "Culmination": 2}}, {"wallet": "0x50c946cb9757d6de490099c0ec185a0dfe29974b", "tokens": 19, "projects": 4, "holdings": {"Variant Plan": 1, "Rectangles for Herbert": 16, "Drawings for a Monument": 1, "On Chain Memory Token": 1}}, {"wallet": "0x6b67623ff56c10d9dcfc2152425f90285fc74ddd", "tokens": 18, "projects": 7, "holdings": {"Inflection": 2, "Formation": 2, "LED": 1, "Culmination": 2, "Drawings for a Monument": 1, "On Chain Memory Token": 3, "Progression": 7}}, {"wallet": "0xb96e81f80b3aeef65cb6d0e280b15fd5dbe71937", "tokens": 18, "projects": 6, "holdings": {"Reflection": 2, "Transcendence": 3, "Inflection": 2, "Formation": 1, "LED": 2, "Cuadro": 8}}, {"wallet": "0xfea6145aec3832672df239639fbc1db273ace241", "tokens": 18, "projects": 6, "holdings": {"Construction Token": 2, "Rhythm": 1, "Color Study": 2, "Drawings for a Monument": 1, "On Chain Memory Token": 1, "Progression": 11}}, {"wallet": "0x46376a53ed0714fc3d519d61f227c907dcdd9d4a", "tokens": 18, "projects": 3, "holdings": {"Construction Token": 1, "Rhythm": 13, "Color Study": 4}}, {"wallet": "0xe155eb13d4a5ee61fa7d7015451bcafe3b364a53", "tokens": 17, "projects": 6, "holdings": {"Rhythm": 1, "Cuadro": 2, "Neighborhood": 2, "Drawings for a Monument": 1, "On Chain Memory Token": 2, "Progression": 9}}, {"wallet": "0x9fbb21897b484777844e1350d82939f28755e62b", "tokens": 17, "projects": 5, "holdings": {"Color Study": 4, "Neighborhood": 2, "Drawings for a Monument": 1, "On Chain Memory Token": 1, "Progression": 9}}, {"wallet": "0x4f1f761bc89abf7b003568f2a5ba97667103ff5f", "tokens": 17, "projects": 4, "holdings": {"Cuadro": 2, "Culmination": 10, "On Chain Memory Token": 1, "Progression": 4}}, {"wallet": "0x0f0eae91990140c560d4156db4f00c854dc8f09e", "tokens": 17, "projects": 3, "holdings": {"Construction Token": 12, "Rhythm": 3, "Culmination": 2}}, {"wallet": "0x37769c5bdd7a43b0b52958ca51bdace1556c96bf", "tokens": 16, "projects": 9, "holdings": {"Construction Token": 1, "Reflection": 1, "Inflection": 2, "Formation": 1, "Color Study": 2, "Cuadro": 2, "Culmination": 4, "Drawings for a Monument": 1, "Progression": 2}}], "affinity_projects": ["Drawings for a Monument", "Progression", "Construction Token", "Rectangles for Herbert", "Color Study", "Neighborhood", "Variant Plan", "On Chain Memory Token", "Rhythm", "Reflection", "Culmination", "Formation", "Cuadro", "Inflection", "LED"], "affinity_matrix": {"Drawings for a Monument": {"Drawings for a Monument": 672, "Progression": 53, "Construction Token": 28, "Rectangles for Herbert": 20, "Color Study": 38, "Neighborhood": 20, "Variant Plan": 4, "On Chain Memory Token": 58, "Rhythm": 17, "Reflection": 6, "Culmination": 11, "Formation": 12, "Cuadro": 13, "Inflection": 8, "LED": 5}, "Progression": {"Drawings for a Monument": 53, "Progression": 281, "Construction Token": 19, "Rectangles for Herbert": 17, "Color Study": 25, "Neighborhood": 16, "Variant Plan": 4, "On Chain Memory Token": 90, "Rhythm": 14, "Reflection": 16, "Culmination": 18, "Formation": 18, "Cuadro": 16, "Inflection": 13, "LED": 11}, "Construction Token": {"Drawings for a Monument": 28, "Progression": 19, "Construction Token": 261, "Rectangles for Herbert": 12, "Color Study": 41, "Neighborhood": 15, "Variant Plan": 15, "On Chain Memory Token": 15, "Rhythm": 31, "Reflection": 18, "Culmination": 10, "Formation": 13, "Cuadro": 9, "Inflection": 14, "LED": 8}, "Rectangles for Herbert": {"Drawings for a Monument": 20, "Progression": 17, "Construction Token": 12, "Rectangles for Herbert": 241, "Color Study": 16, "Neighborhood": 18, "Variant Plan": 10, "On Chain Memory Token": 24, "Rhythm": 14, "Reflection": 8, "Culmination": 5, "Formation": 10, "Cuadro": 5, "Inflection": 8, "LED": 5}, "Color Study": {"Drawings for a Monument": 38, "Progression": 25, "Construction Token": 41, "Rectangles for Herbert": 16, "Color Study": 224, "Neighborhood": 22, "Variant Plan": 14, "On Chain Memory Token": 27, "Rhythm": 38, "Reflection": 21, "Culmination": 14, "Formation": 12, "Cuadro": 9, "Inflection": 16, "LED": 11}, "Neighborhood": {"Drawings for a Monument": 20, "Progression": 16, "Construction Token": 15, "Rectangles for Herbert": 18, "Color Study": 22, "Neighborhood": 216, "Variant Plan": 12, "On Chain Memory Token": 17, "Rhythm": 21, "Reflection": 14, "Culmination": 8, "Formation": 9, "Cuadro": 10, "Inflection": 10, "LED": 6}, "Variant Plan": {"Drawings for a Monument": 4, "Progression": 4, "Construction Token": 15, "Rectangles for Herbert": 10, "Color Study": 14, "Neighborhood": 12, "Variant Plan": 183, "On Chain Memory Token": 5, "Rhythm": 10, "Reflection": 11, "Culmination": 5, "Formation": 4, "Cuadro": 5, "Inflection": 6, "LED": 6}, "On Chain Memory Token": {"Drawings for a Monument": 58, "Progression": 90, "Construction Token": 15, "Rectangles for Herbert": 24, "Color Study": 27, "Neighborhood": 17, "Variant Plan": 5, "On Chain Memory Token": 164, "Rhythm": 13, "Reflection": 8, "Culmination": 15, "Formation": 14, "Cuadro": 12, "Inflection": 8, "LED": 9}, "Rhythm": {"Drawings for a Monument": 17, "Progression": 14, "Construction Token": 31, "Rectangles for Herbert": 14, "Color Study": 38, "Neighborhood": 21, "Variant Plan": 10, "On Chain Memory Token": 13, "Rhythm": 161, "Reflection": 21, "Culmination": 12, "Formation": 13, "Cuadro": 10, "Inflection": 12, "LED": 6}, "Reflection": {"Drawings for a Monument": 6, "Progression": 16, "Construction Token": 18, "Rectangles for Herbert": 8, "Color Study": 21, "Neighborhood": 14, "Variant Plan": 11, "On Chain Memory Token": 8, "Rhythm": 21, "Reflection": 87, "Culmination": 16, "Formation": 14, "Cuadro": 13, "Inflection": 20, "LED": 11}, "Culmination": {"Drawings for a Monument": 11, "Progression": 18, "Construction Token": 10, "Rectangles for Herbert": 5, "Color Study": 14, "Neighborhood": 8, "Variant Plan": 5, "On Chain Memory Token": 15, "Rhythm": 12, "Reflection": 16, "Culmination": 82, "Formation": 14, "Cuadro": 20, "Inflection": 20, "LED": 15}, "Formation": {"Drawings for a Monument": 12, "Progression": 18, "Construction Token": 13, "Rectangles for Herbert": 10, "Color Study": 12, "Neighborhood": 9, "Variant Plan": 4, "On Chain Memory Token": 14, "Rhythm": 13, "Reflection": 14, "Culmination": 14, "Formation": 78, "Cuadro": 14, "Inflection": 23, "LED": 15}, "Cuadro": {"Drawings for a Monument": 13, "Progression": 16, "Construction Token": 9, "Rectangles for Herbert": 5, "Color Study": 9, "Neighborhood": 10, "Variant Plan": 5, "On Chain Memory Token": 12, "Rhythm": 10, "Reflection": 13, "Culmination": 20, "Formation": 14, "Cuadro": 77, "Inflection": 13, "LED": 14}, "Inflection": {"Drawings for a Monument": 8, "Progression": 13, "Construction Token": 14, "Rectangles for Herbert": 8, "Color Study": 16, "Neighborhood": 10, "Variant Plan": 6, "On Chain Memory Token": 8, "Rhythm": 12, "Reflection": 20, "Culmination": 20, "Formation": 23, "Cuadro": 13, "Inflection": 75, "LED": 16}, "LED": {"Drawings for a Monument": 5, "Progression": 11, "Construction Token": 8, "Rectangles for Herbert": 5, "Color Study": 11, "Neighborhood": 6, "Variant Plan": 6, "On Chain Memory Token": 9, "Rhythm": 6, "Reflection": 11, "Culmination": 15, "Formation": 15, "Cuadro": 14, "Inflection": 16, "LED": 70}}, "multi_project_count": 399, "multi_project_pct": 18.6};
+
+// KPIs
+document.getElementById('kpi-wallets').textContent = D.total_wallets.toLocaleString();
+document.getElementById('kpi-tokens').textContent = D.total_tokens.toLocaleString();
+document.getElementById('kpi-multi').textContent = D.multi_project_count + ' (' + D.multi_project_pct + '%)';
+document.getElementById('kpi-deep').textContent = D.segments.deep.count;
+
+// Tabs
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+  });
+});
+
+// Segments
+const segCont = document.getElementById('segments-container');
+const segOrder = ['deep','committed','exploring','single'];
+const segColors = ['var(--accent)','var(--accent3)','var(--accent4)','var(--text-dim)'];
+segOrder.forEach((key, i) => {
+  const s = D.segments[key];
+  const pct = (s.tokens / D.total_tokens * 100).toFixed(1);
+  const row = document.createElement('div');
+  row.className = 'segment-row';
+  row.innerHTML = '<span class="segment-label">' + s.label + '</span>' +
+    '<span>' + s.count + ' wallets</span>' +
+    '<span>' + s.tokens.toLocaleString() + ' tokens</span>' +
+    '<span class="segment-pct">' + pct + '%</span>';
+  segCont.appendChild(row);
+});
+
+// Segments chart (simple canvas bar)
+const canvas = document.getElementById('segments-chart');
+const ctx = canvas.getContext('2d');
+const dpr = window.devicePixelRatio || 1;
+canvas.width = canvas.offsetWidth * dpr;
+canvas.height = 80 * dpr;
+canvas.style.height = '80px';
+ctx.scale(dpr, dpr);
+const w = canvas.offsetWidth;
+const colors = ['#4a9eff','#4aff8b','#ffd54a','#555'];
+let x = 0;
+segOrder.forEach((key, i) => {
+  const s = D.segments[key];
+  const bw = (s.tokens / D.total_tokens) * w;
+  ctx.fillStyle = colors[i];
+  ctx.fillRect(x, 10, bw - 1, 40);
+  if (bw > 40) {
+    ctx.fillStyle = '#000';
+    ctx.font = '11px -apple-system, sans-serif';
+    ctx.fillText(s.label.split('(')[0].trim(), x + 4, 35);
+  }
+  x += bw;
+});
+ctx.fillStyle = '#888';
+ctx.font = '10px -apple-system, sans-serif';
+ctx.fillText('Share of total token supply', 0, 70);
+
+// Projects table
+const projTbody = document.querySelector('#projects-table tbody');
+const maxCollectors = Math.max(...Object.values(D.project_stats).map(p => p.collectors));
+D.project_order.forEach(name => {
+  const s = D.project_stats[name];
+  if (!s) return;
+  const avg = (s.tokens / s.collectors).toFixed(1);
+  const barW = (s.collectors / maxCollectors * 100).toFixed(1);
+  const tr = document.createElement('tr');
+  tr.innerHTML = '<td>' + name + '</td><td>' + s.collectors + '</td><td>' + s.tokens + '</td><td>' + avg + '</td>' +
+    '<td class="bar-cell"><div class="bar" style="width:' + barW + '%"></div></td>';
+  projTbody.appendChild(tr);
+});
+
+// Retention table
+const retTbody = document.querySelector('#retention-table tbody');
+const retProjects = D.project_order.filter(p => D.retention[p]);
+const maxRate = Math.max(...retProjects.map(p => D.retention[p].rate));
+retProjects.sort((a, b) => D.retention[b].rate - D.retention[a].rate);
+retProjects.forEach(name => {
+  const r = D.retention[name];
+  const barW = (r.rate / maxRate * 100).toFixed(1);
+  const barClass = r.rate >= 30 ? 'accent3' : r.rate >= 15 ? 'accent4' : 'accent2';
+  const tr = document.createElement('tr');
+  tr.innerHTML = '<td>' + name + '</td><td>' + r.entrants + '</td><td>' + r.returned + '</td>' +
+    '<td>' + r.rate + '%</td>' +
+    '<td class="bar-cell"><div class="bar ' + barClass + '" style="width:' + barW + '%"></div></td>';
+  retTbody.appendChild(tr);
+});
+
+// Affinity heatmap
+const hmDiv = document.getElementById('affinity-heatmap');
+const projects = D.affinity_projects;
+const matrix = D.affinity_matrix;
+const maxShared = Math.max(...D.top_pairs.map(p => p.shared));
+let hmHtml = '<table><thead><tr><th></th>';
+projects.forEach(p => { hmHtml += '<th>' + p.replace(/ /g, '<br>') + '</th>'; });
+hmHtml += '</tr></thead><tbody>';
+projects.forEach(p1 => {
+  hmHtml += '<tr><th style="text-align:right;white-space:nowrap">' + p1 + '</th>';
+  projects.forEach(p2 => {
+    const val = matrix[p1] && matrix[p1][p2] !== undefined ? matrix[p1][p2] : 0;
+    if (p1 === p2) {
+      hmHtml += '<td><span class="cell" style="background:var(--border);color:var(--text-dim)">' + val + '</span></td>';
+    } else {
+      const intensity = Math.min(val / maxShared, 1);
+      const r = Math.round(74 + intensity * 180);
+      const g = Math.round(158 + intensity * 97);
+      const b = Math.round(255);
+      const a = 0.15 + intensity * 0.7;
+      const textColor = intensity > 0.4 ? '#000' : 'var(--text-dim)';
+      hmHtml += '<td><span class="cell" style="background:rgba(' + r + ',' + g + ',' + b + ',' + a + ');color:' + textColor + '">' + (val || '') + '</span></td>';
+    }
+  });
+  hmHtml += '</tr>';
+});
+hmHtml += '</tbody></table>';
+hmDiv.innerHTML = hmHtml;
+
+// Top collectors table
+const topTbody = document.querySelector('#top-table tbody');
+D.top_collectors.forEach((c, i) => {
+  const holdings = c.holdings;
+  const topHold = Object.entries(holdings).sort((a, b) => b[1] - a[1])[0];
+  const tr = document.createElement('tr');
+  tr.innerHTML = '<td>' + (i + 1) + '</td>' +
+    '<td><span class="wallet">' + c.wallet.substring(0, 6) + '...' + c.wallet.substring(c.wallet.length - 4) + '</span></td>' +
+    '<td>' + c.tokens + '</td>' +
+    '<td>' + c.projects + '</td>' +
+    '<td>' + topHold[0] + ' (' + topHold[1] + ')</td>';
+  topTbody.appendChild(tr);
+});
+</script>
+</body>
+</html>
