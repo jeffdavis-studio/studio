@@ -8,7 +8,7 @@ let R, w, h, sc, dx, dy;
 let p1, p2, p3, p4, n1, n2, n3, n4;
 let p1rgb, p2rgb, p3rgb, p4rgb, prgb;
 let cols, rows, acols, arows, cparam, rparam;
-let blend, gaps, gaxis, gmap, angles, cdata;
+let blend, gaps, gaxis, gmap, cstarts, csizes, lcdim, lrdim, angles, cdata;
 let mx, my, cw, ch;
 let pc, grid, colgap, rowgap;
 let a1, a2, a3, a4, r, g, b;
@@ -18,7 +18,9 @@ let plotqs, pi, plotqi, plott;
 let plotmode = 'draw';
 let tfx, tfy, ttx, tty, tlen, talong;
 let plotskip = false;
-let plotips = 0.5;
+let complete = false;
+let baseips = 0.7;
+let pmult = 1;
 let angs = [22.5, 67.5, 112.5, 157.5];
 let curve = 1.25;
 let spacing = 1 / 30;
@@ -32,8 +34,8 @@ let ph = 9;
 let iw = 10;
 let ih = 7;
 let grids = [
-  [3, 23], [4, 17], [5, 14], [6, 13], [7, 10], [8, 9], [9, 8], [10, 7],
-  [13, 6], [14, 5], [17, 4], [23, 3],
+  [3, 23], [4, 17], [5, 14], [6, 13], [7, 10], [8, 9], 
+  [9, 8], [10, 7], [13, 6], [14, 5], [17, 4], [23, 3]
 ];
 let pencils = [
   { hsb: [359, 78, 85], name: "070 Scarlet" },
@@ -195,6 +197,18 @@ function setup() {
       }
       gmap.push(grp);
     }
+    cstarts = [];
+    csizes = [];
+    let prev = -1;
+    for (let i = 0; i < gmap.length; i++) {
+      let cl = gmap[i];
+      if (cl !== prev) {
+        cstarts[cl] = i;
+        csizes[cl] = 0;
+        prev = cl;
+      }
+      csizes[cl]++;
+    }
   }
   let ngaps = 0;
   if (gaps) {
@@ -236,6 +250,16 @@ function setup() {
     }
     blend = tr[R.random_int(0, tr.length - 1)];
   }
+  if (gaxis === 'cols') {
+    lcdim = csizes[0];
+    lrdim = arows.length;
+  } else if (gaxis === 'rows') {
+    lcdim = acols.length;
+    lrdim = csizes[0];
+  } else {
+    lcdim = acols.length;
+    lrdim = arows.length;
+  }
   cparam = blendParams(acols, blend);
   rparam = blendParams(arows, blend);
   angs = scramble(angs);
@@ -263,120 +287,7 @@ function setup() {
   colorMode(RGB);
   strokeWeight(lw * sc);
   strokeCap(SQUARE);
-  let speedel = document.getElementById('speed');
-  let valel = document.getElementById('speed-val');
-  if (speedel) {
-    plotips = 0.5 + (parseFloat(speedel.value) - 1) * 2;
-    if (valel) {
-      valel.textContent = speedel.value + 'x';
-    }
-    speedel.addEventListener('input', function() {
-      plotips = 0.5 + (parseFloat(speedel.value) - 1) * 2;
-      if (valel) {
-        valel.textContent = speedel.value + 'x';
-      }
-    });
-  }
   noLoop();
-}
-
-function drawBlendRects() {
-  noStroke();
-  for (let j = 0; j < arows.length; j++) {
-    for (let i = 0; i < acols.length; i++) {
-      let nx = cparam[i];
-      let ny = rparam[j];
-      if ((blend === 'inverse' || blend === 'rotate') && gaps) {
-        let grp;
-        if (gaxis === 'cols') {
-          grp = gmap[i];
-        } else {
-          grp = gmap[j];
-        }
-        if (grp % 2 === 1) {
-          if (gaxis === 'cols') {
-            ny = 1 - ny;
-          } else {
-            nx = 1 - nx;
-          }
-        }
-      }
-      a1 = opacity * (1 - pow(1 - (1 - nx) * (1 - ny), curve));
-      a2 = opacity * (1 - pow(1 - nx * (1 - ny), curve));
-      a3 = opacity * (1 - pow(1 - nx * ny, curve));
-      a4 = opacity * (1 - pow(1 - (1 - nx) * ny, curve));
-      r = prgb[0];
-      g = prgb[1];
-      b = prgb[2];
-      r = lerp(r, p1rgb[0], a1);
-      g = lerp(g, p1rgb[1], a1);
-      b = lerp(b, p1rgb[2], a1);
-      r = lerp(r, p2rgb[0], a2);
-      g = lerp(g, p2rgb[1], a2);
-      b = lerp(b, p2rgb[2], a2);
-      r = lerp(r, p3rgb[0], a3);
-      g = lerp(g, p3rgb[1], a3);
-      b = lerp(b, p3rgb[2], a3);
-      r = lerp(r, p4rgb[0], a4);
-      g = lerp(g, p4rgb[1], a4);
-      b = lerp(b, p4rgb[2], a4);
-      fill(r, g, b);
-      rect((mx + acols[i] * cw) * sc + dx, (my + arows[j] * ch) * sc + dy, cw * sc + 1, ch * sc + 1);
-    }
-  }
-}
-
-function drawHatchProgress() {
-  let crgbs = [p1rgb, p2rgb, p3rgb, p4rgb];
-  noFill();
-  for (let li = 0; li < pi; li++) {
-    let q = plotqs[li];
-    let rgb = crgbs[li];
-    stroke(rgb[0], rgb[1], rgb[2], la);
-    for (let qi = 0; qi < q.length; qi++) {
-      let L = q[qi];
-      line(L.x1 * sc + dx, L.y1 * sc + dy, L.x2 * sc + dx, L.y2 * sc + dy);
-    }
-  }
-  let q = plotqs[pi];
-  let n = q.length;
-  let rgb = crgbs[pi];
-  stroke(rgb[0], rgb[1], rgb[2], la);
-  let through = plotqi;
-  if (plotmode === 'draw') {
-    through = plotqi - 1;
-  }
-  for (let qi = 0; qi <= through && qi < n; qi++) {
-    let L = q[qi];
-    line(L.x1 * sc + dx, L.y1 * sc + dy, L.x2 * sc + dx, L.y2 * sc + dy);
-  }
-  if (plotmode === 'draw' && plotqi < n) {
-    let L = q[plotqi];
-    let xb = lerp(L.x1, L.x2, plott);
-    let yb = lerp(L.y1, L.y2, plott);
-    line(L.x1 * sc + dx, L.y1 * sc + dy, xb * sc + dx, yb * sc + dy);
-  }
-  if (phase === 'anim') {
-    let tipd = lw * sc;
-    let tx, ty;
-    let showtip = false;
-    if (plotmode === 'transit') {
-      let u = talong / tlen;
-      tx = lerp(tfx, ttx, u);
-      ty = lerp(tfy, tty, u);
-      showtip = true;
-    } else if (plotqi < n) {
-      let L = q[plotqi];
-      tx = lerp(L.x1, L.x2, plott);
-      ty = lerp(L.y1, L.y2, plott);
-      showtip = true;
-    }
-    if (showtip) {
-      noStroke();
-      fill(rgb[0], rgb[1], rgb[2]);
-      circle(tx * sc + dx, ty * sc + dy, tipd);
-    }
-  }
 }
 
 function draw() {
@@ -393,8 +304,8 @@ function draw() {
       plotskip = false;
       dt = 0;
     }
-    let drem = plotips * dt;
-    let trem = plotips * 2 * dt;
+    let drem = baseips * pmult * dt;
+    let trem = baseips * pmult * 2 * dt;
     let active = true;
     while (active && phase === 'anim') {
       let q = plotqs[pi];
@@ -403,34 +314,31 @@ function draw() {
         if (plotqi >= n || drem <= 0) {
           active = false;
         } else {
-          let L = q[plotqi];
-          let len = dist(L.x1, L.y1, L.x2, L.y2);
+          let l = q[plotqi];
+          let len = dist(l.x1, l.y1, l.x2, l.y2);
           let remain = (1 - plott) * len;
           if (drem >= remain) {
             drem -= remain;
             plott = 0;
+            let ln = null;
             if (plotqi + 1 < n) {
-              let ln = q[plotqi + 1];
-              plotmode = 'transit';
-              tfx = L.x2;
-              tfy = L.y2;
-              ttx = ln.x1;
-              tty = ln.y1;
-              tlen = dist(tfx, tfy, ttx, tty);
-              talong = 0;
+              ln = q[plotqi + 1];
             } else if (pi + 1 < plotqs.length) {
-              let ln = plotqs[pi + 1][0];
+              ln = plotqs[pi + 1][0];
+              plotqi = n;
+            }
+            if (ln) {
               plotmode = 'transit';
-              tfx = L.x2;
-              tfy = L.y2;
+              tfx = l.x2;
+              tfy = l.y2;
               ttx = ln.x1;
               tty = ln.y1;
               tlen = dist(tfx, tfy, ttx, tty);
               talong = 0;
-              plotqi = n;
             } else {
               plotqi = n;
               phase = 'done';
+              complete = true;
               noLoop();
             }
           } else {
@@ -463,10 +371,104 @@ function draw() {
     }
   }
   if (phase === 'blend') {
-    drawBlendRects();
+    noStroke();
+    for (let j = 0; j < arows.length; j++) {
+      for (let i = 0; i < acols.length; i++) {
+        let nx = cparam[i];
+        let ny = rparam[j];
+        if ((blend === 'inverse' || blend === 'rotate') && gaps) {
+          let grp;
+          if (gaxis === 'cols') {
+            grp = gmap[i];
+          } else {
+            grp = gmap[j];
+          }
+          if (grp % 2 === 1) {
+            if (gaxis === 'cols') {
+              ny = 1 - ny;
+            } else {
+              nx = 1 - nx;
+            }
+          }
+        }
+        a1 = opacity * (1 - pow(1 - (1 - nx) * (1 - ny), curve));
+        a2 = opacity * (1 - pow(1 - nx * (1 - ny), curve));
+        a3 = opacity * (1 - pow(1 - nx * ny, curve));
+        a4 = opacity * (1 - pow(1 - (1 - nx) * ny, curve));
+        r = prgb[0];
+        g = prgb[1];
+        b = prgb[2];
+        r = lerp(r, p1rgb[0], a1);
+        g = lerp(g, p1rgb[1], a1);
+        b = lerp(b, p1rgb[2], a1);
+        r = lerp(r, p2rgb[0], a2);
+        g = lerp(g, p2rgb[1], a2);
+        b = lerp(b, p2rgb[2], a2);
+        r = lerp(r, p3rgb[0], a3);
+        g = lerp(g, p3rgb[1], a3);
+        b = lerp(b, p3rgb[2], a3);
+        r = lerp(r, p4rgb[0], a4);
+        g = lerp(g, p4rgb[1], a4);
+        b = lerp(b, p4rgb[2], a4);
+        fill(r, g, b);
+        rect((mx + acols[i] * cw) * sc + dx, (my + arows[j] * ch) * sc + dy, cw * sc + 1, ch * sc + 1);
+      }
+    }
   }
   if (phase === 'anim' || phase === 'done') {
-    drawHatchProgress();
+    let crgbs = [p1rgb, p2rgb, p3rgb, p4rgb];
+    noFill();
+    for (let li = 0; li < pi; li++) {
+      let q = plotqs[li];
+      let rgb = crgbs[li];
+      stroke(rgb[0], rgb[1], rgb[2], la);
+      for (let qi = 0; qi < q.length; qi++) {
+        let l = q[qi];
+        line(l.x1 * sc + dx, l.y1 * sc + dy, l.x2 * sc + dx, l.y2 * sc + dy);
+      }
+    }
+    let q = plotqs[pi];
+    let n = q.length;
+    let rgb = crgbs[pi];
+    stroke(rgb[0], rgb[1], rgb[2], la);
+    let through = plotqi;
+    if (plotmode === 'draw') {
+      through = plotqi - 1;
+    }
+    for (let qi = 0; qi <= through && qi < n; qi++) {
+      let l = q[qi];
+      line(l.x1 * sc + dx, l.y1 * sc + dy, l.x2 * sc + dx, l.y2 * sc + dy);
+    }
+    if (plotmode === 'draw' && plotqi < n) {
+      let l = q[plotqi];
+      let xb = lerp(l.x1, l.x2, plott);
+      let yb = lerp(l.y1, l.y2, plott);
+      line(l.x1 * sc + dx, l.y1 * sc + dy, xb * sc + dx, yb * sc + dy);
+    }
+    if (phase === 'anim') {
+      let tx, ty;
+      let showtip = false;
+      if (plotmode === 'transit') {
+        let u = talong / tlen;
+        tx = lerp(tfx, ttx, u);
+        ty = lerp(tfy, tty, u);
+        showtip = true;
+      } else if (plotqi < n) {
+        let l = q[plotqi];
+        tx = lerp(l.x1, l.x2, plott);
+        ty = lerp(l.y1, l.y2, plott);
+        showtip = true;
+      }
+      if (showtip) {
+        noStroke();
+        if (plotmode === 'transit') {
+          fill(128);
+        } else {
+          fill(rgb[0], rgb[1], rgb[2]);
+        }
+        circle(tx * sc + dx, ty * sc + dy, lw * sc);
+      }
+    }
   }
 }
 
@@ -602,12 +604,34 @@ function buildCells(corner) {
         }
         ls.reverse();
         let cl = 0;
+        let lc = i;
+        let lr = j;
         if (gaxis === 'cols') {
           cl = gmap[i];
+          lc = i - cstarts[cl];
         } else if (gaxis === 'rows') {
           cl = gmap[j];
+          lr = j - cstarts[cl];
         }
-        cells.push({ col: acols[i], row: arows[j], lines: ls, distance: tdist, cluster: cl });
+        if (cl % 2 === 1) {
+          if (blend === 'reflect') {
+            if (gaxis === 'cols') {
+              lc = lcdim - 1 - lc;
+            } else {
+              lr = lrdim - 1 - lr;
+            }
+          } else if (blend === 'inverse') {
+            if (gaxis === 'cols') {
+              lr = lrdim - 1 - lr;
+            } else {
+              lc = lcdim - 1 - lc;
+            }
+          } else if (blend === 'rotate') {
+            lc = lcdim - 1 - lc;
+            lr = lrdim - 1 - lr;
+          }
+        }
+        cells.push({ col: acols[i], row: arows[j], lines: ls, distance: tdist, cluster: cl, lc: lc, lr: lr });
       }
     }
   }
@@ -638,10 +662,10 @@ function compareBatchesPackOrder(a, b) {
   return ca.col - cb.col;
 }
 
-function pack(cells) {
+function pack(cells, cmp) {
   let batches = [];
   if (cells.length > 0) {
-    let pool = cells.slice().sort(compareCellsPackOrder);
+    let pool = cells.slice().sort(cmp);
     while (pool.length > 0) {
       let anchor = pool.pop();
       let group = [anchor];
@@ -651,83 +675,45 @@ function pack(cells) {
         group.push(c);
         total += c.distance;
       }
-      group.sort(compareCellsPackOrder);
+      group.sort(cmp);
       batches.push({ cells: group, distance: total });
     }
-    batches.sort(compareBatchesPackOrder);
   }
   return batches;
 }
 
-function sortedUniqueInts(values) {
-  let seen = {};
-  let out = [];
-  for (let i = 0; i < values.length; i++) {
-    let v = values[i];
-    if (!seen[v]) {
-      seen[v] = true;
-      out.push(v);
-    }
-  }
-  out.sort(function(a, b) {
-    return a - b;
-  });
-  return out;
-}
-
-function localKeyFromOrders(cell, colord, roword, fliprow, flipcol) {
-  let lc = colord.indexOf(cell.col);
-  let lr = roword.indexOf(cell.row);
-  if (lc < 0 || lr < 0) {
-    return null;
-  }
-  if (flipcol) {
-    lc = colord.length - 1 - lc;
-  }
-  if (fliprow) {
-    lr = roword.length - 1 - lr;
-  }
-  return lc + '/' + lr;
-}
-
-function clusterFlipFlags(id) {
-  let r = false;
-  let c = false;
-  if (id % 2 === 1) {
-    if (blend === 'reflect') {
-      if (gaxis === 'cols') {
-        c = true;
-      } else {
-        r = true;
+function buildPlotQueue(corner) {
+  let cells = cdata[corner];
+  let batches;
+  if (blend === 'continuous') {
+    batches = pack(cells, compareCellsPackOrder);
+    batches.sort(compareBatchesPackOrder);
+  } else {
+    let clusters = {};
+    let ids = [];
+    for (let i = 0; i < cells.length; i++) {
+      let cl = cells[i].cluster;
+      if (!clusters[cl]) {
+        clusters[cl] = [];
+        ids.push(cl);
       }
-    } else if (blend === 'inverse') {
-      if (gaxis === 'cols') {
-        r = true;
-      } else {
-        c = true;
+      clusters[cl].push(cells[i]);
+    }
+    ids.sort(function(a, b) {
+      return a - b;
+    });
+    let lookups = [];
+    for (let ci = 0; ci < ids.length; ci++) {
+      let lk = new Array(lcdim * lrdim);
+      let clist = clusters[ids[ci]];
+      for (let k = 0; k < clist.length; k++) {
+        let c = clist[k];
+        lk[c.lr * lcdim + c.lc] = c;
       }
-    } else if (blend === 'rotate') {
-      r = true;
-      c = true;
+      lookups.push(lk);
     }
-  }
-  return [r, c];
-}
-
-function greedyBatchTemplateLocalKeys(wrapped) {
-  let pool = wrapped.slice();
-  let template = [];
-  while (pool.length > 0) {
-    let anchor = pool.pop();
-    let group = [anchor];
-    let total = anchor.cell.distance;
-    while (pool.length > 0 && total + pool[0].cell.distance <= threshold) {
-      let w = pool.shift();
-      group.push(w);
-      total += w.cell.distance;
-    }
-    group.sort(function(a, b) {
-      let d = a.cell.distance - b.cell.distance;
+    let template = pack(clusters[ids[0]], function(a, b) {
+      let d = a.distance - b.distance;
       if (d !== 0) {
         return d;
       }
@@ -736,163 +722,61 @@ function greedyBatchTemplateLocalKeys(wrapped) {
       }
       return a.lc - b.lc;
     });
-    let keys = [];
-    for (let i = 0; i < group.length; i++) {
-      keys.push(group[i].lk);
-    }
-    template.push(keys);
-  }
-  return template;
-}
-
-function hatchBatchesNonContinuousSynced(clusters, ids) {
-  let meta = {};
-  for (let i = 0; i < ids.length; i++) {
-    let id = ids[i];
-    let list = clusters[id];
-    let colsraw = [];
-    let rowsraw = [];
-    for (let p = 0; p < list.length; p++) {
-      colsraw.push(list[p].col);
-      rowsraw.push(list[p].row);
-    }
-    let cols = sortedUniqueInts(colsraw);
-    let rows = sortedUniqueInts(rowsraw);
-    meta[id] = { cols: cols, rows: rows, n: list.length };
-  }
-  let ref = ids[0];
-  let rc = meta[ref].cols.length;
-  let rr = meta[ref].rows.length;
-  let n0 = meta[ref].n;
-  for (let i = 0; i < ids.length; i++) {
-    let m = meta[ids[i]];
-    if (m.cols.length !== rc || m.rows.length !== rr || m.n !== n0) {
-      return null;
-    }
-  }
-  let refflip = clusterFlipFlags(ref);
-  let refw = [];
-  let reflist = clusters[ref].slice().sort(compareCellsPackOrder);
-  for (let i = 0; i < reflist.length; i++) {
-    let cell = reflist[i];
-    let lk = localKeyFromOrders(cell, meta[ref].cols, meta[ref].rows, refflip[0], refflip[1]);
-    if (lk === null) {
-      return null;
-    }
-    let s = lk.indexOf('/');
-    let lc = parseInt(lk.substring(0, s), 10);
-    let lr = parseInt(lk.substring(s + 1), 10);
-    refw.push({ cell: cell, lk: lk, lc: lc, lr: lr });
-  }
-  let template = greedyBatchTemplateLocalKeys(refw);
-  let maps = [];
-  for (let ci = 0; ci < ids.length; ci++) {
-    let id = ids[ci];
-    let mmap = {};
-    let clist = clusters[id];
-    let flip = clusterFlipFlags(id);
-    for (let k = 0; k < clist.length; k++) {
-      let cell = clist[k];
-      let lk = localKeyFromOrders(cell, meta[id].cols, meta[id].rows, flip[0], flip[1]);
-      if (lk === null || mmap[lk]) {
-        return null;
-      }
-      mmap[lk] = cell;
-    }
-    maps.push(mmap);
-  }
-  let cbatches = [];
-  for (let ci = 0; ci < ids.length; ci++) {
-    cbatches.push([]);
-  }
-  for (let ti = 0; ti < template.length; ti++) {
-    let keys = template[ti];
-    for (let ci = 0; ci < ids.length; ci++) {
-      let bcells = [];
-      let tot = 0;
-      for (let k = 0; k < keys.length; k++) {
-        let cell = maps[ci][keys[k]];
-        if (!cell) {
-          return null;
+    batches = [];
+    for (let ti = 0; ti < template.length; ti++) {
+      let tcells = template[ti].cells;
+      for (let ci = 0; ci < ids.length; ci++) {
+        let bcells = [];
+        let tot = 0;
+        for (let k = 0; k < tcells.length; k++) {
+          let t = tcells[k];
+          let c = lookups[ci][t.lr * lcdim + t.lc];
+          bcells.push(c);
+          tot += c.distance;
         }
-        bcells.push(cell);
-        tot += cell.distance;
+        batches.push({ cells: bcells, distance: tot });
       }
-      cbatches[ci].push({ cells: bcells, distance: tot });
     }
   }
-  let batches = [];
-  for (let ti = 0; ti < template.length; ti++) {
-    for (let ci = 0; ci < ids.length; ci++) {
-      batches.push(cbatches[ci][ti]);
-    }
-  }
-  return batches;
-}
-
-function hatchBatchesNonContinuousUnsynced(clusters, ids) {
-  let batches = [];
-  for (let ii = 0; ii < ids.length; ii++) {
-    let pb = pack(clusters[ids[ii]]);
-    for (let j = 0; j < pb.length; j++) {
-      batches.push(pb[j]);
-    }
-  }
-  batches.sort(compareBatchesPackOrder);
-  return batches;
-}
-
-function hatchBatchesForCorner(corner) {
-  let cells = cdata[corner];
-  if (blend === 'continuous') {
-    return pack(cells);
-  }
-  let clusters = {};
-  let ids = [];
-  for (let i = 0; i < cells.length; i++) {
-    let cl = cells[i].cluster;
-    if (!clusters[cl]) {
-      clusters[cl] = [];
-      ids.push(cl);
-    }
-    clusters[cl].push(cells[i]);
-  }
-  ids.sort(function(a, b) {
-    return a - b;
-  });
-  let synced = hatchBatchesNonContinuousSynced(clusters, ids);
-  if (synced !== null) {
-    return synced;
-  }
-  return hatchBatchesNonContinuousUnsynced(clusters, ids);
-}
-
-function orientSegmentPlotter(l) {
-  if (l.y1 > l.y2) {
-    return { x1: l.x1, y1: l.y1, x2: l.x2, y2: l.y2 };
-  }
-  if (l.y2 > l.y1) {
-    return { x1: l.x2, y1: l.y2, x2: l.x1, y2: l.y1 };
-  }
-  if (l.x1 <= l.x2) {
-    return { x1: l.x1, y1: l.y1, x2: l.x2, y2: l.y2 };
-  }
-  return { x1: l.x2, y1: l.y2, x2: l.x1, y2: l.y1 };
-}
-
-function buildPlotQueue(corner) {
-  let batches = hatchBatchesForCorner(corner);
   let queue = [];
   for (let bi = 0; bi < batches.length; bi++) {
     let batch = batches[bi];
     for (let cj = 0; cj < batch.cells.length; cj++) {
       let ls = batch.cells[cj].lines;
       for (let k = 0; k < ls.length; k++) {
-        queue.push(orientSegmentPlotter(ls[k]));
+        let l = ls[k];
+        let swap = (l.y1 < l.y2) || (l.y1 === l.y2 && l.x1 > l.x2);
+        if (swap) {
+          queue.push({ x1: l.x2, y1: l.y2, x2: l.x1, y2: l.y1 });
+        } else {
+          queue.push({ x1: l.x1, y1: l.y1, x2: l.x2, y2: l.y2 });
+        }
       }
     }
   }
   return queue;
+}
+
+function ensurePlotqs() {
+  if (!plotqs) {
+    plotqs = [
+      buildPlotQueue('p1'),
+      buildPlotQueue('p2'),
+      buildPlotQueue('p3'),
+      buildPlotQueue('p4'),
+    ];
+  }
+}
+
+function resetAnimState() {
+  ensurePlotqs();
+  pi = 0;
+  plotqi = 0;
+  plott = 0;
+  plotmode = 'draw';
+  plotskip = true;
+  pmult = 1;
+  complete = false;
 }
 
 function scramble(arr) {
@@ -906,23 +790,54 @@ function scramble(arr) {
 
 function mousePressed() {
   if (phase === 'blend') {
-    plotqs = [
-      buildPlotQueue('p1'),
-      buildPlotQueue('p2'),
-      buildPlotQueue('p3'),
-      buildPlotQueue('p4'),
-    ];
-    pi = 0;
-    plotqi = 0;
-    plott = 0;
-    plotmode = 'draw';
-    plotskip = true;
-    phase = 'anim';
-    let cel = document.getElementById('controls');
-    if (cel) {
-      cel.classList.add('visible');
+    if (!plotqs) {
+      resetAnimState();
+      phase = 'anim';
+      loop();
+    } else if (complete) {
+      phase = 'done';
+      noLoop();
+      redraw();
+    } else {
+      plotskip = true;
+      phase = 'anim';
+      loop();
     }
-    loop();
+  } else {
+    phase = 'blend';
+    noLoop();
+    redraw();
+  }
+}
+
+function keyPressed() {
+  if (key === 'r' || key === 'R') {
+    resetAnimState();
+    if (phase !== 'blend') {
+      phase = 'anim';
+      loop();
+    }
+  } else if (key === 'c' || key === 'C') {
+    ensurePlotqs();
+    pi = plotqs.length - 1;
+    plotqi = plotqs[pi].length;
+    plotmode = 'draw';
+    complete = true;
+    if (phase !== 'blend') {
+      phase = 'done';
+      noLoop();
+      redraw();
+    }
+  } else {
+    let n = parseInt(key, 10);
+    if (n === 0 && phase === 'anim') {
+      noLoop();
+    } else if (n >= 1 && n <= 9) {
+      pmult = n;
+      if (phase === 'anim') {
+        loop();
+      }
+    }
   }
 }
 
