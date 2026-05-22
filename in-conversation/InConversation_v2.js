@@ -39,9 +39,10 @@ let methods = {
   // Nested/concentric shapes stepping inward from edge or center.
   // Knobs: colorScheme, outline, alignment, elementChoices, spacing, range, subdivision
   //   colorScheme: shared with grid/shapeGrid. "single" → every element c1; "binary" →
-  //     each element independently c1 or c2 (strict alternation is a sub-case that
-  //     occasionally appears); "gradient" → smooth lerp across elements, with random
-  //     direction reversal per draw. Constraint: "single" is forced when `outline=true`
+  //     strict c1/c2 alternation with a randomized starting color (same rationale as stripe:
+  //     adjacent same-color concentric elements merge visually into a single larger element,
+  //     defeating the binary character); "gradient" → smooth lerp across elements, with
+  //     random direction reversal per draw. Constraint: "single" is forced when `outline=true`
   //     (outlines need monochrome to read as composition rather than noise), and
   //     conversely "single" is re-rolled to a varied scheme when `outline=false` (a filled
   //     nested progression in single color renders as a solid c1 canvas — the largest
@@ -211,27 +212,20 @@ let methods = {
 
       // Build a single palette shared by fills and outlines so they stay consistent within
       // each element. Palette length is the final nt (after subdivision insertions).
-      let palette = buildColorPalette(colorScheme, nt);
-
-      // Visibility guard for binary: with filled progressions at extended range, the
-      // outermost elements extend past the canvas and may be fully occluded by subsequent
-      // elements. Ensure visible elements (positions ≤ canvasUnits) contain both c1 AND c2
-      // so there is always a visible color boundary — having only c1 or only c2 among
-      // visible elements produces a near-monochrome canvas (especially for triangles where
-      // the contrasting sliver can be tiny and imperceptible at low ldif).
+      // Binary uses strict c1/c2 alternation (same rationale as stripe): adjacent same-color
+      // concentric elements merge visually into one larger element, defeating the binary
+      // character. Strict alternation guarantees that consecutive elements always read as
+      // a distinct ring boundary. The random start direction (c1-first vs c2-first) preserves
+      // variety. Alternation also makes the prior "visible subset" guard redundant —
+      // visible elements form a contiguous tail of `positions`, and any contiguous run of
+      // length ≥ 2 in an alternating sequence contains both colors by construction.
+      let palette;
       if (colorScheme === "binary") {
-        let visibleIdx = [];
-        for (let i = 0; i < nt; i++) {
-          if (positions[i] <= canvasUnits) visibleIdx.push(i);
-        }
-        if (visibleIdx.length >= 2) {
-          if (!visibleIdx.some(i => palette[i] === c1)) {
-            palette[R.random_choice(visibleIdx)] = c1;
-          }
-          if (!visibleIdx.some(i => palette[i] === c2)) {
-            palette[R.random_choice(visibleIdx)] = c2;
-          }
-        }
+        let start = R.random_bool(0.5);
+        palette = [];
+        for (let i = 0; i < nt; i++) palette.push((i % 2 === 0) === start ? c1 : c2);
+      } else {
+        palette = buildColorPalette(colorScheme, nt);
       }
 
       print("Color Scheme:", colorScheme);
@@ -339,7 +333,7 @@ let methods = {
   // ---------------------------------------------------------------------------
   // GRID
   // Line-based grid patterns with outer/inner groupings.
-  // Knobs: layout (single/linear/stacked), tbEdge, lrEdge, varied, spacing,
+  // Knobs: layout (single/linear/stacked), rangeMode, tbEdge, lrEdge, varied, spacing,
   //   coverage (all/scattered), anomaly (none/hole), subdivision (none/subdivided).
   //   Color: always c1 (single). The unified colorScheme vocabulary is intentionally
   //     skipped here — grid renders strokes, not solid shapes, and per-line color
@@ -351,6 +345,11 @@ let methods = {
   //       allowed on the single-group axis only.
   //     stacked — multi-group along both axes, gc=gr (nested square clusters). Always
   //       all-inset.
+  //   rangeMode: how the per-axis edge states are picked. "uniform" → one shared state is
+  //     rolled once and applied to both tbEdge and lrEdge (symmetric framing); "independent"
+  //     → each axis resolves from its own knob (asymmetric per-axis framing). Mirrors
+  //     shapeGrid/largeShape. Multi-group constraints (below) still apply after resolution
+  //     and may force one axis to inset under either mode.
   //   Edge framing is tied per-axis: top+bottom share state (tbEdge), left+right share (lrEdge):
   //     inset:    positive margin on that axis (lines stop short of canvas edges).
   //     touching: zero margin on that axis. Allowed only when there is a single group along
@@ -372,6 +371,7 @@ let methods = {
     shapes: ["Line", "Square"],
     defaults: {
       layout: "random",
+      rangeMode: "random",
       tbEdge: "random",
       lrEdge: "random",
       varied: 0.5,
@@ -396,9 +396,19 @@ let methods = {
       // amid the probabilistic whole-line removals of scattered.
       if (coverage === "scattered") anomaly = "none";
 
-      // Per-axis edge framing (tied top+bottom, tied left+right).
-      let tbEdge = resolveChoice(config.tbEdge, ["inset", "touching"]);
-      let lrEdge = resolveChoice(config.lrEdge, ["inset", "touching"]);
+      // Per-axis edge framing (tied top+bottom, tied left+right). Range mode determines
+      // whether the two axes share one rolled state (uniform) or resolve independently from
+      // their own knobs (independent). Multi-group constraints can still force inset on
+      // either axis after this resolution step.
+      let rangeMode = resolveChoice(config.rangeMode, ["uniform", "independent"]);
+      let tbEdge, lrEdge;
+      if (rangeMode === "uniform") {
+        let shared = R.random_choice(["inset", "touching"]);
+        tbEdge = lrEdge = shared;
+      } else {
+        tbEdge = resolveChoice(config.tbEdge, ["inset", "touching"]);
+        lrEdge = resolveChoice(config.lrEdge, ["inset", "touching"]);
+      }
 
       // --- Grid dimensions ---
       let gr, gc, ir, ic;
@@ -641,6 +651,7 @@ let methods = {
 
       print("Layout:", layout);
       print("Grid Size:", gc + "×" + gr, "(outer), " + ic + "×" + ir, "(inner)");
+      print("Range Mode:", rangeMode);
       print("Edges: TB=" + tbEdge + (tbHatched ? "+hatched" : ""),
                   "LR=" + lrEdge + (lrHatched ? "+hatched" : ""));
       print("Margins: vm=" + vm.toFixed(0) + " hm=" + hm.toFixed(0));
@@ -724,7 +735,7 @@ let methods = {
   // Array of shapes in a uniform grid with optional anomaly.
   // Knobs: colorScheme, outline, coverage (all/scattered/clustered), aspect (square/wide/tall),
   //   anomaly (none/hole/emphasis), subdivision, spacing (even/variable),
-  //   topEdge / rightEdge / bottomEdge / leftEdge
+  //   rangeMode, topEdge / rightEdge / bottomEdge / leftEdge
   //   colorScheme: shared with shapeProgression/grid. Iteration unit is the cell. For
   //     gradient, a direction (horizontal/vertical/diagonal) is picked per draw — cells
   //     fade along that axis. For binary, each cell is an independent c1-or-c2 pick (not a
@@ -733,8 +744,13 @@ let methods = {
   //   anomaly: single deliberate outlier — hole (cell removed) or emphasis (cell highlighted).
   //   No "scattered" anomaly value because that's just coverage="scattered" — the layout knob
   //   covers the many-deviations case.
+  //   rangeMode: how the per-edge states are picked. "uniform" → one edge state is rolled
+  //     once and applied to all four canvas edges (symmetric framing); "independent" → each
+  //     edge resolves from its own knob (asymmetric framings possible). Mirrors largeShape's
+  //     rangeMode.
   //   topEdge/rightEdge/bottomEdge/leftEdge: per-edge framing — inset, touching, or extended.
-  //   Per-edge means the four canvas edges are independent; asymmetric framings are possible.
+  //   Consulted only when rangeMode = "independent". Per-edge means the four canvas edges
+  //   are independent; asymmetric framings are possible.
   // ---------------------------------------------------------------------------
   shapeGrid: {
     shapes: ["Circle", "Square", "Triangle"],
@@ -746,6 +762,7 @@ let methods = {
       anomaly: "random",
       subdivision: "random",
       spacing: "random",
+      rangeMode: "random",
       topEdge: "random",
       rightEdge: "random",
       bottomEdge: "random",
@@ -778,17 +795,37 @@ let methods = {
         let r = resolveChoice(v, edgeStates);
         return edgeStates.includes(r) ? r : "inset";
       };
-      let topEdge = resolveEdge(config.topEdge);
-      let rightEdge = resolveEdge(config.rightEdge);
-      let bottomEdge = resolveEdge(config.bottomEdge);
-      let leftEdge = resolveEdge(config.leftEdge);
+      // Range mode: uniform → roll one shared state for all four edges; independent → each
+      // edge rolls from its own knob. Independent is the original behavior; uniform was added
+      // to bias toward symmetric framings.
+      let rangeMode = resolveChoice(config.rangeMode, ["uniform", "independent"]);
+      let topEdge, rightEdge, bottomEdge, leftEdge;
+      if (rangeMode === "uniform") {
+        let shared = R.random_choice(edgeStates);
+        topEdge = rightEdge = bottomEdge = leftEdge = shared;
+      } else {
+        topEdge = resolveEdge(config.topEdge);
+        rightEdge = resolveEdge(config.rightEdge);
+        bottomEdge = resolveEdge(config.bottomEdge);
+        leftEdge = resolveEdge(config.leftEdge);
+      }
 
       // --- Grid dimensions ---
+      // Cap the rows/cols ratio so cells don't become extremely elongated (e.g. cols=8,
+      // rows=1 stretches shapes to 8× their natural aspect). MAX_CELL_RATIO = 2 keeps cell
+      // proportions within 2:1 — preserves variety (1×2, 2×3, 4×8, etc.) while preventing
+      // the most skinny outliers. This uses rows/cols as a proxy for cellW/cellH; actual
+      // cell dimensions also depend on solveAxis (insets, extended, variable spacing), but
+      // they track this ratio closely enough that the proxy is a reliable filter.
+      const MAX_CELL_RATIO = 5;
       let rows, cols;
       do {
         rows = R.random_int(1, 8);
         cols = R.random_int(1, 8);
-      } while (rows === 1 && cols === 1);
+      } while (
+        (rows === 1 && cols === 1) ||
+        Math.max(rows, cols) / Math.min(rows, cols) > MAX_CELL_RATIO
+      );
 
       // Single-cell axes can't sustain any extended edge:
       //   - Both extended → infinitely large cell (half off each side requires cell = ∞).
@@ -1059,7 +1096,7 @@ let methods = {
       print("Grid Size:", cols + "×" + rows);
       print("Outline:", outline ? "Yes" : "No", outline && sw > 0 ? "| Stroke: " + (swWeights.find(n => Math.abs(strokeWidth(unit, n) - sw) < 0.01) || sw.toFixed(1)) : "");
       print("Aspect:", aspect, "| Spacing: H=" + Math.round(spH) + " V=" + Math.round(spV) + " (" + spacingMode + ")");
-      print("Edges: T=" + topEdge + " R=" + rightEdge + " B=" + bottomEdge + " L=" + leftEdge);
+      print("Edges:", "(" + rangeMode + ")", "T=" + topEdge + " R=" + rightEdge + " B=" + bottomEdge + " L=" + leftEdge);
       print("Margins: T=" + Math.round(marginTop) + " R=" + Math.round(marginRight) + " B=" + Math.round(marginBottom) + " L=" + Math.round(marginLeft));
       print("Coverage:", coverage, coverage !== "all" ? "(" + drawn.length + "/" + (rows * cols) + ")" : "");
       print("Anomaly:", anomaly, anomaly !== "none" ? "at (" + ac + "," + ar + ")" : "");
@@ -1116,143 +1153,759 @@ let methods = {
 
   // ---------------------------------------------------------------------------
   // STRIPE
-  // Horizontal stripes with optional subdivision into finer stripes.
-  // Knobs: colorScheme, subdivision, minStripes
+  // A 1D band pattern: N stripes arranged along one axis (rotated by the global canvas
+  // rotation, so the axis varies). Each stripe spans the full perpendicular axis.
+  // Knobs: colorScheme, alignment, range, spacing, coverage, anomaly, varied, subdivision, stripeChoices
+  //   colorScheme: shared with shapeProgression/shapeGrid, but binary here is stripe-specific:
+  //     "binary" → strict c1/c2 alternation (adjacent same-color stripes would merge into a
+  //     wider stripe, defeating the purpose of binary, so independent random picks are not
+  //     used here); "gradient" → smooth lerp across stripes. "single" doesn't apply to
+  //     Square (would render as a uniform fill); Line shape forces single since lines are
+  //     strokes, not fills (per the grid convention).
+  //   alignment: stripe-axis orientation relative to the canvas. Parallel to shapeProgression's
+  //     alignment in spirit (different composition types via different anchor geometry).
+  //     "aligned" → stripe bands parallel to canvas edges (global 90° rotation gives H or V).
+  //     "diagonal" → stripe bands at 45° to canvas edges (global rotation gives NW-SE or
+  //     NE-SW diagonal). Inset uses a square clip (sd-2m); touching extends to sd·√2 so the
+  //     stripes reach the canvas corners.
+  //   range: edge state on the stripe axis. "touching" (stripes flush to canvas bounds —
+  //     edges for aligned, corners for diagonal) or "inset" (stripes within a bg margin —
+  //     framed on all four sides for aligned, square-clipped for diagonal). Stripe always
+  //     terminates at or within the canvas; there is no "extended" range for stripe.
+  //   spacing: "even" (every stripe is 1/N of the band) or "variable" (proportions from
+  //     distribute(n), so stripe widths vary). Matches shapeProgression/shapeGrid spacing.
+  //   coverage: "all" (every stripe drawn) or "scattered" (each stripe independently 50%
+  //     drawn — skipped stripes reveal the canvas background).
+  //   anomaly: single outlier — "hole" (one stripe removed) or "emphasis" (one stripe at
+  //     the midpoint of c1↔c2 for stand-out contrast). Suppressed when scattered.
+  //   varied: Line shape only — outer frame lines (the boundaries at the ends of the stripe
+  //     axis when range="inset") rendered at a heavier weight than internal boundary lines.
+  //     Mirrors grid's outer/inner stroke distinction. Only meaningful when range="inset" AND
+  //     shape="Line" (outer frame is drawn only at inset; Square has no separator strokes).
+  //   subdivision: pick one stripe and replace it with M sub-stripes (M = 2-4) of equal
+  //     width spanning the original stripe's band. Mirrors shapeGrid's "one cell → mini-grid"
+  //     pattern. Final stripe count grows from n to n + (M - 1), and the palette adapts.
+  //   stripeChoices: discrete list of allowed primary stripe counts.
   // ---------------------------------------------------------------------------
   stripe: {
     shapes: ["Line", "Square"],
     defaults: {
       colorScheme: "random",
+      alignment: "random",
+      range: "random",
+      spacing: "random",
+      coverage: "random",
+      anomaly: "random",
+      varied: 0.3,
       subdivision: "random",
-      minStripes: 3
+      stripeChoices: [3, 4, 5, 6, 8, 10, 12]
     },
     subtopics: {
-      "Repetition": { colorScheme: "alternating", subdivision: "disabled", minStripes: 5 },
-      "Structure": { allowedShapes: ["Line"] },
-      "Proportion": { subdivision: "forced" },
-      "Symmetry": { subdivision: "disabled" },
-      "Asymmetry": { subdivision: "forced" }
+      "Repetition": { colorScheme: "binary", alignment: "aligned", spacing: "even", coverage: "all", anomaly: "none", varied: false, subdivision: "none", stripeChoices: [5, 6, 8, 10] },
+      "Structure": { allowedShapes: ["Line"], coverage: "all", subdivision: "none" },
+      "Proportion": { spacing: "variable", subdivision: "subdivided" },
+      "Symmetry": { alignment: "aligned", spacing: "even", coverage: "all", anomaly: "none", varied: false, subdivision: "none" },
+      "Asymmetry": { spacing: "variable", anomaly: "emphasis", subdivision: "subdivided" }
     },
     draw: function(shape, config) {
-      let n1 = R.random_int(config.minStripes, 12);
-      let n2 = 2 * R.random_int(1, 3) + 1;
-      let sw1 = sd / n1;
-      let count = 0;
+      let colorScheme = resolveChoice(config.colorScheme, ["binary", "gradient"]);
+      // Line shape: strokes are always c1 (per the grid convention) — colorScheme on a
+      // stroke would read as visual noise rather than composition.
+      if (shape === "Line") colorScheme = "single";
+      let alignment = resolveChoice(config.alignment, ["aligned", "diagonal"]);
+      let range = resolveChoice(config.range, ["inset", "touching"]);
+      let spacing = resolveChoice(config.spacing, ["even", "variable"]);
+      let coverage = resolveChoice(config.coverage, ["all", "scattered"]);
+      let anomaly = resolveChoice(config.anomaly, ["none", "hole", "emphasis"]);
+      let subdivision = resolveChoice(config.subdivision, ["none", "subdivided"]);
+      let varied = chance(config.varied);
+      // varied only applies to Line shape (Square has no separator strokes) AND only for
+      // aligned+inset, where the outer frame lines are visibly drawn at the inset boundary.
+      // Touching/extended skip outer lines, and diagonal+inset clips the outer lines to
+      // zero-length segments (they lie outside the inset square crop).
+      if (shape !== "Line" || range !== "inset" || alignment === "diagonal") varied = false;
+      // Suppress single-element anomaly when scattered: a single removed/emphasized element
+      // is imperceptible amid the probabilistic per-stripe removals of scattered.
+      if (coverage === "scattered") anomaly = "none";
 
-      let useGradient;
-      if (config.colorScheme === "gradient") {
-        useGradient = true;
-      } else if (config.colorScheme === "alternating") {
-        useGradient = false;
+      // --- Stripe count + subdivision ---
+      let n = R.random_choice(config.stripeChoices);
+      // Pick one stripe to densify (if subdivision active). Replace that stripe's slot with
+      // M equal-width sub-stripes. Final count = n + (M - 1).
+      let subIdx = -1, subM = 0;
+      if (subdivision === "subdivided" && n >= 2) {
+        subIdx = R.random_int(0, n - 1);
+        subM = R.random_int(2, 4);
       } else {
-        useGradient = R.random_bool(0.66);
+        subdivision = "none";
       }
 
-      let cs1, cs2;
-      if (useGradient) {
-        if (R.random_bool(0.5)) {
-          cs1 = betterLerp(c1, c2, 0.33);
-          cs2 = betterLerp(c1, c2, 0.66);
+      // Build base per-stripe proportions (sum to 1). Even = uniform; variable uses the shared
+      // distribute() helper for uneven widths within bounded ratios.
+      let baseProps = (spacing === "variable" && n >= 2) ? distribute(n) : new Array(n).fill(1 / n);
+
+      // Insert sub-stripes: the densified slot is split into subM equal parts that share the
+      // original slot's width. Even-spacing → all sub-stripes equal; variable-spacing → sub-stripes
+      // inherit a fraction of the parent stripe's (variable) width, preserving the densification.
+      let props = [];
+      let stripeOrigin = []; // for each final stripe, which original stripe slot it came from
+      for (let i = 0; i < n; i++) {
+        if (i === subIdx) {
+          for (let k = 0; k < subM; k++) {
+            props.push(baseProps[i] / subM);
+            stripeOrigin.push(i);
+          }
         } else {
-          cs1 = c1;
-          cs2 = betterLerp(c1, c2, 0.5);
+          props.push(baseProps[i]);
+          stripeOrigin.push(i);
         }
+      }
+      let nFinal = props.length;
+
+      // --- Layout via shared solveAxis ---
+      // marginPool is only consulted when range === "inset". sd-based so the inset width
+      // feels physically consistent regardless of orientation.
+      let marginPool = [sd / 16, sd / 8, sd / 4];
+      let marginPick = range === "inset" ? R.random_choice(marginPool) : 0;
+
+      // alignment × range → drawSpan, layout-range, and whether to clip:
+      //   aligned + inset    → sd, stripes inset on both axes (bg frame on all 4 sides)
+      //   aligned + touching → sd, stripes flush to canvas edges
+      //   diagonal + inset   → rotated frame of size (sd-2m)·√2 clipped to inset square;
+      //                        layoutRange="touching" since the clip handles bounding
+      //   diagonal + touching → rotated frame of size sd·√2 (full canvas diagonal); stripes
+      //                         reach the canvas corners (no bg gaps)
+      // "extended" is not a stripe range — stripes always terminate at or within the canvas
+      // bounds (touching = at the edge, inset = within an inset frame).
+      let drawSpan, useClip = false;
+      let layoutRange = range;
+      let layoutMargin = marginPick;
+      if (alignment === "aligned") {
+        drawSpan = sd;
+      } else if (range === "inset") {
+        drawSpan = (sd - 2 * marginPick) * Math.sqrt(2);
+        useClip = true;
+        layoutRange = "touching";
+        layoutMargin = 0;
       } else {
-        cs1 = c1;
-        cs2 = c2;
+        drawSpan = sd * Math.sqrt(2);
       }
 
-      let subdivisionPattern = [];
-      if (config.subdivision === "disabled") {
-        for (let i = 0; i < n1; i++) subdivisionPattern[i] = false;
-      } else if (config.subdivision === "forced") {
-        for (let i = 0; i < n1; i++) subdivisionPattern[i] = R.random_bool(0.4);
-        if (!subdivisionPattern.some(x => x)) subdivisionPattern[R.random_int(0, n1 - 1)] = true;
-        if (!subdivisionPattern.some(x => !x)) subdivisionPattern[R.random_int(0, n1 - 1)] = false;
-      } else {
-        for (let i = 0; i < n1; i++) subdivisionPattern[i] = R.random_bool(0.4);
+      let axis = solveAxis(drawSpan, props, layoutRange, layoutRange, layoutMargin, layoutMargin, 0);
+      let cells = axis.cells;
+      let marginStart = axis.marginStart;
+      // Cross-axis inset: only meaningful for aligned+inset (frames the stripe set on all
+      // four sides). Diagonal modes use the full drawSpan in cross direction — the clip
+      // (inset) or the canvas crop (touching/extended) handles the perpendicular bounds.
+      let crossMargin = (alignment === "aligned" && range === "inset") ? marginPick : 0;
+      let crossSpan = drawSpan - 2 * crossMargin;
+
+      // --- Coverage mask ---
+      // For Square: each stripe drawn/skipped. For Line: applied to boundary lines later.
+      let drawnMask = new Array(nFinal).fill(true);
+      if (coverage === "scattered") {
+        for (let i = 0; i < nFinal; i++) drawnMask[i] = R.random_bool(0.5);
+        if (!drawnMask.some(x => x)) drawnMask[R.random_int(0, nFinal - 1)] = true;
       }
 
-      let subdivisionCount = 0;
+      // --- Anomaly target ---
+      // Pick from currently-drawn stripes so the outlier is actually visible.
+      let ai = -1;
+      if (anomaly === "hole" || anomaly === "emphasis") {
+        let candidates = [];
+        for (let i = 0; i < nFinal; i++) if (drawnMask[i]) candidates.push(i);
+        if (candidates.length > 0) ai = R.random_choice(candidates);
+        else anomaly = "none";
+      }
 
-      for (let i = 0; i < n1; i++) {
-        if (subdivisionPattern[i]) {
-          subdivisionCount++;
-          let sw2 = sw1 / n2;
-          for (let j = 0; j < n2; j++) {
-            fill(count % 2 === 0 ? cs1 : cs2);
-            if (shape === "Line") {
-              stroke(c1);
-              strokeWeight(sd / 240);
-              if (i !== 0 && j !== 0) {
-                line(0, i * sw1 + j * sw2, sd, i * sw1 + j * sw2);
-              }
+      // --- Color palette ---
+      // Stripe-specific binary: adjacent same-color stripes would visually merge into a
+      // single wider stripe, defeating the purpose of binary. Force strict alternation
+      // (c1/c2/c1/c2/...) with a randomized starting color.
+      let palette;
+      if (colorScheme === "binary") {
+        let start = R.random_bool(0.5);
+        palette = [];
+        for (let i = 0; i < nFinal; i++) palette.push((i % 2 === 0) === start ? c1 : c2);
+      } else {
+        palette = buildColorPalette(colorScheme, nFinal);
+      }
+
+      // Visibility guard for binary/gradient (Square only — Line is always c1).
+      // Strict alternation guarantees both c1 and c2 in the full palette, but scattered
+      // coverage could remove all c1 stripes (or all c2 stripes), leaving the visible set
+      // a single color. Ensure at least one visible stripe is c1 so the composition reads
+      // against the c2 background.
+      if (colorScheme !== "single") {
+        let visibleIdx = [];
+        for (let i = 0; i < nFinal; i++) {
+          if (drawnMask[i] && !(anomaly === "hole" && i === ai)) visibleIdx.push(i);
+        }
+        if (visibleIdx.length > 0 && !visibleIdx.some(i => palette[i] === c1)) {
+          palette[R.random_choice(visibleIdx)] = c1;
+        }
+      }
+
+      // --- Stroke weight for Line shape (matches grid's selection logic) ---
+      let unit = Math.min.apply(null, cells);
+      let r = unit / sd;
+      let swWeights = ["thick", "heavy", "medium"];
+      if (r >= 1/20) swWeights.push("thin");
+      if (r >= 1/10) swWeights.push("fine");
+      let sw = 0, swOuter = 0, swInner = 0, swName = "";
+      if (shape === "Line") {
+        // varied needs ≥2 distinct weights to form an outer/inner pair.
+        if (varied && swWeights.length < 2) varied = false;
+        if (varied) {
+          let pairs = [];
+          for (let a = 0; a < swWeights.length - 1; a++) {
+            for (let b = a + 1; b < swWeights.length; b++) pairs.push([a, b]);
+          }
+          let pair = R.random_choice(pairs);
+          swOuter = strokeWidth(unit, swWeights[pair[0]]);
+          swInner = strokeWidth(unit, swWeights[pair[1]]);
+          sw = swOuter;
+          swName = swWeights[pair[0]] + "/" + swWeights[pair[1]];
+        } else {
+          let pick = R.random_choice(swWeights);
+          sw = strokeWidth(unit, pick);
+          swName = pick;
+        }
+      }
+
+      print("Color Scheme:", colorScheme);
+      print("Alignment:", alignment);
+      print("Stripes:", n + (subM > 0 ? " (final " + nFinal + ")" : ""));
+      // Margin display: for inset, show the user-facing bg margin (marginPick) regardless
+      // of layout mode. For touching/extended marginStart isn't a meaningful margin (=0 or
+      // negative), so skip it.
+      print("Range:", range, range === "inset" ? "| Margin: " + Math.round(marginPick) : "");
+      print("Spacing:", spacing);
+      print("Coverage:", coverage, coverage !== "all" ? "(" + drawnMask.filter(x => x).length + "/" + nFinal + ")" : "");
+      print("Anomaly:", anomaly, ai >= 0 ? "at " + ai : "");
+      print("Subdivision:", subdivision, subIdx >= 0 ? "at stripe " + subIdx + " (+" + subM + " sub)" : "");
+      if (shape === "Line") print("Stroke:", swName, "| Varied:", varied ? "Yes" : "No");
+
+      // --- Draw ---
+      // Diagonal compositions: set the clip (for inset) BEFORE applying the rotation, so the
+      // clip rect is interpreted in canvas coordinates. Then rotate the local frame 45° around
+      // the canvas center. p5's push()/pop() wrap drawingContext.save()/restore(), so the clip
+      // state and transform are both rolled back on pop.
+      push();
+      if (alignment === "diagonal") {
+        if (useClip) {
+          drawingContext.beginPath();
+          drawingContext.rect(marginPick, marginPick, sd - 2 * marginPick, sd - 2 * marginPick);
+          drawingContext.clip();
+        }
+        translate(sd / 2, sd / 2);
+        rotate(45);
+        translate(-drawSpan / 2, -drawSpan / 2);
+      }
+      if (shape === "Square") {
+        // Filled bands: each stripe is a full-width rect colored by palette[i].
+        // A 1px stroke matching the fill closes any sub-pixel seams that can appear between
+        // adjacent rects from anti-aliased edge rendering.
+        strokeWeight(1);
+        let y = marginStart;
+        for (let i = 0; i < nFinal; i++) {
+          if (drawnMask[i] && !(anomaly === "hole" && i === ai)) {
+            let col;
+            if (anomaly === "emphasis" && i === ai) {
+              col = betterLerp(c1, c2, 0.5);
             } else {
-              rect(0, i * sw1 + j * sw2, sd, sw2);
+              col = palette[i];
             }
-            count++;
+            fill(col);
+            stroke(col);
+            rect(crossMargin, y, crossSpan, cells[i]);
           }
-        } else {
-          fill(count % 2 === 0 ? c1 : c2);
-          if (shape === "Line") {
-            stroke(c1);
-            strokeWeight(sd / 240);
-            if (i !== 0) {
-              line(0, i * sw1, sd, i * sw1);
-            }
+          y += cells[i];
+        }
+      } else {
+        // Line shape: separator lines between stripes.
+        // Boundary positions: nFinal+1 positions at the start/end of each stripe slot.
+        // Outer boundaries (0 and nFinal) are drawn only when range === "inset" (they sit
+        // inside the canvas as a "frame"); for touching they're on the canvas edge and
+        // visually clipped, for extended they're off-canvas.
+        let boundaries = [marginStart];
+        for (let i = 0; i < nFinal; i++) boundaries.push(boundaries[i] + cells[i]);
+
+        let drawBoundary = new Array(nFinal + 1).fill(true);
+        // Outer "frame" boundaries are only drawn for aligned+inset. Touching/extended
+        // place them on or past the canvas edge (clipped to invisible); diagonal+inset
+        // places them outside the clip square (also clipped to zero-length).
+        let drawOuterFrame = (alignment === "aligned" && range === "inset");
+        if (!drawOuterFrame) {
+          drawBoundary[0] = false;
+          drawBoundary[nFinal] = false;
+        }
+        // Internal boundaries (1..nFinal-1) sit between two stripes. Skip the boundary if
+        // BOTH adjacent stripes are absent (no visible band to separate).
+        for (let i = 1; i < nFinal; i++) {
+          if (!drawnMask[i - 1] && !drawnMask[i]) drawBoundary[i] = false;
+        }
+        // Anomaly hole: remove one boundary line.
+        // For Line shape, ai is a stripe index — translate to a boundary index (the one just
+        // before that stripe, i.e. the line that separates it from its predecessor).
+        if (anomaly === "hole" && ai >= 0) {
+          drawBoundary[ai] = false;
+        }
+
+        noFill();
+        for (let i = 0; i <= nFinal; i++) {
+          if (!drawBoundary[i]) continue;
+          // Anomaly emphasis: color this boundary line with the midpoint shade.
+          if (anomaly === "emphasis" && ai >= 0 && i === ai) {
+            stroke(betterLerp(c1, c2, 0.5));
           } else {
-            rect(0, i * sw1, sd, sw1);
+            stroke(c1);
           }
-          count++;
+          // Varied stroke: outer frame lines (i === 0 || i === nFinal) get the heavier weight.
+          let isOuter = (i === 0 || i === nFinal);
+          strokeWeight(varied ? (isOuter ? swOuter : swInner) : sw);
+          line(crossMargin, boundaries[i], drawSpan - crossMargin, boundaries[i]);
         }
       }
-
-      print("Primary Stripes:", n1);
-      print("Color Scheme:", useGradient ? "Gradient" : "Alternating");
-      print("Stripe Width:", Math.round(sw1));
-      if (subdivisionCount > 0) {
-        print("Subdivision:", subdivisionCount + "/" + n1 + " stripes subdivided into " + n2 + " each");
-      } else {
-        print("Subdivision: None");
-      }
+      pop();
     }
   },
 
   // ---------------------------------------------------------------------------
   // LARGE SHAPE
-  // Single dominant shape placed with random vertex positions.
-  // Knobs: (none currently — pure randomness)
+  // A single canvas-spanning polygon (Line, Triangle, or quad/Square) with vertices anchored
+  // to the canvas edges. Combined with the global canvas rotation, this produces the four
+  // rotational variants per shape. The vertex pattern is fixed (one vertex per applicable
+  // edge — 2 for Line, 3 for Triangle, 4 for Quad); the `range` knob controls how close
+  // vertices can sit to canvas corners.
+  // Knobs: colorScheme, outline, rangeMode, topEdge/rightEdge/bottomEdge/leftEdge, regularity
+  //   colorScheme: forced "single" — only one element exists, so binary/gradient don't apply.
+  //     Kept as a knob for vocabulary consistency with the other engines.
+  //   outline: filled vs stroked. Line is intrinsically a stroke (forced outline=true).
+  //     For Triangle/Quad, a 50/50 choice by default. Outlined shapes draw stroke weight
+  //     from the shared STROKE_WEIGHTS catalog (no r-based filtering — unit = sd makes
+  //     every named weight available).
+  //   rangeMode: how the per-edge range values are picked.
+  //     "uniform"     → one range value is rolled once and applied to all edges (symmetric
+  //                     composition; the per-edge knobs are ignored).
+  //     "independent" → each edge's state rolls independently from its own knob (asymmetric
+  //                     composition; supports any combination of touching/inset/extended).
+  //   topEdge / rightEdge / bottomEdge / leftEdge: per-edge state (same vocabulary as
+  //     shapeGrid), consulted only when rangeMode = "independent". Each edge that hosts a
+  //     vertex of the current shape resolves to "inset" / "touching" / "extended". The vertex
+  //     on that edge is then:
+  //       "touching" → on the canvas edge. When outlined+polygon, the vertex is pulled
+  //                    inward along the interior-angle bisector by the miter length
+  //                    sw/(2·sin(θ/2)) so the miter point sits on the canvas edge.
+  //       "inset"    → perpendicular offset INTO the canvas by marginPick (shared across
+  //                    the composition: one pick from [sd/16, sd/8, sd/4]).
+  //       "extended" → perpendicular offset OUTSIDE the canvas by marginPick.
+  //     Shape-specific applicability: Quad uses all 4 edges, Triangle uses top/right/bottom
+  //     (no left vertex), Line uses 2 edges per variant (top+right or top+bottom). Line
+  //     additionally excludes "touching" — line endpoint caps and miter compensation aren't
+  //     meaningful for a 2-vertex polyline. Vertex position ALONG its edge stays in
+  //     [sd/16, 15·sd/16] regardless of state, to keep vertices off the corners.
+  //   regularity: "irregular" → vertices placed freely within bounds (current behavior).
+  //     "regular" → vertices constrained to form a named subtype. Subtype is rolled randomly
+  //     from the shape's applicable set:
+  //       Triangle:  isoceles | equilateral | right
+  //       Quad:      parallelogram | square (rotated/inscribed; in the uniform-touching frame
+  //                  a "rhombus" inscribed via one vertex per edge collapses to this square,
+  //                  so they're not exposed as separate subtypes)
+  //       Line:      regularity has no effect (only 2 anchors, no shape constraint to apply).
+  //     The regularity math is solved in the canonical UNIFORM TOUCHING frame (all 4 anchors
+  //     on actual canvas edges, no offsets). The per-edge `range` offsets are then applied
+  //     in Step 1, which may distort the subtype shape — e.g. a regular square with one edge
+  //     `extended` is no longer geometrically square. This is by design: it keeps the
+  //     subtype solvers simple, and the resulting "regularity warped by range" is treated as
+  //     an intentional visual effect. The subtype label always reflects the pre-warp shape.
+  //     Note: an axis-aligned Rectangle (or axis-aligned Square) is impossible in the
+  //     edge-anchored model — it would require two vertices to share a single canvas edge,
+  //     breaking the one-vertex-per-edge invariant.
   // ---------------------------------------------------------------------------
   largeShape: {
     shapes: ["Line", "Square", "Triangle"],
-    defaults: {},
+    defaults: {
+      colorScheme: "single",
+      outline: 0.5,
+      rangeMode: "random",
+      topEdge: "random",
+      rightEdge: "random",
+      bottomEdge: "random",
+      leftEdge: "random",
+      regularity: "random"
+    },
     subtopics: {
       "Proportion": {},
       "Asymmetry": {}
     },
     draw: function(shape, config) {
-      let a = R.random_int(sd / 16, 15 * sd / 16);
-      let b = R.random_int(sd / 16, 15 * sd / 16);
-      let c = R.random_int(sd / 16, 15 * sd / 16);
-      let d = R.random_int(sd / 16, 15 * sd / 16);
+      let outline = chance(config.outline);
+      // Line shape has no fill — always rendered as a stroke regardless of outline knob.
+      if (shape === "Line") outline = true;
 
-      print("Shape Type:", shape);
-      print("Coordinates: a=" + a + ", b=" + b + ", c=" + c + ", d=" + d);
+      // Edge state vocabulary. Line shape excludes "touching" (endpoint caps don't give a
+      // clear edge-touch visual); polygons get the full three-state vocabulary.
+      let edgeOptions = shape === "Line" ? ["inset", "extended"] : ["inset", "touching", "extended"];
+      let resolveEdge = function(v) {
+        let r = resolveChoice(v, edgeOptions);
+        return edgeOptions.includes(r) ? r : edgeOptions[0];
+      };
+      // Range mode: uniform → roll once, apply to all edges. independent → roll per edge.
+      let rangeMode = resolveChoice(config.rangeMode, ["uniform", "independent"]);
+      let topEdge, rightEdge, bottomEdge, leftEdge;
+      if (rangeMode === "uniform") {
+        let shared = R.random_choice(edgeOptions);
+        topEdge = rightEdge = bottomEdge = leftEdge = shared;
+      } else {
+        topEdge = resolveEdge(config.topEdge);
+        rightEdge = resolveEdge(config.rightEdge);
+        bottomEdge = resolveEdge(config.bottomEdge);
+        leftEdge = resolveEdge(config.leftEdge);
+      }
+      let edgeStates = { top: topEdge, right: rightEdge, bottom: bottomEdge, left: leftEdge };
 
-      fill(c1);
-      if (shape === "Line") {
-        noFill();
-        stroke(c1);
-        strokeWeight(sd / 120);
-        if (R.random_bool(0.5)) {
-          line(a, 0, sd, b);
+      // Single shared margin magnitude per composition. Used for any vertex whose host
+      // edge resolves to inset or extended.
+      let marginPick = R.random_choice([sd / 16, sd / 8, sd / 4]);
+
+      // Perpendicular offsets per edge (positive = into canvas, negative = out of canvas).
+      let offT = topEdge === "inset" ? marginPick : topEdge === "extended" ? -marginPick : 0;
+      let offR = rightEdge === "inset" ? marginPick : rightEdge === "extended" ? -marginPick : 0;
+      let offB = bottomEdge === "inset" ? marginPick : bottomEdge === "extended" ? -marginPick : 0;
+      let offL = leftEdge === "inset" ? marginPick : leftEdge === "extended" ? -marginPick : 0;
+
+      // Along-edge position bounds. For Quad, narrow the bounds so vertices stay in proper
+      // rotational order after perpendicular offsets — e.g. if right edge is inset by m,
+      // then bottom-vertex x (c) must be ≤ sd-m so V2 stays to the LEFT of V1 (the right
+      // vertex's new x). Without this constraint, the right vertex could end up to the
+      // LEFT of the bottom vertex, creating a concave (reflex-angle) quad. Triangle is
+      // always convex (any 3 non-collinear points form a triangle) and Line has only 2
+      // points, so they use the standard corner-avoidance bounds.
+      let alongMin = sd / 16, alongMax = 15 * sd / 16;
+      let xMin = alongMin, xMax = alongMax, yMin = alongMin, yMax = alongMax;
+      if (shape === "Square") {
+        xMin = Math.max(alongMin, offL);
+        xMax = Math.min(alongMax, sd - offR);
+        yMin = Math.max(alongMin, offT);
+        yMax = Math.min(alongMax, sd - offB);
+      }
+
+      // Geometric guards applied to both irregular and regular configurations:
+      //   - Polygon interior angles must be ≥ MIN_INTERIOR_ANGLE_DEG (checked on POST-offset
+      //     vertices, i.e. what's actually drawn). Below this threshold the renderer hits the
+      //     miter-bevel fallback (drawing a flat 4th "side" across the corner) and the shape
+      //     reads as visually awkward — needle-spike triangles or super-thin parallelograms.
+      //   - Line pre-offset length must be ≥ sd. The top+bottom variant satisfies this
+      //     trivially (sd vertical span); the top+right variant requires (sd-a)² + b² ≥ sd².
+      //     Checked on PRE-offset endpoints because that captures the line's canvas-spanning
+      //     intent — short corner-clipping lines defeat the purpose of largeShape.
+      const MIN_INTERIOR_ANGLE_DEG = 20;
+      const PICK_TRIES = 80;
+      // Line variant chosen up-front so the rejection sampler in pickIrregular and the
+      // verts construction below stay in sync about which length test applies.
+      let lineVariant = (shape === "Line")
+        ? (R.random_bool(0.5) ? "topRight" : "topBottom")
+        : null;
+
+      let minInteriorAngle = function(aT, bT, cT, dT) {
+        let pts;
+        if (shape === "Triangle") {
+          pts = [[aT, offT], [sd - offR, bT], [cT, sd - offB]];
+        } else if (shape === "Square") {
+          pts = [[aT, offT], [sd - offR, bT], [cT, sd - offB], [offL, dT]];
         } else {
-          line(a, 0, c, sd);
+          return Infinity;
+        }
+        let n = pts.length;
+        let minAng = Infinity;
+        for (let i = 0; i < n; i++) {
+          let V = pts[i];
+          let U = pts[(i - 1 + n) % n];
+          let Wn = pts[(i + 1) % n];
+          let ux = U[0] - V[0], uy = U[1] - V[1];
+          let wx = Wn[0] - V[0], wy = Wn[1] - V[1];
+          let lu = Math.hypot(ux, uy), lw = Math.hypot(wx, wy);
+          if (lu < 1e-9 || lw < 1e-9) return 0;
+          let cosT = Math.max(-1, Math.min(1, (ux * wx + uy * wy) / (lu * lw)));
+          let ang = Math.acos(cosT) * 180 / Math.PI;
+          if (ang < minAng) minAng = ang;
+        }
+        return minAng;
+      };
+      let lineLengthOK = function(aT, bT) {
+        // Pre-offset length, applied only to the top+right variant. top+bottom is always OK.
+        if (lineVariant !== "topRight") return true;
+        return (sd - aT) * (sd - aT) + bT * bT >= sd * sd;
+      };
+      let configOK = function(aT, bT, cT, dT) {
+        if (shape === "Line") return lineLengthOK(aT, bT);
+        return minInteriorAngle(aT, bT, cT, dT) >= MIN_INTERIOR_ANGLE_DEG;
+      };
+
+      // Regularity: irregular (free a/b/c/d in bounds) or regular (constrained to a named
+      // subtype — isoceles/equilateral/right for Triangle, parallelogram/rhombus/square for
+      // Quad). Line has no regularity concept (only 2 anchors). When regular, subtypes are
+      // tried in random order; if all fail under the current offset/bound/angle configuration
+      // the shape falls back to irregular for that draw.
+      let regularity = (shape === "Line") ? "irregular"
+        : resolveChoice(config.regularity, ["irregular", "regular"]);
+      let subtype = null;
+      let a, b, c, d;
+      let pickIrregular = function() {
+        for (let i = 0; i < PICK_TRIES; i++) {
+          a = R.random_int(xMin, xMax);
+          b = R.random_int(yMin, yMax);
+          c = R.random_int(xMin, xMax);
+          d = R.random_int(yMin, yMax);
+          if (configOK(a, b, c, d)) return;
+        }
+        // After PICK_TRIES, accept the last sample to avoid infinite loops in pathological
+        // configurations (e.g. extreme offsets that leave no valid angle window). With a 20°
+        // threshold and a 16/16 along-edge range, this fallback essentially never fires for
+        // reasonable inputs.
+      };
+
+      if (regularity === "regular") {
+        // Each subtype is solved in the canonical UNIFORM TOUCHING frame: all 4 anchors on
+        // the actual canvas edges (offT = offR = offB = offL = 0). The Step 1 perpendicular
+        // offset below will then distort whatever per-edge `range` configuration is active —
+        // a regular square inscribed in the canvas, with one edge extended outward, is no
+        // longer geometrically a square, and that's accepted as the visual effect of `range`
+        // on a regular shape. The subtype label still reflects the pre-warp identity.
+        //
+        // In the uniform touching frame everything simplifies: W = H = sd, am = bm = sd/2,
+        // so each formula reduces to operations on sd, a, b, c (and d for quads). Each
+        // helper returns { a, b, c, d? } or null when the formula has no real solution for
+        // the rolled free coordinates (e.g. negative discriminant); the outer loop retries
+        // the same subtype with fresh free coords.
+        let coin = function() { return R.random_bool(0.5); };
+        let rand = function() { return R.random_int(alongMin, alongMax); };
+
+        // --- Triangle subtypes.
+        let isoceles = function() {
+          let apex = R.random_choice(["top", "right", "bottom"]);
+          if (apex === "top") {
+            // |V0V1| = |V0V2|. Free: a, b. Derived: c (two roots).
+            let aT = rand(), bT = rand();
+            let rhs = (sd - aT) ** 2 + bT * bT - sd * sd;
+            if (rhs < 0) return null;
+            let s = Math.sqrt(rhs);
+            return { a: aT, b: bT, c: coin() ? aT + s : aT - s };
+          } else if (apex === "right") {
+            // |V1V0| = |V1V2|. Free: a, c. Derived: b (linear).
+            let aT = rand(), cT = rand();
+            return { a: aT, b: sd / 2 + ((cT - sd) ** 2 - (sd - aT) ** 2) / (2 * sd), c: cT };
+          } else {
+            // apex === "bottom". |V2V0| = |V2V1|. Free: a, c. Derived: b (two roots).
+            let aT = rand(), cT = rand();
+            let rhs = (aT - cT) ** 2 + sd * sd - (cT - sd) ** 2;
+            if (rhs < 0) return null;
+            let s = Math.sqrt(rhs);
+            return { a: aT, b: coin() ? sd + s : sd - s, c: cT };
+          }
+        };
+
+        let equilateral = function() {
+          // 1 free: rotation α. R = sd / (√3·cos(α+120°)); cos must be > 0 ⇒ α ∈ (150°,330°).
+          let alpha = R.random_num(150, 330) * Math.PI / 180;
+          let cp120 = Math.cos(alpha + 2 * Math.PI / 3);
+          if (cp120 <= 0.05) return null;
+          let R3 = Math.sqrt(3);
+          let R_ = sd / (R3 * cp120);
+          let Gx = sd - sd / R3;
+          let Gy = -R_ * Math.sin(alpha);
+          return {
+            a: Gx + R_ * Math.cos(alpha),
+            b: Gy + R_ * Math.sin(alpha + 2 * Math.PI / 3),
+            c: Gx + R_ * Math.cos(alpha + 4 * Math.PI / 3)
+          };
+        };
+
+        let right = function() {
+          let corner = R.random_choice(["top", "right", "bottom"]);
+          if (corner === "top") {
+            // (V1-V0)·(V2-V0)=0. Free: a, c. Derived: b (linear).
+            let aT = rand(), cT = rand();
+            return { a: aT, b: (sd - aT) * (aT - cT) / sd, c: cT };
+          } else if (corner === "right") {
+            // (V0-V1)·(V2-V1)=0. Free: a, c. Derived: b (quadratic).
+            let aT = rand(), cT = rand();
+            let disc = sd * sd - 4 * (aT - sd) * (cT - sd);
+            if (disc < 0) return null;
+            let s = Math.sqrt(disc);
+            return { a: aT, b: coin() ? (sd + s) / 2 : (sd - s) / 2, c: cT };
+          } else {
+            // corner === "bottom". (V0-V2)·(V1-V2)=0. Free: a, c. Derived: b (linear).
+            let aT = rand(), cT = rand();
+            return { a: aT, b: sd + (aT - cT) * (sd - cT) / sd, c: cT };
+          }
+        };
+
+        // --- Quad subtypes.
+        let parallelogram = function() {
+          // c = sd - a, d = sd - b. Free: a, b.
+          let aT = rand(), bT = rand();
+          return { a: aT, b: bT, c: sd - aT, d: sd - bT };
+        };
+
+        let square = function() {
+          // 1 free: a. b = a (from rhombus condition collapsing when W=H=sd) and the
+          // perpendicular condition holds automatically. Result is the inscribed rotated
+          // square parametrized by t = a/sd.
+          let aT = rand();
+          return { a: aT, b: aT, c: sd - aT, d: sd - aT };
+        };
+
+        let pool = (shape === "Triangle")
+          ? { isoceles: isoceles, equilateral: equilateral, right: right }
+          : { parallelogram: parallelogram, square: square };
+        let order = Object.keys(pool);
+        for (let i = order.length - 1; i > 0; i--) {
+          let j = R.random_int(0, i);
+          let tmp = order[i]; order[i] = order[j]; order[j] = tmp;
+        }
+
+        // For each subtype, draw fresh free coords up to PICK_TRIES times until: the formula
+        // yields a real solution, AND every derived coord lies within the canonical along-edge
+        // range [alongMin, alongMax], AND the resulting shape clears the interior-angle guard.
+        // The bounds check matters because Step 1 only moves vertices perpendicular to their
+        // host edge — an along-edge coord outside [0, sd] leaves the vertex off-canvas.
+        let inAlong = function(v) { return v >= alongMin && v <= alongMax; };
+        let inBounds = function(r) {
+          if (!inAlong(r.a) || !inAlong(r.b) || !inAlong(r.c)) return false;
+          return r.d === undefined || inAlong(r.d);
+        };
+        let result = null;
+        for (let st of order) {
+          for (let attempt = 0; attempt < PICK_TRIES; attempt++) {
+            let r = pool[st]();
+            if (r && inBounds(r) && configOK(r.a, r.b, r.c, r.d)) { result = r; break; }
+          }
+          if (result) { subtype = st; break; }
+        }
+        if (result) {
+          a = result.a; b = result.b; c = result.c;
+          d = (result.d !== undefined) ? result.d : R.random_int(yMin, yMax);
+        } else {
+          regularity = "irregular";
+          subtype = null;
+          pickIrregular();
+        }
+      } else {
+        pickIrregular();
+      }
+
+      // Stroke weight for outlined shapes: shared STROKE_WEIGHTS catalog. unit = sd is the
+      // canvas-scale reference; r = unit/sd = 1, so every weight passes the universal
+      // r-based filters (thin requires r ≥ 1/20, fine requires r ≥ 1/10 — both satisfied).
+      let unit = sd;
+      let swWeights = ["medium", "thin", "fine", "hairline"];
+      let swName = R.random_choice(swWeights);
+      let sw = strokeWidth(unit, swName);
+
+      // Build base vertices (on canvas edges) and tag each with its host edge so transforms
+      // can apply edge-perpendicular adjustments. Each shape places vertices on a specific
+      // subset of canvas edges (Line: 2, Triangle: 3, Quad: 4).
+      let verts, kinds;
+      if (shape === "Line") {
+        if (lineVariant === "topRight") {
+          verts = [[a, 0], [sd, b]];
+          kinds = ["top", "right"];
+        } else {
+          verts = [[a, 0], [c, sd]];
+          kinds = ["top", "bottom"];
         }
       } else if (shape === "Triangle") {
-        triangle(a, 0, sd, b, c, sd);
+        verts = [[a, 0], [sd, b], [c, sd]];
+        kinds = ["top", "right", "bottom"];
       } else {
-        quad(a, 0, sd, b, c, sd, 0, d);
+        verts = [[a, 0], [sd, b], [c, sd], [0, d]];
+        kinds = ["top", "right", "bottom", "left"];
+      }
+
+      // Step 1: per-vertex perpendicular offset by host edge state. Touching vertices
+      // (offset 0) are handled by the miter step below if outlined.
+      let offByKind = { top: offT, right: offR, bottom: offB, left: offL };
+      for (let i = 0; i < verts.length; i++) {
+        let kind = kinds[i];
+        let off = offByKind[kind];
+        if (off === 0) continue;
+        if (kind === "top") verts[i][1] += off;
+        else if (kind === "right") verts[i][0] -= off;
+        else if (kind === "bottom") verts[i][1] -= off;
+        else if (kind === "left") verts[i][0] += off;
+      }
+
+      // Step 2: miter-aware offset for outlined polygon vertices whose host edge is touching.
+      //   The miter point at the corner extends past the vertex by sw/(2·sin(θ/2)) along
+      //   the outward bisector. Offsetting V inward along the inward bisector by exactly
+      //   that amount places the miter point at the original (canvas edge) vertex location.
+      //   The bisector and angle use the CURRENT neighbor positions (after Step 1), so
+      //   touching vertices adjacent to inset/extended neighbors get the correct
+      //   compensation for the deformed geometry.
+      if (outline && shape !== "Line") {
+        let n = verts.length;
+        let adjusted = verts.map(v => [v[0], v[1]]);
+        for (let i = 0; i < n; i++) {
+          if (edgeStates[kinds[i]] !== "touching") continue;
+          let V = verts[i];
+          let U = verts[(i - 1 + n) % n];
+          let W = verts[(i + 1) % n];
+          let e1x = U[0] - V[0], e1y = U[1] - V[1];
+          let e2x = W[0] - V[0], e2y = W[1] - V[1];
+          let l1 = Math.hypot(e1x, e1y), l2 = Math.hypot(e2x, e2y);
+          if (l1 < 1e-9 || l2 < 1e-9) continue;
+          e1x /= l1; e1y /= l1;
+          e2x /= l2; e2y /= l2;
+          let bx = e1x + e2x, by = e1y + e2y;
+          let blen = Math.hypot(bx, by);
+          if (blen < 1e-9) continue;
+          bx /= blen; by /= blen;
+          let cosT = Math.max(-1, Math.min(1, e1x * e2x + e1y * e2y));
+          let sinHalf = Math.sin(Math.acos(cosT) / 2);
+          if (sinHalf < 1e-9) continue;
+          let miterLen = sw / (2 * sinHalf);
+          adjusted[i][0] = V[0] + miterLen * bx;
+          adjusted[i][1] = V[1] + miterLen * by;
+        }
+        verts = adjusted;
+      }
+
+      print("Shape Type:", shape);
+      print("Outline:", outline ? "Yes" : "No", outline ? "| Stroke: " + swName : "");
+      // Show only the edges that host vertices for this shape.
+      let activeEdges = [...new Set(kinds)];
+      print("Range Mode:", rangeMode);
+      print("Edges:", activeEdges.map(k => k[0].toUpperCase() + "=" + edgeStates[k]).join(" "),
+        activeEdges.some(k => edgeStates[k] !== "touching") ? "| Margin: " + Math.round(marginPick) : "");
+      print("Regularity:", regularity + (subtype ? " (" + subtype + ")" : ""));
+      print("Coordinates: a=" + Math.round(a) + ", b=" + Math.round(b) + ", c=" + Math.round(c) + ", d=" + Math.round(d));
+
+      if (outline) {
+        noFill();
+        stroke(c1);
+        strokeWeight(sw);
+        // Canvas2D's default miterLimit (10) falls back to a bevel join when the miter
+        // ratio 1/sin(θ/2) exceeds that, which happens at interior angles below ~11.5°.
+        // largeShape's edge-anchored vertices can produce very acute corners (especially
+        // Triangle with one vertex's anchors far from the other two), so we raise the
+        // limit to allow a true point even at extreme angles. The Step 2 miter
+        // compensation already assumes a real miter join, so this also keeps that
+        // calculation valid for outlined+touching configurations.
+        drawingContext.miterLimit = 1000;
+      } else {
+        fill(c1);
+        noStroke();
+      }
+
+      if (shape === "Line") {
+        line(verts[0][0], verts[0][1], verts[1][0], verts[1][1]);
+      } else if (shape === "Triangle") {
+        triangle(verts[0][0], verts[0][1], verts[1][0], verts[1][1], verts[2][0], verts[2][1]);
+      } else {
+        quad(verts[0][0], verts[0][1], verts[1][0], verts[1][1],
+             verts[2][0], verts[2][1], verts[3][0], verts[3][1]);
       }
     }
   }
@@ -1395,14 +2048,20 @@ function buildColorPalette(scheme, n) {
       palette[R.random_int(0, n - 1)] = c1;
     }
   } else {
-    // gradient
+    // gradient: spans from c1 to one gradient-step short of c2, never reaching c2 itself.
+    // c2 is the canvas background, so a palette entry of exactly c2 renders as a "missing"
+    // stripe (indistinguishable from the bg). Using t = i/n (instead of i/(n-1)) gives n
+    // evenly spaced values [0, 1/n, ..., (n-1)/n] — the c1 end is preserved, the c2 end
+    // stops one step before the background. Reverse flips the direction without changing
+    // the endpoint policy.
     if (n === 1) {
       palette.push(c1);
     } else {
       let reverse = R.random_bool(0.5);
       for (let i = 0; i < n; i++) {
-        let t = i / (n - 1);
-        palette.push(betterLerp(c1, c2, reverse ? 1 - t : t));
+        let idx = reverse ? n - 1 - i : i;
+        let t = idx / n;
+        palette.push(betterLerp(c1, c2, t));
       }
     }
   }
@@ -1482,7 +2141,7 @@ function auditCoverage() {
 // --- TEST MODE ---
 // Set these to test a method directly, bypassing topic/subtopic selection.
 // Leave as null to use the normal pipeline.
-let testMethod = ["shapeProgression", "grid", "shapeGrid"];   // array (repeat to weight), string, or null
+let testMethod = ["shapeProgression", "grid", "shapeGrid", "stripe", "largeShape"];   // array (repeat to weight), string, or null
 let testShape = null;                  // e.g. "Line", "Circle", "Square", "Triangle" (null = random)
 
 function setup() {
