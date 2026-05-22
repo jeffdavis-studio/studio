@@ -18,10 +18,10 @@ let plotqs, pi, plotqi, plott;
 let plotmode = 'draw';
 let tfx, tfy, ttx, tty, tlen, talong;
 let plotskip = false;
-let baseips = 0.7;
+let baseips = 0.75;
 let plotips = baseips;
 let angs = [22.5, 67.5, 112.5, 157.5];
-let curve = 1.25;
+let curve = 1.4;
 let spacing = 1 / 30;
 let lw = 1 / 32;
 let la = 128;
@@ -341,23 +341,18 @@ function draw() {
             }
             if (ln) {
               plotmode = 'transit';
-              tfx = l.x2;
-              tfy = l.y2;
-              ttx = ln.x1;
-              tty = ln.y1;
-              tlen = dist(tfx, tfy, ttx, tty);
-              talong = 0;
+              setupTransit(l.x2, l.y2, ln.x1, ln.y1);
             } else {
               plotqi = n;
-              phase = 'done';
-              noLoop();
+              plotmode = 'home_out';
+              setupTransit(l.x2, l.y2, 0, ph);
             }
           } else {
             plott += drem / len;
             drem = 0;
           }
         }
-      } else if (plotmode === 'transit') {
+      } else if (plotmode === 'transit' || plotmode === 'home_in' || plotmode === 'home_out') {
         if (trem <= 0) {
           active = false;
         } else {
@@ -365,14 +360,22 @@ function draw() {
           if (trem >= remain) {
             trem -= remain;
             talong = tlen;
-            if (plotqi >= n) {
-              pi++;
-              plotqi = 0;
+            if (plotmode === 'transit') {
+              if (plotqi >= n) {
+                pi++;
+                plotqi = 0;
+              } else {
+                plotqi++;
+              }
+              plotmode = 'draw';
+              plott = 0;
+            } else if (plotmode === 'home_in') {
+              plotmode = 'draw';
+              plott = 0;
             } else {
-              plotqi++;
+              phase = 'done';
+              noLoop();
             }
-            plotmode = 'draw';
-            plott = 0;
           } else {
             talong += trem;
             trem = 0;
@@ -443,7 +446,7 @@ function draw() {
     let rgb = crgbs[pi];
     stroke(rgb[0], rgb[1], rgb[2], la);
     let through = plotqi;
-    if (plotmode === 'draw') {
+    if (plotmode === 'draw' || plotmode === 'home_in') {
       through = plotqi - 1;
     }
     for (let qi = 0; qi <= through && qi < n; qi++) {
@@ -459,23 +462,25 @@ function draw() {
     if (phase === 'anim') {
       let tx, ty;
       let showtip = false;
-      if (plotmode === 'transit') {
+      if (plotmode === 'draw') {
+        if (plotqi < n) {
+          let l = q[plotqi];
+          tx = lerp(l.x1, l.x2, plott);
+          ty = lerp(l.y1, l.y2, plott);
+          showtip = true;
+        }
+      } else {
         let u = talong / tlen;
         tx = lerp(tfx, ttx, u);
         ty = lerp(tfy, tty, u);
         showtip = true;
-      } else if (plotqi < n) {
-        let l = q[plotqi];
-        tx = lerp(l.x1, l.x2, plott);
-        ty = lerp(l.y1, l.y2, plott);
-        showtip = true;
       }
       if (showtip) {
         noStroke();
-        if (plotmode === 'transit') {
-          fill(128);
-        } else {
+        if (plotmode === 'draw') {
           fill(rgb[0], rgb[1], rgb[2]);
+        } else {
+          fill(128);
         }
         circle(tx * sc + dx, ty * sc + dy, lw * sc);
       }
@@ -784,6 +789,15 @@ function ensurePlotqs() {
   }
 }
 
+function setupTransit(fx, fy, tx, ty) {
+  tfx = fx;
+  tfy = fy;
+  ttx = tx;
+  tty = ty;
+  tlen = dist(tfx, tfy, ttx, tty);
+  talong = 0;
+}
+
 function buildSVG(corner) {
   let batches = buildBatches(corner);
   let crgb = { p1: p1rgb, p2: p2rgb, p3: p3rgb, p4: p4rgb }[corner];
@@ -842,7 +856,8 @@ function mousePressed() {
     pi = 0;
     plotqi = 0;
     plott = 0;
-    plotmode = 'draw';
+    plotmode = 'home_in';
+    setupTransit(0, ph, plotqs[0][0].x1, plotqs[0][0].y1);
     plotskip = true;
     phase = 'anim';
     let cel = document.getElementById('controls');
