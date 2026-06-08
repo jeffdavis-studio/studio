@@ -22,6 +22,12 @@ let complete = false;
 let baseips = 1;
 let tmult = 2;
 let pmult = 1;
+// Gallery auto-advance: hold the final state this long (ms) before generating the next
+// piece. Triggered when the animation naturally completes the home_out transit, or when
+// the operator presses `c` (skip-to-end). Any click or `r` press cancels the pending
+// advance.
+let holdMs = 10000;
+let holdTimer = null;
 let angs = [22.5, 67.5, 112.5, 157.5];
 let curve = 1.4;
 let spacing = 1 / 30;
@@ -65,7 +71,53 @@ let pencils = [
   { hsb: [352, 77, 88], name: "280 Ruby Red" },
 ];
 
+// Gallery-mode entry point. Three responsibilities live in distinct functions so
+// regeneration (click) and resize (browser chrome show/hide) each only do their work.
 function setup() {
+  applyCanvasSize();         // creates canvas at current window size
+  generateArtwork();         // first hash, runs the random-dependent pipeline
+  startAnimation();          // skip the manual blend → click handoff; auto-start
+}
+
+// Recompute canvas + per-pixel stroke from the current window size. Called on first
+// setup and whenever the window changes (e.g. browser chrome auto-hides at the gallery).
+// The artwork geometry (cells, lines, etc.) is in inches and unaffected — only the
+// (sc, dx, dy) mapping and the stroke width that depends on sc need updating.
+function applyCanvasSize() {
+  if (windowWidth / windowHeight > pw / ph) {
+    sc = windowHeight / ph;
+  } else {
+    sc = windowWidth / pw;
+  }
+  w = windowWidth;
+  h = windowHeight;
+  dx = (w - pw * sc) / 2;
+  dy = (h - ph * sc) / 2;
+  if (typeof width === 'undefined' || width === 0) {
+    createCanvas(w, h);
+  } else {
+    resizeCanvas(w, h);
+  }
+  colorMode(RGB);
+  strokeWeight(lw * sc);
+  strokeCap(SQUARE);
+}
+
+function windowResized() {
+  applyCanvasSize();
+  redraw();
+}
+
+// Fresh hash → re-run the random-dependent setup (palette pick, grid, blend mode,
+// hatch geometry). Clears plotqs so ensurePlotqs() rebuilds with the new cdata, and
+// resets `angs` to its declared default — `scramble(angs)` overwrites the global in
+// place, so subsequent regenerations would otherwise keep shuffling a previously
+// shuffled array.
+function generateArtwork() {
+  newTokenHash();
+  angs = [22.5, 67.5, 112.5, 157.5];
+  plotqs = null;
+  complete = false;
   R = new Random(tokenData.hash);
   colorMode(HSB);
   let retry = true;
@@ -270,25 +322,54 @@ function setup() {
   cdata.p2 = buildCells('p2');
   cdata.p3 = buildCells('p3');
   cdata.p4 = buildCells('p4');
+  console.log('Hash: ' + tokenData.hash);
   console.log('P1: ' + n1);
   console.log('P2: ' + n2);
   console.log('P3: ' + n3);
   console.log('P4: ' + n4);
   window.$features = { P1: n1, P2: n2, P3: n3, P4: n4 };
-  if (windowWidth / windowHeight > pw / ph) {
-    sc = windowHeight / ph;
-  } else {
-    sc = windowWidth / pw;
-  }
-  w = windowWidth;
-  h = windowHeight;
-  dx = (w - pw * sc) / 2;
-  dy = (h - ph * sc) / 2;
-  createCanvas(w, h);
+  // strokeWeight depends on sc (set by applyCanvasSize); re-apply in case the active
+  // colorMode just got switched back from HSB above.
   colorMode(RGB);
   strokeWeight(lw * sc);
   strokeCap(SQUARE);
-  noLoop();
+}
+
+// Generate a fresh 32-byte hash for the next piece. Mirrors the seed-hash format the
+// real Art Blocks engine produces.
+function newTokenHash() {
+  tokenData = { hash: "0x", tokenId: String(Math.floor(Math.random() * 1000000)) };
+  for (let i = 0; i < 64; i++) {
+    tokenData.hash = tokenData.hash + (Math.floor(Math.random() * 16)).toString(16);
+  }
+}
+
+// Kick the animation into 'anim' phase from a clean state (home transit in, then the
+// per-layer draw queue). Safe to call after generateArtwork() — resetAnimState() will
+// rebuild plotqs since we cleared it above.
+function startAnimation() {
+  resetAnimState();
+  phase = 'anim';
+  loop();
+}
+
+// Schedule the next piece to auto-load after `holdMs` ms. Called when the current
+// piece reaches its final ('done') state, either naturally or via the `c` skip key.
+// Cancels any prior pending advance first so back-to-back transitions don't stack.
+function scheduleAutoAdvance() {
+  cancelAutoAdvance();
+  holdTimer = setTimeout(function() {
+    holdTimer = null;
+    generateArtwork();
+    startAnimation();
+  }, holdMs);
+}
+
+function cancelAutoAdvance() {
+  if (holdTimer !== null) {
+    clearTimeout(holdTimer);
+    holdTimer = null;
+  }
 }
 
 function draw() {
@@ -365,6 +446,7 @@ function draw() {
               phase = 'done';
               complete = true;
               noLoop();
+              scheduleAutoAdvance();
             }
           } else {
             talong += trem;
@@ -804,30 +886,20 @@ function scramble(arr) {
   return shuffled;
 }
 
+// Gallery interaction: a click anywhere transitions to the next piece. The current
+// animation (whatever phase it's in) is abandoned and a fresh hash drives a new
+// generation. Cancels any pending auto-advance so the click doesn't get doubled up
+// by the timer firing right after. No blend/anim toggle here — that's a development
+// affordance kept in v2.
 function mousePressed() {
-  if (phase === 'blend') {
-    if (!plotqs) {
-      resetAnimState();
-      phase = 'anim';
-      loop();
-    } else if (complete) {
-      phase = 'done';
-      noLoop();
-      redraw();
-    } else {
-      plotskip = true;
-      phase = 'anim';
-      loop();
-    }
-  } else {
-    phase = 'blend';
-    noLoop();
-    redraw();
-  }
+  cancelAutoAdvance();
+  generateArtwork();
+  startAnimation();
 }
 
 function keyPressed() {
   if (key === 'r' || key === 'R') {
+    cancelAutoAdvance();
     resetAnimState();
     if (phase !== 'blend') {
       phase = 'anim';
@@ -843,6 +915,7 @@ function keyPressed() {
       phase = 'done';
       noLoop();
       redraw();
+      scheduleAutoAdvance();
     }
   } else {
     let n = parseInt(key, 10);
