@@ -236,7 +236,33 @@ let methods = {
       print("Range:", range, "| Canvas:", canvasUnits + "u", "| Positions:", positions.map(p => +p.toFixed(2)).join(", "));
       // Stroke weight is chosen once for the whole progression so the compensating offsets
       // (which hide the stroke overshoot at canvas edges) stay in sync with the actual weight.
-      let sw = outline ? pickStrokeWidth(sd, ["medium", "thin", "fine", "hairline"]) : 0;
+      // Cap by the minimum perpendicular distance between adjacent concentric outlines so
+      // thick strokes can't make two rings nearly merge and leave only a sub-pixel sliver
+      // of background between them.
+      //
+      // Per-side shrink rate depends on shape × alignment:
+      //   Square / Circle / Line, center  → both sides shrink at Δsz/2 each
+      //   Square / Circle / Line, corner  → one-sided shrink at Δsz
+      //   Circle, edge                    → one-sided shrink at Δsz (radius)
+      //   Triangle, corner (45° slant)    → slanted sides converge at Δsz/√2
+      //   Triangle, edge (steep apex)     → slanted sides converge at Δsz/√5
+      let densityFactor;
+      if (shape === "Triangle") {
+        densityFactor = corner ? 1 / Math.sqrt(2) : edge ? 1 / Math.sqrt(5) : 0.5;
+      } else {
+        densityFactor = (corner || edge) ? 1 : 0.5;
+      }
+      let minDeltaP = Infinity;
+      for (let i = 0; i < nt - 1; i++) {
+        minDeltaP = Math.min(minDeltaP, positions[i] - positions[i + 1]);
+      }
+      let minGapPx = sd * minDeltaP * densityFactor / canvasUnits;
+      let swNames = ["medium", "thin", "fine", "hairline"];
+      let sw = outline ? pickStrokeWidth(sd, swNames, minGapPx) : 0;
+      if (outline) {
+        let swName = swNames.find(n => strokeWidth(sd, n) === sw) || "custom";
+        print("Stroke:", swName, "| Width:", +sw.toFixed(2) + "px", "| Min gap:", +minGapPx.toFixed(2) + "px");
+      }
       print("Subdivision:", subdivision, subSlot >= 0 ? "at slot " + subSlot + " (+" + subM + ")" : "");
 
       for (let i = 0; i < nt; i++) {
