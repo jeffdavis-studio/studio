@@ -103,6 +103,46 @@ let colors = [["#f21424", "#ffd7d7"], ["#f23f08", "#ffe9ef"], ["#a3131d", "#ed14
 //                        Resolved in draw via: let x = resolveChoice(config.x, [...options]).
 // ============================================================================
 
+// --- largeShape per-regularity metadata table ---
+// Single source of truth for everything that depends on (shape, regularity):
+//   aspect       — required width:height ratio. null = free aspect; a number forces
+//                  the bbox to that ratio. 1:1 = circle/square/rotated-square;
+//                  2:√3 ≈ 1.155 = equilateral triangle.
+//   needsRotation — true if the subtype is only visually distinct under rotation,
+//                  forcing placement = "free" upstream (rotated-square is identical
+//                  to square without rotation; sheared/asymmetric quads benefit from
+//                  rotational variety).
+//   fillsBbox    — true if the rendered shape exactly fills its bbox. These are the
+//                  subtypes that produce a single-color canvas when bbox ⊇ canvas
+//                  (filled) or when the outline sits entirely off-canvas (outlined).
+//                  Used to restrict uniform-mode state choices upstream.
+// Static data with no dependency on draw()'s closure — hoisted to module scope rather
+// than rebuilt on every largeShape draw call.
+const LARGE_SHAPE_REG_META = {
+  Line: {
+    "diagonal-down": { aspect: null,             needsRotation: false, fillsBbox: false },
+    "diagonal-up":   { aspect: null,             needsRotation: false, fillsBbox: false }
+  },
+  Circle: {
+    "ellipse":       { aspect: null,             needsRotation: false, fillsBbox: false },
+    "circle":        { aspect: 1,                needsRotation: false, fillsBbox: false }
+  },
+  Square: {
+    "rectangle":     { aspect: null,             needsRotation: false, fillsBbox: true  },
+    "square":        { aspect: 1,                needsRotation: false, fillsBbox: true  },
+    "rotated-square":{ aspect: 1,                needsRotation: true,  fillsBbox: true  },
+    "parallelogram": { aspect: null,             needsRotation: true,  fillsBbox: false },
+    "trapezoid":     { aspect: null,             needsRotation: true,  fillsBbox: false },
+    "irregular-quad":{ aspect: null,             needsRotation: true,  fillsBbox: false }
+  },
+  Triangle: {
+    "irregular":     { aspect: null,             needsRotation: false, fillsBbox: false },
+    "equilateral":   { aspect: 2 / Math.sqrt(3), needsRotation: false, fillsBbox: false },
+    "isoceles":      { aspect: null,             needsRotation: false, fillsBbox: false },
+    "right":         { aspect: null,             needsRotation: false, fillsBbox: false }
+  }
+};
+
 let methods = {
 
   // ---------------------------------------------------------------------------
@@ -1613,6 +1653,42 @@ let methods = {
   //       thin shapes. Aspect-constrained shapes (circle, square, equilateral) bypass this
   //       clamp because their aspect is fixed by construction.
   //     Rotation: sampled continuously in [0°, 360°), applied around the bbox center.
+  //
+  //   second-shape knobs (pair compositions): drawing two shapes instead of one. Pairs
+  //   force placement = "free" — touching/floating between two shapes has no clean analog
+  //   to canvas-edge framing, so the pair is always floated as a unit and positioned on
+  //   canvas the same way a single free-placed shape would be (centeredChance, etc.).
+  //     secondShape: probability of drawing a second shape.
+  //     pairMode: "identical" → shape B is an exact congruent copy of shape A (same
+  //       regularity, size, and rotation — only position differs; literally the same shape
+  //       stamped twice). "varied" → shape B shares shape A's regularity (so both read as
+  //       the same kind of shape) but independently rolls its own size and rotation.
+  //     pairRelation: "touching" → the two shapes are placed with zero gap along a randomly
+  //       chosen axis through their centers, using each shape's support function (exact for
+  //       any convex geom kind — rect/ellipse/poly3/poly4 — so it's a true tangency, not an
+  //       approximation). "floating" → same axis-based placement, plus a random gap. Forced
+  //       to "floating" for Line — two zero-area segments meeting endpoint-to-endpoint reads
+  //       as one bent/zigzag line rather than two distinct touching shapes.
+  //     contactStyle: "corner" → both shapes contribute their support point along a fully
+  //       random axis (a vertex for rect/poly3/poly4, a boundary point for ellipse) — the
+  //       classic corner-to-corner touch. "edge" → only available when the shape kind has
+  //       flat edges (rect/poly3/poly4 — ellipse/line fall back to "corner"); one shape
+  //       (chosen at random) contributes a random point along one of its edges instead of a
+  //       vertex, and the axis is forced to that edge's outward normal, so the other shape's
+  //       corner rests flush on a flat edge rather than meeting it tip-to-tip. Any point along
+  //       a convex polygon's edge shares the same support value as its endpoints in the
+  //       direction of that edge's own normal, so this is still an exact tangency, not an
+  //       approximation.
+  //     anomaly: colorScheme is forced "single" (always c1), but shape B can optionally read
+  //       as a deliberate outlier against shape A — the same "emphasis" concept grid/
+  //       shapeGrid/stripe use, with the same outline-aware split they use: "none" → shape B
+  //       matches shape A exactly (the default single-color look, just doubled). "emphasis"
+  //       → when outline is active, shape B is filled solid with c1 instead of staying
+  //       hollow (stroke color unchanged — the anomaly reads through silhouette, the same
+  //       way shapeGrid fills its emphasized cell instead of recoloring its stroke); when
+  //       outline is off (shapes are already filled), shape B's fill becomes the c1↔c2
+  //       midpoint (betterLerp(c1, c2, 0.5)) instead, since filled-vs-filled needs a color
+  //       change rather than a silhouette change to read as an outlier.
   // ---------------------------------------------------------------------------
   largeShape: {
     shapes: ["Line", "Circle", "Square", "Triangle"],
@@ -1632,7 +1708,13 @@ let methods = {
       scaleMin: 0.25,
       scaleMax: 1.4,
       aspectMin: 1.2,
-      aspectMax: 3.0
+      aspectMax: 3.0,
+      // second-shape (pair) placement — see doc above
+      secondShape: 0.5,
+      pairMode: "random",
+      pairRelation: "random",
+      contactStyle: "random",
+      anomaly: "random"
     },
     subtopics: {
       "Proportion": {},
@@ -1658,54 +1740,21 @@ let methods = {
       "Figure/Ground": { placement: "bbox", outline: false }
     },
     draw: function(shape, config) {
-      // --- Per-regularity metadata table ---
-      // Single source of truth for everything that depends on (shape, regularity):
-      //   aspect       — required width:height ratio. null = free aspect; a number forces
-      //                  the bbox to that ratio. 1:1 = circle/square/rotated-square;
-      //                  2:√3 ≈ 1.155 = equilateral triangle.
-      //   needsRotation — true if the subtype is only visually distinct under rotation,
-      //                  forcing placement = "free" upstream (rotated-square is identical
-      //                  to square without rotation; sheared/asymmetric quads benefit from
-      //                  rotational variety).
-      //   fillsBbox    — true if the rendered shape exactly fills its bbox. These are the
-      //                  subtypes that produce a single-color canvas when bbox ⊇ canvas
-      //                  (filled) or when the outline sits entirely off-canvas (outlined).
-      //                  Used to restrict uniform-mode state choices upstream.
-      const REG_META = {
-        Line: {
-          "diagonal-down": { aspect: null,             needsRotation: false, fillsBbox: false },
-          "diagonal-up":   { aspect: null,             needsRotation: false, fillsBbox: false }
-        },
-        Circle: {
-          "ellipse":       { aspect: null,             needsRotation: false, fillsBbox: false },
-          "circle":        { aspect: 1,                needsRotation: false, fillsBbox: false }
-        },
-        Square: {
-          "rectangle":     { aspect: null,             needsRotation: false, fillsBbox: true  },
-          "square":        { aspect: 1,                needsRotation: false, fillsBbox: true  },
-          "rotated-square":{ aspect: 1,                needsRotation: true,  fillsBbox: true  },
-          "parallelogram": { aspect: null,             needsRotation: true,  fillsBbox: false },
-          "trapezoid":     { aspect: null,             needsRotation: true,  fillsBbox: false },
-          "irregular-quad":{ aspect: null,             needsRotation: true,  fillsBbox: false }
-        },
-        Triangle: {
-          "irregular":     { aspect: null,             needsRotation: false, fillsBbox: false },
-          "equilateral":   { aspect: 2 / Math.sqrt(3), needsRotation: false, fillsBbox: false },
-          "isoceles":      { aspect: null,             needsRotation: false, fillsBbox: false },
-          "right":         { aspect: null,             needsRotation: false, fillsBbox: false }
-        }
-      };
-
       let outline = chance(config.outline);
       // Line shape has no fill — always rendered as a stroke regardless of outline knob.
       if (shape === "Line") outline = true;
 
-      let regOptions = Object.keys(REG_META[shape]);
+      let regOptions = Object.keys(LARGE_SHAPE_REG_META[shape]);
       let regularity = resolveChoice(config.regularity, regOptions);
-      let meta = REG_META[shape][regularity];
+      let meta = LARGE_SHAPE_REG_META[shape][regularity];
       let aspect = meta.aspect;
       let needsRotation = meta.needsRotation;
       let fillsBbox = meta.fillsBbox;
+
+      // --- Second shape (pair) ---
+      // Resolved before placement because it constrains the placement vocabulary below —
+      // pairs are always free-placed.
+      let secondShape = chance(config.secondShape);
 
       // --- Placement strategy ---
       // bbox: snap the shape's bbox to canvas via per-edge inset/touching/extended states.
@@ -1713,7 +1762,8 @@ let methods = {
       //       bbox-to-canvas-edge alignment).
       // free: position the bbox freely with explicit scale and rotation. Visually "an
       //       object floating on the canvas."
-      let placementOptions = needsRotation ? ["free"] : ["bbox", "free"];
+      // Pairs force "free": see second-shape doc above.
+      let placementOptions = (needsRotation || secondShape) ? ["free"] : ["bbox", "free"];
       let placement = resolveChoice(config.placement, placementOptions);
 
       // --- Placement resolver: bbox ---
@@ -1785,9 +1835,10 @@ let methods = {
         };
       };
 
-      // --- Placement resolver: free ---
-      // Returns { bbox, rotation, cx, cy }.
-      let resolveFreePlacement = function() {
+      // --- Free-mode size roller ---
+      // Shared by single-shape free placement and pair-mode sizing (each shape in a pair
+      // needs its own size roll, independent of position).
+      let rollFreeSize = function() {
         let smin = config.scaleMin;
         let smax = config.scaleMax;
         let bw, bh;
@@ -1827,6 +1878,26 @@ let methods = {
           if (bw >= bh) { bw = larger; bh = smaller; }
           else { bw = smaller; bh = larger; }
         }
+        return { w: bw, h: bh };
+      };
+
+      // --- Stroke selection ---
+      // Shared by the single-shape and pair paths (each calls this once, at the same point
+      // in its own sequence it previously inlined this at — extracted as a function rather
+      // than hoisted, so the random draw stays in the same position in the PRNG sequence for
+      // both paths). unit = sd, full STROKE_WEIGHTS catalog available (no r-based filtering).
+      let rollStroke = function() {
+        let unit = sd;
+        let swWeights = ["medium", "thin", "fine", "hairline"];
+        let swName = R.random_choice(swWeights);
+        return { swName: swName, sw: strokeWidth(unit, swName) };
+      };
+
+      // --- Placement resolver: free ---
+      // Returns { bbox, rotation, cx, cy }.
+      let resolveFreePlacement = function() {
+        let sz = rollFreeSize();
+        let bw = sz.w, bh = sz.h;
         let cx, cy;
         if (R.random_bool(config.centeredChance)) {
           cx = sd / 2;
@@ -1846,17 +1917,15 @@ let methods = {
         };
       };
 
-      let placeResult = placement === "bbox" ? resolveBboxPlacement() : resolveFreePlacement();
-      let bbox = placeResult.bbox;
-      let rotation = placeResult.rotation;
-
       // --- Geometry builder ---
       // Returns { kind, ... } describing what to render. kind ∈ "line" | "ellipse" | "rect" |
       // "poly3" | "poly4". Vertex coordinates are in canvas space (already mapped through
-      // bbox); rendering may further transform via the rotation push/pop wrapper below.
-      // Shape subtype info that's useful to print (e.g. line direction, quad shear factor)
-      // travels back in the `info` field.
-      let geom = (function buildGeom() {
+      // the supplied bbox); rendering may further transform via the rotation push/pop
+      // wrapper below. Shape subtype info that's useful to print (e.g. line direction, quad
+      // shear factor) travels back in the `info` field. Takes bbox as a parameter (rather
+      // than closing over one outer bbox) so pair mode can build two independent geoms from
+      // the same regularity.
+      let buildGeom = function(bbox) {
         // Convenience: bbox corners.
         let l = bbox.x, t = bbox.y, r = bbox.x + bbox.w, b = bbox.y + bbox.h;
         let cx = bbox.x + bbox.w / 2, cy = bbox.y + bbox.h / 2;
@@ -1981,7 +2050,7 @@ let methods = {
 
         // Unreachable.
         return { kind: "rect", x: l, y: t, w: bbox.w, h: bbox.h, info: {} };
-      })();
+      };
 
       // --- Unified coverage safety net ---
       // If the rendered shape encloses all 4 canvas corners, the canvas reads as a single
@@ -1989,13 +2058,15 @@ let methods = {
       // entirely off-canvas). Shrink the geom (and bbox) uniformly around the bbox center
       // by 0.85 per iteration until at least one canvas corner escapes. This one check
       // replaces the per-placement / per-shape safety nets that used to live in the
-      // resolvers — point-in-shape is shape-kind-aware via insideGeom().
+      // resolvers — point-in-shape is shape-kind-aware via insideGeom(). Takes geom/bbox/
+      // rotation as parameters so pair mode can run it independently per shape (each shape
+      // in a pair is still checked against full canvas coverage individually).
       //
       // Rotation is handled by mapping each canvas corner into the geom's pre-rotation
       // local frame before the inside test; bbox-placement has rotation = 0, so the map
       // is the identity there.
       let CANVAS_CORNERS = [[0, 0], [sd, 0], [sd, sd], [0, sd]];
-      {
+      let enforceNoCoverage = function(geom, bbox, rotation) {
         let cbx = bbox.x + bbox.w / 2;
         let cby = bbox.y + bbox.h / 2;
         let cos_ = Math.cos(-rotation * Math.PI / 180);
@@ -2057,14 +2128,101 @@ let methods = {
           shrinkAroundCenter(0.85);
           guard++;
         }
-      }
+      };
 
-      // --- Stroke selection ---
-      // Same as v2: unit = sd, full STROKE_WEIGHTS catalog available.
-      let unit = sd;
-      let swWeights = ["medium", "thin", "fine", "hairline"];
-      let swName = R.random_choice(swWeights);
-      let sw = strokeWidth(unit, swName);
+      // --- Vertex miter offset ---
+      // Given a vertex V and its two neighbors U, W (in geom-verts order), returns the unit
+      // INWARD bisector (toward the polygon interior) and the miter length sw/(2·sin(θ/2))
+      // (θ = interior angle at V) — the distance a sw-wide miter join extends past V along
+      // that bisector. Returns null for degenerate input (zero-length edge, ~180° angle).
+      // Shared by the single-shape canvas-edge stroke-clipping compensation (pulls a vertex
+      // IN along this bisector so its miter lands on the canvas edge) and the pair-mode
+      // outer-stroke-boundary calculation (pushes a vertex OUT along the negated bisector to
+      // find the real mitered ink boundary) — same trig, opposite sign, different purpose.
+      let vertexMiter = function(V, U, W, swVal) {
+        let e1x = U[0] - V[0], e1y = U[1] - V[1];
+        let e2x = W[0] - V[0], e2y = W[1] - V[1];
+        let l1 = Math.hypot(e1x, e1y), l2 = Math.hypot(e2x, e2y);
+        if (l1 < 1e-9 || l2 < 1e-9) return null;
+        e1x /= l1; e1y /= l1; e2x /= l2; e2y /= l2;
+        let bx = e1x + e2x, by = e1y + e2y;
+        let blen = Math.hypot(bx, by);
+        if (blen < 1e-9) return null;
+        bx /= blen; by /= blen;
+        let cosT = Math.max(-1, Math.min(1, e1x * e2x + e1y * e2y));
+        let sinHalf = Math.sin(Math.acos(cosT) / 2);
+        if (sinHalf < 1e-9) return null;
+        return { bx: bx, by: by, miterLen: swVal / (2 * sinHalf) };
+      };
+
+      // --- Console output: shared header ---
+      // Called from within each path after that path's own rollStroke() call, so it can
+      // report the resolved stroke name.
+      let printShapeHeader = function(swNameVal) {
+        print("Shape:", shape, "| Regularity:", regularity);
+        print("Outline:", outline ? "Yes" : "No", outline ? "| Stroke: " + swNameVal : "");
+      };
+
+      // --- Render ---
+      // Rotation (when nonzero) is applied around the bbox center via push/pop. For bbox
+      // placement, rotation === 0 and the push/pop is essentially a no-op; for free
+      // placement, the shape pivots in place. The outer canvas-level rotate(0/90/180/270°)
+      // in draw() composes naturally on top of this local rotation. Shared by the
+      // single-shape and pair paths (each shape in a pair gets its own call, color, and
+      // forceFill — see the anomaly doc above — though the single-shape path always passes
+      // c1 and leaves forceFill off).
+      let renderGeom = function(geom, bbox, rotation, swVal, colorVal, forceFill) {
+        push();
+        if (rotation !== 0) {
+          let cx = bbox.x + bbox.w / 2;
+          let cy = bbox.y + bbox.h / 2;
+          translate(cx, cy);
+          rotate(rotation);
+          translate(-cx, -cy);
+        }
+        if (outline) {
+          stroke(colorVal);
+          strokeWeight(swVal);
+          // Same miterLimit override as v2 — acute polygon corners still need to render as
+          // points rather than collapsing to a bevel.
+          drawingContext.miterLimit = 1000;
+          // Emphasis (outlined case): fill solid with the same color instead of staying
+          // hollow — the anomaly reads through silhouette, not a stroke-color change.
+          if (forceFill) fill(colorVal); else noFill();
+        } else {
+          fill(colorVal);
+          noStroke();
+        }
+        if (geom.kind === "line") {
+          line(geom.verts[0][0], geom.verts[0][1], geom.verts[1][0], geom.verts[1][1]);
+        } else if (geom.kind === "ellipse") {
+          ellipse(geom.cx, geom.cy, geom.w, geom.h);
+        } else if (geom.kind === "rect") {
+          rect(geom.x, geom.y, geom.w, geom.h);
+        } else if (geom.kind === "poly3") {
+          triangle(geom.verts[0][0], geom.verts[0][1],
+                   geom.verts[1][0], geom.verts[1][1],
+                   geom.verts[2][0], geom.verts[2][1]);
+        } else if (geom.kind === "poly4") {
+          quad(geom.verts[0][0], geom.verts[0][1],
+               geom.verts[1][0], geom.verts[1][1],
+               geom.verts[2][0], geom.verts[2][1],
+               geom.verts[3][0], geom.verts[3][1]);
+        }
+        pop();
+      };
+
+      // =======================================================================
+      // Single-shape path
+      // =======================================================================
+      if (!secondShape) {
+      let placeResult = placement === "bbox" ? resolveBboxPlacement() : resolveFreePlacement();
+      let bbox = placeResult.bbox;
+      let rotation = placeResult.rotation;
+      let geom = buildGeom(bbox);
+      enforceNoCoverage(geom, bbox, rotation);
+
+      let { swName, sw } = rollStroke();
 
       // --- Stroke-clipping compensation (bbox placement only) ---
       // When an outlined shape has parts coincident with a canvas edge, half the stroke
@@ -2113,22 +2271,10 @@ let methods = {
             if (!onCanvasEdge(V)) continue;
             let U = geom.verts[(i - 1 + n) % n];
             let W = geom.verts[(i + 1) % n];
-            let e1x = U[0] - V[0], e1y = U[1] - V[1];
-            let e2x = W[0] - V[0], e2y = W[1] - V[1];
-            let l1 = Math.hypot(e1x, e1y), l2 = Math.hypot(e2x, e2y);
-            if (l1 < 1e-9 || l2 < 1e-9) continue;
-            e1x /= l1; e1y /= l1;
-            e2x /= l2; e2y /= l2;
-            let bx = e1x + e2x, by = e1y + e2y;
-            let blen = Math.hypot(bx, by);
-            if (blen < 1e-9) continue;
-            bx /= blen; by /= blen;
-            let cosT = Math.max(-1, Math.min(1, e1x * e2x + e1y * e2y));
-            let sinHalf = Math.sin(Math.acos(cosT) / 2);
-            if (sinHalf < 1e-9) continue;
-            let miterLen = sw / (2 * sinHalf);
-            adjusted[i][0] = V[0] + miterLen * bx;
-            adjusted[i][1] = V[1] + miterLen * by;
+            let m = vertexMiter(V, U, W, sw);
+            if (!m) continue;
+            adjusted[i][0] = V[0] + m.miterLen * m.bx;
+            adjusted[i][1] = V[1] + m.miterLen * m.by;
           }
           geom.verts = adjusted;
         }
@@ -2138,8 +2284,7 @@ let methods = {
       }
 
       // --- Console output ---
-      print("Shape:", shape, "| Regularity:", regularity);
-      print("Outline:", outline ? "Yes" : "No", outline ? "| Stroke: " + swName : "");
+      printShapeHeader(swName);
       print("Placement:", placement);
       if (placement === "bbox") {
         let st = placeResult.states;
@@ -2155,47 +2300,301 @@ let methods = {
       }
       if (Object.keys(geom.info).length > 0) print("  Subtype info:", geom.info);
 
-      // --- Render ---
-      // Rotation (when nonzero) is applied around the bbox center via push/pop. For bbox
-      // placement, rotation === 0 and the push/pop is essentially a no-op; for free
-      // placement, the shape pivots in place. The outer canvas-level rotate(0/90/180/270°)
-      // in draw() composes naturally on top of this local rotation.
-      push();
-      if (rotation !== 0) {
-        let cx = bbox.x + bbox.w / 2;
-        let cy = bbox.y + bbox.h / 2;
-        translate(cx, cy);
-        rotate(rotation);
-        translate(-cx, -cy);
+      renderGeom(geom, bbox, rotation, sw, c1);
+      return;
       }
-      if (outline) {
-        noFill();
-        stroke(c1);
-        strokeWeight(sw);
-        // Same miterLimit override as v2 — acute polygon corners still need to render as
-        // points rather than collapsing to a bevel.
-        drawingContext.miterLimit = 1000;
+
+      // =======================================================================
+      // Pair path — two shapes, free placement only (see second-shape doc above)
+      // =======================================================================
+      let pairMode = resolveChoice(config.pairMode, ["identical", "varied"]);
+      // Line has no flat edge or corner to read as a clean contact point — two zero-area
+      // segments meeting endpoint-to-endpoint just reads as one bent/zigzag line rather than
+      // two distinct touching shapes — so Line pairs are always floating, never touching.
+      let pairRelation = shape === "Line" ? "floating" : resolveChoice(config.pairRelation, ["floating", "touching"]);
+      // Shape A is always c1; shape B optionally becomes the "emphasis" outlier (see
+      // anomaly doc above) — resolved up front alongside the other pair-level knobs even
+      // though it's only consumed at render time, once colorB/forceFillB are derived below.
+      let anomaly = resolveChoice(config.anomaly, ["none", "emphasis"]);
+
+      // Build both shapes in a shared placeholder frame, each centered at its own local
+      // origin, so their relative layout can be solved before deciding where the pair
+      // sits on canvas. "Identical" clones shape A's exact geom (including regularity
+      // sub-parameters like shear/apex/corner choice) rather than re-rolling buildGeom,
+      // so the two shapes are truly congruent rather than just same-regularity.
+      let cloneGeom = function(g) {
+        if (g.kind === "rect") return { kind: "rect", x: g.x, y: g.y, w: g.w, h: g.h, info: g.info };
+        if (g.kind === "ellipse") return { kind: "ellipse", cx: g.cx, cy: g.cy, w: g.w, h: g.h, info: g.info };
+        return { kind: g.kind, verts: g.verts.map(function(v) { return [v[0], v[1]]; }), info: g.info };
+      };
+
+      let sizeA = rollFreeSize();
+      let rotationA = R.random_num(0, 360);
+      let bboxA = { x: -sizeA.w / 2, y: -sizeA.h / 2, w: sizeA.w, h: sizeA.h };
+      let geomA = buildGeom(bboxA);
+
+      let sizeB, rotationB, bboxB, geomB;
+      if (pairMode === "identical") {
+        sizeB = sizeA;
+        rotationB = rotationA;
+        bboxB = { x: -sizeB.w / 2, y: -sizeB.h / 2, w: sizeB.w, h: sizeB.h };
+        geomB = cloneGeom(geomA);
       } else {
-        fill(c1);
-        noStroke();
+        sizeB = rollFreeSize();
+        rotationB = R.random_num(0, 360);
+        bboxB = { x: -sizeB.w / 2, y: -sizeB.h / 2, w: sizeB.w, h: sizeB.h };
+        geomB = buildGeom(bboxB);
       }
-      if (geom.kind === "line") {
-        line(geom.verts[0][0], geom.verts[0][1], geom.verts[1][0], geom.verts[1][1]);
-      } else if (geom.kind === "ellipse") {
-        ellipse(geom.cx, geom.cy, geom.w, geom.h);
-      } else if (geom.kind === "rect") {
-        rect(geom.x, geom.y, geom.w, geom.h);
-      } else if (geom.kind === "poly3") {
-        triangle(geom.verts[0][0], geom.verts[0][1],
-                 geom.verts[1][0], geom.verts[1][1],
-                 geom.verts[2][0], geom.verts[2][1]);
-      } else if (geom.kind === "poly4") {
-        quad(geom.verts[0][0], geom.verts[0][1],
-             geom.verts[1][0], geom.verts[1][1],
-             geom.verts[2][0], geom.verts[2][1],
-             geom.verts[3][0], geom.verts[3][1]);
+
+      // --- Stroke selection (shared by both shapes — one coherent composition) ---
+      // Resolved before the achieving-point / gap math below, which needs sw to find
+      // the OUTER stroke boundary, not just the geometric path.
+      let { swName, sw } = rollStroke();
+
+      // --- Outer stroke boundary for poly3/poly4 ---
+      // Pushes each vertex outward along its own bisector by the standard miter formula
+      // (vertexMiter gives the INWARD bisector + length; negate for outward — same
+      // approach as the single-shape bbox stroke-clipping compensation, opposite sign).
+      // Needed because a flat sw/2 offset along the touching axis under/over-compensates
+      // at sharp vertices — the actual mitered ink can extend far past sw/2 from an acute
+      // corner (miterLen = sw / (2·sin(θ/2)), which grows large as θ shrinks). Finding
+      // the achieving point on this real outer boundary (rather than approximating)
+      // is what keeps two outlined "touching" shapes from visibly crossing or gapping
+      // right at a sharp vertex.
+      let outerStrokePoly = function(verts, swVal) {
+        let n = verts.length;
+        let out = [];
+        for (let i = 0; i < n; i++) {
+          let V = verts[i];
+          let U = verts[(i - 1 + n) % n];
+          let W = verts[(i + 1) % n];
+          let m = vertexMiter(V, U, W, swVal);
+          if (!m) { out.push([V[0], V[1]]); continue; }
+          out.push([V[0] - m.miterLen * m.bx, V[1] - m.miterLen * m.by]);
+        }
+        return out;
+      };
+
+      // --- Achieving point ---
+      // The literal point where geom reaches its maximum extent in world direction
+      // (ux,uy), relative to `center`. This is NOT the same as a support *value* (a
+      // scalar distance) — for anything but a circle, the extremal point generally sits
+      // off to the side of the center-to-axis line (e.g. a square's corner, not its edge
+      // midpoint), so two shapes whose support *values* sum to the center-to-center
+      // distance are only guaranteed non-overlapping, not actually touching: their
+      // extremal points can land far apart in the direction perpendicular to the axis.
+      // Returning the actual point (and later coinciding A's and B's points exactly)
+      // is what guarantees a true, visible point of tangency. When outlined, each kind
+      // is measured on its outer stroke boundary instead of the raw geometric path —
+      // rect/ellipse via a closed-form sw inflation, poly3/poly4 via outerStrokePoly —
+      // so both shapes contribute their own sw/2 and "touching" (gap=0 below) lands the
+      // outer ink edges exactly together rather than overlapping or gapping.
+      //   rect:    the corner selected by the sign of the (rotation-corrected) direction.
+      //   ellipse: the boundary point at the angle that maximizes the projection.
+      //   poly:    the vertex (already convex by construction) with max projection.
+      // All three are computed in the pre-rotation local frame, then rotated forward by
+      // `rotation` (mirroring the render-time push/rotate/pop) to land in the same
+      // placeholder frame used for translation.
+      let achievingPoint = function(geom, center, rotation, ux, uy) {
+        let cos_ = Math.cos(-rotation * Math.PI / 180);
+        let sin_ = Math.sin(-rotation * Math.PI / 180);
+        let lx = ux * cos_ - uy * sin_;
+        let ly = ux * sin_ + uy * cos_;
+        let fc = Math.cos(rotation * Math.PI / 180);
+        let fs = Math.sin(rotation * Math.PI / 180);
+        let forward = function(ox, oy) {
+          return [center.x + ox * fc - oy * fs, center.y + ox * fs + oy * fc];
+        };
+        if (geom.kind === "rect") {
+          let hw = (geom.w + (outline ? sw : 0)) / 2;
+          let hh = (geom.h + (outline ? sw : 0)) / 2;
+          return forward(lx >= 0 ? hw : -hw, ly >= 0 ? hh : -hh);
+        }
+        if (geom.kind === "ellipse") {
+          let rx = (geom.w + (outline ? sw : 0)) / 2;
+          let ry = (geom.h + (outline ? sw : 0)) / 2;
+          let theta = Math.atan2(ry * ly, rx * lx);
+          return forward(rx * Math.cos(theta), ry * Math.sin(theta));
+        }
+        // poly3 / poly4 / line — line has no well-defined miter (its stroke uses caps,
+        // not joins), so it's left uninflated, consistent with the single-shape bbox
+        // path also skipping line stroke compensation as a minor/negligible effect.
+        let verts = (outline && (geom.kind === "poly3" || geom.kind === "poly4"))
+          ? outerStrokePoly(geom.verts, sw)
+          : geom.verts;
+        let best = -Infinity, bestV = verts[0];
+        for (let i = 0; i < verts.length; i++) {
+          let v = verts[i];
+          let proj = (v[0] - center.x) * lx + (v[1] - center.y) * ly;
+          if (proj > best) { best = proj; bestV = v; }
+        }
+        return forward(bestV[0] - center.x, bestV[1] - center.y);
+      };
+
+      let shiftGeom = function(geom, dx, dy) {
+        if (geom.kind === "rect") { geom.x += dx; geom.y += dy; }
+        else if (geom.kind === "ellipse") { geom.cx += dx; geom.cy += dy; }
+        else { for (let i = 0; i < geom.verts.length; i++) { geom.verts[i][0] += dx; geom.verts[i][1] += dy; } }
+      };
+
+      // --- Edge contact ---
+      // Picks a random edge of `geom` (in its own local, pre-rotation frame) and returns a
+      // random point along it plus that edge's outward normal — both rotated forward into
+      // the shared placeholder frame, mirroring achievingPoint's "forward" convention. Any
+      // point along a convex polygon's edge has the same support value as the edge's own
+      // vertices in the direction of its outward normal, so using this edge normal as the
+      // touching axis and this point as the contact point is just as exact a tangency as
+      // achievingPoint's vertex case — it just spreads the achieving "point" across a whole
+      // edge instead of a single vertex, letting the other shape's corner land anywhere
+      // along it instead of only at an endpoint. Local bbox center is always (0,0) in this
+      // placeholder frame, so it doubles as a reliable "interior" reference for orienting
+      // the normal outward, without needing the shape's true centroid.
+      let edgeContact = function(geom, rotation) {
+        let verts = geom.kind === "rect"
+          ? [[geom.x, geom.y], [geom.x + geom.w, geom.y],
+             [geom.x + geom.w, geom.y + geom.h], [geom.x, geom.y + geom.h]]
+          : geom.verts;
+        let n = verts.length;
+        let i0 = R.random_int(0, n - 1);
+        let V0 = verts[i0], V1 = verts[(i0 + 1) % n];
+        let ex = V1[0] - V0[0], ey = V1[1] - V0[1];
+        let elen = Math.hypot(ex, ey);
+        let nx = ey / elen, ny = -ex / elen;
+        let mx = (V0[0] + V1[0]) / 2, my = (V0[1] + V1[1]) / 2;
+        if (mx * nx + my * ny < 0) { nx = -nx; ny = -ny; }
+        let t = R.random_num(0.2, 0.8);
+        let lx = V0[0] + t * ex + (outline ? nx * sw / 2 : 0);
+        let ly = V0[1] + t * ey + (outline ? ny * sw / 2 : 0);
+        let fc = Math.cos(rotation * Math.PI / 180), fs = Math.sin(rotation * Math.PI / 180);
+        return {
+          point: [lx * fc - ly * fs, lx * fs + ly * fc],
+          axis: [nx * fc - ny * fs, nx * fs + ny * fc]
+        };
+      };
+
+      // --- Place B relative to A along a touching axis ---
+      // Find A's contact point pA (toward B) and B's contact point pB (toward A), already on
+      // each shape's outer stroke boundary when outlined (see achievingPoint/edgeContact
+      // docs), then translate B so pB lands exactly `gap` past pA along the axis — coinciding
+      // the actual contact points (touching, gap=0) or separating them by a literal visible
+      // gap (floating), rather than just matching axis projections.
+      //   "corner": axis is fully random; both shapes contribute their achieving vertex.
+      //   "edge": axis is forced to one randomly-chosen shape's randomly-chosen edge normal;
+      //     that shape contributes a point along the edge, the other its achieving vertex.
+      let kindHasEdges = (geomA.kind === "rect" || geomA.kind === "poly3" || geomA.kind === "poly4");
+      let contactStyle = kindHasEdges ? resolveChoice(config.contactStyle, ["corner", "edge"]) : "corner";
+      let centerA0 = { x: 0, y: 0 };
+      let centerB0 = { x: 0, y: 0 };
+      let axisDeg, ux, uy, pA, pB, edgeOwner = null, lineAxisMode = null;
+      if (contactStyle === "edge") {
+        edgeOwner = R.random_bool(0.5) ? "A" : "B";
+        if (edgeOwner === "A") {
+          let ec = edgeContact(geomA, rotationA);
+          ux = ec.axis[0]; uy = ec.axis[1];
+          pA = ec.point;
+          pB = achievingPoint(geomB, centerB0, rotationB, -ux, -uy);
+        } else {
+          let ec = edgeContact(geomB, rotationB);
+          ux = -ec.axis[0]; uy = -ec.axis[1];
+          pB = ec.point;
+          pA = achievingPoint(geomA, centerA0, rotationA, ux, uy);
+        }
+        axisDeg = Math.atan2(uy, ux) * 180 / Math.PI;
+        if (axisDeg < 0) axisDeg += 360;
+      } else if (shape === "Line") {
+        // Line is 1D, so a diagonal axis (neither parallel nor perpendicular to the line's
+        // own run) lands the gap partly end-to-end and partly sideways — too thin a shape
+        // for that partial offset to read as two segments; it just looks like one line with
+        // a small kink in it. Restrict the axis to exactly parallel to A's direction (gap
+        // reads as a clean end-to-end break, like a dashed line) or exactly perpendicular
+        // (gap reads as two parallel offset lines) so it always reads as two distinct lines.
+        let dx = geomA.verts[1][0] - geomA.verts[0][0];
+        let dy = geomA.verts[1][1] - geomA.verts[0][1];
+        let dlen = Math.hypot(dx, dy);
+        dx /= dlen; dy /= dlen;
+        let fc = Math.cos(rotationA * Math.PI / 180), fs = Math.sin(rotationA * Math.PI / 180);
+        let wx = dx * fc - dy * fs, wy = dx * fs + dy * fc;
+        if (R.random_bool(0.5)) { ux = wx; uy = wy; lineAxisMode = "parallel"; }
+        else { ux = -wy; uy = wx; lineAxisMode = "perpendicular"; }
+        axisDeg = Math.atan2(uy, ux) * 180 / Math.PI;
+        if (axisDeg < 0) axisDeg += 360;
+        pA = achievingPoint(geomA, centerA0, rotationA, ux, uy);
+        pB = achievingPoint(geomB, centerB0, rotationB, -ux, -uy);
+      } else {
+        axisDeg = R.random_num(0, 360);
+        let axisRad = axisDeg * Math.PI / 180;
+        ux = Math.cos(axisRad); uy = Math.sin(axisRad);
+        pA = achievingPoint(geomA, centerA0, rotationA, ux, uy);
+        pB = achievingPoint(geomB, centerB0, rotationB, -ux, -uy);
       }
-      pop();
+      let gap = pairRelation === "touching" ? 0 : R.random_num(0.04, 0.18) * sd;
+      let targetPBx = pA[0] + gap * ux, targetPBy = pA[1] + gap * uy;
+      let shiftX = targetPBx - pB[0], shiftY = targetPBy - pB[1];
+      shiftGeom(geomB, shiftX, shiftY);
+      bboxB.x += shiftX; bboxB.y += shiftY;
+
+      // --- Position the pair on canvas ---
+      // Anchor on the contact point — the midpoint between pA and B's new position
+      // (coincident with pA, i.e. the exact touching point, when gap = 0) — rather than
+      // the midpoint between centers. Anchoring the centers' midpoint could leave the
+      // actual touching/gap area off-canvas when the two shapes are very different sizes
+      // (e.g. a small shape touching a huge one); anchoring the contact point itself
+      // guarantees it lands at the chosen on-canvas position. pA already sits on the
+      // outer stroke boundary when outlined, so no separate stroke term is needed here.
+      let contactX = pA[0] + (gap / 2) * ux;
+      let contactY = pA[1] + (gap / 2) * uy;
+      let anchorX, anchorY;
+      if (R.random_bool(config.centeredChance)) {
+        anchorX = sd / 2; anchorY = sd / 2;
+      } else {
+        anchorX = R.random_num(0, sd); anchorY = R.random_num(0, sd);
+      }
+      let worldDx = anchorX - contactX, worldDy = anchorY - contactY;
+      shiftGeom(geomA, worldDx, worldDy); bboxA.x += worldDx; bboxA.y += worldDy;
+      shiftGeom(geomB, worldDx, worldDy); bboxB.x += worldDx; bboxB.y += worldDy;
+
+      // --- Coverage safety net, applied per shape ---
+      // Rare (only triggers if one shape alone is scaled up to cover the whole canvas);
+      // shrinks that shape around its own center, which may pull it away from a
+      // "touching" partner — an acceptable loosening for a degenerate edge case.
+      enforceNoCoverage(geomA, bboxA, rotationA);
+      enforceNoCoverage(geomB, bboxB, rotationB);
+
+      // Shape A is always c1, hollow-or-filled per the shared outline knob. Shape B follows
+      // the same "emphasis" split grid/shapeGrid use: outlined compositions emphasize via
+      // silhouette (filled solid instead of hollow, same stroke color), filled compositions
+      // emphasize via color (the fixed c1↔c2 midpoint) since there's no silhouette to change.
+      let colorB = c1;
+      let forceFillB = false;
+      if (anomaly === "emphasis") {
+        if (outline) forceFillB = true;
+        else colorB = betterLerp(c1, c2, 0.5);
+      }
+
+      // --- Console output ---
+      printShapeHeader(swName);
+      print("Placement: free (pair)");
+      print("  Pair Mode:", pairMode, "| Relation:", pairRelation,
+            pairRelation === "floating" ? "| Gap: " + Math.round(gap) : "");
+      print("  Contact:", contactStyle, edgeOwner ? "(edge on " + edgeOwner + ")" : "",
+            lineAxisMode ? "(" + lineAxisMode + ")" : "",
+            "| Axis:", Math.round(axisDeg) + "°");
+      print("  Anomaly:", anomaly, anomaly === "emphasis" ? "on Shape B (" + (outline ? "filled" : "blended") + ")" : "");
+      print("  Shape A — Size:", Math.round(bboxA.w) + "x" + Math.round(bboxA.h),
+            "| Rotation:", Math.round(rotationA) + "°",
+            "| Center: (" + Math.round(bboxA.x + bboxA.w / 2) + ", " + Math.round(bboxA.y + bboxA.h / 2) + ")");
+      print("  Shape B — Size:", Math.round(bboxB.w) + "x" + Math.round(bboxB.h),
+            "| Rotation:", Math.round(rotationB) + "°",
+            "| Center: (" + Math.round(bboxB.x + bboxB.w / 2) + ", " + Math.round(bboxB.y + bboxB.h / 2) + ")");
+      if (Object.keys(geomA.info).length > 0) print("  Subtype info A:", geomA.info);
+      if (Object.keys(geomB.info).length > 0) print("  Subtype info B:", geomB.info);
+
+      // --- Render ---
+      // Both shapes share the outline/fill decision and stroke weight (one coherent
+      // composition); each gets its own rotation push/pop around its own bbox center, and
+      // its own resolved color/forceFill (see colorB/forceFillB above).
+      renderGeom(geomA, bboxA, rotationA, sw, c1);
+      renderGeom(geomB, bboxB, rotationB, sw, colorB, forceFillB);
     }
   }
 
@@ -2466,7 +2865,11 @@ function auditCoverage() {
 // --- TEST MODE ---
 // Set these to test a method directly, bypassing topic/subtopic selection.
 // Leave as null to use the normal pipeline.
-let testMethod = ["shapeProgression", "grid", "shapeGrid", "stripe", "largeShape"];   // array (repeat to weight), string, or null
+// Methods-first workflow: run across ALL registered methods (ignoring topic/subtopic
+// mapping) so outputs reflect the full range of drawing methods under development.
+// Object.keys(methods) auto-includes any new method as it's added — swap back to null
+// once methods are mapped to subtopics and you want the real pipeline.
+let testMethod = Object.keys(methods);   // array (repeat to weight), string, or null
 let testShape = null;                  // e.g. "Line", "Circle", "Square", "Triangle" (null = random)
 
 function setup() {
