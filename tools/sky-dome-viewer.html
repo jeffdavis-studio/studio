@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>The Sky — dome viewer</title>
+<!--
+  Phone/desktop dome simulator for The Sky (TheSky_v6_dome.js, loaded untouched).
+
+  The real dome-master build renders into an offscreen canvas; this page samples
+  that canvas as a live texture and raycasts the view from INSIDE the dome —
+  drag to look around, or enable device motion and physically hold the phone up.
+  A dome-tilt control simulates the two theater architectures from the Jul 22
+  viewing-geometry brief: flat planetarium (0°, lie back, zenith overhead) vs
+  modern tilted theater (30°/55°, dome tipped toward the audience front).
+
+  URL params (all optional):
+    ?hash=0x…    token hash (defaults to the screener hero hash)
+    ?t=SECONDS   start moment in the day cycle (30s per state)
+    ?speed=N     playback speed multiplier
+    ?az=1        v6_dome azimuthal cloud-wobble experiment
+    ?tilt=0|30|55  initial dome tilt in degrees
+    ?pitch=DEG&yaw=DEG  initial view direction (drag mode)
+    ?fov=DEG     vertical field of view (default 75)
+    ?skyres=PX   dome-master render size (default 1024)
+
+  No dependencies, no network calls beyond the sibling script. The sky code is
+  byte-untouched: everything here is a lens in front of it.
+-->
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden;
+               font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+               -webkit-user-select: none; user-select: none; }
+  /* Offscreen host for the untouched dome-master render (its live texture source). */
+  #sky-container { position: fixed; left: -2200px; top: 0; }
+  #view { position: fixed; inset: 0; width: 100%; height: 100%; display: block;
+          touch-action: none; cursor: grab; }
+  #view.dragging { cursor: grabbing; }
+
+  #hud { position: fixed; left: 0; right: 0; bottom: 0;
+         padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+         display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center;
+         background: linear-gradient(transparent, rgba(0,0,0,0.55));
+         transition: opacity 0.5s; }
+  #hud.hidden { opacity: 0; pointer-events: none; }
+  .btn, .seg { background: rgba(30,30,30,0.72); color: #ddd; border: 1px solid rgba(255,255,255,0.18);
+         border-radius: 8px; font-size: 13px; line-height: 1; }
+  .btn { padding: 9px 12px; cursor: pointer; }
+  .btn:active { background: rgba(80,80,80,0.8); }
+  .seg { display: flex; overflow: hidden; padding: 0; }
+  .seg button { background: none; border: none; color: #bbb; padding: 9px 11px; font-size: 13px; cursor: pointer; }
+  .seg button.on { background: rgba(255,255,255,0.22); color: #fff; }
+  #state { color: #eee; font-size: 13px; min-width: 86px; text-align: center;
+           text-transform: capitalize; letter-spacing: 0.02em; }
+  #hint { position: fixed; top: calc(14px + env(safe-area-inset-top)); left: 0; right: 0;
+          text-align: center; color: rgba(255,255,255,0.8); font-size: 13px;
+          text-shadow: 0 1px 3px rgba(0,0,0,0.8); transition: opacity 1.2s; pointer-events: none;
+          padding: 0 24px; }
+  #hint.hidden { opacity: 0; }
+  #err { position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
+         color: #ccc; font-size: 14px; text-align: center; padding: 40px; }
+</style>
+<script>
+  // Default the hero hash (the screener / geometry-brief token) before the sky
+  // script boots, so the piece Jeff has been looking at is the one in the dome.
+  (function () {
+    try {
+      var p = new URLSearchParams(location.search);
+      if (!p.get('hash')) {
+        p.set('hash', '0xdfb3c03a167388c730666d5f0ccfd67bf51b065d7c9e6aad6ff66308c995bcc8');
+        history.replaceState(null, '', location.pathname + '?' + p.toString());
+      }
+    } catch (e) {}
+  })();
+</script>
+</head>
+<body>
+<div id="sky-container"></div>
+<canvas id="view"></canvas>
+<div id="hint">Drag to look around inside the dome — or enable motion and hold your phone up.</div>
+<div id="hud">
+  <button class="btn" id="prev" title="previous sky state">&#9664;</button>
+  <div id="state">—</div>
+  <button class="btn" id="next" title="next sky state">&#9654;</button>
+  <div class="seg" id="tiltSeg" title="dome tilt">
+    <button data-tilt="0">Flat</button><button data-tilt="30">30&deg;</button><button data-tilt="55">55&deg;</button>
+  </div>
+  <button class="btn" id="speed">1&times;</button>
+  <button class="btn" id="motion">Enable motion</button>
+  <button class="btn" id="recenter" style="display:none">Re-center</button>
+</div>
+<div id="err"></div>
+
+<script>
+  // Size the offscreen dome-master host before the sky script measures it.
+  (function () {
+    var p = new URLSearchParams(location.search);
+    var res = parseInt(p.get('skyres') || '1024', 10);
+    if (!(res > 63 && res <= 4096)) res = 1024;
+    var c = document.getElementById('sky-container');
+    c.style.width = res + 'px';
+    c.style.height = res + 'px';
+  })();
+</script>
+<script src="../the-sky/TheSky_v6_dome.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var params = new URLSearchParams(location.search);
+  var view = document.getElementById('view');
+  var errBox = document.getElementById('err');
+
+  function fail(msg) { errBox.textContent = msg; errBox.style.display = 'flex'; }
+
+  var gl = view.getContext('webgl', { antialias: true, alpha: false, depth: false, stencil: false, preserveDrawingBuffer: true });
+  if (!gl) { fail('WebGL is not available in this browser.'); return; }
+
+  // ---- viewer shaders --------------------------------------------------------
+  var vsrc = [
+    'attribute vec2 aPos;',
+    'varying vec2 vP;',
+    'void main(){ vP = aPos; gl_Position = vec4(aPos, 0.0, 1.0); }'
+  ].join('\n');
+
+  // Ray per pixel from the camera basis; rotate into the dome frame by the tilt;
+  // elevation/azimuth -> azimuthal-equidistant fisheye UV (r=0 zenith, r=1 horizon).
+  var fsrc = [
+    'precision highp float;',
+    'varying vec2 vP;',
+    'uniform vec3 uRight; uniform vec3 uUp; uniform vec3 uFwd;',
+    'uniform float uTanX; uniform float uTanY; uniform float uTilt;',
+    'uniform sampler2D uSky;',
+    'void main(){',
+    '  vec3 d = normalize(uFwd + vP.x * uTanX * uRight + vP.y * uTanY * uUp);',
+    '  float ct = cos(uTilt), st = sin(uTilt);',
+    // dome axis is tipped toward -Z (audience front) by uTilt: d_dome = R_x(tilt)*d
+    '  vec3 dd = vec3(d.x, ct * d.y - st * d.z, st * d.y + ct * d.z);',
+    '  float el = asin(clamp(dd.y, -1.0, 1.0));',
+    '  vec3 col;',
+    '  if (el > 0.0) {',
+    '    float r = 1.0 - el / 1.5707963;',
+    '    float az = atan(dd.x, -dd.z);',
+    '    vec2 uv = vec2(0.5) + 0.5 * r * vec2(sin(az), cos(az));',
+    '    col = texture2D(uSky, uv).rgb;',
+    '  } else {',
+    // below the dome springline: near-black void with the faintest falloff
+    '    col = vec3(0.014) * clamp(1.0 + el * 0.9, 0.0, 1.0);',
+    '  }',
+    '  gl_FragColor = vec4(col, 1.0);',
+    '}'
+  ].join('\n');
+
+  function shader(type, src) {
+    var s = gl.createShader(type);
+    gl.shaderSource(s, src); gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+    return s;
+  }
+  var prog = gl.createProgram();
+  gl.attachShader(prog, shader(gl.VERTEX_SHADER, vsrc));
+  gl.attachShader(prog, shader(gl.FRAGMENT_SHADER, fsrc));
+  gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) { fail('Shader link failed.'); return; }
+  gl.useProgram(prog);
+
+  var buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, 1,1, -1,-1, 1,1, -1,1]), gl.STATIC_DRAW);
+  var aPos = gl.getAttribLocation(prog, 'aPos');
+  gl.enableVertexAttribArray(aPos);
+  gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+
+  var U = {};
+  ['uRight','uUp','uFwd','uTanX','uTanY','uTilt','uSky'].forEach(function (n) {
+    U[n] = gl.getUniformLocation(prog, n);
+  });
+
+  var tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+  gl.uniform1i(U.uSky, 0);
+
+  // ---- view state ------------------------------------------------------------
+  var DEG = Math.PI / 180;
+  var tiltDeg = parseFloat(params.get('tilt'));
+  if (!(tiltDeg === 0 || tiltDeg === 30 || tiltDeg === 55)) tiltDeg = 0;
+  var fovDeg = parseFloat(params.get('fov')); if (!(fovDeg > 30 && fovDeg < 120)) fovDeg = 75;
+  var yaw = (parseFloat(params.get('yaw')) || 0) * DEG;      // drag-mode view
+  var pitch = (isNaN(parseFloat(params.get('pitch'))) ? 30 : parseFloat(params.get('pitch'))) * DEG;
+  var gyro = { on: false, quat: null, yawOffset: 0, needsCenter: false };
+
+  // ---- quaternion helpers (device orientation -> camera basis) ---------------
+  function quatFromEulerYXZ(x, y, z) { // three.js 'YXZ' convention
+    var c1 = Math.cos(x/2), c2 = Math.cos(y/2), c3 = Math.cos(z/2);
+    var s1 = Math.sin(x/2), s2 = Math.sin(y/2), s3 = Math.sin(z/2);
+    return [ s1*c2*c3 + c1*s2*s3,
+             c1*s2*c3 - s1*c2*s3,
+             c1*c2*s3 - s1*s2*c3,
+             c1*c2*c3 + s1*s2*s3 ];
+  }
+  function quatFromAxisZ(angle) {
+    return [0, 0, Math.sin(angle/2), Math.cos(angle/2)];
+  }
+  var Q1 = [-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5)]; // camera looks out the screen back
+  function quatMul(a, b) {
+    return [ a[3]*b[0] + a[0]*b[3] + a[1]*b[2] - a[2]*b[1],
+             a[3]*b[1] - a[0]*b[2] + a[1]*b[3] + a[2]*b[0],
+             a[3]*b[2] + a[0]*b[1] - a[1]*b[0] + a[2]*b[3],
+             a[3]*b[3] - a[0]*b[0] - a[1]*b[1] - a[2]*b[2] ];
+  }
+  function rotate(q, v) {
+    var x = q[0], y = q[1], z = q[2], w = q[3];
+    var ix =  w*v[0] + y*v[2] - z*v[1];
+    var iy =  w*v[1] + z*v[0] - x*v[2];
+    var iz =  w*v[2] + x*v[1] - y*v[0];
+    var iw = -x*v[0] - y*v[1] - z*v[2];
+    return [ ix*w + iw*-x + iy*-z - iz*-y,
+             iy*w + iw*-y + iz*-x - ix*-z,
+             iz*w + iw*-z + ix*-y - iy*-x ];
+  }
+  function rotY(v, a) {
+    var c = Math.cos(a), s = Math.sin(a);
+    return [c*v[0] + s*v[2], v[1], -s*v[0] + c*v[2]];
+  }
+
+  function screenAngle() {
+    if (screen.orientation && typeof screen.orientation.angle === 'number') return screen.orientation.angle;
+    if (typeof window.orientation === 'number') return window.orientation;
+    return 0;
+  }
+
+  function onOrient(e) {
+    if (e.alpha === null || e.alpha === undefined) return;
+    var q = quatFromEulerYXZ(e.beta * DEG, e.alpha * DEG, -e.gamma * DEG);
+    q = quatMul(q, Q1);
+    q = quatMul(q, quatFromAxisZ(-screenAngle() * DEG));
+    gyro.quat = q;
+    if (gyro.needsCenter) { gyro.needsCenter = false; recenter(); }
+  }
+
+  function recenter() {
+    if (!gyro.quat) return;
+    var f = rotate(gyro.quat, [0, 0, -1]);
+    gyro.yawOffset = -Math.atan2(f[0], -f[2]);
+  }
+
+  function cameraBasis() {
+    if (gyro.on && gyro.quat) {
+      return {
+        right: rotY(rotate(gyro.quat, [1, 0, 0]), gyro.yawOffset),
+        up:    rotY(rotate(gyro.quat, [0, 1, 0]), gyro.yawOffset),
+        fwd:   rotY(rotate(gyro.quat, [0, 0, -1]), gyro.yawOffset)
+      };
+    }
+    var cp = Math.cos(pitch), sp = Math.sin(pitch);
+    var cy = Math.cos(yaw), sy = Math.sin(yaw);
+    var fwd = [ sy * cp, sp, -cy * cp ];
+    var right = [ cy, 0, sy ];
+    var up = [ -sy * sp, cp, cy * sp ];
+    return { right: right, up: up, fwd: fwd };
+  }
+
+  // ---- input: drag + pinch ---------------------------------------------------
+  var pointers = {};
+  var pinchDist = 0;
+  view.addEventListener('pointerdown', function (e) {
+    pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
+    view.classList.add('dragging');
+    view.setPointerCapture(e.pointerId);
+    showHud();
+  });
+  view.addEventListener('pointermove', function (e) {
+    var p = pointers[e.pointerId];
+    if (!p) return;
+    var ids = Object.keys(pointers);
+    if (ids.length === 2) {
+      var a = pointers[ids[0]], b = pointers[ids[1]];
+      p.x = e.clientX; p.y = e.clientY;
+      var d = Math.hypot(a.x - b.x, a.y - b.y);
+      if (pinchDist > 0) {
+        fovDeg = Math.max(45, Math.min(100, fovDeg * pinchDist / Math.max(1, d)));
+      }
+      pinchDist = d;
+      return;
+    }
+    var dx = e.clientX - p.x, dy = e.clientY - p.y;
+    p.x = e.clientX; p.y = e.clientY;
+    var scale = (fovDeg * DEG) / view.clientHeight;
+    if (gyro.on) { gyro.yawOffset -= dx * scale; return; }  // gyro mode: drag nudges heading
+    yaw -= dx * scale;
+    pitch = Math.max(-0.35, Math.min(Math.PI / 2, pitch + dy * scale));
+  });
+  function endPointer(e) {
+    delete pointers[e.pointerId];
+    if (Object.keys(pointers).length < 2) pinchDist = 0;
+    view.classList.remove('dragging');
+  }
+  view.addEventListener('pointerup', endPointer);
+  view.addEventListener('pointercancel', endPointer);
+  view.addEventListener('wheel', function (e) {
+    fovDeg = Math.max(45, Math.min(100, fovDeg + (e.deltaY > 0 ? 3 : -3)));
+    e.preventDefault();
+  }, { passive: false });
+
+  // ---- HUD -------------------------------------------------------------------
+  var hud = document.getElementById('hud');
+  var hint = document.getElementById('hint');
+  var stateEl = document.getElementById('state');
+  var hudTimer = null;
+  function showHud() {
+    hud.classList.remove('hidden');
+    clearTimeout(hudTimer);
+    hudTimer = setTimeout(function () { hud.classList.add('hidden'); }, 5000);
+  }
+  showHud();
+  setTimeout(function () { hint.classList.add('hidden'); }, 8000);
+  document.addEventListener('pointerdown', showHud);
+
+  var SLOT_LABEL = { dawn: 'dawn', sunrise: 'sunrise', midday: 'midday', sunset: 'sunset', dusk: 'dusk', night: 'night' };
+  function slotName(t) {
+    try { return SLOT_LABEL[TIME_SLOTS[Math.floor(t / 30) % TIME_SLOTS.length]] || '—'; }
+    catch (e) { return '—'; }
+  }
+  setInterval(function () {
+    try { stateEl.textContent = slotName(window.skyTime()); } catch (e) {}
+  }, 700);
+
+  document.getElementById('prev').addEventListener('click', function () {
+    try { window.skySeek(Math.max(0, (Math.floor(window.skyTime() / 30) - 1) * 30)); } catch (e) {}
+  });
+  document.getElementById('next').addEventListener('click', function () {
+    try { window.skySeek((Math.floor(window.skyTime() / 30) + 1) * 30); } catch (e) {}
+  });
+
+  var tiltSeg = document.getElementById('tiltSeg');
+  function paintTilt() {
+    Array.prototype.forEach.call(tiltSeg.children, function (b) {
+      b.classList.toggle('on', parseFloat(b.dataset.tilt) === tiltDeg);
+    });
+  }
+  tiltSeg.addEventListener('click', function (e) {
+    var t = e.target && e.target.dataset && e.target.dataset.tilt;
+    if (t === undefined) return;
+    tiltDeg = parseFloat(t);
+    paintTilt();
+  });
+  paintTilt();
+
+  var speedBtn = document.getElementById('speed');
+  var fast = false;
+  speedBtn.addEventListener('click', function () {
+    fast = !fast;
+    try { playbackSpeed = fast ? 10 : (parseFloat(params.get('speed')) || 1); } catch (e) {}
+    speedBtn.innerHTML = fast ? '10&times;' : '1&times;';
+  });
+
+  var motionBtn = document.getElementById('motion');
+  var recenterBtn = document.getElementById('recenter');
+  function startGyro() {
+    window.addEventListener('deviceorientation', onOrient, false);
+    gyro.on = true;
+    gyro.needsCenter = true;
+    motionBtn.style.display = 'none';
+    recenterBtn.style.display = '';
+    hint.textContent = 'Hold the phone up and look around. Re-center points the dome front at you.';
+    hint.classList.remove('hidden');
+    setTimeout(function () { hint.classList.add('hidden'); }, 6000);
+  }
+  motionBtn.addEventListener('click', function () {
+    if (typeof DeviceOrientationEvent !== 'undefined' &&
+        typeof DeviceOrientationEvent.requestPermission === 'function') {
+      DeviceOrientationEvent.requestPermission().then(function (res) {
+        if (res === 'granted') startGyro();
+      }).catch(function () {});
+    } else if ('ondeviceorientation' in window) {
+      startGyro();
+    } else {
+      motionBtn.textContent = 'No motion sensor';
+    }
+  });
+  recenterBtn.addEventListener('click', function () { gyro.needsCenter = true; });
+
+  // ---- render loop -----------------------------------------------------------
+  function resize() {
+    var dpr = Math.min(2, window.devicePixelRatio || 1);
+    var w = Math.floor(view.clientWidth * dpr), h = Math.floor(view.clientHeight * dpr);
+    if (view.width !== w || view.height !== h) {
+      view.width = w; view.height = h;
+      gl.viewport(0, 0, w, h);
+    }
+  }
+  window.addEventListener('resize', resize);
+
+  var skyCanvas = null;
+  function frame() {
+    requestAnimationFrame(frame);
+    resize();
+    if (!skyCanvas) {
+      skyCanvas = document.getElementById('sky-canvas');
+      if (!skyCanvas) return;
+    }
+    if (!(skyCanvas.width > 0)) return;
+    try {
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, skyCanvas);
+    } catch (e) { return; }
+
+    var cam = cameraBasis();
+    var tanY = Math.tan(fovDeg * DEG / 2);
+    var tanX = tanY * view.width / Math.max(1, view.height);
+    gl.uniform3fv(U.uRight, cam.right);
+    gl.uniform3fv(U.uUp, cam.up);
+    gl.uniform3fv(U.uFwd, cam.fwd);
+    gl.uniform1f(U.uTanX, tanX);
+    gl.uniform1f(U.uTanY, tanY);
+    gl.uniform1f(U.uTilt, tiltDeg * DEG);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
