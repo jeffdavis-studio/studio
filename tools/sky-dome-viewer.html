@@ -14,7 +14,20 @@
   viewing-geometry brief: flat planetarium (0°, lie back, zenith overhead) vs
   modern tilted theater (30°/55°, dome tipped toward the audience front).
 
+  Two projection modes (Jul 23, Jeff's direction — cloud-curvature comparison):
+    Dome master — the original azimuthal-equidistant fisheye mapping, unchanged.
+    Flat sky    — the artwork is a texture on a virtual horizontal plane at
+                  height 1 above the viewer, projected through the dome
+                  (per-ray t = h / d.y). From the sweet spot, cloud bands read
+                  linear left-to-right like real cloud streets instead of
+                  arcing over the viewer's head. Fades out near the horizon
+                  where the planar projection diverges.
+
   URL params (all optional):
+    ?proj=dome|flat  projection mode (default dome)
+    ?flatext=N   flat mode: artwork half-width in plane-heights (default 3)
+    ?fadelo=DEG  flat mode: elevation where the horizon fade hits full black (default 8)
+    ?fadehi=DEG  flat mode: elevation where the artwork is fully visible (default 18)
     ?hash=0x…    token hash (defaults to the screener hero hash)
     ?t=SECONDS   start moment in the day cycle (30s per state)
     ?speed=N     playback speed multiplier
@@ -82,6 +95,9 @@
   <button class="btn" id="prev" title="previous sky state">&#9664;</button>
   <div id="state">—</div>
   <button class="btn" id="next" title="next sky state">&#9654;</button>
+  <div class="seg" id="projSeg" title="projection">
+    <button data-proj="0">Dome master</button><button data-proj="1">Flat sky</button>
+  </div>
   <div class="seg" id="tiltSeg" title="dome tilt">
     <button data-tilt="0">Flat</button><button data-tilt="30">30&deg;</button><button data-tilt="55">55&deg;</button>
   </div>
@@ -123,13 +139,21 @@
     'void main(){ vP = aPos; gl_Position = vec4(aPos, 0.0, 1.0); }'
   ].join('\n');
 
-  // Ray per pixel from the camera basis; rotate into the dome frame by the tilt;
-  // elevation/azimuth -> azimuthal-equidistant fisheye UV (r=0 zenith, r=1 horizon).
+  // Ray per pixel from the camera basis; rotate into the dome frame by the tilt.
+  // Mode 0 (dome master): elevation/azimuth -> azimuthal-equidistant fisheye UV
+  //   (r=0 zenith, r=1 horizon) — the original mapping, unchanged.
+  // Mode 1 (flat sky): the artwork is a texture on a horizontal plane at height 1
+  //   above the viewer; ray/plane hit at t = 1/dd.y, plane (x,z) -> UV. Bands
+  //   stay linear across the field of view. Fades near the horizon (projection
+  //   diverges) and at the artwork edge (so CLAMP_TO_EDGE never smears).
   var fsrc = [
     'precision highp float;',
     'varying vec2 vP;',
     'uniform vec3 uRight; uniform vec3 uUp; uniform vec3 uFwd;',
     'uniform float uTanX; uniform float uTanY; uniform float uTilt;',
+    'uniform float uMode;',
+    'uniform float uFlatScale;',
+    'uniform float uFadeLo; uniform float uFadeHi;',
     'uniform sampler2D uSky;',
     'void main(){',
     '  vec3 d = normalize(uFwd + vP.x * uTanX * uRight + vP.y * uTanY * uUp);',
@@ -139,10 +163,20 @@
     '  float el = asin(clamp(dd.y, -1.0, 1.0));',
     '  vec3 col;',
     '  if (el > 0.0) {',
-    '    float r = 1.0 - el / 1.5707963;',
-    '    float az = atan(dd.x, -dd.z);',
-    '    vec2 uv = vec2(0.5) + 0.5 * r * vec2(sin(az), cos(az));',
-    '    col = texture2D(uSky, uv).rgb;',
+    '    if (uMode < 0.5) {',
+    '      float r = 1.0 - el / 1.5707963;',
+    '      float az = atan(dd.x, -dd.z);',
+    '      vec2 uv = vec2(0.5) + 0.5 * r * vec2(sin(az), cos(az));',
+    '      col = texture2D(uSky, uv).rgb;',
+    '    } else {',
+    '      float t = 1.0 / max(dd.y, 1e-4);',
+    '      vec2 uv = vec2(0.5) + uFlatScale * vec2(t * dd.x, -t * dd.z);',
+    '      col = texture2D(uSky, uv).rgb;',
+    '      float fade = smoothstep(uFadeLo, uFadeHi, el);',
+    '      vec2 q = abs(uv - vec2(0.5));',
+    '      fade *= 1.0 - smoothstep(0.46, 0.5, max(q.x, q.y));',
+    '      col = mix(vec3(0.014), col, fade);',
+    '    }',
     '  } else {',
     // below the dome springline: near-black void with the faintest falloff
     '    col = vec3(0.014) * clamp(1.0 + el * 0.9, 0.0, 1.0);',
@@ -172,7 +206,7 @@
   gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
 
   var U = {};
-  ['uRight','uUp','uFwd','uTanX','uTanY','uTilt','uSky'].forEach(function (n) {
+  ['uRight','uUp','uFwd','uTanX','uTanY','uTilt','uMode','uFlatScale','uFadeLo','uFadeHi','uSky'].forEach(function (n) {
     U[n] = gl.getUniformLocation(prog, n);
   });
 
@@ -190,6 +224,10 @@
   var tiltDeg = parseFloat(params.get('tilt'));
   if (!(tiltDeg === 0 || tiltDeg === 30 || tiltDeg === 55)) tiltDeg = 0;
   var fovDeg = parseFloat(params.get('fov')); if (!(fovDeg > 30 && fovDeg < 120)) fovDeg = 75;
+  var projMode = (params.get('proj') === 'flat') ? 1 : 0;
+  var flatExt = parseFloat(params.get('flatext')); if (!(flatExt > 0.2 && flatExt < 50)) flatExt = 3;
+  var fadeLo = parseFloat(params.get('fadelo')); if (!(fadeLo >= 0 && fadeLo < 89)) fadeLo = 8;
+  var fadeHi = parseFloat(params.get('fadehi')); if (!(fadeHi > fadeLo && fadeHi <= 90)) fadeHi = Math.max(18, fadeLo + 1);
   var yaw = (parseFloat(params.get('yaw')) || 0) * DEG;      // drag-mode view
   var pitch = (isNaN(parseFloat(params.get('pitch'))) ? 30 : parseFloat(params.get('pitch'))) * DEG;
   var gyro = { on: false, quat: null, yawOffset: 0, needsCenter: false };
@@ -337,6 +375,20 @@
     try { window.skySeek((Math.floor(window.skyTime() / 30) + 1) * 30); } catch (e) {}
   });
 
+  var projSeg = document.getElementById('projSeg');
+  function paintProj() {
+    Array.prototype.forEach.call(projSeg.children, function (b) {
+      b.classList.toggle('on', parseFloat(b.dataset.proj) === projMode);
+    });
+  }
+  projSeg.addEventListener('click', function (e) {
+    var m = e.target && e.target.dataset && e.target.dataset.proj;
+    if (m === undefined) return;
+    projMode = parseFloat(m);
+    paintProj();
+  });
+  paintProj();
+
   var tiltSeg = document.getElementById('tiltSeg');
   function paintTilt() {
     Array.prototype.forEach.call(tiltSeg.children, function (b) {
@@ -419,6 +471,10 @@
     gl.uniform1f(U.uTanX, tanX);
     gl.uniform1f(U.uTanY, tanY);
     gl.uniform1f(U.uTilt, tiltDeg * DEG);
+    gl.uniform1f(U.uMode, projMode);
+    gl.uniform1f(U.uFlatScale, 0.5 / flatExt);
+    gl.uniform1f(U.uFadeLo, fadeLo * DEG);
+    gl.uniform1f(U.uFadeHi, fadeHi * DEG);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   }
   requestAnimationFrame(frame);
