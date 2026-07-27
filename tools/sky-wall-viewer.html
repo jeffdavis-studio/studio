@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>The Sky — wall viewer</title>
+<!--
+  Room simulator for The Sky as a FLAT WALL PROJECTION (Jeff's direction,
+  2026-07-26). TheSky_v6.js is loaded untouched and renders into an offscreen
+  canvas; this page samples that canvas as a live texture and raycasts the view
+  from inside a rectangular gallery room, with the piece projected onto one,
+  two, three, or all four walls.
+
+  Why this works the way it does: The Sky's image is a pure function of HEIGHT.
+  In the fragment shader the gradient and every cloud band are computed from
+  ny alone; the only thing that touches the horizontal coordinate is the film
+  grain. Measured across all nine sky states at 900x300, the largest deviation
+  between any column and the middle column is 4/255 — exactly the grain's
+  amplitude — against a vertical range of up to 95/255.
+
+  Two consequences the room makes visible:
+    - The same signal on every wall IS a single continuous sky. There is no
+      panorama to map, no azimuth to reconcile, no content seam at a corner.
+    - Horizontal size is free. Walls of different widths can carry the same
+      image and still read as one sky. The only alignment that matters is
+      vertical: the image must occupy the same physical top and bottom height
+      on every surface, or the gradient steps at the corner.
+
+  And that vertical tolerance turns out to be generous, which was a surprise.
+  Because the image is a pure function of height, a drop of D feet on a 12 ft
+  wall shifts the color by exactly one gradient step of D/12. Measured off the
+  sketch's own output at eye level, worst case across all six sky states:
+
+      3 in →  5.6/255      12 in → 20.4/255      30 in → 38.6/255
+      6 in → 10.6/255      18 in → 28.2/255      48 in → 38.6/255
+
+  Film grain is ±2/255 and a correctly aligned corner measures 1/255 — i.e.
+  gone. So a few inches of error is invisible, six inches is fine, and it takes
+  about a foot before a corner starts to show at dawn (the steepest state; at
+  dusk the same foot is worth 5/255 and reads as nothing). Misalign
+  demonstrates the loud end of that: 18 in, at dawn.
+
+  URL params (all optional):
+    ?walls=1|2|3|4   surfaces carrying the projection (default 4)
+                     1 = front, 2 = front+back, 3 = U (front+left+right), 4 = all
+    ?room=s|m|l      room size: small 14x12x9 ft, gallery 26x22x12, large 44x36x18
+    ?w=&d=&h=        explicit room width / depth / height in feet (overrides room)
+    ?frame=full|band image occupies the whole wall, or a band
+    ?bot=FT&top=FT   explicit image bottom / top height in feet (overrides frame)
+    ?eye=FT          eye height (default 5.5)
+    ?misalign=1      drop the image 18in on the side walls — the corner-step failure
+    ?hash=0x…        token hash (defaults to the hero hash used all month)
+    ?t=SECONDS       start moment in the day cycle (30s per state)
+    ?speed=N         playback speed multiplier
+    ?yaw=DEG&pitch=DEG  initial view (default points at a corner)
+    ?fov=DEG         vertical field of view (default 72)
+    ?skyres=WxH      offscreen render size (default 1280x720)
+
+  No dependencies and no network calls beyond the sibling sketch. The sky code
+  is byte-untouched: everything here is a room built in front of it.
+-->
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden;
+               font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+               -webkit-user-select: none; user-select: none; }
+  /* Offscreen host for the untouched sketch (the live texture source). */
+  #sky-container { position: fixed; left: -3000px; top: 0; }
+  #view { position: fixed; inset: 0; width: 100%; height: 100%; display: block;
+          touch-action: none; cursor: grab; }
+  #view.dragging { cursor: grabbing; }
+
+  #hud { position: fixed; left: 0; right: 0; bottom: 0;
+         padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+         display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center;
+         background: linear-gradient(transparent, rgba(0,0,0,0.6));
+         transition: opacity 0.5s; }
+  #hud.hidden { opacity: 0; pointer-events: none; }
+  .btn, .seg { background: rgba(30,30,30,0.72); color: #ddd; border: 1px solid rgba(255,255,255,0.18);
+         border-radius: 8px; font-size: 13px; line-height: 1; }
+  .btn { padding: 9px 12px; cursor: pointer; }
+  .btn:active { background: rgba(80,80,80,0.8); }
+  .btn.on { background: rgba(255,255,255,0.22); color: #fff; }
+  .seg { display: flex; overflow: hidden; padding: 0; }
+  .seg button { background: none; border: none; color: #bbb; padding: 9px 10px; font-size: 13px; cursor: pointer; }
+  .seg button.on { background: rgba(255,255,255,0.22); color: #fff; }
+  .lab { color: rgba(255,255,255,0.42); font-size: 11px; letter-spacing: 0.06em;
+         text-transform: uppercase; padding: 0 2px 0 6px; }
+  #state { color: #eee; font-size: 13px; min-width: 74px; text-align: center;
+           text-transform: capitalize; letter-spacing: 0.02em; }
+  #hint { position: fixed; top: calc(14px + env(safe-area-inset-top)); left: 0; right: 0;
+          text-align: center; color: rgba(255,255,255,0.82); font-size: 13px; line-height: 1.45;
+          text-shadow: 0 1px 3px rgba(0,0,0,0.9); transition: opacity 1.2s; pointer-events: none;
+          padding: 0 22px; }
+  #hint.hidden { opacity: 0; }
+  #dims { position: fixed; top: calc(14px + env(safe-area-inset-top)); right: 12px;
+          color: rgba(255,255,255,0.34); font-size: 11px; letter-spacing: 0.04em;
+          pointer-events: none; transition: opacity 0.5s; }
+  #dims.hidden { opacity: 0; }
+  #err { position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
+         color: #ccc; font-size: 14px; text-align: center; padding: 40px; }
+
+  #notes { position: fixed; inset: 0; background: rgba(6,8,11,0.94); overflow-y: auto;
+           -webkit-overflow-scrolling: touch; display: none; z-index: 10;
+           padding: calc(24px + env(safe-area-inset-top)) 22px calc(30px + env(safe-area-inset-bottom)); }
+  #notes.open { display: block; }
+  #notes .inner { max-width: 560px; margin: 0 auto; color: rgba(255,255,255,0.80);
+                  font-size: 15px; line-height: 1.62; }
+  #notes h1 { font-size: 17px; font-weight: 600; color: #fff; margin: 0 0 4px; letter-spacing: 0.01em; }
+  #notes .sub { color: rgba(255,255,255,0.42); font-size: 12.5px; margin: 0 0 20px;
+                letter-spacing: 0.05em; text-transform: uppercase; }
+  #notes p { margin: 0 0 15px; }
+  #notes h2 { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.55); margin: 26px 0 9px;
+              letter-spacing: 0.09em; text-transform: uppercase; }
+  #notes table { border-collapse: collapse; font-size: 13.5px; margin: 0 0 14px;
+                 font-variant-numeric: tabular-nums; }
+  #notes td { padding: 4px 16px 4px 0; color: rgba(255,255,255,0.74); }
+  #notes td.n { color: #fff; }
+  #notes .q { border-left: 2px solid rgba(255,255,255,0.26); padding-left: 14px;
+              color: rgba(255,255,255,0.92); margin: 0 0 15px; }
+  #closeNotes { position: sticky; top: 0; float: right; background: rgba(40,40,40,0.9);
+                color: #ddd; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px;
+                padding: 8px 13px; font-size: 13px; cursor: pointer; }
+</style>
+<script>
+  // Default the hero hash before the sketch boots, so the room shows the token
+  // Jeff has been looking at all month.
+  (function () {
+    try {
+      var p = new URLSearchParams(location.search);
+      if (!p.get('hash')) {
+        p.set('hash', '0xdfb3c03a167388c730666d5f0ccfd67bf51b065d7c9e6aad6ff66308c995bcc8');
+        history.replaceState(null, '', location.pathname + '?' + p.toString());
+      }
+    } catch (e) {}
+  })();
+</script>
+</head>
+<body>
+<div id="sky-container"></div>
+<canvas id="view"></canvas>
+<div id="dims">—</div>
+<div id="hint">Every wall is showing the same render. The Sky varies only with height, so a room wraps with no seam — drag to look into a corner.</div>
+<div id="hud">
+  <span class="lab">Walls</span>
+  <div class="seg" id="wallSeg">
+    <button data-walls="1">1</button><button data-walls="2">2</button><button data-walls="3">3</button><button data-walls="4">4</button>
+  </div>
+  <span class="lab">Room</span>
+  <div class="seg" id="roomSeg">
+    <button data-room="s">S</button><button data-room="m">M</button><button data-room="l">L</button>
+  </div>
+  <div class="seg" id="frameSeg" title="image framing on the wall">
+    <button data-frame="full">Full</button><button data-frame="band">Band</button>
+  </div>
+  <button class="btn" id="prev" title="previous sky state">&#9664;</button>
+  <div id="state">—</div>
+  <button class="btn" id="next" title="next sky state">&#9654;</button>
+  <button class="btn" id="speed">1&times;</button>
+  <button class="btn" id="mis" title="drop the image 18in on the side walls">Misalign</button>
+  <button class="btn" id="motion">Motion</button>
+  <button class="btn" id="recenter" style="display:none">Re-center</button>
+  <button class="btn" id="notesBtn">Notes</button>
+</div>
+<div id="err"></div>
+
+<div id="notes"><div class="inner">
+  <button id="closeNotes">Close</button>
+  <h1>The Sky on walls</h1>
+  <p class="sub">What the measurements say</p>
+
+  <p>This is your v6 sketch, byte for byte, projected into a room. Every wall is
+  showing the <em>same</em> render — not a panorama, not four crops of one.</p>
+
+  <p>That works because of something in your own shader that hadn't been named:
+  <strong>The Sky's image is a pure function of height.</strong> The gradient and
+  all ten cloud bands are computed from the vertical coordinate alone. The only
+  thing that touches horizontal position is the film grain.</p>
+
+  <p>I measured it rather than trusting the read. Across all nine sky states, the
+  largest difference between any two columns of the image is 4/255 — exactly the
+  grain's amplitude — against a vertical range of up to 95/255. The image is a
+  stack of horizontal lines.</p>
+
+  <h2>What follows from that</h2>
+
+  <p><strong>The same signal on every wall already is one continuous sky.</strong>
+  The requirements sheet treats "unified sky across all surfaces" and "parallel
+  skies per wall" as two options with a preference. They're the same thing. There
+  is no azimuth to reconcile and no content seam at a corner — an aligned corner
+  measures 1/255 of difference, which is below the grain.</p>
+
+  <p><strong>No media server.</strong> Scale C assumed one, because unified
+  multi-surface content usually needs warping and blending across a shared
+  canvas. Identical content doesn't. One output to a distribution amp feeding N
+  projectors does it. Or N players kept in sync by the deterministic clock you
+  already built — same hash, same seek, same frame.</p>
+
+  <p><strong>Wall width is free; wall height is the constraint.</strong> A 40 ft
+  wall and a 12 ft wall can carry the same signal and still read as one sky. So
+  for venue hunting, ceiling height and matched heights across surfaces are the
+  filter. Width barely matters. Wide-short media walls are the bad fit — they
+  letterbox a piece that lives in the vertical.</p>
+
+  <h2>How much alignment error you can absorb</h2>
+
+  <p>Less obvious, and it went the friendly direction. A drop of D feet on a 12 ft
+  wall shifts color by one gradient step of D/12. Worst case across all six
+  states, at eye level:</p>
+
+  <table>
+    <tr><td>aligned</td><td class="n">1/255</td><td>gone</td></tr>
+    <tr><td>3 in off</td><td class="n">5.6/255</td><td>invisible</td></tr>
+    <tr><td>6 in off</td><td class="n">10.6/255</td><td>fine</td></tr>
+    <tr><td>12 in off</td><td class="n">20.4/255</td><td>starts to show at dawn</td></tr>
+    <tr><td>18 in off</td><td class="n">28.2/255</td><td>visible — the Misalign button</td></tr>
+  </table>
+
+  <p>Grain is ±2/255 for reference. This is a forgiving install. And it's
+  state-dependent: 18 inches is loud at dawn and nearly nothing at dusk, so a
+  survey done at midday will flatter a sloppy alignment.</p>
+
+  <h2>The part I can't measure</h2>
+
+  <p class="q">Does a room of four identical vertical gradients read as being
+  inside a sky — or as wallpaper?</p>
+
+  <p>Everything above says it's technically one continuous sky. Whether it's
+  perceptually one is your eye, not my arithmetic. That's what the corner view is
+  for. If it reads, Scale C is a much cheaper and much more available thing than
+  the sheet assumes. If it doesn't, one wall done well is the piece and the
+  multi-surface question is closed.</p>
+
+  <p style="color:rgba(255,255,255,0.42);font-size:13px;margin-top:26px">
+  Rooms follow the Three Scales sheet: S 14&times;12&times;9 ft, M 26&times;22&times;12,
+  L 44&times;36&times;18. Eye height 5.5 ft. Sky code untouched.</p>
+</div></div>
+
+<script>
+  // Size the offscreen host before the sketch measures it.
+  (function () {
+    var p = new URLSearchParams(location.search);
+    var m = /^(\d+)x(\d+)$/.exec(p.get('skyres') || '');
+    var sw = m ? parseInt(m[1], 10) : 1280;
+    var sh = m ? parseInt(m[2], 10) : 720;
+    if (!(sw > 63 && sw <= 4096)) sw = 1280;
+    if (!(sh > 63 && sh <= 4096)) sh = 720;
+    var c = document.getElementById('sky-container');
+    c.style.width = sw + 'px';
+    c.style.height = sh + 'px';
+  })();
+</script>
+<script src="../the-sky/TheSky_v6.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var params = new URLSearchParams(location.search);
+  var view = document.getElementById('view');
+  var errBox = document.getElementById('err');
+  function fail(msg) { errBox.textContent = msg; errBox.style.display = 'flex'; }
+
+  var gl = view.getContext('webgl', { antialias: true, alpha: false, depth: false, stencil: false, preserveDrawingBuffer: true });
+  if (!gl) { fail('WebGL is not available in this browser.'); return; }
+
+  // ---- viewer shaders --------------------------------------------------------
+  var vsrc = [
+    'attribute vec2 aPos;',
+    'varying vec2 vP;',
+    'void main(){ vP = aPos; gl_Position = vec4(aPos, 0.0, 1.0); }'
+  ].join('\n');
+
+  // Standing inside an axis-aligned box: room spans x in [-hx,hx], z in [-hz,hz],
+  // y in [0,H]. For each view ray take the nearest exit face (slab method from
+  // the inside), then decide whether that face carries the projection.
+  //
+  // Wall UV: v is physical height mapped through the image band, u is the
+  // distance along the wall. u only moves the film grain — the gradient and the
+  // cloud bands are height-only — which is the whole reason a corner has no seam.
+  var fsrc = [
+    'precision highp float;',
+    'varying vec2 vP;',
+    'uniform vec3 uRight; uniform vec3 uUp; uniform vec3 uFwd;',
+    'uniform float uTanX; uniform float uTanY;',
+    'uniform vec3 uEye;',          // eye position in room space (feet)
+    'uniform vec3 uRoom;',         // half-width, height, half-depth (feet)
+    'uniform vec4 uWallOn;',       // front(-z), back(+z), left(-x), right(+x)
+    'uniform vec2 uBand;',         // image bottom, top (feet)
+    'uniform float uMisalign;',    // feet the side walls are dropped by
+    'uniform sampler2D uSky;',
+
+    'const float BIG = 1.0e9;',
+
+    'float slab(float o, float d, float lo, float hi) {',
+    '  if (abs(d) < 1.0e-6) return BIG;',
+    '  return (d > 0.0 ? hi - o : lo - o) / d;',
+    '}',
+
+    'void main(){',
+    '  vec3 d = normalize(uFwd + vP.x * uTanX * uRight + vP.y * uTanY * uUp);',
+    '  float hx = uRoom.x, H = uRoom.y, hz = uRoom.z;',
+    '  float tx = slab(uEye.x, d.x, -hx, hx);',
+    '  float ty = slab(uEye.y, d.y, 0.0, H);',
+    '  float tz = slab(uEye.z, d.z, -hz, hz);',
+    '  float t = min(tx, min(ty, tz));',
+    '  vec3 p = uEye + t * d;',
+
+    // Ambient spill: the room is lit only by the projection. Sample the sky low
+    // (usually its brightest band) and mid, and let that tint the dark surfaces.
+    '  vec3 spill = 0.5 * (texture2D(uSky, vec2(0.5, 0.06)).rgb + texture2D(uSky, vec2(0.5, 0.5)).rgb);',
+    '  float lit = uWallOn.x + uWallOn.y + uWallOn.z + uWallOn.w;',
+    '  spill *= clamp(0.25 + 0.19 * lit, 0.0, 1.2);',
+
+    '  vec3 col;',
+    '  bool isWall = false;',
+    '  float on = 0.0;',
+    '  float u = 0.5;',
+    '  float drop = 0.0;',
+
+    '  if (t == ty) {',                          // floor or ceiling
+    '    float f = (d.y > 0.0) ? 0.30 : 0.62;',  // ceiling catches less than the floor
+    '    col = vec3(0.030) + spill * f * 0.30;',
+    '    if (d.y < 0.0) {',                      // floor: fall off with distance
+    '      col *= clamp(1.25 - 0.16 * length(p.xz - uEye.xz), 0.35, 1.25);',
+    '    }',
+    '  } else {',
+    '    isWall = true;',
+    '    if (t == tz) {',
+    '      on = (d.z < 0.0) ? uWallOn.x : uWallOn.y;',
+    '      u = (p.x + hx) / (2.0 * hx);',
+    '    } else {',
+    '      on = (d.x < 0.0) ? uWallOn.z : uWallOn.w;',
+    '      u = (p.z + hz) / (2.0 * hz);',
+    '      drop = uMisalign;',                   // side walls carry the misalignment
+    '    }',
+    '    col = vec3(0.038) + spill * 0.16;',     // unlit wall / surround
+    '  }',
+
+    '  if (isWall && on > 0.5) {',
+    '    float b0 = uBand.x - drop, b1 = uBand.y - drop;',
+    '    float v = (p.y - b0) / max(b1 - b0, 1.0e-4);',
+    '    if (v >= 0.0 && v <= 1.0) {',
+    '      col = texture2D(uSky, vec2(u, v)).rgb;',
+    '    }',
+    '  }',
+
+    '  gl_FragColor = vec4(col, 1.0);',
+    '}'
+  ].join('\n');
+
+  function shader(type, src) {
+    var s = gl.createShader(type);
+    gl.shaderSource(s, src); gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+    return s;
+  }
+  var prog = gl.createProgram();
+  try {
+    gl.attachShader(prog, shader(gl.VERTEX_SHADER, vsrc));
+    gl.attachShader(prog, shader(gl.FRAGMENT_SHADER, fsrc));
+  } catch (e) { fail('Shader compile failed: ' + e.message); return; }
+  gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) { fail('Shader link failed.'); return; }
+  gl.useProgram(prog);
+
+  var buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, 1,1, -1,-1, 1,1, -1,1]), gl.STATIC_DRAW);
+  var aPos = gl.getAttribLocation(prog, 'aPos');
+  gl.enableVertexAttribArray(aPos);
+  gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+
+  var U = {};
+  ['uRight','uUp','uFwd','uTanX','uTanY','uEye','uRoom','uWallOn','uBand','uMisalign','uSky']
+    .forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
+
+  var tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);   // so texture v=1 is the top of the sky
+  gl.uniform1i(U.uSky, 0);
+
+  // ---- room state ------------------------------------------------------------
+  var DEG = Math.PI / 180;
+  // Footprints follow the Three Scales sheet: A small room, B gallery wall,
+  // C immersive multi-surface.
+  var ROOMS = {
+    s: { w: 14, d: 12, h: 9,  label: 'Small room' },
+    m: { w: 26, d: 22, h: 12, label: 'Gallery' },
+    l: { w: 44, d: 36, h: 18, label: 'Large room' }
+  };
+  var roomKey = (params.get('room') || 'm').toLowerCase();
+  if (!ROOMS[roomKey]) roomKey = 'm';
+  var customW = parseFloat(params.get('w')), customD = parseFloat(params.get('d')), customH = parseFloat(params.get('h'));
+  var hasCustom = (customW > 4 && customD > 4 && customH > 6);
+
+  var walls = parseInt(params.get('walls') || '4', 10);
+  if (!(walls >= 1 && walls <= 4)) walls = 4;
+  var frameMode = (params.get('frame') === 'band') ? 'band' : 'full';
+  var bandBot = parseFloat(params.get('bot'));
+  var bandTop = parseFloat(params.get('top'));
+  var hasBand = (bandBot >= 0 && bandTop > bandBot);
+  var eyeH = parseFloat(params.get('eye')); if (!(eyeH > 1 && eyeH < 12)) eyeH = 5.5;
+  var misalign = (params.get('misalign') === '1') ? 1.5 : 0;
+
+  var fovDeg = parseFloat(params.get('fov')); if (!(fovDeg > 30 && fovDeg < 120)) fovDeg = 72;
+  // Default view points into a corner — the question the room is here to answer.
+  var yaw = (isNaN(parseFloat(params.get('yaw'))) ? 45 : parseFloat(params.get('yaw'))) * DEG;
+  var pitch = (isNaN(parseFloat(params.get('pitch'))) ? 4 : parseFloat(params.get('pitch'))) * DEG;
+  var gyro = { on: false, quat: null, yawOffset: 0, needsCenter: false };
+
+  function room() {
+    if (hasCustom) return { w: customW, d: customD, h: customH, label: 'Custom' };
+    return ROOMS[roomKey];
+  }
+  function band() {
+    var R = room();
+    if (hasBand) return [bandBot, bandTop];
+    if (frameMode === 'band') {
+      // A band that sits on the wall rather than filling it: bottom at 3ft,
+      // height 60% of the wall. Roughly the de Sarthe 32:9 posture.
+      var b = 3.0;
+      return [b, Math.min(R.h - 0.5, b + R.h * 0.6)];
+    }
+    return [0, R.h];
+  }
+  function wallMask() {
+    if (walls === 1) return [1, 0, 0, 0];              // front
+    if (walls === 2) return [1, 1, 0, 0];              // front + back
+    if (walls === 3) return [1, 0, 1, 1];              // U: front + both sides
+    return [1, 1, 1, 1];
+  }
+
+  // ---- quaternion helpers (device orientation -> camera basis) ---------------
+  function quatFromEulerYXZ(x, y, z) {
+    var c1 = Math.cos(x/2), c2 = Math.cos(y/2), c3 = Math.cos(z/2);
+    var s1 = Math.sin(x/2), s2 = Math.sin(y/2), s3 = Math.sin(z/2);
+    return [ s1*c2*c3 + c1*s2*s3,
+             c1*s2*c3 - s1*c2*s3,
+             c1*c2*s3 - s1*s2*c3,
+             c1*c2*c3 + s1*s2*s3 ];
+  }
+  function quatFromAxisZ(a) { return [0, 0, Math.sin(a/2), Math.cos(a/2)]; }
+  var Q1 = [-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5)];
+  function quatMul(a, b) {
+    return [ a[3]*b[0] + a[0]*b[3] + a[1]*b[2] - a[2]*b[1],
+             a[3]*b[1] - a[0]*b[2] + a[1]*b[3] + a[2]*b[0],
+             a[3]*b[2] + a[0]*b[1] - a[1]*b[0] + a[2]*b[3],
+             a[3]*b[3] - a[0]*b[0] - a[1]*b[1] - a[2]*b[2] ];
+  }
+  function rotate(q, v) {
+    var x = q[0], y = q[1], z = q[2], w = q[3];
+    var ix =  w*v[0] + y*v[2] - z*v[1];
+    var iy =  w*v[1] + z*v[0] - x*v[2];
+    var iz =  w*v[2] + x*v[1] - y*v[0];
+    var iw = -x*v[0] - y*v[1] - z*v[2];
+    return [ ix*w + iw*-x + iy*-z - iz*-y,
+             iy*w + iw*-y + iz*-x - ix*-z,
+             iz*w + iw*-z + ix*-y - iy*-x ];
+  }
+  function rotY(v, a) {
+    var c = Math.cos(a), s = Math.sin(a);
+    return [c*v[0] + s*v[2], v[1], -s*v[0] + c*v[2]];
+  }
+  function screenAngle() {
+    if (screen.orientation && typeof screen.orientation.angle === 'number') return screen.orientation.angle;
+    if (typeof window.orientation === 'number') return window.orientation;
+    return 0;
+  }
+  function onOrient(e) {
+    if (e.alpha === null || e.alpha === undefined) return;
+    var q = quatFromEulerYXZ(e.beta * DEG, e.alpha * DEG, -e.gamma * DEG);
+    q = quatMul(q, Q1);
+    q = quatMul(q, quatFromAxisZ(-screenAngle() * DEG));
+    gyro.quat = q;
+    if (gyro.needsCenter) { gyro.needsCenter = false; recenter(); }
+  }
+  function recenter() {
+    if (!gyro.quat) return;
+    var f = rotate(gyro.quat, [0, 0, -1]);
+    gyro.yawOffset = -Math.atan2(f[0], -f[2]) + 45 * DEG;   // land on a corner
+  }
+  function cameraBasis() {
+    if (gyro.on && gyro.quat) {
+      return {
+        right: rotY(rotate(gyro.quat, [1, 0, 0]), gyro.yawOffset),
+        up:    rotY(rotate(gyro.quat, [0, 1, 0]), gyro.yawOffset),
+        fwd:   rotY(rotate(gyro.quat, [0, 0, -1]), gyro.yawOffset)
+      };
+    }
+    var cp = Math.cos(pitch), sp = Math.sin(pitch);
+    var cy = Math.cos(yaw), sy = Math.sin(yaw);
+    return {
+      fwd:   [ sy * cp, sp, -cy * cp ],
+      right: [ cy, 0, sy ],
+      up:    [ -sy * sp, cp, cy * sp ]
+    };
+  }
+
+  // ---- input: drag + pinch ---------------------------------------------------
+  var pointers = {};
+  var pinchDist = 0;
+  view.addEventListener('pointerdown', function (e) {
+    pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
+    view.classList.add('dragging');
+    view.setPointerCapture(e.pointerId);
+    showHud();
+  });
+  view.addEventListener('pointermove', function (e) {
+    var p = pointers[e.pointerId];
+    if (!p) return;
+    var ids = Object.keys(pointers);
+    if (ids.length === 2) {
+      var a = pointers[ids[0]], b = pointers[ids[1]];
+      p.x = e.clientX; p.y = e.clientY;
+      var dd = Math.hypot(a.x - b.x, a.y - b.y);
+      if (pinchDist > 0) fovDeg = Math.max(40, Math.min(105, fovDeg * pinchDist / Math.max(1, dd)));
+      pinchDist = dd;
+      return;
+    }
+    var dx = e.clientX - p.x, dy = e.clientY - p.y;
+    p.x = e.clientX; p.y = e.clientY;
+    var scale = (fovDeg * DEG) / view.clientHeight;
+    if (gyro.on) { gyro.yawOffset -= dx * scale; return; }
+    yaw -= dx * scale;
+    pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, pitch + dy * scale));
+  });
+  function endPointer(e) {
+    delete pointers[e.pointerId];
+    if (Object.keys(pointers).length < 2) pinchDist = 0;
+    view.classList.remove('dragging');
+  }
+  view.addEventListener('pointerup', endPointer);
+  view.addEventListener('pointercancel', endPointer);
+  view.addEventListener('wheel', function (e) {
+    fovDeg = Math.max(40, Math.min(105, fovDeg + (e.deltaY > 0 ? 3 : -3)));
+    e.preventDefault();
+  }, { passive: false });
+
+  // ---- HUD -------------------------------------------------------------------
+  var hud = document.getElementById('hud');
+  var hint = document.getElementById('hint');
+  var dimsEl = document.getElementById('dims');
+  var stateEl = document.getElementById('state');
+  var hudTimer = null;
+  function showHud() {
+    hud.classList.remove('hidden');
+    dimsEl.classList.remove('hidden');
+    clearTimeout(hudTimer);
+    hudTimer = setTimeout(function () { hud.classList.add('hidden'); dimsEl.classList.add('hidden'); }, 6000);
+  }
+  showHud();
+  setTimeout(function () { hint.classList.add('hidden'); }, 11000);
+  document.addEventListener('pointerdown', showHud);
+
+  function paintDims() {
+    var R = room(), b = band();
+    dimsEl.textContent = R.label + ' · ' + R.w + '×' + R.d + '×' + R.h + ' ft · image ' +
+      b[0].toFixed(1) + '–' + b[1].toFixed(1) + ' ft' + (misalign ? ' · sides dropped 18in' : '');
+  }
+
+  var SLOT_LABEL = { dawn: 'dawn', sunrise: 'sunrise', midday: 'midday', sunset: 'sunset', dusk: 'dusk', night: 'night' };
+  function slotName(t) {
+    try { return SLOT_LABEL[TIME_SLOTS[Math.floor(t / 30) % TIME_SLOTS.length]] || '—'; }
+    catch (e) { return '—'; }
+  }
+  setInterval(function () {
+    try { stateEl.textContent = slotName(window.skyTime()); } catch (e) {}
+  }, 700);
+
+  document.getElementById('prev').addEventListener('click', function () {
+    try { window.skySeek(Math.max(0, (Math.floor(window.skyTime() / 30) - 1) * 30)); } catch (e) {}
+  });
+  document.getElementById('next').addEventListener('click', function () {
+    try { window.skySeek((Math.floor(window.skyTime() / 30) + 1) * 30); } catch (e) {}
+  });
+
+  function wireSeg(id, attr, get, set) {
+    var seg = document.getElementById(id);
+    function paint() {
+      Array.prototype.forEach.call(seg.children, function (b) {
+        b.classList.toggle('on', String(b.dataset[attr]) === String(get()));
+      });
+    }
+    seg.addEventListener('click', function (e) {
+      var v = e.target && e.target.dataset && e.target.dataset[attr];
+      if (v === undefined) return;
+      set(v);
+      paint(); paintDims();
+    });
+    paint();
+    return paint;
+  }
+  wireSeg('wallSeg', 'walls', function () { return walls; }, function (v) { walls = parseInt(v, 10); });
+  wireSeg('roomSeg', 'room', function () { return hasCustom ? '' : roomKey; },
+          function (v) { hasCustom = false; roomKey = v; });
+  wireSeg('frameSeg', 'frame', function () { return hasBand ? '' : frameMode; },
+          function (v) { hasBand = false; frameMode = v; });
+  paintDims();
+
+  var speedBtn = document.getElementById('speed');
+  var fast = false;
+  speedBtn.addEventListener('click', function () {
+    fast = !fast;
+    try { playbackSpeed = fast ? 10 : (parseFloat(params.get('speed')) || 1); } catch (e) {}
+    speedBtn.innerHTML = fast ? '10&times;' : '1&times;';
+  });
+
+  var misBtn = document.getElementById('mis');
+  function paintMis() { misBtn.classList.toggle('on', misalign > 0); }
+  misBtn.addEventListener('click', function () {
+    misalign = misalign > 0 ? 0 : 1.5;
+    paintMis(); paintDims();
+    hint.textContent = misalign
+      ? 'Side walls dropped 18 inches — the loud end of the only error that matters. Measured, a 3in error is invisible and 6in is fine, so this is a forgiving install. Step through to dusk: the same 18in nearly vanishes.'
+      : 'Every wall is showing the same render. The Sky varies only with height, so a room wraps with no seam.';
+    hint.classList.remove('hidden');
+    setTimeout(function () { hint.classList.add('hidden'); }, 6500);
+  });
+  paintMis();
+
+  var notesEl = document.getElementById('notes');
+  document.getElementById('notesBtn').addEventListener('click', function () {
+    notesEl.classList.add('open');
+  });
+  document.getElementById('closeNotes').addEventListener('click', function () {
+    notesEl.classList.remove('open');
+  });
+
+  var motionBtn = document.getElementById('motion');
+  var recenterBtn = document.getElementById('recenter');
+  function startGyro() {
+    window.addEventListener('deviceorientation', onOrient, false);
+    gyro.on = true;
+    gyro.needsCenter = true;
+    motionBtn.style.display = 'none';
+    recenterBtn.style.display = '';
+    hint.textContent = 'Turn your body — the room turns with you. Re-center puts a corner back in front of you.';
+    hint.classList.remove('hidden');
+    setTimeout(function () { hint.classList.add('hidden'); }, 6500);
+  }
+  motionBtn.addEventListener('click', function () {
+    if (typeof DeviceOrientationEvent !== 'undefined' &&
+        typeof DeviceOrientationEvent.requestPermission === 'function') {
+      DeviceOrientationEvent.requestPermission().then(function (res) {
+        if (res === 'granted') startGyro();
+      }).catch(function () {});
+    } else if ('ondeviceorientation' in window) {
+      startGyro();
+    } else {
+      motionBtn.textContent = 'No sensor';
+    }
+  });
+  recenterBtn.addEventListener('click', function () { gyro.needsCenter = true; });
+
+  // ---- render loop -----------------------------------------------------------
+  function resize() {
+    var dpr = Math.min(2, window.devicePixelRatio || 1);
+    var w = Math.floor(view.clientWidth * dpr), h = Math.floor(view.clientHeight * dpr);
+    if (view.width !== w || view.height !== h) {
+      view.width = w; view.height = h;
+      gl.viewport(0, 0, w, h);
+    }
+  }
+  window.addEventListener('resize', resize);
+
+  var skyCanvas = null;
+  function frame() {
+    requestAnimationFrame(frame);
+    resize();
+    if (!skyCanvas) {
+      skyCanvas = document.getElementById('sky-canvas');
+      if (!skyCanvas) return;
+    }
+    if (!(skyCanvas.width > 0)) return;
+    try {
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, skyCanvas);
+    } catch (e) { return; }
+
+    var R = room(), b = band();
+    var cam = cameraBasis();
+    var tanY = Math.tan(fovDeg * DEG / 2);
+    var tanX = tanY * view.width / Math.max(1, view.height);
+    gl.uniform3fv(U.uRight, cam.right);
+    gl.uniform3fv(U.uUp, cam.up);
+    gl.uniform3fv(U.uFwd, cam.fwd);
+    gl.uniform1f(U.uTanX, tanX);
+    gl.uniform1f(U.uTanY, tanY);
+    gl.uniform3f(U.uEye, 0, Math.min(eyeH, R.h - 0.5), 0);
+    gl.uniform3f(U.uRoom, R.w / 2, R.h, R.d / 2);
+    gl.uniform4fv(U.uWallOn, wallMask());
+    gl.uniform2f(U.uBand, b[0], b[1]);
+    gl.uniform1f(U.uMisalign, misalign);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+  }
+  requestAnimationFrame(frame);
+
+  // Small hook for the headless validator.
+  window.__wall = {
+    set: function (o) {
+      if (o.walls !== undefined) walls = o.walls;
+      if (o.room !== undefined) { hasCustom = false; roomKey = o.room; }
+      if (o.frame !== undefined) { hasBand = false; frameMode = o.frame; }
+      if (o.misalign !== undefined) misalign = o.misalign ? 1.5 : 0;
+      if (o.yaw !== undefined) yaw = o.yaw * DEG;
+      if (o.pitch !== undefined) pitch = o.pitch * DEG;
+      paintDims();
+    },
+    state: function () { return { walls: walls, room: room(), band: band(), misalign: misalign }; }
+  };
+})();
+</script>
+</body>
+</html>
