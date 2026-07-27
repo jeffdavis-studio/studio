@@ -87,13 +87,14 @@
          text-transform: uppercase; padding: 0 2px 0 6px; }
   #state { color: #eee; font-size: 13px; min-width: 74px; text-align: center;
            text-transform: capitalize; letter-spacing: 0.02em; }
-  #hint { position: fixed; top: calc(14px + env(safe-area-inset-top)); left: 0; right: 0;
+  #hint { position: fixed; top: calc(36px + env(safe-area-inset-top)); left: 0; right: 0;
           text-align: center; color: rgba(255,255,255,0.82); font-size: 13px; line-height: 1.45;
           text-shadow: 0 1px 3px rgba(0,0,0,0.9); transition: opacity 1.2s; pointer-events: none;
           padding: 0 22px; }
   #hint.hidden { opacity: 0; }
-  #dims { position: fixed; top: calc(14px + env(safe-area-inset-top)); right: 12px;
-          color: rgba(255,255,255,0.34); font-size: 11px; letter-spacing: 0.04em;
+  #dims { position: fixed; top: calc(14px + env(safe-area-inset-top)); left: 0; right: 0;
+          text-align: center; color: rgba(255,255,255,0.34); font-size: 11px;
+          letter-spacing: 0.04em; text-shadow: 0 1px 3px rgba(0,0,0,0.9);
           pointer-events: none; transition: opacity 0.5s; }
   #dims.hidden { opacity: 0; }
   #err { position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
