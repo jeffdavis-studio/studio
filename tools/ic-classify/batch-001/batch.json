@@ -71,241 +71,725 @@
       "id": "8da474c9",
       "image": "r-8da474c9.jpg",
       "method": "shapeProgression",
-      "shape": "Line"
+      "shape": "Line",
+      "knobs": {
+        "colorScheme": "gradient",
+        "outline": false,
+        "alignment": "edge",
+        "compression": 1,
+        "range": "extended"
+      },
+      "colors": [
+        "rgba(178,80,27,1)",
+        "rgba(243,172,60,1)"
+      ]
     },
     {
       "id": "a128c6fa",
       "image": "r-a128c6fa.jpg",
       "method": "shapeProgression",
-      "shape": "Line"
+      "shape": "Line",
+      "knobs": {
+        "colorScheme": "single",
+        "outline": false,
+        "alignment": "corner",
+        "compression": 1,
+        "range": "touching"
+      },
+      "colors": [
+        "rgba(216,213,69,1)",
+        "rgba(89,33,182,1)"
+      ]
     },
     {
       "id": "5950ede5",
       "image": "r-5950ede5.jpg",
       "method": "shapeProgression",
-      "shape": "Triangle"
+      "shape": "Triangle",
+      "knobs": {
+        "colorScheme": "binary",
+        "outline": false,
+        "alignment": "corner",
+        "compression": 1,
+        "range": "inset"
+      },
+      "colors": [
+        "rgba(244,191,83,1)",
+        "rgba(197,133,150,1)"
+      ]
     },
     {
       "id": "916d1154",
       "image": "r-916d1154.jpg",
       "method": "shapeProgression",
-      "shape": "Circle"
+      "shape": "Circle",
+      "knobs": {
+        "colorScheme": "binary",
+        "outline": false,
+        "alignment": "edge",
+        "compression": 1,
+        "range": "extended"
+      },
+      "colors": [
+        "rgba(39,101,185,1)",
+        "rgba(100,196,201,1)"
+      ]
     },
     {
       "id": "21a96274",
       "image": "r-21a96274.jpg",
       "method": "shapeProgression",
-      "shape": "Square"
+      "shape": "Square",
+      "knobs": {
+        "colorScheme": "gradient",
+        "outline": false,
+        "alignment": "center",
+        "compression": 3,
+        "range": "extended"
+      },
+      "colors": [
+        "rgba(171,120,146,1)",
+        "rgba(71,72,170,1)"
+      ]
     },
     {
       "id": "f27055de",
       "image": "r-f27055de.jpg",
       "method": "shapeProgression",
-      "shape": "Triangle"
+      "shape": "Triangle",
+      "knobs": {
+        "colorScheme": "binary",
+        "outline": false,
+        "alignment": "edge",
+        "compression": 1,
+        "range": "touching"
+      },
+      "colors": [
+        "rgba(248,247,89,1)",
+        "rgba(200,135,128,1)"
+      ]
     },
     {
       "id": "083508c5",
       "image": "r-083508c5.jpg",
       "method": "shapeProgression",
-      "shape": "Circle"
+      "shape": "Circle",
+      "knobs": {
+        "colorScheme": "gradient",
+        "outline": false,
+        "alignment": "edge",
+        "compression": 2,
+        "range": "touching"
+      },
+      "colors": [
+        "rgba(76,137,171,1)",
+        "rgba(91,49,22,1)"
+      ]
     },
     {
       "id": "fc2add53",
       "image": "r-fc2add53.jpg",
       "method": "shapeProgression",
-      "shape": "Circle"
+      "shape": "Circle",
+      "knobs": {
+        "colorScheme": "gradient",
+        "outline": false,
+        "alignment": "edge",
+        "compression": 1,
+        "range": "inset"
+      },
+      "colors": [
+        "rgba(146,171,181,1)",
+        "rgba(194,72,171,1)"
+      ]
     },
     {
       "id": "a828e886",
       "image": "r-a828e886.jpg",
       "method": "grid",
-      "shape": "Square"
+      "shape": "Square",
+      "knobs": {
+        "layout": "linear",
+        "spacing": "variable",
+        "coverage": "all",
+        "anomaly": "none",
+        "rangeMode": "independent",
+        "tbEdge": "touching",
+        "lrEdge": "inset"
+      },
+      "colors": [
+        "rgba(72,186,118,1)",
+        "rgba(88,106,167,1)"
+      ]
     },
     {
       "id": "b0c18b01",
       "image": "r-b0c18b01.jpg",
       "method": "grid",
-      "shape": "Line"
+      "shape": "Line",
+      "knobs": {
+        "layout": "stacked",
+        "spacing": "variable",
+        "coverage": "all",
+        "anomaly": "none",
+        "rangeMode": "uniform"
+      },
+      "colors": [
+        "rgba(128,60,170,1)",
+        "rgba(64,161,182,1)"
+      ]
     },
     {
       "id": "bed7c4d6",
       "image": "r-bed7c4d6.jpg",
       "method": "grid",
-      "shape": "Line"
+      "shape": "Line",
+      "knobs": {
+        "layout": "single",
+        "spacing": "variable",
+        "coverage": "scattered",
+        "anomaly": "none",
+        "rangeMode": "uniform"
+      },
+      "colors": [
+        "rgba(71,118,168,1)",
+        "rgba(173,205,80,1)"
+      ]
     },
     {
       "id": "1ec4b6aa",
       "image": "r-1ec4b6aa.jpg",
       "method": "grid",
-      "shape": "Square"
+      "shape": "Square",
+      "knobs": {
+        "layout": "linear",
+        "spacing": "even",
+        "coverage": "scattered",
+        "anomaly": "hole",
+        "rangeMode": "independent",
+        "tbEdge": "inset",
+        "lrEdge": "inset"
+      },
+      "colors": [
+        "rgba(212,190,205,1)",
+        "rgba(221,107,166,1)"
+      ]
     },
     {
       "id": "257e587e",
       "image": "r-257e587e.jpg",
       "method": "grid",
-      "shape": "Square"
+      "shape": "Square",
+      "knobs": {
+        "layout": "linear",
+        "spacing": "even",
+        "coverage": "scattered",
+        "anomaly": "hole",
+        "rangeMode": "independent",
+        "tbEdge": "inset",
+        "lrEdge": "touching"
+      },
+      "colors": [
+        "rgba(200,153,82,1)",
+        "rgba(187,43,152,1)"
+      ]
     },
     {
       "id": "9feb05d5",
       "image": "r-9feb05d5.jpg",
       "method": "grid",
-      "shape": "Square"
+      "shape": "Square",
+      "knobs": {
+        "layout": "linear",
+        "spacing": "even",
+        "coverage": "scattered",
+        "anomaly": "hole",
+        "rangeMode": "independent",
+        "tbEdge": "inset",
+        "lrEdge": "touching"
+      },
+      "colors": [
+        "rgba(101,153,168,1)",
+        "rgba(31,57,70,1)"
+      ]
     },
     {
       "id": "bb4a0374",
       "image": "r-bb4a0374.jpg",
       "method": "grid",
-      "shape": "Square"
+      "shape": "Square",
+      "knobs": {
+        "layout": "linear",
+        "spacing": "variable",
+        "coverage": "scattered",
+        "anomaly": "hole",
+        "rangeMode": "independent",
+        "tbEdge": "inset",
+        "lrEdge": "inset"
+      },
+      "colors": [
+        "rgba(167,125,72,1)",
+        "rgba(61,85,169,1)"
+      ]
     },
     {
       "id": "cfdd81fb",
       "image": "r-cfdd81fb.jpg",
       "method": "grid",
-      "shape": "Square"
+      "shape": "Square",
+      "knobs": {
+        "layout": "single",
+        "spacing": "even",
+        "coverage": "scattered",
+        "anomaly": "none",
+        "rangeMode": "independent",
+        "tbEdge": "touching",
+        "lrEdge": "touching"
+      },
+      "colors": [
+        "rgba(30,55,166,1)",
+        "rgba(192,42,54,1)"
+      ]
     },
     {
       "id": "8a0c2e3a",
       "image": "r-8a0c2e3a.jpg",
       "method": "shapeGrid",
-      "shape": "Circle"
+      "shape": "Circle",
+      "knobs": {
+        "colorScheme": "binary",
+        "outline": false,
+        "coverage": "wander",
+        "aspect": "tall",
+        "anomaly": "none",
+        "range": "extended"
+      },
+      "colors": [
+        "rgba(39,162,182,1)",
+        "rgba(193,190,78,1)"
+      ]
     },
     {
       "id": "955853fc",
       "image": "r-955853fc.jpg",
       "method": "shapeGrid",
-      "shape": "Triangle"
+      "shape": "Triangle",
+      "knobs": {
+        "colorScheme": "gradient",
+        "outline": false,
+        "coverage": "wander",
+        "aspect": "wide",
+        "anomaly": "none",
+        "range": "extended"
+      },
+      "colors": [
+        "rgba(124,121,168,1)",
+        "rgba(151,150,175,1)"
+      ]
     },
     {
       "id": "aa85fee8",
       "image": "r-aa85fee8.jpg",
       "method": "shapeGrid",
-      "shape": "Triangle"
+      "shape": "Triangle",
+      "knobs": {
+        "colorScheme": "binary",
+        "outline": false,
+        "coverage": "wander",
+        "aspect": "tall",
+        "anomaly": "none",
+        "range": "extended"
+      },
+      "colors": [
+        "rgba(40,42,169,1)",
+        "rgba(51,27,72,1)"
+      ]
     },
     {
       "id": "8c68aa7a",
       "image": "r-8c68aa7a.jpg",
       "method": "shapeGrid",
-      "shape": "Triangle"
+      "shape": "Triangle",
+      "knobs": {
+        "colorScheme": "single",
+        "outline": false,
+        "coverage": "all",
+        "aspect": "wide",
+        "anomaly": "none",
+        "range": "touching"
+      },
+      "colors": [
+        "rgba(120,170,170,1)",
+        "rgba(115,11,12,1)"
+      ]
     },
     {
       "id": "0495b3b4",
       "image": "r-0495b3b4.jpg",
       "method": "shapeGrid",
-      "shape": "Triangle"
+      "shape": "Triangle",
+      "knobs": {
+        "colorScheme": "single",
+        "outline": false,
+        "coverage": "void",
+        "aspect": "square",
+        "anomaly": "emphasis",
+        "range": "inset"
+      },
+      "colors": [
+        "rgba(68,117,40,1)",
+        "rgba(51,46,109,1)"
+      ]
     },
     {
       "id": "19afcb11",
       "image": "r-19afcb11.jpg",
       "method": "shapeGrid",
-      "shape": "Triangle"
+      "shape": "Triangle",
+      "knobs": {
+        "colorScheme": "gradient",
+        "outline": false,
+        "coverage": "scattered",
+        "aspect": "square",
+        "anomaly": "hole",
+        "range": "touching"
+      },
+      "colors": [
+        "rgba(28,106,180,1)",
+        "rgba(122,180,85,1)"
+      ]
     },
     {
       "id": "d3436739",
       "image": "r-d3436739.jpg",
       "method": "shapeGrid",
-      "shape": "Square"
+      "shape": "Square",
+      "knobs": {
+        "colorScheme": "gradient",
+        "outline": true,
+        "coverage": "scattered",
+        "aspect": "tall",
+        "anomaly": "hole",
+        "range": "inset"
+      },
+      "colors": [
+        "rgba(56,66,50,1)",
+        "rgba(182,61,66,1)"
+      ]
     },
     {
       "id": "d0c5a38d",
       "image": "r-d0c5a38d.jpg",
       "method": "shapeGrid",
-      "shape": "Circle"
+      "shape": "Circle",
+      "knobs": {
+        "colorScheme": "binary",
+        "outline": false,
+        "coverage": "cluster",
+        "aspect": "square",
+        "anomaly": "hole",
+        "range": "inset"
+      },
+      "colors": [
+        "rgba(242,155,39,1)",
+        "rgba(156,56,198,1)"
+      ]
     },
     {
       "id": "febbbb4b",
       "image": "r-febbbb4b.jpg",
       "method": "stripe",
-      "shape": "Line"
+      "shape": "Line",
+      "knobs": {
+        "colorScheme": "gradient",
+        "alignment": "diagonal",
+        "range": "touching",
+        "spacing": "even",
+        "coverage": "all",
+        "anomaly": "emphasis",
+        "subdivision": "subdivided",
+        "varied": false,
+        "stripeChoices": 12
+      },
+      "colors": [
+        "rgba(171,60,46,1)",
+        "rgba(103,63,50,1)"
+      ]
     },
     {
       "id": "b0abc7cd",
       "image": "r-b0abc7cd.jpg",
       "method": "stripe",
-      "shape": "Square"
+      "shape": "Square",
+      "knobs": {
+        "colorScheme": "binary",
+        "alignment": "aligned",
+        "range": "touching",
+        "spacing": "even",
+        "coverage": "all",
+        "anomaly": "hole",
+        "subdivision": "subdivided",
+        "varied": false,
+        "stripeChoices": 5
+      },
+      "colors": [
+        "rgba(197,65,97,1)",
+        "rgba(203,161,89,1)"
+      ]
     },
     {
       "id": "bf1da9ad",
       "image": "r-bf1da9ad.jpg",
       "method": "stripe",
-      "shape": "Square"
+      "shape": "Square",
+      "knobs": {
+        "colorScheme": "binary",
+        "alignment": "aligned",
+        "range": "touching",
+        "spacing": "variable",
+        "coverage": "scattered",
+        "anomaly": "none",
+        "subdivision": "none",
+        "varied": false,
+        "stripeChoices": 8
+      },
+      "colors": [
+        "rgba(223,13,96,1)",
+        "rgba(94,192,91,1)"
+      ]
     },
     {
       "id": "89bac8d1",
       "image": "r-89bac8d1.jpg",
       "method": "stripe",
-      "shape": "Line"
+      "shape": "Line",
+      "knobs": {
+        "colorScheme": "gradient",
+        "alignment": "diagonal",
+        "range": "touching",
+        "spacing": "even",
+        "coverage": "scattered",
+        "anomaly": "none",
+        "subdivision": "subdivided",
+        "varied": false,
+        "stripeChoices": 5
+      },
+      "colors": [
+        "rgba(80,15,79,1)",
+        "rgba(173,136,26,1)"
+      ]
     },
     {
       "id": "e689913b",
       "image": "r-e689913b.jpg",
       "method": "stripe",
-      "shape": "Square"
+      "shape": "Square",
+      "knobs": {
+        "colorScheme": "gradient",
+        "alignment": "diagonal",
+        "range": "touching",
+        "spacing": "even",
+        "coverage": "scattered",
+        "anomaly": "none",
+        "subdivision": "subdivided",
+        "varied": true,
+        "stripeChoices": 12
+      },
+      "colors": [
+        "rgba(164,62,16,1)",
+        "rgba(145,180,146,1)"
+      ]
     },
     {
       "id": "b4e6ce33",
       "image": "r-b4e6ce33.jpg",
       "method": "stripe",
-      "shape": "Line"
+      "shape": "Line",
+      "knobs": {
+        "colorScheme": "binary",
+        "alignment": "diagonal",
+        "range": "touching",
+        "spacing": "variable",
+        "coverage": "scattered",
+        "anomaly": "hole",
+        "subdivision": "subdivided",
+        "varied": false,
+        "stripeChoices": 8
+      },
+      "colors": [
+        "rgba(180,20,37,1)",
+        "rgba(230,128,41,1)"
+      ]
     },
     {
       "id": "d33c4220",
       "image": "r-d33c4220.jpg",
       "method": "stripe",
-      "shape": "Line"
+      "shape": "Line",
+      "knobs": {
+        "colorScheme": "gradient",
+        "alignment": "aligned",
+        "range": "inset",
+        "spacing": "even",
+        "coverage": "scattered",
+        "anomaly": "hole",
+        "subdivision": "none",
+        "varied": true,
+        "stripeChoices": 5
+      },
+      "colors": [
+        "rgba(48,158,156,1)",
+        "rgba(184,28,17,1)"
+      ]
     },
     {
       "id": "8e12f11f",
       "image": "r-8e12f11f.jpg",
       "method": "stripe",
-      "shape": "Line"
+      "shape": "Line",
+      "knobs": {
+        "colorScheme": "gradient",
+        "alignment": "diagonal",
+        "range": "touching",
+        "spacing": "even",
+        "coverage": "all",
+        "anomaly": "hole",
+        "subdivision": "none",
+        "varied": true,
+        "stripeChoices": 3
+      },
+      "colors": [
+        "rgba(193,69,125,1)",
+        "rgba(101,206,135,1)"
+      ]
     },
     {
       "id": "80432ad7",
       "image": "r-80432ad7.jpg",
       "method": "largeShape",
-      "shape": "Triangle"
+      "shape": "Triangle",
+      "knobs": {
+        "outline": true,
+        "regularity": "irregular",
+        "fit": "partial"
+      },
+      "colors": [
+        "rgba(233,205,110,1)",
+        "rgba(104,92,98,1)"
+      ]
     },
     {
       "id": "5d5b9688",
       "image": "r-5d5b9688.jpg",
       "method": "largeShape",
-      "shape": "Line"
+      "shape": "Line",
+      "knobs": {
+        "outline": false,
+        "regularity": "regular",
+        "fit": "inset",
+        "alignment": "centered"
+      },
+      "colors": [
+        "rgba(150,152,106,1)",
+        "rgba(226,173,76,1)"
+      ]
     },
     {
       "id": "db316f4b",
       "image": "r-db316f4b.jpg",
       "method": "largeShape",
-      "shape": "Circle"
+      "shape": "Circle",
+      "knobs": {
+        "outline": true,
+        "regularity": "regular",
+        "fit": "inset",
+        "alignment": "centered"
+      },
+      "colors": [
+        "rgba(236,128,38,1)",
+        "rgba(204,40,172,1)"
+      ]
     },
     {
       "id": "ec6fb47d",
       "image": "r-ec6fb47d.jpg",
       "method": "largeShape",
-      "shape": "Line"
+      "shape": "Line",
+      "knobs": {
+        "outline": true,
+        "regularity": "irregular",
+        "fit": "inscribed"
+      },
+      "colors": [
+        "rgba(180,132,198,1)",
+        "rgba(37,29,89,1)"
+      ]
     },
     {
       "id": "a2a79fba",
       "image": "r-a2a79fba.jpg",
       "method": "largeShape",
-      "shape": "Square"
+      "shape": "Square",
+      "knobs": {
+        "outline": false,
+        "regularity": "regular",
+        "fit": "inset",
+        "alignment": "centered"
+      },
+      "colors": [
+        "rgba(154,40,181,1)",
+        "rgba(194,195,94,1)"
+      ]
     },
     {
       "id": "bd01fb41",
       "image": "r-bd01fb41.jpg",
       "method": "largeShape",
-      "shape": "Circle"
+      "shape": "Circle",
+      "knobs": {
+        "outline": false,
+        "regularity": "irregular",
+        "fit": "inset",
+        "alignment": "offset",
+        "offsetAxis": "vertical"
+      },
+      "colors": [
+        "rgba(148,201,198,1)",
+        "rgba(40,64,186,1)"
+      ]
     },
     {
       "id": "e03e2bdb",
       "image": "r-e03e2bdb.jpg",
       "method": "largeShape",
-      "shape": "Circle"
+      "shape": "Circle",
+      "knobs": {
+        "outline": false,
+        "regularity": "irregular",
+        "fit": "inset",
+        "alignment": "offset",
+        "offsetAxis": "vertical"
+      },
+      "colors": [
+        "rgba(48,33,67,1)",
+        "rgba(180,23,96,1)"
+      ]
     },
     {
       "id": "1dd625ac",
       "image": "r-1dd625ac.jpg",
       "method": "largeShape",
-      "shape": "Line"
+      "shape": "Line",
+      "knobs": {
+        "outline": false,
+        "regularity": "regular",
+        "fit": "inset",
+        "alignment": "centered"
+      },
+      "colors": [
+        "rgba(168,40,61,1)",
+        "rgba(106,172,77,1)"
+      ]
     }
   ]
 }

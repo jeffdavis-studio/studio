@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>IC — Output Classification</title>
+<style>
+  :root{
+    --bg:#111214; --panel:#1a1c1f; --panel2:#232629; --line:#32363b;
+    --ink:#e9eaec; --dim:#8b9099; --accent:#4da3ff; --good:#49c17f; --warn:#e0574f;
+    --pad: max(12px, env(safe-area-inset-left));
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%}
+  body{
+    background:var(--bg); color:var(--ink);
+    font:15px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    overscroll-behavior:none;
+  }
+  #app{display:flex;flex-direction:column;height:100dvh;overflow:hidden}
+
+  header{
+    display:flex;align-items:center;gap:8px;
+    padding:calc(env(safe-area-inset-top) + 5px) var(--pad) 5px;
+    border-bottom:1px solid var(--line); background:var(--panel); flex:0 0 auto;
+  }
+  header h1{font-size:12px;margin:0;font-weight:600;letter-spacing:.02em;color:var(--dim)}
+  header .count{font-size:12px;color:var(--dim);margin-left:auto;font-variant-numeric:tabular-nums}
+  nav.tabs{display:flex;gap:5px;padding:5px var(--pad);background:var(--panel);border-bottom:1px solid var(--line);flex:0 0 auto}
+  nav.tabs button{
+    flex:1;padding:6px 4px;font-size:12px;border:1px solid var(--line);border-radius:7px;
+    background:var(--panel2);color:var(--dim);font-weight:600
+  }
+  nav.tabs button.on{background:var(--accent);border-color:var(--accent);color:#06121f}
+
+  /* Classify never scrolls — image, chips and next all live on one phone screen.
+     The other views are documents, and scroll normally. */
+  main{flex:1 1 auto;min-height:0;overflow:hidden}
+  .view{display:none;height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 var(--pad) 24px}
+  .view.on{display:block}
+  #v-classify{overflow:hidden;padding-bottom:calc(env(safe-area-inset-bottom) + 6px)}
+  #v-classify.on{display:flex;flex-direction:column;gap:6px}
+
+  /* ---- classify ---- */
+  .stage{
+    background:#000;border-radius:10px;overflow:hidden;position:relative;
+    flex:1 1 auto;min-height:110px;margin-top:6px
+  }
+  .stage img{display:block;width:100%;height:100%;object-fit:contain;background:#000}
+  .badge{
+    position:absolute;left:6px;bottom:6px;background:rgba(0,0,0,.66);backdrop-filter:blur(6px);
+    border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:5px 9px;font-size:11px;
+    color:#dfe3e8;font-family:inherit;display:flex;align-items:center;gap:7px
+  }
+  .badge b{color:#fff;font-weight:600}
+  .badge s{text-decoration:none;color:var(--accent);font-weight:700}
+
+  /* knob drawer — overlays the image, one tap from the badge */
+  .knobs{
+    position:absolute;inset:0;background:rgba(8,9,11,.94);backdrop-filter:blur(8px);
+    padding:10px 12px;overflow-y:auto;display:none
+  }
+  .knobs.on{display:block}
+  .knobs h3{
+    margin:0 0 6px;font-size:12px;color:var(--dim);font-weight:600;
+    display:flex;align-items:center;gap:7px
+  }
+  .knobs h3 em{font-style:normal;color:var(--ink);font-weight:700;font-size:13px}
+  .knobs h3 span{margin-left:auto;color:var(--accent);font-weight:700}
+  .krow{display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-top:1px solid #26292e;font-size:13px}
+  .krow .k{color:var(--dim);white-space:nowrap}
+  .krow .val{font-weight:600;text-align:right;word-break:break-word}
+  .swatches{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+  .swatches i{width:24px;height:16px;border-radius:4px;border:1px solid rgba(255,255,255,.25);display:block}
+
+  .picked{display:flex;gap:5px;flex:0 0 auto;overflow-x:auto;scrollbar-width:none;min-height:20px;align-items:center}
+  .picked::-webkit-scrollbar{display:none}
+  .picked .p{flex:0 0 auto;background:var(--good);color:#062b17;border-radius:999px;padding:2px 8px;font-size:11px;font-weight:600;white-space:nowrap}
+  .picked .none{color:var(--dim);font-size:11px;white-space:nowrap}
+
+  .topics{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;flex:0 0 auto}
+  .topics::-webkit-scrollbar{display:none}
+  .topics button{
+    flex:0 0 auto;padding:6px 11px;border-radius:999px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--ink);font-size:12px;font-weight:600
+  }
+  .topics button.on{background:#2b3a4d;border-color:var(--accent);color:#cfe6ff}
+  .topics button i{
+    font-style:normal;display:inline-block;min-width:15px;margin-left:4px;
+    background:var(--good);color:#062b17;border-radius:999px;font-size:10px;padding:0 4px;font-weight:700
+  }
+  .subs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;flex:0 0 auto}
+  .subs button{
+    padding:8px 4px;border-radius:9px;border:1px solid var(--line);background:var(--panel);
+    color:var(--ink);font-size:12px;font-weight:600;min-height:38px;line-height:1.15
+  }
+  .subs button.on{background:var(--good);border-color:var(--good);color:#062b17}
+
+  .nav{display:grid;grid-template-columns:auto 1fr auto;gap:6px;flex:0 0 auto}
+  .nav button{padding:11px 10px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-size:14px;font-weight:600}
+  .nav button.primary{background:var(--accent);border-color:var(--accent);color:#06121f}
+  .nav button.ghost{color:var(--dim);padding:11px 15px}
+
+  /* ---- shared ---- */
+  h2{font-size:13px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin:18px 0 8px;font-weight:700}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:11px;margin-bottom:9px}
+  .muted{color:var(--dim);font-size:12px}
+  .btnrow{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
+  .btnrow button{flex:1 1 auto;padding:12px 10px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-size:13px;font-weight:600}
+  .btnrow button.primary{background:var(--accent);border-color:var(--accent);color:#06121f}
+
+  /* ---- coverage matrix ---- */
+  .matrix{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-bottom:6px}
+  .matrix .cell{
+    aspect-ratio:1/1;border-radius:7px;border:1px solid var(--line);background:var(--panel);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2px;text-align:center
+  }
+  .matrix .cell .n{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
+  .matrix .cell .lbl{font-size:8px;line-height:1.05;color:var(--dim);margin-top:2px;word-break:break-word}
+  .matrix .cell.zero{border-color:var(--warn);background:#2a1614}
+  .matrix .cell.zero .n{color:var(--warn)}
+  .matrix .cell.has{border-color:var(--good);background:#132a1f}
+  .matrix .cell.has .n{color:var(--good)}
+
+  .thumbs{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:7px}
+  .thumbs img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:6px;background:#000;border:1px solid var(--line)}
+  select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:9px;font-size:14px;width:100%}
+  details{border:1px solid var(--line);border-radius:9px;background:var(--panel);margin-bottom:7px}
+  details>summary{padding:11px;font-weight:600;font-size:14px;cursor:pointer;list-style:none}
+  details>summary::-webkit-details-marker{display:none}
+  details>div{padding:0 11px 11px}
+  .subline{display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid var(--line);font-size:13px}
+  .subline .g{color:var(--good);font-weight:700}
+  #toast{
+    position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 18px);
+    background:var(--good);color:#062b17;padding:10px 16px;border-radius:999px;font-size:13px;font-weight:700;
+    opacity:0;pointer-events:none;transition:opacity .2s;z-index:50
+  }
+  #toast.on{opacity:1}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>In Conversation — Classify</h1>
+    <span class="count" id="hcount"></span>
+  </header>
+  <nav class="tabs">
+    <button data-v="classify" class="on">Classify</button>
+    <button data-v="library">Library</button>
+    <button data-v="coverage">Coverage</button>
+    <button data-v="sync">Sync</button>
+  </nav>
+  <main>
+    <section class="view on" id="v-classify"></section>
+    <section class="view" id="v-library"></section>
+    <section class="view" id="v-coverage"></section>
+    <section class="view" id="v-sync"></section>
+  </main>
+</div>
+<div id="toast"></div>
+
+<script>
+"use strict";
+/* ---------------------------------------------------------------------------
+   IC OUTPUT CLASSIFICATION VIEWER — v2 (2026-07-30)
+   Pre-rendered In Conversation outputs, tagged by topic/subtopic on the phone.
+
+   v2 changes, both from Jeff using v1 in the field:
+     1. The classify loop fits one phone screen — no scrolling to reach a chip
+        or Next. The image takes whatever height is left after the controls.
+     2. Every resolved knob for the current output is one tap away, in a drawer
+        that overlays the image (tap the badge). Reviewing an output means
+        seeing what produced it.
+
+   Version-flexible by construction: batches are discovered by probing
+   ic-classify/batch-NNN/batch.json until one is missing, and the topic matrix,
+   method list and per-item metadata all come from the batch file — which the
+   renderer reads off the live script. New methods, renamed knobs and new
+   subtopics flow through without touching this file.
+
+   Privacy: this page sees images, method/shape, resolved knob values and the
+   resolved palette. The token hash, the declared config spec and the script
+   itself stay on Morgan's machine; the item id is the join key back to the
+   full settings record.
+
+   Tags are stored per-origin in localStorage under STORE_KEY, keyed by item id
+   — so they carry across viewer versions and republished batches.
+--------------------------------------------------------------------------- */
+
+const STORE_KEY = "icClassify.v1";
+const BASE = "ic-classify/";
+const MORGAN_EMAIL = "morgan.jeffgdavis@gmail.com";
+// Optional automatic sync endpoint. Empty = manual sync (email / download / copy).
+const SYNC_URL = "";
+
+let BATCHES = [];      // [{batchId, version, topics, methods, items:[...]}]
+let ITEMS = [];        // flattened, with .batch/.version/.src
+let TOPICS = [];       // [[topic, sub, sub, ...], ...]
+let store = load();    // { id: {t:[codes], b, m, s, ts} }
+let idx = 0;           // cursor into ITEMS
+let activeTopic = 0;
+let knobsOpen = false; // drawer state, reset when the item changes
+
+/* ------------------------------------------------------------------ store */
+function load() {
+  try { return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; } catch { return {}; }
+}
+function save() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); }
+  catch (e) { toast("storage full — sync now"); }
+}
+function code(ti, si) { return "ABCDEF"[ti] + si; }          // si is 1-based
+function decode(c) { return ["ABCDEF".indexOf(c[0]), +c.slice(1)]; }
+function labelOf(c) {
+  const [ti, si] = decode(c);
+  const t = TOPICS[ti]; if (!t || !t[si]) return c;
+  return t[0] + " / " + t[si];
+}
+function esc(s) {
+  return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+}
+
+/* ------------------------------------------------------------------ boot */
+async function boot() {
+  for (let n = 1; n <= 99; n++) {
+    const id = "batch-" + String(n).padStart(3, "0");
+    let b;
+    try {
+      const r = await fetch(BASE + id + "/batch.json", { cache: "no-store" });
+      if (!r.ok) break;
+      b = await r.json();
+    } catch { break; }
+    BATCHES.push(b);
+    for (const it of b.items) {
+      ITEMS.push({ ...it, batch: b.batchId, version: b.version, src: BASE + b.batchId + "/" + it.image });
+    }
+  }
+  if (!BATCHES.length) {
+    document.getElementById("v-classify").innerHTML =
+      '<div class="card">No batches published yet. Morgan renders these on the studio Mac — ' +
+      'ask her for a fresh batch.</div>';
+    return;
+  }
+  TOPICS = BATCHES[BATCHES.length - 1].topics || [];
+  idx = firstUnclassified();
+  renderClassify(); renderCounts();
+}
+
+function firstUnclassified() {
+  const i = ITEMS.findIndex((it) => !store[it.id]);
+  return i === -1 ? 0 : i;
+}
+function doneCount() { return ITEMS.filter((it) => store[it.id]).length; }
+function renderCounts() {
+  document.getElementById("hcount").textContent = doneCount() + " / " + ITEMS.length;
+}
+// Keep the loop quick on cellular — the next few images are already in cache by
+// the time Jeff taps Next.
+function preload() {
+  for (let i = idx + 1; i < Math.min(idx + 4, ITEMS.length); i++) new Image().src = ITEMS[i].src;
+}
+
+/* ------------------------------------------------------------------ classify */
+function knobRows(it) {
+  const k = it.knobs || {};
+  const keys = Object.keys(k);
+  let rows = keys.map((n) => {
+    const v = k[n];
+    const val = typeof v === "boolean" ? (v ? "yes" : "no")
+      : Array.isArray(v) ? v.join(", ")
+      : v === null || v === undefined ? "—" : String(v);
+    return `<div class="krow"><span class="k">${esc(n)}</span><span class="val">${esc(val)}</span></div>`;
+  }).join("");
+  if (!keys.length) rows = '<div class="krow"><span class="k">no knobs recorded for this item</span></div>';
+  if ((it.colors || []).length) {
+    rows += `<div class="krow"><span class="k">colors</span><span class="val swatches">` +
+      it.colors.map((c) => `<i style="background:${esc(c)}"></i>`).join("") + `</span></div>`;
+  }
+  return rows;
+}
+
+function renderClassify() {
+  const it = ITEMS[idx];
+  if (!it) return;
+  const rec = store[it.id];
+  const picked = rec ? rec.t : [];
+  const v = document.getElementById("v-classify");
+
+  v.innerHTML = `
+    <div class="stage">
+      <img id="shot" src="${it.src}" alt="">
+      <button class="badge" id="knobbtn">
+        <b>${esc(it.method || "?")}</b> · ${esc(it.shape || "?")} <s>knobs ▸</s>
+      </button>
+      <div class="knobs${knobsOpen ? " on" : ""}" id="knobpanel">
+        <h3><em>${esc(it.method || "?")}</em> · ${esc(it.shape || "?")}<span>close ✕</span></h3>
+        ${knobRows(it)}
+        <div class="muted" style="margin-top:8px">${esc(it.version || "")} · ${esc(it.id)}</div>
+      </div>
+    </div>
+    <div class="picked" id="picked"></div>
+    <div class="topics" id="topics"></div>
+    <div class="subs" id="subs"></div>
+    <div class="nav">
+      <button class="ghost" id="prev">‹</button>
+      <button id="none">No fit — skip</button>
+      <button class="primary" id="next">Next ›</button>
+    </div>`;
+
+  // topic pills
+  const tw = v.querySelector("#topics");
+  TOPICS.forEach((t, ti) => {
+    const n = picked.filter((c) => decode(c)[0] === ti).length;
+    const b = document.createElement("button");
+    b.className = ti === activeTopic ? "on" : "";
+    b.innerHTML = esc(t[0]) + (n ? `<i>${n}</i>` : "");
+    b.onclick = () => { activeTopic = ti; renderClassify(); };
+    tw.appendChild(b);
+  });
+
+  // subtopic chips for the active topic
+  const sw = v.querySelector("#subs");
+  const t = TOPICS[activeTopic] || [];
+  for (let si = 1; si < t.length; si++) {
+    const c = code(activeTopic, si);
+    const b = document.createElement("button");
+    b.textContent = t[si];
+    b.className = picked.includes(c) ? "on" : "";
+    b.onclick = () => toggle(c);
+    sw.appendChild(b);
+  }
+
+  paintPicked(picked);
+  const panel = v.querySelector("#knobpanel");
+  v.querySelector("#knobbtn").onclick = () => { knobsOpen = true; panel.classList.add("on"); };
+  panel.onclick = () => { knobsOpen = false; panel.classList.remove("on"); };
+  v.querySelector("#prev").onclick = () => { idx = Math.max(0, idx - 1); knobsOpen = false; renderClassify(); };
+  v.querySelector("#next").onclick = () => advance();
+  v.querySelector("#none").onclick = () => { record([]); advance(); };
+  preload();
+}
+
+function paintPicked(picked) {
+  const p = document.getElementById("picked");
+  if (!p) return;
+  p.innerHTML = picked.length
+    ? picked.map((c) => `<span class="p">${esc(labelOf(c))}</span>`).join("")
+    : '<span class="none">nothing tagged yet — multi-select is the point</span>';
+}
+
+function toggle(c) {
+  const it = ITEMS[idx];
+  const rec = store[it.id] || { t: [], b: it.batch, m: it.method, s: it.shape };
+  const i = rec.t.indexOf(c);
+  if (i === -1) rec.t.push(c); else rec.t.splice(i, 1);
+  rec.t.sort();
+  rec.ts = Date.now();
+  store[it.id] = rec;
+  save(); renderCounts(); renderClassify();
+}
+
+function record(tags) {
+  const it = ITEMS[idx];
+  store[it.id] = { t: tags, b: it.batch, m: it.method, s: it.shape, ts: Date.now() };
+  save(); renderCounts();
+}
+
+function advance() {
+  const it = ITEMS[idx];
+  if (!store[it.id]) record([]);          // an untouched Next counts as "no fit"
+  knobsOpen = false;
+  if (idx < ITEMS.length - 1) { idx++; renderClassify(); }
+  else { toast("batch complete — Sync it over"); showView("sync"); }
+}
+
+/* ------------------------------------------------------------------ library */
+function renderLibrary() {
+  const v = document.getElementById("v-library");
+  const methods = [...new Set(ITEMS.map((i) => i.method))].filter(Boolean).sort();
+  let html = '<h2>Settings library — method × subtopic</h2>';
+  html += `<div class="muted" style="margin-bottom:10px">Every tagged output is a recoverable setting:
+    the knobs are on the output itself, and Morgan holds the hash for each id, so anything here can be
+    re-rendered or wired in.</div>`;
+
+  for (const m of methods) {
+    const mine = ITEMS.filter((i) => i.method === m && store[i.id] && store[i.id].t.length);
+    const total = ITEMS.filter((i) => i.method === m).length;
+    html += `<details><summary>${esc(m)} <span class="muted">— ${mine.length} tagged of ${total}</span></summary><div>`;
+    if (!mine.length) {
+      html += '<div class="muted" style="padding-top:8px">nothing tagged for this method yet</div>';
+    } else {
+      TOPICS.forEach((t, ti) => {
+        for (let si = 1; si < t.length; si++) {
+          const c = code(ti, si);
+          const hits = mine.filter((i) => store[i.id].t.includes(c));
+          if (!hits.length) continue;
+          html += `<div class="subline"><span>${esc(t[0])} / ${esc(t[si])}</span><span class="g">${hits.length}</span></div>`;
+          html += '<div class="thumbs">' + hits.slice(0, 9).map((i) =>
+            `<img src="${i.src}" title="${esc(i.id)}">`).join("") + "</div>";
+        }
+      });
+    }
+    html += "</div></details>";
+  }
+  v.innerHTML = html;
+}
+
+/* ------------------------------------------------------------------ coverage */
+function renderCoverage() {
+  const v = document.getElementById("v-coverage");
+  const methods = [...new Set(ITEMS.map((i) => i.method))].filter(Boolean).sort();
+  const sel = document.getElementById("covsel");
+  const filter = sel ? sel.value : "__all";
+
+  const pool = ITEMS.filter((i) => (filter === "__all" || i.method === filter) && store[i.id]);
+  const counts = {};
+  for (const i of pool) for (const c of store[i.id].t) counts[c] = (counts[c] || 0) + 1;
+
+  let zero = 0, tot = 0, grid = "";
+  TOPICS.forEach((t, ti) => {
+    grid += `<div class="muted" style="margin:10px 0 5px;font-weight:700;color:var(--ink)">${esc(t[0])}</div><div class="matrix">`;
+    for (let si = 1; si < t.length; si++) {
+      const n = counts[code(ti, si)] || 0;
+      tot++; if (!n) zero++;
+      grid += `<div class="cell ${n ? "has" : "zero"}"><span class="n">${n}</span><span class="lbl">${esc(t[si])}</span></div>`;
+    }
+    grid += "</div>";
+  });
+
+  v.innerHTML =
+    `<div class="card"><b>${tot - zero} of ${tot}</b> subtopics have at least one candidate` +
+    `${filter === "__all" ? "" : " from <b>" + esc(filter) + "</b>"}.` +
+    `<div class="muted" style="margin-top:4px">${zero} gap${zero === 1 ? "" : "s"} in red — the subtopics
+     still waiting on a method.</div></div>` +
+    `<h2>Coverage — which subtopics have candidates</h2>` +
+    `<select id="covsel"><option value="__all">All methods</option>` +
+    methods.map((m) => `<option value="${esc(m)}"${m === filter ? " selected" : ""}>${esc(m)}</option>`).join("") +
+    `</select>` + grid;
+
+  document.getElementById("covsel").onchange = renderCoverage;
+}
+
+/* ------------------------------------------------------------------ sync */
+function payload() {
+  const d = {};
+  for (const id in store) d[id] = store[id].t.join(" ");
+  return { v: 1, at: new Date().toISOString(), n: Object.keys(d).length, d };
+}
+function renderSync() {
+  const v = document.getElementById("v-sync");
+  const p = payload();
+  v.innerHTML = `
+    <h2>Send classifications to Morgan</h2>
+    <div class="card">
+      <b>${p.n}</b> classified of ${ITEMS.length}
+      <div class="muted" style="margin-top:4px">Saved on this phone automatically. Sending is what
+      gets them into the settings library.</div>
+      <div class="btnrow">
+        <button class="primary" id="mail">Email to Morgan</button>
+        <button id="copy">Copy</button>
+        <button id="dl">Download</button>
+      </div>
+    </div>
+    <h2>Batches loaded</h2>
+    ${BATCHES.map((b) => `<div class="card"><b>${esc(b.batchId)}</b> — ${b.count} outputs · ${esc(b.version)}
+      <div class="muted">${(b.methods || []).map(esc).join(", ")}</div></div>`).join("")}
+    <h2>Danger</h2>
+    <div class="card"><div class="muted">Clears every tag stored on this phone. Sync first.</div>
+      <div class="btnrow"><button id="reset">Reset all tags</button></div></div>`;
+
+  v.querySelector("#mail").onclick = () => {
+    const body = "IC classifications — payload follows.\n\n" + JSON.stringify(payload());
+    location.href = "mailto:" + MORGAN_EMAIL +
+      "?subject=" + encodeURIComponent("IC classify sync (" + p.n + " outputs)") +
+      "&body=" + encodeURIComponent(body);
+  };
+  v.querySelector("#copy").onclick = async () => {
+    try { await navigator.clipboard.writeText(JSON.stringify(payload())); toast("copied"); }
+    catch { toast("copy blocked — use Download"); }
+  };
+  v.querySelector("#dl").onclick = () => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(payload(), null, 1)], { type: "application/json" }));
+    a.download = "ic-classify-" + new Date().toISOString().slice(0, 10) + ".json";
+    a.click();
+  };
+  v.querySelector("#reset").onclick = () => {
+    if (!confirm("Delete all tags on this phone?")) return;
+    store = {}; save(); idx = 0; renderCounts(); renderClassify(); renderSync(); toast("cleared");
+  };
+
+  if (SYNC_URL) {
+    fetch(SYNC_URL, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(payload()) })
+      .then(() => toast("synced")).catch(() => {});
+  }
+}
+
+/* ------------------------------------------------------------------ chrome */
+function showView(name) {
+  document.querySelectorAll("nav.tabs button").forEach((b) => b.classList.toggle("on", b.dataset.v === name));
+  document.querySelectorAll(".view").forEach((s) => s.classList.toggle("on", s.id === "v-" + name));
+  if (name === "library") renderLibrary();
+  if (name === "coverage") renderCoverage();
+  if (name === "sync") renderSync();
+  if (name === "classify") renderClassify();
+  const on = document.querySelector(".view.on");
+  if (on) on.scrollTop = 0;
+}
+document.querySelectorAll("nav.tabs button").forEach((b) => b.onclick = () => showView(b.dataset.v));
+
+let tt;
+function toast(msg) {
+  const el = document.getElementById("toast");
+  el.textContent = msg; el.classList.add("on");
+  clearTimeout(tt); tt = setTimeout(() => el.classList.remove("on"), 1600);
+}
+
+boot();
+</script>
+</body>
+</html>
