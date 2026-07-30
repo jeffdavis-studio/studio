@@ -1,0 +1,311 @@
+{
+  "batchId": "batch-001",
+  "createdAt": "2026-07-30T14:26:39.078Z",
+  "version": "v7",
+  "topics": [
+    [
+      "Balance",
+      "Repetition",
+      "Structure",
+      "Proportion",
+      "Symmetry",
+      "Asymmetry",
+      "Diversity"
+    ],
+    [
+      "Color",
+      "Hue",
+      "Value",
+      "Saturation",
+      "Mixture",
+      "Gradation",
+      "Harmony"
+    ],
+    [
+      "Contrast",
+      "Shape",
+      "Size",
+      "Color",
+      "Quantity",
+      "Position",
+      "Orientation"
+    ],
+    [
+      "Emphasis",
+      "Focus",
+      "Anomaly",
+      "Scale",
+      "Concentration",
+      "Isolation",
+      "Hierarchy"
+    ],
+    [
+      "Movement",
+      "Direction",
+      "Rotation",
+      "Speed",
+      "Growth",
+      "Progression",
+      "Rhythm"
+    ],
+    [
+      "Space",
+      "Figure/Ground",
+      "Overlapping",
+      "Diminution",
+      "Perspective",
+      "Volume",
+      "Ambiguity"
+    ]
+  ],
+  "methods": [
+    "shapeProgression",
+    "grid",
+    "shapeGrid",
+    "stripe",
+    "largeShape"
+  ],
+  "count": 40,
+  "items": [
+    {
+      "id": "8da474c9",
+      "image": "r-8da474c9.jpg",
+      "method": "shapeProgression",
+      "shape": "Line"
+    },
+    {
+      "id": "a128c6fa",
+      "image": "r-a128c6fa.jpg",
+      "method": "shapeProgression",
+      "shape": "Line"
+    },
+    {
+      "id": "5950ede5",
+      "image": "r-5950ede5.jpg",
+      "method": "shapeProgression",
+      "shape": "Triangle"
+    },
+    {
+      "id": "916d1154",
+      "image": "r-916d1154.jpg",
+      "method": "shapeProgression",
+      "shape": "Circle"
+    },
+    {
+      "id": "21a96274",
+      "image": "r-21a96274.jpg",
+      "method": "shapeProgression",
+      "shape": "Square"
+    },
+    {
+      "id": "f27055de",
+      "image": "r-f27055de.jpg",
+      "method": "shapeProgression",
+      "shape": "Triangle"
+    },
+    {
+      "id": "083508c5",
+      "image": "r-083508c5.jpg",
+      "method": "shapeProgression",
+      "shape": "Circle"
+    },
+    {
+      "id": "fc2add53",
+      "image": "r-fc2add53.jpg",
+      "method": "shapeProgression",
+      "shape": "Circle"
+    },
+    {
+      "id": "a828e886",
+      "image": "r-a828e886.jpg",
+      "method": "grid",
+      "shape": "Square"
+    },
+    {
+      "id": "b0c18b01",
+      "image": "r-b0c18b01.jpg",
+      "method": "grid",
+      "shape": "Line"
+    },
+    {
+      "id": "bed7c4d6",
+      "image": "r-bed7c4d6.jpg",
+      "method": "grid",
+      "shape": "Line"
+    },
+    {
+      "id": "1ec4b6aa",
+      "image": "r-1ec4b6aa.jpg",
+      "method": "grid",
+      "shape": "Square"
+    },
+    {
+      "id": "257e587e",
+      "image": "r-257e587e.jpg",
+      "method": "grid",
+      "shape": "Square"
+    },
+    {
+      "id": "9feb05d5",
+      "image": "r-9feb05d5.jpg",
+      "method": "grid",
+      "shape": "Square"
+    },
+    {
+      "id": "bb4a0374",
+      "image": "r-bb4a0374.jpg",
+      "method": "grid",
+      "shape": "Square"
+    },
+    {
+      "id": "cfdd81fb",
+      "image": "r-cfdd81fb.jpg",
+      "method": "grid",
+      "shape": "Square"
+    },
+    {
+      "id": "8a0c2e3a",
+      "image": "r-8a0c2e3a.jpg",
+      "method": "shapeGrid",
+      "shape": "Circle"
+    },
+    {
+      "id": "955853fc",
+      "image": "r-955853fc.jpg",
+      "method": "shapeGrid",
+      "shape": "Triangle"
+    },
+    {
+      "id": "aa85fee8",
+      "image": "r-aa85fee8.jpg",
+      "method": "shapeGrid",
+      "shape": "Triangle"
+    },
+    {
+      "id": "8c68aa7a",
+      "image": "r-8c68aa7a.jpg",
+      "method": "shapeGrid",
+      "shape": "Triangle"
+    },
+    {
+      "id": "0495b3b4",
+      "image": "r-0495b3b4.jpg",
+      "method": "shapeGrid",
+      "shape": "Triangle"
+    },
+    {
+      "id": "19afcb11",
+      "image": "r-19afcb11.jpg",
+      "method": "shapeGrid",
+      "shape": "Triangle"
+    },
+    {
+      "id": "d3436739",
+      "image": "r-d3436739.jpg",
+      "method": "shapeGrid",
+      "shape": "Square"
+    },
+    {
+      "id": "d0c5a38d",
+      "image": "r-d0c5a38d.jpg",
+      "method": "shapeGrid",
+      "shape": "Circle"
+    },
+    {
+      "id": "febbbb4b",
+      "image": "r-febbbb4b.jpg",
+      "method": "stripe",
+      "shape": "Line"
+    },
+    {
+      "id": "b0abc7cd",
+      "image": "r-b0abc7cd.jpg",
+      "method": "stripe",
+      "shape": "Square"
+    },
+    {
+      "id": "bf1da9ad",
+      "image": "r-bf1da9ad.jpg",
+      "method": "stripe",
+      "shape": "Square"
+    },
+    {
+      "id": "89bac8d1",
+      "image": "r-89bac8d1.jpg",
+      "method": "stripe",
+      "shape": "Line"
+    },
+    {
+      "id": "e689913b",
+      "image": "r-e689913b.jpg",
+      "method": "stripe",
+      "shape": "Square"
+    },
+    {
+      "id": "b4e6ce33",
+      "image": "r-b4e6ce33.jpg",
+      "method": "stripe",
+      "shape": "Line"
+    },
+    {
+      "id": "d33c4220",
+      "image": "r-d33c4220.jpg",
+      "method": "stripe",
+      "shape": "Line"
+    },
+    {
+      "id": "8e12f11f",
+      "image": "r-8e12f11f.jpg",
+      "method": "stripe",
+      "shape": "Line"
+    },
+    {
+      "id": "80432ad7",
+      "image": "r-80432ad7.jpg",
+      "method": "largeShape",
+      "shape": "Triangle"
+    },
+    {
+      "id": "5d5b9688",
+      "image": "r-5d5b9688.jpg",
+      "method": "largeShape",
+      "shape": "Line"
+    },
+    {
+      "id": "db316f4b",
+      "image": "r-db316f4b.jpg",
+      "method": "largeShape",
+      "shape": "Circle"
+    },
+    {
+      "id": "ec6fb47d",
+      "image": "r-ec6fb47d.jpg",
+      "method": "largeShape",
+      "shape": "Line"
+    },
+    {
+      "id": "a2a79fba",
+      "image": "r-a2a79fba.jpg",
+      "method": "largeShape",
+      "shape": "Square"
+    },
+    {
+      "id": "bd01fb41",
+      "image": "r-bd01fb41.jpg",
+      "method": "largeShape",
+      "shape": "Circle"
+    },
+    {
+      "id": "e03e2bdb",
+      "image": "r-e03e2bdb.jpg",
+      "method": "largeShape",
+      "shape": "Circle"
+    },
+    {
+      "id": "1dd625ac",
+      "image": "r-1dd625ac.jpg",
+      "method": "largeShape",
+      "shape": "Line"
+    }
+  ]
+}
