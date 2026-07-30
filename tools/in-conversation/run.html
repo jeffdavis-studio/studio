@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>In Conversation v7 — runner</title>
+<!--
+  Sketch runner. Loaded in an iframe by ../in-conversation.html, one instance per
+  token hash. The hash arrives as ?hash=0x… and is set on window before the
+  sketch loads — the same contract Art Blocks uses, and the same one
+  bin/render-sketch.mjs uses headless.
+
+  A fresh iframe per hash is deliberate: In Conversation draws once and calls
+  noLoop(), and its PRNG is seeded in setup(). Re-running it in place would mean
+  unwinding global p5 and sketch state; a new document is exact and free.
+
+  The iframe is sized square by the parent, so the sketch's own
+  min(innerWidth, innerHeight) fills it edge to edge.
+-->
+<style>
+  html, body { margin:0; padding:0; overflow:hidden; background:#000; }
+  canvas { display:block; }
+</style>
+<script>
+  (function () {
+    var q = new URLSearchParams(location.search).get("hash") || "";
+    if (!/^0x[0-9a-fA-F]{64}$/.test(q)) {
+      q = "0x";
+      for (var i = 0; i < 64; i++) q += Math.floor(Math.random() * 16).toString(16);
+    }
+    window.tokenData = { hash: q };
+  })();
+</script>
+<script src="p5.min.js"></script>
+<script src="InConversation_v7.js"></script>
+</head>
+<body>
+<script>
+  // Tell the parent which hash actually ran, once the canvas exists.
+  (function () {
+    var tries = 0;
+    var t = setInterval(function () {
+      if (document.querySelector("canvas") || ++tries > 200) {
+        clearInterval(t);
+        try {
+          parent.postMessage({ ic: "ready", hash: window.tokenData.hash }, "*");
+        } catch (e) {}
+      }
+    }, 50);
+  })();
+</script>
+</body>
+</html>

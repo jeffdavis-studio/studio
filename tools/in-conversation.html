@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0b0b0d">
+<title>In Conversation — Jeff Davis</title>
+<meta name="description" content="In Conversation, v7. A generative work by Jeff Davis. Every load draws a new output from a new token hash.">
+<style>
+  :root{
+    --bg:#0b0b0d; --ink:#eceded; --dim:#84878d;
+    --barh:56px;
+    /* The square: as big as the viewport allows in whichever dimension binds,
+       minus the strip the controls live in — so nothing ever sits on the work.
+       svh (where supported) keeps phones stable when the URL bar shows/hides. */
+    --sq: min(100vw, calc(100vh - var(--barh)));
+    --sq: min(100vw, calc(100svh - var(--barh)));
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none;background:var(--bg)}
+  body{
+    color:var(--ink);
+    font:13px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    display:flex;flex-direction:column;
+  }
+
+  #wrap{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center}
+  #stage{
+    position:relative;width:var(--sq);height:var(--sq);
+    background:#000;cursor:pointer;flex:0 0 auto;
+  }
+  #stage iframe{display:block;width:100%;height:100%;border:0;background:#000}
+  /* the iframe swallows pointer events; this catches the tap for a new output */
+  #hit{position:absolute;inset:0}
+  #loading{
+    position:absolute;inset:0;display:none;align-items:center;justify-content:center;
+    background:#000;color:var(--dim);font-size:11px;letter-spacing:.18em;pointer-events:none
+  }
+  #loading.on{display:flex}
+
+  #bar{
+    flex:0 0 auto;height:var(--barh);
+    display:flex;align-items:center;gap:14px;
+    padding:0 max(14px, env(safe-area-inset-left)) env(safe-area-inset-bottom);
+  }
+  #who{color:var(--dim);font-size:11px;letter-spacing:.13em;text-transform:uppercase;white-space:nowrap}
+  #meta{
+    margin-left:auto;color:var(--dim);font-size:11.5px;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis;cursor:pointer;
+  }
+  #meta:active{color:var(--ink)}
+  #new{
+    flex:0 0 auto;border:0;border-radius:999px;padding:9px 18px;cursor:pointer;
+    background:var(--ink);color:#0b0b0d;font:inherit;font-weight:700;font-size:12px;
+  }
+  #new:active{transform:translateY(1px)}
+  /* narrow phones: the wordmark yields to the controls */
+  @media (max-width:430px){ #who{display:none} #meta{margin-left:0} #bar{gap:10px} }
+  /* short landscape: give the work every pixel */
+  @media (max-height:460px){ :root{--barh:44px} #who{display:none} }
+</style>
+</head>
+<body>
+
+<div id="wrap">
+  <div id="stage">
+    <iframe id="frame" title="In Conversation" scrolling="no"></iframe>
+    <div id="hit" title="Tap for a new output"></div>
+    <div id="loading">DRAWING</div>
+  </div>
+</div>
+
+<div id="bar">
+  <span id="who">In Conversation &middot; Jeff Davis</span>
+  <span id="meta" title="Copy a link to this output"></span>
+  <button id="new">New output</button>
+</div>
+
+<script>
+"use strict";
+/* ---------------------------------------------------------------------------
+   IN CONVERSATION — live viewer (v7)
+
+   Runs the real script, not pre-rendered images: every load mints a token hash
+   and draws it in the browser, the same way the piece runs on chain.
+
+   New output = a fresh iframe at a fresh hash. The sketch seeds its PRNG in
+   setup() and calls noLoop() at the end of draw(), so a new document is the
+   honest way to re-run it — and it guarantees no state leaks between outputs.
+   Tap the work, hit the button, or press space / N / →.
+
+   The hash lands in the URL fragment, so whatever you're looking at is a link
+   you can send: .../in-conversation.html#0x…  reproduces it exactly (verified
+   pixel-identical across loads).
+
+   Note on this version: v7 runs the script's methods-first test mode
+   (testMethod = every registered method), which is where the work sits right
+   now — outputs span the full range of drawing methods rather than the
+   topic/subtopic pipeline.
+--------------------------------------------------------------------------- */
+
+const RUNNER  = "in-conversation/run.html";
+const frame   = document.getElementById("frame");
+const loading = document.getElementById("loading");
+const meta    = document.getElementById("meta");
+
+let current = null;
+let lastSquare = 0;
+
+const isHash = (h) => /^0x[0-9a-fA-F]{64}$/.test(h);
+
+function mintHash() {
+  const b = new Uint8Array(32);
+  self.crypto.getRandomValues(b);
+  return "0x" + Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
+}
+
+function squareSize() {
+  return Math.round(document.getElementById("stage").getBoundingClientRect().width);
+}
+
+function show(hash, writeUrl) {
+  current = hash;
+  lastSquare = squareSize();
+  loading.classList.add("on");
+  meta.textContent = hash.slice(0, 10) + "\u2026";
+  frame.src = RUNNER + "?hash=" + hash + "&t=" + Date.now();
+  if (writeUrl !== false) {
+    try { history.replaceState(null, "", "#" + hash); } catch (e) {}
+  }
+}
+
+function newOutput() { show(mintHash()); }
+
+// The runner posts back once its canvas exists.
+window.addEventListener("message", (e) => {
+  if (e.data && e.data.ic === "ready") loading.classList.remove("on");
+});
+// Belt and braces: never leave the overlay up if that message is missed.
+frame.addEventListener("load", () => setTimeout(() => loading.classList.remove("on"), 1500));
+
+document.getElementById("new").addEventListener("click", newOutput);
+document.getElementById("hit").addEventListener("click", newOutput);
+document.addEventListener("keydown", (e) => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.key === " " || e.key === "n" || e.key === "N" || e.key === "ArrowRight" || e.key === "Enter") {
+    e.preventDefault();
+    newOutput();
+  }
+});
+
+// Tap the hash to copy a link straight to this output.
+meta.addEventListener("click", async () => {
+  const url = location.href.split("#")[0] + "#" + current;
+  try {
+    await navigator.clipboard.writeText(url);
+    const was = meta.textContent;
+    meta.textContent = "link copied";
+    setTimeout(() => { if (meta.textContent === "link copied") meta.textContent = was; }, 1400);
+  } catch (err) { /* clipboard blocked — the address bar already has it */ }
+});
+
+// Someone opened, or pasted in, a link to a specific output.
+window.addEventListener("hashchange", () => {
+  const h = location.hash.slice(1);
+  if (isHash(h) && h !== current) show(h, false);
+});
+
+/* The sketch reads window size once, in setup(), and has no windowResized().
+   So a real resize (rotating a phone, dragging a window) means re-running the
+   same hash at the new size — deterministic, same output, correctly scaled.
+   Threshold + debounce so mobile URL-bar jitter doesn't retrigger it. */
+let rt;
+window.addEventListener("resize", () => {
+  clearTimeout(rt);
+  rt = setTimeout(() => {
+    const s = squareSize();
+    if (current && Math.abs(s - lastSquare) > 24) show(current, false);
+  }, 320);
+});
+
+const initial = location.hash.slice(1);
+show(isHash(initial) ? initial : mintHash(), !isHash(initial));
+</script>
+</body>
+</html>
