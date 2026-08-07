@@ -643,7 +643,10 @@ let methods = {
   //     cell independently 50%. "wander" → a random-walk blob (meandering, irregular). "cluster"
   //     → a compact, roughly-circular blob grown toward its own centroid. "void" → the inverse
   //     of cluster: full coverage with a rounded blob-shaped hole punched out.
-  //   anomaly: single deliberate outlier — hole (cell removed) or emphasis (cell highlighted).
+  //   anomaly: single deliberate outlier — hole (cell removed) or emphasis. Filled emphasis
+  //     mutes every OTHER cell to the c1↔c2 midpoint and leaves the outlier at full strength,
+  //     which flattens any binary/gradient variation for that draw. Outlined emphasis instead
+  //     keeps all cells c1 and solid-fills the outlier alone.
   //   No "scattered" anomaly value because that's just coverage="scattered" — the layout knob
   //   covers the many-deviations case.
   //   range: canvas framing applied uniformly to all four edges — "inset" (margin on every
@@ -654,7 +657,7 @@ let methods = {
     shapes: ["Circle", "Square", "Triangle"],
     defaults: {
       colorScheme: "random",
-      outline: 0.25,
+      outline: 0.5,
       coverage: "random",
       aspect: "random",
       anomaly: "random",
@@ -954,17 +957,23 @@ let methods = {
           let cw = cellW[i];
           let ch = cellH[j];
 
+          let emphasized = isAnomaly && anomaly === "emphasis";
           let cc = cellColor(i, j);
           if (outline) {
+            // Outlined emphasis reads through fill, not color: every cell is stroked in c1
+            // (outline forces single) and the outlier is the only solid one.
             stroke(cc);
             strokeWeight(sw);
-            if (isAnomaly && anomaly === "emphasis") fill(cc);
+            if (emphasized) fill(cc);
             else noFill();
           } else {
             noStroke();
-            // Emphasis uses the midpoint of c1↔c2 to stand out regardless of the cell's
-            // own palette color (which could happen to match c1 or c2).
-            fill(isAnomaly && anomaly === "emphasis" ? betterLerp(c1, c2, 0.5) : cc);
+            // Emphasis mutes the FIELD rather than the outlier: every other cell drops to the
+            // c1↔c2 midpoint and the emphasized one carries the parent color, so the outlier is
+            // the strongest thing on the canvas instead of the most washed out. The parent color
+            // is c1 rather than the cell's own palette entry, which under binary could come up
+            // c2 — the background, and so invisible.
+            fill(anomaly === "emphasis" ? (emphasized ? c1 : betterLerp(c1, c2, 0.5)) : cc);
           }
 
           drawShape(shape, x, y, cw, ch);
@@ -1001,8 +1010,13 @@ let methods = {
   //     distribute(n), so stripe widths vary). Matches shapeProgression/shapeGrid spacing.
   //   coverage: "all" (every stripe drawn) or "scattered" (each stripe independently 50%
   //     drawn — skipped stripes reveal the canvas background).
-  //   anomaly: single outlier — "hole" (one stripe removed) or "emphasis" (one stripe at
-  //     the midpoint of c1↔c2 for stand-out contrast). Suppressed when scattered.
+  //   anomaly: single outlier — "hole" (one stripe removed) or "emphasis". Emphasis always
+  //     gives the outlier c1 and holds the field back from it, by whatever means that scheme
+  //     allows: single (Line) mutes every other boundary to the c1↔c2 midpoint; binary mutes
+  //     its c1 bands and spares its c2 bands, which read as background gaps and carry the
+  //     alternation; gradient shifts its whole fade one step in so no band sits at c1.
+  //     A binary hole is restricted to the c1 bands — removing a c2 band is invisible.
+  //     Suppressed when scattered.
   //   varied: Line shape only — outer frame lines (the boundaries at the ends of the stripe
   //     axis when range="inset") rendered at a heavier weight than internal boundary lines.
   //     Mirrors grid's outer/inner stroke distinction. Only meaningful when range="inset" AND
@@ -1129,27 +1143,62 @@ let methods = {
         if (!drawnMask.some(x => x)) drawnMask[R.random_int(0, nFinal - 1)] = true;
       }
 
-      // --- Anomaly target ---
-      // Pick from currently-drawn stripes so the outlier is actually visible.
-      let ai = -1;
-      if (anomaly === "hole" || anomaly === "emphasis") {
-        let candidates = [];
-        for (let i = 0; i < nFinal; i++) if (drawnMask[i]) candidates.push(i);
-        if (candidates.length > 0) ai = R.random_choice(candidates);
-        else anomaly = "none";
+      // --- Boundary mask (Line shape) ---
+      // Which separator lines render. Computed here rather than at draw time so the anomaly
+      // target can be picked from lines that exist. The outer boundaries (0 and nFinal) only
+      // read as a "frame" when inset, where they sit inside the canvas; touching lays them
+      // along the canvas edge, where half the stroke falls off it, so they are dropped.
+      // Internal boundaries need at least one adjacent stripe to separate.
+      let drawBoundary = null;
+      if (shape === "Line") {
+        drawBoundary = new Array(nFinal + 1).fill(true);
+        if (range !== "inset") {
+          drawBoundary[0] = false;
+          drawBoundary[nFinal] = false;
+        }
+        for (let i = 1; i < nFinal; i++) {
+          if (!drawnMask[i - 1] && !drawnMask[i]) drawBoundary[i] = false;
+        }
       }
 
       // --- Color palette ---
       // Stripe-specific binary: adjacent same-color stripes would visually merge into a
       // single wider stripe, defeating the purpose of binary. Force strict alternation
       // (c1/c2/c1/c2/...) with a randomized starting color.
+      // Built before the anomaly target so a binary hole can steer around the c2 bands.
+      // Gradient under emphasis reserves c1 for the outlier: the field is shifted one step in
+      // so no band sits at c1, which is what makes the outlier read. Without it the fade would
+      // already pass through the emphasis color and the outlier would vanish into the run.
+      let reserveC1 = anomaly === "emphasis" && colorScheme === "gradient";
       let palette;
       if (colorScheme === "binary") {
         let start = R.random_bool(0.5);
         palette = [];
         for (let i = 0; i < nFinal; i++) palette.push((i % 2 === 0) === start ? c1 : c2);
       } else {
-        palette = buildColorPalette(colorScheme, nFinal);
+        palette = buildColorPalette(colorScheme, nFinal, reserveC1);
+      }
+
+      // --- Anomaly target ---
+      // Pick from elements that actually render so the outlier is visible: a drawn stripe for
+      // Square, a surviving boundary line for Line. Picking a suppressed element would make
+      // the anomaly a silent no-op — a hole that removes nothing, or an emphasis that mutes
+      // the whole field with no line left at full strength.
+      // A binary hole has the same problem in the color dimension: the c2 bands already render
+      // in the background color, so removing one changes nothing. Restrict it to the c1 bands.
+      let ai = -1;
+      if (anomaly === "hole" || anomaly === "emphasis") {
+        let candidates = [];
+        if (shape === "Line") {
+          for (let i = 0; i <= nFinal; i++) if (drawBoundary[i]) candidates.push(i);
+        } else {
+          let holeInBinary = anomaly === "hole" && colorScheme === "binary";
+          for (let i = 0; i < nFinal; i++) {
+            if (drawnMask[i] && !(holeInBinary && palette[i] === c2)) candidates.push(i);
+          }
+        }
+        if (candidates.length > 0) ai = R.random_choice(candidates);
+        else anomaly = "none";
       }
 
       // Visibility guard for binary/gradient (Square only — Line is always c1).
@@ -1157,7 +1206,10 @@ let methods = {
       // coverage could remove all c1 stripes (or all c2 stripes), leaving the visible set
       // a single color. Ensure at least one visible stripe is c1 so the composition reads
       // against the c2 background.
-      if (colorScheme !== "single") {
+      // Skipped when c1 is reserved: the emphasis band supplies it, and since betterLerp
+      // returns a fresh color the === test below can never match a gradient entry, so the
+      // guard would otherwise fire every time and put c1 straight back into the field.
+      if (colorScheme !== "single" && !reserveC1) {
         let visibleIdx = [];
         for (let i = 0; i < nFinal; i++) {
           if (drawnMask[i] && !(anomaly === "hole" && i === ai)) visibleIdx.push(i);
@@ -1197,7 +1249,7 @@ let methods = {
       print("Range:", range, range === "inset" ? "| Margin: " + Math.round(marginPick) : "");
       print("Spacing:", spacing);
       print("Coverage:", coverage, coverage !== "all" ? "(" + drawnMask.filter(x => x).length + "/" + nFinal + ")" : "");
-      print("Anomaly:", anomaly, ai >= 0 ? "at " + ai : "");
+      print("Anomaly:", anomaly, ai >= 0 ? "at " + (shape === "Line" ? "boundary " : "stripe ") + ai : "");
       print("Subdivision:", subdivision, subIdx >= 0 ? "at stripe " + subIdx + " (+" + subM + " sub)" : "");
       if (shape === "Line") print("Stroke:", swName, "| Varied:", varied ? "Yes" : "No");
 
@@ -1216,11 +1268,19 @@ let methods = {
         // A 1px stroke matching the fill closes any sub-pixel seams that can appear between
         // adjacent rects from anti-aliased edge rendering.
         strokeWeight(1);
+        // Emphasis gives the outlier c1 and holds the field back from it, matching the Line
+        // path and shapeGrid. Binary does that by muting its c1 bands to the c1↔c2 midpoint,
+        // sparing the c2 bands — those match the background and read as gaps, so muting them
+        // too would close the gaps and collapse the alternation into one solid block. Gradient
+        // needs no muting here; its field was already shifted clear of c1 when built.
+        let muteField = anomaly === "emphasis" && ai >= 0 && colorScheme === "binary";
         let y = marginStart;
         for (let i = 0; i < nFinal; i++) {
           if (drawnMask[i] && !(anomaly === "hole" && i === ai)) {
             let col;
             if (anomaly === "emphasis" && i === ai) {
+              col = c1;
+            } else if (muteField && palette[i] === c1) {
               col = betterLerp(c1, c2, 0.5);
             } else {
               col = palette[i];
@@ -1237,36 +1297,19 @@ let methods = {
         let boundaries = [marginStart];
         for (let i = 0; i < nFinal; i++) boundaries.push(boundaries[i] + cells[i]);
 
-        let drawBoundary = new Array(nFinal + 1).fill(true);
-        // The outer boundaries (0 and nFinal) only read as a "frame" when inset, where they sit
-        // inside the canvas. Touching lays them along the canvas edge, where half the stroke
-        // falls off it, so they are dropped instead.
-        let drawOuterFrame = range === "inset";
-        if (!drawOuterFrame) {
-          drawBoundary[0] = false;
-          drawBoundary[nFinal] = false;
-        }
-        // Internal boundaries (1..nFinal-1) sit between two stripes. Skip the boundary if
-        // BOTH adjacent stripes are absent (no visible band to separate).
-        for (let i = 1; i < nFinal; i++) {
-          if (!drawnMask[i - 1] && !drawnMask[i]) drawBoundary[i] = false;
-        }
-        // Anomaly hole: remove one boundary line.
-        // For Line shape, ai is a stripe index — translate to a boundary index (the one just
-        // before that stripe, i.e. the line that separates it from its predecessor).
+        // Anomaly hole: remove one boundary line. ai is already a boundary index here.
         if (anomaly === "hole" && ai >= 0) {
           drawBoundary[ai] = false;
         }
 
         noFill();
+        // Emphasis mutes the FIELD rather than the outlier: every other boundary drops to the
+        // c1↔c2 midpoint and the emphasized one keeps c1, so the outlier is the strongest line
+        // on the canvas instead of the most washed out. Matches shapeGrid's filled emphasis.
+        let emphasisActive = anomaly === "emphasis" && ai >= 0;
         for (let i = 0; i <= nFinal; i++) {
           if (!drawBoundary[i]) continue;
-          // Anomaly emphasis: color this boundary line with the midpoint shade.
-          if (anomaly === "emphasis" && ai >= 0 && i === ai) {
-            stroke(betterLerp(c1, c2, 0.5));
-          } else {
-            stroke(c1);
-          }
+          stroke(emphasisActive && i !== ai ? betterLerp(c1, c2, 0.5) : c1);
           // Varied stroke: outer frame lines (i === 0 || i === nFinal) get the heavier weight.
           let isOuter = (i === 0 || i === nFinal);
           strokeWeight(varied ? (isOuter ? swOuter : swInner) : sw);
@@ -2230,8 +2273,9 @@ function solveAxis(span, props, stateStart, stateEnd, marginStart, marginEnd, sp
 //              (Per-engine logic further ensures the visible drawn entities — cells
 //              actually rendered, lines actually drawn — contain at least one c1.)
 //   gradient — smooth lerp from c1 to c2 across n entries (with a random 50% reversal
-//              so the gradient direction varies across draws).
-function buildColorPalette(scheme, n) {
+//              so the gradient direction varies across draws). Pass reserveC1 to shift the
+//              whole run clear of c1, leaving that color free for an emphasis outlier.
+function buildColorPalette(scheme, n, reserveC1) {
   let palette = [];
   if (n <= 0) return palette;
   if (scheme === "single") {
@@ -2248,13 +2292,19 @@ function buildColorPalette(scheme, n) {
     // evenly spaced values [0, 1/n, ..., (n-1)/n] — the c1 end is preserved, the c2 end
     // stops one step before the background. Reverse flips the direction without changing
     // the endpoint policy.
+    // reserveC1 keeps c1 out of the field so an emphasis outlier can own it. Dividing by
+    // n+1 and shifting one step in puts all n values strictly inside (0, 1): clear of c1 at
+    // one end and of the background at the other. Keeping the denominator at n instead would
+    // land the last entry on c2 itself.
+    let denom = reserveC1 ? n + 1 : n;
+    let shift = reserveC1 ? 1 : 0;
     if (n === 1) {
-      palette.push(c1);
+      palette.push(reserveC1 ? betterLerp(c1, c2, 0.5) : c1);
     } else {
       let reverse = R.random_bool(0.5);
       for (let i = 0; i < n; i++) {
         let idx = reverse ? n - 1 - i : i;
-        let t = idx / n;
+        let t = (idx + shift) / denom;
         palette.push(betterLerp(c1, c2, t));
       }
     }
