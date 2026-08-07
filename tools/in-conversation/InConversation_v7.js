@@ -8,7 +8,7 @@
 //   tokenData.hash = tokenData.hash + (Math.floor(Math.random() * 16)).toString(16);
 // }
 
-let R, w, h, sd, t, st, topic, sub, s, shape, comp, ci, c1, c2, config;
+let R, w, h, sd, t, st, topic, sub, s, shape, comp, ci, cReversed, c1, c2, config;
 let topics = [
   ["Balance", "Repetition", "Structure", "Proportion", "Symmetry", "Asymmetry", "Diversity"],
   ["Color", "Hue", "Value", "Saturation", "Mixture", "Gradation", "Harmony"],
@@ -20,77 +20,6 @@ let topics = [
 let shapes = ["Line", "Circle", "Square", "Triangle"];
 let colors = [["#f21424", "#ffd7d7"], ["#f23f08", "#ffe9ef"], ["#a3131d", "#ed1423"], ["#f21100", "#ff7e1d"], ["#ed1140", "#ff681d"], ["#ff2d0a", "#ff0a95"], ["#f72300", "#c7ddd6"], ["#ec1e24", "#2a2a73"], ["#ed4518", "#073154"], ["#f23300", "#0b2f96"], ["#ef3011", "#0055ba"], ["#fc433f", "#1c83b7"], ["#f2400f", "#8fcae2"], ["#ef2d18", "#d1e5ec"], ["#ff9797", "#223896"], ["#ffcbcb", "#1783bf"], ["#e51322", "#a31667"], ["#ff1e00", "#d30083"], ["#ea1a0a", "#e5b3e1"], ["#f2412f", "#c2c8cc"], ["#ffddd9", "#a9b2b5"], ["#e2005c", "#ffdee2"], ["#ed0088", "#f43f1c"], ["#ffa6d5", "#f45608"], ["#ffb6c2", "#ff6e00"], ["#ffc7de", "#ff6464"], ["#fcb9d0", "#d14b00"], ["#ff78a2", "#ffbc15"], ["#ffcad2", "#ffd400"], ["#ffcad2", "#37563f"], ["#ff4367", "#c0d8c3"], ["#a30527", "#b2d4d6"], ["#ffc5cd", "#071087"], ["#d80053", "#1542ff"], ["#f92366", "#2ba0e2"], ["#ff3b6e", "#81aee2"], ["#ffc9d1", "#1313a5"], ["#b20b1b", "#bfcce8"], ["#f94600", "#ff7f00"], ["#ff4800", "#ffb600"], ["#f44022", "#ffce00"], ["#ff6e00", "#fff2c7"], ["#ed4518", "#1a3328"], ["#ff5c50", "#00443a"], ["#ff9700", "#95c6d1"], ["#ff8500", "#c7dce0"], ["#ff9100", "#ff7381"], ["#f66951", "#ffd9f1"], ["#f9d9d9", "#1313a5"], ["#e84534", "#6579ba"], ["#f45c21", "#c5d8f0"], ["#fc4f1a", "#ceceef"], ["#fff2ca", "#0f296d"], ["#fde166", "#5091cd"], ["#fddb00", "#94c5d0"], ["#ffd939", "#303135"], ["#ffff00", "#bdbdc1"], ["#f4ff15", "#d9d9dd"], ["#a7ce49", "#243d00"], ["#086600", "#5faf22"], ["#006d0d", "#e0edca"], ["#075113", "#0f265e"], ["#203a12", "#113170"], ["#01662c", "#3a78c1"], ["#273530", "#0d86c9"], ["#057f05", "#65a9e0"], ["#2e7c00", "#b0d0ea"], ["#c3ddde", "#3f5ba8"], ["#96b5b5", "#294c9b"], ["#b8d3d1", "#350c14"], ["#091828", "#003893"], ["#2f439a", "#08425b"], ["#112977", "#adcadb"], ["#62aedd", "#cbcfd1"], ["#0d296d", "#aa62b2"], ["#2c489d", "#efd5e7"], ["#001f6d", "#afafef"], ["#000d6b", "#dddde8"], ["#284bce", "#f4e9e9"], ["#2a2a73", "#deb2d3"], ["#250972", "#d4d5d8"], ["#8e9cef", "#e6e5ea"]];
 
-
-// ============================================================================
-// COVERAGE AUDIT — v4
-//
-// Subtopic -> available methods. Gaps flagged with [NONE].
-// Subtopics with zero methods fall back to "no compatible method" in draw().
-//
-// --- Balance ---
-//   Repetition:   3 methods (shapeProgression, grid, stripe)
-//   Structure:    3 methods (shapeProgression, grid, stripe)
-//   Proportion:   3 methods (shapeProgression, stripe, largeShape)
-//   Symmetry:     3 methods (shapeProgression, grid, shapeGrid)
-//   Asymmetry:    3 methods (shapeProgression, stripe, largeShape)
-//   Diversity:    0 methods [NONE]
-//
-// --- Color ---
-//   Hue:          0 methods [NONE]
-//   Value:        0 methods [NONE]
-//   Saturation:   0 methods [NONE]
-//   Mixture:      0 methods [NONE]
-//   Gradation:    0 methods [NONE]
-//   Harmony:      0 methods [NONE]
-//
-// --- Contrast ---
-//   Shape:        0 methods [NONE]
-//   Size:         0 methods [NONE]
-//   Color:        0 methods [NONE]
-//   Quantity:     0 methods [NONE]
-//   Position:     0 methods [NONE]
-//   Orientation:  0 methods [NONE]
-//
-// --- Emphasis ---
-//   Focus:        1 method  (largeShape)         [v4 new]
-//   Anomaly:      0 methods [NONE]
-//     Candidates: shapeGrid (has anomaly knob), grid (has anomaly knob),
-//     stripe (has anomaly knob). Held back: wiring these would mean the
-//     "anomaly" subtopic just forces anomaly="hole"|"emphasis", which
-//     overlaps with the existing anomaly knob's random behavior. Needs
-//     thought on whether the subtopic should force a specific anomaly
-//     type or raise the probability.
-//   Scale:        1 method  (largeShape)         [v4 new]
-//   Concentration: 0 methods [NONE]
-//   Isolation:    1 method  (largeShape)         [v4 new]
-//   Hierarchy:    0 methods [NONE]
-//
-// --- Movement ---
-//   Direction:    0 methods [NONE]
-//   Rotation:     0 methods [NONE]
-//   Speed:        0 methods [NONE]
-//   Growth:       0 methods [NONE]
-//   Progression:  0 methods [NONE]
-//   Rhythm:       0 methods [NONE]
-//
-// --- Space ---
-//   Figure/Ground: 1 method (largeShape)         [v4 new]
-//   Overlapping:   0 methods [NONE]
-//   Diminution:    0 methods [NONE]
-//   Perspective:   0 methods [NONE]
-//   Volume:        0 methods [NONE]
-//   Ambiguity:     0 methods [NONE]
-//
-// Summary: 36 subtopics. 9 unique wired (was 5 in v3), 27 unwired.
-// The Color, Contrast, and Movement topic groups are entirely unwired.
-// These will need new methods or significant extensions to existing ones.
-//
-// v4 changes:
-//   - largeShape: added Focus, Scale, Isolation, Figure/Ground subtopics
-//     (was only Proportion, Asymmetry)
-//   - Extracted pickStrokeWeights() helper (shared weight-list filtering)
-//   - Extracted pickVariedPair() helper (shared outer/inner pair selection)
-// ============================================================================
 
 // ============================================================================
 // METHOD REGISTRY
@@ -765,9 +694,9 @@ let methods = {
       let topEdge = range, rightEdge = range, bottomEdge = range, leftEdge = range;
 
       // --- Grid dimensions ---
-      // Cap the rows/cols ratio so cells don't become extremely elongated (e.g. cols=8,
-      // rows=1 stretches shapes to 8× their natural aspect). MAX_CELL_RATIO = 2 keeps cell
-      // proportions within 2:1 — preserves variety (1×2, 2×3, 4×8, etc.) while preventing
+      // Cap the rows/cols ratio so cells don't become extremely elongated (e.g. cols=10,
+      // rows=1 stretches shapes to 10× their natural aspect). MAX_CELL_RATIO = 5 keeps cell
+      // proportions within 5:1 — preserves variety (1×2, 2×8, 2×10, etc.) while preventing
       // the most skinny outliers. This uses rows/cols as a proxy for cellW/cellH; actual
       // cell dimensions also depend on solveAxis (insets, extended edges), but they track
       // this ratio closely enough that the proxy is a reliable filter.
@@ -1063,12 +992,15 @@ let methods = {
   //     alignment in spirit (different composition types via different anchor geometry).
   //     "aligned" → stripe bands parallel to canvas edges (global 90° rotation gives H or V).
   //     "diagonal" → stripe bands at 45° to canvas edges (global rotation gives NW-SE or
-  //     NE-SW diagonal). Inset uses a square clip (sd-2m); touching extends to sd·√2 so the
-  //     stripes reach the canvas corners.
+  //     NE-SW diagonal), sized to the full canvas diagonal (sd·√2) so the stripes reach the
+  //     canvas corners. Diagonal is touching-only — see range.
   //   range: edge state on the stripe axis. "touching" (stripes flush to canvas bounds —
-  //     edges for aligned, corners for diagonal) or "inset" (stripes within a bg margin —
-  //     framed on all four sides for aligned, square-clipped for diagonal). Stripe always
-  //     terminates at or within the canvas; there is no "extended" range for stripe.
+  //     edges for aligned, corners for diagonal) or "inset" (stripes within a bg margin,
+  //     framed on all four sides — aligned only). A diagonal inset would need to rotate an
+  //     oversized frame and clip it back to a square, cutting stripes off mid-run rather than
+  //     terminating them at a margin, so it reads as a crop rather than an inset composition;
+  //     diagonal always resolves to touching instead. Stripe always terminates at or within
+  //     the canvas; there is no "extended" range for stripe.
   //   spacing: "even" (every stripe is 1/N of the band) or "variable" (proportions from
   //     distribute(n), so stripe widths vary). Matches shapeProgression/shapeGrid spacing.
   //   coverage: "all" (every stripe drawn) or "scattered" (each stripe independently 50%
@@ -2187,17 +2119,20 @@ function drawShape(shape, x, y, w, h) {
 // STROKE_WEIGHTS catalog: each entry maps a named weight to a divisor. The actual
 // stroke width is `unit / divisor`, where `unit` is the engine-supplied reference
 // scale (cell size for cell-based engines, canvas size for canvas-spanning ones).
-// Engines pick the named subset appropriate to their visual character — grid prefers
-// heavier weights, shapeGrid prefers refined weights, shapeProgression uses hairline.
+// Engines pick the named subset appropriate to their visual character. grid, shapeGrid,
+// and stripe share pickStrokeWeights' identical thick/heavy/medium(+thin/fine) list;
+// shapeProgression picks from medium/thin/fine/hairline directly, filtered by its own
+// gap constraint; largeShape picks from fine/hairline directly — a canvas-scale form
+// only reads cleanly at the two thinnest weights (see largeShape's own stroke comment).
 // The catalog is the union of all current per-engine values; named entries can be
 // added later without touching engine code.
 const STROKE_WEIGHTS = {
-  thick:     4,   // unit/4   — grid's heaviest
-  heavy:     8,   // unit/8   — grid's medium
-  medium:   10,   // unit/10  — shapeGrid's heaviest
-  thin:     16,   // unit/16  — grid's thinnest, shapeGrid's medium
-  fine:     25,   // unit/25  — shapeGrid's thinnest
-  hairline:120    // unit/120 — shapeProgression's single weight (canvas-scale)
+  thick:     4,   // unit/4   — heaviest, shared by grid/shapeGrid/stripe
+  heavy:     8,   // unit/8   — shared by grid/shapeGrid/stripe
+  medium:   10,   // unit/10  — shared by grid/shapeGrid/stripe, and shapeProgression
+  thin:     16,   // unit/16  — shared by grid/shapeGrid/stripe, and shapeProgression
+  fine:     25,   // unit/25  — shared by grid/shapeGrid/stripe, shapeProgression, largeShape
+  hairline:120    // unit/120 — canvas-scale weight for shapeProgression and largeShape
 };
 
 // Clearance policy: strokes are centered on the rendered position (line, shape edge)
@@ -2451,28 +2386,38 @@ function setup() {
     config = comp ? resolveConfig(comp, sub) : {};
   }
 
-  // --- Color selection: random HSB with perceptual lightness rejection ---
-  let lMin = 10;
-  colorMode(HSB, 360, 100, 100);
-  let ldif, colors_hsb;
-  do {
-    colors_hsb = [];
-    for (let i = 0; i < 2; i++) {
-      let hu = R.random_bool(0.5) ? R.random_num(180, 420) % 360 : R.random_num(0, 360);
-      let gamut = cmykGamut(hu);
-      let maxSat = gamut[0], maxBr = gamut[1];
-      let sa = R.random_bool(0.75) ? R.random_num(50, maxSat) : R.random_num(10, maxSat);
-      let br = R.random_bool(0.75) ? R.random_num(65, maxBr) : R.random_num(25, maxBr);
-      colors_hsb.push({ h: hu, s: sa, b: br });
-    }
-    c1 = color(colors_hsb[0].h, colors_hsb[0].s, colors_hsb[0].b);
-    c2 = color(colors_hsb[1].h, colors_hsb[1].s, colors_hsb[1].b);
-    colorMode(RGB);
-    ldif = Math.abs(rgbToLab(c1)[0] - rgbToLab(c2)[0]);
-    colorMode(HSB, 360, 100, 100);
-  } while (ldif < lMin);
-  // print("ldif:", Math.round(ldif));
-  colorMode(RGB);
+  // --- Color selection: preset palette ---
+  // Each entry is a curated [c1, c2] hex pair (ink, background) — hand-picked for contrast,
+  // so no procedural generation or lightness check is needed. Reversed half the time so
+  // either color of the pair can play ink or background.
+  ci = R.random_int(0, colors.length - 1);
+  cReversed = R.random_bool(0.5);
+  c1 = color(colors[ci][cReversed ? 1 : 0]);
+  c2 = color(colors[ci][cReversed ? 0 : 1]);
+
+  // --- Color selection (procedural, disabled): random HSB with perceptual lightness rejection ---
+  // Kept for reference / easy revert — uncomment this block and comment out the preset
+  // selection above to switch back. Depends on cmykGamut() below (also disabled).
+  // let lMin = 10;
+  // colorMode(HSB, 360, 100, 100);
+  // let ldif, colors_hsb;
+  // do {
+  //   colors_hsb = [];
+  //   for (let i = 0; i < 2; i++) {
+  //     let hu = R.random_bool(0.5) ? R.random_num(180, 420) % 360 : R.random_num(0, 360);
+  //     let gamut = cmykGamut(hu);
+  //     let maxSat = gamut[0], maxBr = gamut[1];
+  //     let sa = R.random_bool(0.75) ? R.random_num(50, maxSat) : R.random_num(10, maxSat);
+  //     let br = R.random_bool(0.75) ? R.random_num(65, maxBr) : R.random_num(25, maxBr);
+  //     colors_hsb.push({ h: hu, s: sa, b: br });
+  //   }
+  //   c1 = color(colors_hsb[0].h, colors_hsb[0].s, colors_hsb[0].b);
+  //   c2 = color(colors_hsb[1].h, colors_hsb[1].s, colors_hsb[1].b);
+  //   colorMode(RGB);
+  //   ldif = Math.abs(rgbToLab(c1)[0] - rgbToLab(c2)[0]);
+  //   colorMode(HSB, 360, 100, 100);
+  // } while (ldif < lMin);
+  // colorMode(RGB);
 
   background(255);
   noStroke();
@@ -2490,6 +2435,7 @@ function draw() {
   background(c2);
 
   print("Hash:", tokenData.hash);
+  print("Palette:", ci, cReversed ? "(reversed)" : "");
   print("Topic:", topic);
   print("Subtopic:", sub);
   print("Shape:", shape);
@@ -2617,23 +2563,25 @@ function labToRgb(a) {
   return color(Math.round(r), Math.round(g), Math.round(b));
 }
 
-function cmykGamut(hue) {
-  let stops = [
-    [0, 95, 90], [30, 95, 95], [60, 90, 98], [90, 75, 92],
-    [120, 65, 82], [160, 70, 82], [200, 88, 78], [250, 80, 72],
-    [280, 90, 82], [330, 95, 88], [360, 95, 90]
-  ];
-  for (let i = 0; i < stops.length - 1; i++) {
-    if (hue <= stops[i + 1][0]) {
-      let t = (hue - stops[i][0]) / (stops[i + 1][0] - stops[i][0]);
-      return [
-        stops[i][1] + t * (stops[i + 1][1] - stops[i][1]),
-        stops[i][2] + t * (stops[i + 1][2] - stops[i][2])
-      ];
-    }
-  }
-  return [stops[0][1], stops[0][2]];
-}
+// Disabled along with the procedural color block in setup() — its only caller. Kept for
+// easy revert: keeps saturation/brightness in-gamut for CMYK-ish printable colors across hue.
+// function cmykGamut(hue) {
+//   let stops = [
+//     [0, 95, 90], [30, 95, 95], [60, 90, 98], [90, 75, 92],
+//     [120, 65, 82], [160, 70, 82], [200, 88, 78], [250, 80, 72],
+//     [280, 90, 82], [330, 95, 88], [360, 95, 90]
+//   ];
+//   for (let i = 0; i < stops.length - 1; i++) {
+//     if (hue <= stops[i + 1][0]) {
+//       let t = (hue - stops[i][0]) / (stops[i + 1][0] - stops[i][0]);
+//       return [
+//         stops[i][1] + t * (stops[i + 1][1] - stops[i][1]),
+//         stops[i][2] + t * (stops[i + 1][2] - stops[i][2])
+//       ];
+//     }
+//   }
+//   return [stops[0][1], stops[0][2]];
+// }
 
 function betterLerp(col1, col2, t) {
   let arr1 = rgbToLab(col1);
