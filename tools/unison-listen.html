@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unison — Listening</title>
+<style>
+  :root{
+    --bg:#111214; --panel:#191b1e; --panel2:#212428; --line:#33383e;
+    --ink:#eceef0; --dim:#868c95; --ours:#4da3ff; --ref:#e8a33d;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:var(--bg);color:var(--ink);overflow:hidden;
+    font:13px/1.4 ui-sans-serif,-apple-system,"Helvetica Neue",Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  #app{display:grid;grid-template-rows:auto minmax(0,1fr) auto;height:100dvh;overflow:hidden}
+
+  /* ---------- header: the voice you are listening to ---------- */
+  header{
+    display:flex;align-items:center;gap:14px;padding:10px 16px;
+    background:var(--panel);border-bottom:1px solid var(--line)
+  }
+  header h1{
+    margin:0;font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase
+  }
+  header h1 span{color:var(--dim);font-weight:400;letter-spacing:.04em;text-transform:none}
+  #voices{display:flex;gap:6px;margin-left:8px}
+  #voices button{
+    font:inherit;font-size:13px;padding:6px 16px;border-radius:999px;cursor:pointer;
+    background:var(--panel2);color:var(--dim);border:1px solid var(--line)
+  }
+  #voices button:hover{color:var(--ink)}
+  #voices button.on{background:var(--ink);color:#111;border-color:var(--ink);font-weight:600}
+  header .sp{margin-left:auto}
+  #work{
+    width:9px;height:9px;border-radius:50%;background:#2c3036;transition:background .12s
+  }
+  #work.on{background:var(--ours)}
+
+  /* ---------- main ---------- */
+  main{
+    display:grid;grid-template-columns:minmax(0,1.35fr) minmax(360px,1fr);
+    gap:14px;padding:14px 16px;min-height:0;overflow:hidden
+  }
+  .col{display:flex;flex-direction:column;gap:14px;min-height:0}
+  .card{
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:14px 16px;min-height:0;display:flex;flex-direction:column
+  }
+  .card h2{
+    margin:0 0 10px;font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--dim);font-weight:700
+  }
+
+  /* ---------- the A/B stage ---------- */
+  #stage{flex:1 1 auto;justify-content:center}
+  #sides{display:grid;grid-template-columns:1fr 1fr;gap:14px;flex:1 1 auto;min-height:0;max-height:300px}
+  .side{
+    font:inherit;cursor:pointer;border-radius:12px;padding:26px 10px;
+    background:var(--panel2);border:2px solid var(--line);color:var(--dim);
+    font-size:24px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px
+  }
+  .side small{font-size:11px;font-weight:400;letter-spacing:.02em;text-transform:none;color:var(--dim)}
+  .side:hover{border-color:#4c535b}
+  #sideOurs.on{background:rgba(77,163,255,.16);border-color:var(--ours);color:var(--ours)}
+  #sideRef.on{background:rgba(232,163,61,.16);border-color:var(--ref);color:var(--ref)}
+  .side[disabled]{opacity:.35;cursor:default}
+  #flip{
+    margin-top:14px;width:100%;font:inherit;font-size:17px;font-weight:700;letter-spacing:.12em;
+    text-transform:uppercase;padding:22px;border-radius:12px;cursor:pointer;
+    background:var(--ink);color:#111;border:0;flex:0 0 auto
+  }
+  #flip:active{transform:translateY(1px)}
+  .keys{color:var(--dim);font-size:11px;margin-top:10px;text-align:center}
+
+  /* ---------- where is it wrong ---------- */
+  #taps{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  #taps button{
+    font:inherit;font-size:13px;padding:12px 6px;border-radius:10px;cursor:pointer;
+    background:var(--panel2);border:1px solid var(--line);color:var(--dim);
+    letter-spacing:.06em;text-transform:uppercase
+  }
+  #taps button:hover{color:var(--ink)}
+  #taps button.on{background:#e0574f;border-color:#e0574f;color:#180a09;font-weight:700}
+
+  /* ---------- reference ---------- */
+  #drop{
+    border:2px dashed #3f454c;border-radius:10px;padding:14px;text-align:center;
+    cursor:pointer;background:var(--panel2);flex:0 0 auto
+  }
+  #drop:hover,#drop.hot{border-color:var(--ref);background:rgba(232,163,61,.10)}
+  #drop b{display:block;font-size:14px;margin-bottom:3px;color:var(--ink)}
+  #drop span{color:var(--dim);font-size:11px}
+  #slots{margin-top:10px;display:flex;flex-direction:column;gap:4px;overflow:hidden}
+  .slot{display:flex;gap:8px;align-items:baseline;font-size:12px}
+  .slot i{font-style:normal;width:14px;color:#4b5158}
+  .slot i.has{color:var(--ref)}
+  .slot b{font-weight:600;width:88px;color:var(--dim)}
+  .slot.on b{color:var(--ink)}
+  .slot span{color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  /* ---------- knobs ---------- */
+  #knobs{flex:1 1 auto;display:flex;flex-direction:column;gap:26px;justify-content:center;min-height:0}
+  .knob{padding:6px 0}
+  .knob label{
+    display:block;font-size:11px;letter-spacing:.10em;text-transform:uppercase;color:var(--dim);
+    margin-bottom:5px
+  }
+  .knob .ends{display:flex;justify-content:space-between;font-size:10px;color:#5c626a;margin-top:3px}
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;margin:0;padding:0;border:0;
+    cursor:pointer
+  }
+  input[type=range]::-webkit-slider-runnable-track{
+    height:6px;background:var(--panel2);border-radius:3px;border:1px solid var(--line)
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:16px;height:22px;border-radius:5px;background:var(--ink);
+    margin-top:-9px;border:1px solid #000
+  }
+  .rowbtn{
+    font:inherit;font-size:11px;background:none;border:0;color:var(--dim);cursor:pointer;
+    text-decoration:underline;padding:0
+  }
+  .rowbtn:hover{color:var(--ink)}
+
+  /* ---------- footer ---------- */
+  footer{
+    display:flex;align-items:center;gap:14px;padding:9px 16px;
+    background:var(--panel);border-top:1px solid var(--line);color:var(--dim);font-size:11px
+  }
+  footer .sp{margin-left:auto}
+  #send{
+    font:inherit;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+    padding:8px 18px;border-radius:8px;cursor:pointer;background:var(--ours);color:#06121f;border:0
+  }
+
+  /* ---------- emit overlay ---------- */
+  #emit{position:fixed;inset:0;background:rgba(8,9,11,.88);display:none;align-items:center;justify-content:center;padding:30px;z-index:20}
+  #emit.on{display:flex}
+  #emit .box{background:var(--panel);border:1px solid var(--line);border-radius:12px;width:min(760px,94vw);max-height:82vh;display:flex;flex-direction:column;padding:14px}
+  #emit h2{margin:0 0 8px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);display:flex;align-items:center;gap:10px}
+  #emit h2 .sp{margin-left:auto}
+  #emit button{font:inherit;font-size:12px;background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:4px 12px;cursor:pointer}
+  #emit textarea{
+    flex:1 1 auto;min-height:280px;background:#0c0d0f;color:var(--ink);border:1px solid var(--line);
+    border-radius:8px;padding:10px;font:12px/1.5 ui-monospace,Menlo,monospace;resize:none;white-space:pre
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <h1>Unison <span>· listening</span></h1>
+    <div id="voices"></div>
+    <span class="sp"></span>
+    <span id="work" title="synthesising"></span>
+  </header>
+
+  <main>
+    <!-- =============== left: the comparison =============== -->
+    <div class="col">
+      <div class="card" id="stage">
+        <div id="sides">
+          <button class="side on" id="sideOurs">ours<small>the engine, live</small></button>
+          <button class="side" id="sideRef">reference<small id="refSub">drop one in →</small></button>
+        </div>
+        <button id="flip">⇄ &nbsp;flip &amp; play</button>
+        <div class="keys">space — play it again &nbsp;·&nbsp; F — flip sides</div>
+      </div>
+
+      <div class="card">
+        <h2>where is it wrong?</h2>
+        <div id="taps">
+          <button data-tap="attack">attack</button>
+          <button data-tap="body">body</button>
+          <button data-tap="tail">tail</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- =============== right: reference + knobs =============== -->
+    <div class="col">
+      <div class="card">
+        <h2>reference</h2>
+        <div id="drop">
+          <b>Drop the reference folder here</b>
+          <span>or click to choose files — they stay in this browser, nothing is uploaded</span>
+        </div>
+        <input type="file" id="file" accept="audio/*" multiple style="display:none">
+        <div id="slots"></div>
+      </div>
+
+      <div class="card" style="flex:1 1 auto">
+        <h2>by ear <button class="rowbtn" id="reset" style="float:right">reset this voice</button></h2>
+        <div id="knobs"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- provenance lives HERE and not on screen: engine @f840cc0 · built 2026-08-11.
+       Nothing numeric is allowed in the visible layout — the moment a figure
+       appears, the page starts arguing with the ear instead of serving it. -->
+  <footer title="engine @f840cc0 · built 2026-08-11">
+    <span>Both sides are level-matched, so loudness is never what you are hearing.</span>
+    <span class="sp"></span>
+    <button id="send">send settings to Morgan</button>
+  </footer>
+</div>
+
+<div id="emit"><div class="box">
+  <h2>copy this and text it to me
+    <span class="sp"><button id="emitCopy">copy</button> <button id="emitClose">close</button></span>
+  </h2>
+  <textarea id="emitText" spellcheck="false" readonly></textarea>
+</div></div>
+
+<!-- ===================== inlined engine (verbatim, private repo) ===================== -->
+<script type="text/plain" id="src-engine">
+/* ===== src/core/prng.js @ f840cc0 — verbatim from jeffdavis-studio/unison-engine ===== */
+// prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
+// token hash, consumed in canonical draw order (Technical Architecture v1.2).
+//
+// Discipline: every module draws from the same stream, in a documented, fixed
+// order. Never draw conditionally in a way that changes how many draws happen
+// for the same hash (draw first, discard if unused). Reordering draws is a
+// breaking change to every existing output.
+(function (g) {
+  "use strict";
+  const U = (g.U = g.U || {});
+
+  // sfc32 — small fast counter PRNG, 128-bit state, well-tested for this use.
+  // Seeded from the last 32 hex chars (four 32-bit words) of the token hash.
+  // XOR constants keep degenerate hashes (all zeros) from collapsing the state.
+  U.makePrng = function (hash) {
+    let h = String(hash).replace(/^0x/i, "").toLowerCase();
+    if (!/^[0-9a-f]*$/.test(h)) throw new Error("makePrng: non-hex hash");
+    h = h.padStart(32, "0");
+    const word = (i) => parseInt(h.slice(h.length - 8 * (i + 1), h.length - 8 * i), 16) >>> 0;
+    let a = (word(3) ^ 0x9e3779b9) >>> 0;
+    let b = (word(2) ^ 0x243f6a88) >>> 0;
+    let c = (word(1) ^ 0xb7e15162) >>> 0;
+    let d = (word(0) ^ 0x8aed2a6b) >>> 0;
+
+    function r() {
+      a >>>= 0; b >>>= 0; c >>>= 0; d >>>= 0;
+      const t = (a + b) | 0;
+      a = b ^ (b >>> 9);
+      b = (c + (c << 3)) | 0;
+      c = (c << 21) | (c >>> 11);
+      d = (d + 1) | 0;
+      const out = (t + d) | 0;
+      c = (c + out) | 0;
+      return (out >>> 0) / 4294967296;
+    }
+    for (let i = 0; i < 15; i++) r(); // warm-up: decorrelate from raw seed words
+
+    return {
+      r,                                                        // [0,1)
+      ri: (lo, hi) => lo + Math.floor(r() * (hi - lo + 1)),     // int, inclusive
+      pick: (arr) => arr[Math.floor(r() * arr.length)],
+      chance: (p) => r() < p,
+    };
+  };
+})(typeof window !== "undefined" ? window : globalThis);
+
+/* ===== src/instruments/tr808.js @ f840cc0 — verbatim from jeffdavis-studio/unison-engine ===== */
+// tr808.js — THE MACHINE. A TR-808-lineage core voice: bass drum, snare,
+// closed hat, open hat, each with a front panel the token actually turns.
+//
+// Homage, not trademark (founding brief): the circuits below are modelled on
+// the early-80s Japanese analogue rhythm machine that defines the electro /
+// early hip-hop lane — close, deliberately not slavish. Nothing user-facing
+// names a model number.
+//
+// WHY THIS EXISTS BESIDE drums.js AND NOT INSIDE IT. drums.js is the generic
+// kit: twelve voices, two flavour presets, every constant hardcoded. It still
+// owns clap, rim, toms, cowbell and congas, and it still supplies the whole
+// `studio` (Linn-lineage) kit, which is a different machine and its own later
+// task. What this file adds is the thing drums.js structurally could not be: a
+// real machine with a real panel, whose four core voices are SYNTHESISED FROM A
+// DRAWN PARAMETER SET rather than from constants. Extending drums.js in place
+// would have entangled the 808 panel with the Linn voicing that has to stay put
+// until its own build. So: new module, four voices, drums.js untouched except
+// for the four-line hand-off that lets a machine-flavour kit take its kick,
+// snare and hats from here.
+//
+// THE CIRCUITS, in the order they appear below.
+//
+//   BASS DRUM — a bridged-T network rung by the trigger pulse. It is close to a
+//   pure decaying sine that starts sharply above its resting pitch and falls to
+//   it in about 20ms; DECAY is feedback into the network (a longer ring, not a
+//   different pitch); TONE mixes in the raw trigger click ahead of the ring.
+//   Modelled here as: sine + fast pitch envelope + a small fast-dying second
+//   harmonic (the network's asymmetry) + a high-passed click + gentle
+//   saturation, which is what the machine's output stage does when the drum is
+//   loud.
+//
+//   SNARE — two tuned bridged-T oscillators (a low body and a partial roughly a
+//   twelfth above it) plus a separate noise generator through a bandpass. TUNE
+//   moves both oscillators. SNAPPY is the noise level against the drum body —
+//   the one knob everyone actually turns. TONE here drives the noise brightness
+//   and how long the noise rings, which is the audible half of the machine's
+//   own tone control.
+//
+//   HATS — six square-wave oscillators at fixed inharmonic frequencies, summed,
+//   high-passed, and gated by a VCA. Closed and open hat share ONE oscillator
+//   bank and differ only in their envelope and filter setting, exactly as the
+//   machine does — which is also why they share a VCA, and why a closed hat
+//   cuts an open one off. That choke is implemented in the kit (drums.js
+//   `fire`), because it is a scheduling behaviour, not a waveform.
+//
+// DETERMINISM. Two separate stories, both deliberate:
+//   - The PANEL comes from the song's PRNG stream, as a fixed block of 15 draws
+//     appended at the END of tier 1 (see session.js's canonical draw order).
+//     Fixed count, drawn for every song whether or not the 808 is the kit, so
+//     the count can never drift with the lane.
+//   - The NOISE inside the snare comes from a FIXED seed, never the song
+//     stream, so the waveform build consumes no draws.
+// The Math.sin / Math.exp exposure noted in drums.js applies here identically.
+//
+// LOUDNESS. Every voice is normalised to a fixed peak target before its LEVEL
+// knob rides it, and the level ranges are narrow (about ±1.3 dB). This is
+// mixdown guarantee 2 (Brief 2 §The Mixdown): a random panel draw is allowed to
+// change the character of the kit, and is not allowed to change the balance of
+// the record.
+(function (g) {
+  "use strict";
+  const U = (g.U = g.U || {});
+
+  const SR = 44100;
+  const NOISE_SEED = "808808808808808808808808808808ff";
+
+  // ---- panel ranges --------------------------------------------------------
+  // The archetype-plus-range model (Brief 1 §Patch book): each knob has a
+  // musically-safe span, and the draw lands anywhere in it with a soft pull
+  // toward the middle. These are the build-time dials — this table IS the
+  // machine's personality, and it is the thing to retune by ear.
+  const RANGE = {
+    bdTune:   [42, 64],        // Hz — where the ring settles
+    bdDecay:  [0.060, 0.235],  // sec — amplitude time constant (≈0.5–1.9s tail)
+    bdTone:   [0.05, 0.55],    // click into the ring
+    bdLevel:  [0.86, 1.14],
+    sdTune:   [158, 224],      // Hz — lower of the two body oscillators
+    sdSnappy: [0.20, 0.85],    // noise against body
+    sdTone:   [0.15, 0.90],    // noise brightness + ring length
+    sdLevel:  [0.84, 1.16],
+    chDecay:  [0.009, 0.030],  // sec — ≈40–120ms of hat
+    chTone:   [0.15, 0.85],    // high-pass corner + bank detune
+    chLevel:  [0.82, 1.18],
+    ohDecay:  [0.055, 0.210],  // sec — ≈0.35–1.3s of open hat
+    ohTone:   [0.15, 0.85],
+    ohLevel:  [0.80, 1.15],
+    accent:   [0.15, 0.95],    // the machine's one global knob
+  };
+  U.PANEL_808_RANGES = RANGE;
+
+  // Centre-biased position: era-typical settings are likely, the ends of every
+  // range stay genuinely reachable. Same shape as every other weighted draw in
+  // the engine (Brief 1 §Design language).
+  //
+  // The exponent must be BELOW 1 — that is what pulls a uniform draw toward the
+  // middle. Above 1 does the exact opposite and stacks the panel at the ends of
+  // every range; the first demo render caught it doing precisely that (a single
+  // draw with the kick's click at 98%, the snare's snappy at 100% and the hats
+  // wide open, which is not a machine anybody would leave set that way).
+  const K = 0.62;
+  function centred(t) {
+    return t < 0.5 ? 0.5 * Math.pow(2 * t, K) : 1 - 0.5 * Math.pow(2 - 2 * t, K);
+  }
+  const span = (r, pos) => r[0] + (r[1] - r[0]) * pos;
+
+  // EXACTLY 15 draws, in this order, always. Appended at the end of tier 1.
+  U.draw808Panel = function (R) {
+    const pos = {};
+    for (const k of ["bdTune", "bdDecay", "bdTone", "bdLevel",
+      "sdTune", "sdSnappy", "sdTone", "sdLevel",
+      "chDecay", "chTone", "chLevel",
+      "ohDecay", "ohTone", "ohLevel", "accent"]) {
+      pos[k] = centred(R.r());
+    }
+    const v = {};
+    for (const k in pos) v[k] = span(RANGE[k], pos[k]);
+    v.pos = pos;                       // 0..1 knob positions, for the readout
+    return v;
+  };
+
+  // A one-line human readout of what the token turned. This is what you read
+  // while listening, and what lands in the render manifest.
+  U.describe808 = function (p) {
+    const pct = (x) => Math.round(x * 100);
+    return "BD " + p.bdTune.toFixed(0) + "Hz d" + pct(p.pos.bdDecay) + " t" + pct(p.pos.bdTone) +
+      " | SD " + p.sdTune.toFixed(0) + "Hz snap" + pct(p.pos.sdSnappy) + " t" + pct(p.pos.sdTone) +
+      " | CH d" + pct(p.pos.chDecay) + " t" + pct(p.pos.chTone) +
+      " | OH d" + pct(p.pos.ohDecay) + " t" + pct(p.pos.ohTone) +
+      " | ACC " + pct(p.pos.accent);
+  };
+
+  // ---- DSP helpers ---------------------------------------------------------
+  // Deliberately a private copy of the same four primitives drums.js keeps
+  // private. Roughly 30 lines duplicated in the concatenated on-chain payload;
+  // hoisting them into core/ is a cheap later cleanup and is on the README's
+  // open list rather than folded into this task.
+
+  const alloc = (sec) => new Float32Array(Math.max(1, Math.round(sec * SR)));
+
+  function onePoleHP(x, hz) {
+    const a = Math.exp((-2 * Math.PI * hz) / SR);
+    let yPrev = 0, xPrev = 0;
+    for (let i = 0; i < x.length; i++) {
+      const xi = x[i];
+      const y = a * (yPrev + xi - xPrev);
+      x[i] = y; yPrev = y; xPrev = xi;
+    }
+    return x;
+  }
+
+  function onePoleLP(x, hz) {
+    const a = 1 - Math.exp((-2 * Math.PI * hz) / SR);
+    let y = 0;
+    for (let i = 0; i < x.length; i++) { y += a * (x[i] - y); x[i] = y; }
+    return x;
+  }
+
+  function bandpass(x, hz, q) {
+    const w = (2 * Math.PI * hz) / SR;
+    const alpha = Math.sin(w) / (2 * q);
+    const cw = Math.cos(w);
+    const b0 = alpha, b2 = -alpha;
+    const a0 = 1 + alpha, a1 = -2 * cw, a2 = 1 - alpha;
+    let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+    for (let i = 0; i < x.length; i++) {
+      const xi = x[i];
+      const y = (b0 * xi + b2 * x2 - a1 * y1 - a2 * y2) / a0;
+      x2 = x1; x1 = xi; y2 = y1; y1 = y;
+      x[i] = y;
+    }
+    return x;
+  }
+
+  function normalize(x, target) {
+    let peak = 0;
+    for (let i = 0; i < x.length; i++) { const a = Math.abs(x[i]); if (a > peak) peak = a; }
+    if (peak < 1e-9) return x;
+    const k = target / peak;
+    for (let i = 0; i < x.length; i++) x[i] *= k;
+    return x;
+  }
+
+  // De-click only: 0.3ms in, 2ms out. A buffered one-shot must not click at
+  // either end, but the fade-in is a tax on the attack and these are percussion
+  // — the whole identity of a hat is in its first few milliseconds. 0.3ms (13
+  // samples) is enough to kill a start-of-buffer step and short enough to be
+  // inaudible as a fade.
+  //
+  // ORDER MATTERS: shape() runs BEFORE normalize(), never after. Written the
+  // other way round first, and it cost the hats 11dB — their absolute peak
+  // lands inside the fade-in window (that is what a transient IS), so fading
+  // after normalizing silently undid the normalization on exactly the voices
+  // with the fastest attack. Measured: closed hat came out at 0.166 against a
+  // 0.62 target. normalize() must be the last thing to touch amplitude, or the
+  // patch-loudness guarantee is a comment rather than a fact.
+  function shape(x) {
+    const inN = Math.min(x.length, Math.round(0.0003 * SR));
+    for (let i = 0; i < inN; i++) x[i] *= i / inN;
+    const outN = Math.min(x.length, Math.round(0.002 * SR));
+    for (let i = 0; i < outN; i++) x[x.length - 1 - i] *= i / outN;
+    return x;
+  }
+
+  // ---- bass drum -----------------------------------------------------------
+
+  function bassDrum(p, rnd) {
+    const tau = p.bdDecay;
+    const x = alloc(Math.min(1.7, tau * 8 + 0.06));
+    const fEnd = p.bdTune;
+    const fStart = fEnd * 2.4;
+    // A higher-tuned drum sweeps down faster — the network's Q rises with pitch.
+    const tauP = 0.030 - 0.013 * p.pos.bdTune;
+    let ph = 0, ph2 = 0;
+    for (let i = 0; i < x.length; i++) {
+      const t = i / SR;
+      const f = fEnd + (fStart - fEnd) * Math.exp(-t / tauP);
+      ph += (2 * Math.PI * f) / SR;
+      ph2 += (2 * Math.PI * f * 2) / SR;
+      const env = Math.exp(-t / tau);
+      x[i] = (Math.sin(ph) + 0.13 * Math.sin(ph2) * Math.exp(-t / 0.012)) * env;
+    }
+    // TONE: the trigger pulse itself, high-passed, sitting in front of the ring.
+    const cn = Math.round(0.006 * SR);
+    const click = new Float32Array(cn);
+    for (let i = 0; i < cn; i++) {
+      const t = i / SR;
+      click[i] = ((rnd() * 2 - 1) * 0.5 + (i === 0 ? 1 : 0)) * Math.exp(-t / 0.0009);
+    }
+    onePoleHP(click, 1400);
+    for (let i = 0; i < cn && i < x.length; i++) x[i] += click[i] * p.bdTone * 0.9;
+    // output-stage saturation: rounds the transient, thickens the fundamental
+    const k = Math.tanh(1.25);
+    for (let i = 0; i < x.length; i++) x[i] = Math.tanh(x[i] * 1.25) / k;
+    return normalize(shape(x), 0.98 * p.bdLevel);
+  }
+
+  // ---- snare ---------------------------------------------------------------
+
+  function snareDrum(p, rnd) {
+    const tauBody = 0.030 + 0.020 * (1 - p.pos.sdTone);
+    const tauNoise = 0.055 + 0.105 * p.pos.sdTone;
+    const x = alloc(Math.max(tauBody, tauNoise) * 7 + 0.03);
+    const noise = new Float32Array(x.length);
+    for (let i = 0; i < noise.length; i++) noise[i] = rnd() * 2 - 1;
+    bandpass(noise, 1500 + 3300 * p.pos.sdTone, 0.85);
+    onePoleHP(noise, 700);
+    const f1 = p.sdTune, f2 = f1 * 1.83;
+    const snap = p.sdSnappy;
+    let p1 = 0, p2 = 0;
+    for (let i = 0; i < x.length; i++) {
+      const t = i / SR;
+      p1 += (2 * Math.PI * f1) / SR;
+      p2 += (2 * Math.PI * f2) / SR;
+      const body = (Math.sin(p1) + 0.62 * Math.sin(p2)) * Math.exp(-t / tauBody);
+      const nz = noise[i] * Math.exp(-t / tauNoise);
+      x[i] = body * (1 - 0.60 * snap) + nz * (0.30 + 0.95 * snap);
+    }
+    return normalize(shape(x), 0.95 * p.sdLevel);
+  }
+
+  // ---- hats ----------------------------------------------------------------
+  // The machine's six metallic oscillators. Fixed, inharmonic, and the reason
+  // an 808 hat sounds like nothing else.
+  const OSC = [205.3, 304.4, 369.6, 522.7, 540.0, 800.0];
+
+  // Band-limited square bank: odd harmonics summed up to just under Nyquist.
+  // Naive squares fold audibly here — the hat's whole signal lives ABOVE 6 kHz,
+  // which is exactly where the aliased partials land, so band-limiting is not
+  // fussiness, it is the difference between a hat and a ring modulator.
+  function oscBank(n, detune) {
+    const x = new Float32Array(n);
+    const ceiling = (SR / 2) * 0.92;
+    for (const f0 of OSC) {
+      const f = f0 * detune;
+      const hMax = Math.floor(ceiling / f);
+      for (let h = 1; h <= hMax; h += 2) {
+        const w = (2 * Math.PI * f * h) / SR;
+        const amp = 1 / h;
+        for (let i = 0; i < n; i++) x[i] += Math.sin(w * i) * amp;
+      }
+    }
+    return x;
+  }
+
+  function hats(p) {
+    // ONE bank, both voices — the shared oscillator section of the real thing.
+    const ohLen = Math.min(1.35, p.ohDecay * 7 + 0.04);
+    const chLen = Math.min(ohLen, p.chDecay * 7 + 0.02);
+    const detune = 0.94 + 0.13 * p.pos.ohTone;      // homage drift, one bank
+    const bank = oscBank(Math.round(ohLen * SR), detune);
+
+    // closed: short slice of the bank, its own high-pass, hard VCA decay
+    const ch = new Float32Array(Math.round(chLen * SR));
+    ch.set(bank.subarray(0, ch.length));
+    const chHz = 5400 + 3600 * p.pos.chTone;
+    onePoleHP(ch, chHz); onePoleHP(ch, chHz);
+    onePoleLP(ch, 15500);
+    for (let i = 0; i < ch.length; i++) ch[i] *= Math.exp(-(i / SR) / p.chDecay);
+
+    // open: the full bank, a slightly lower corner, and a two-stage envelope —
+    // the machine's open hat drops fast off the transient and then rings.
+    const oh = new Float32Array(bank.length);
+    oh.set(bank);
+    const ohHz = 4800 + 3400 * p.pos.ohTone;
+    onePoleHP(oh, ohHz); onePoleHP(oh, ohHz);
+    onePoleLP(oh, 15500);
+    for (let i = 0; i < oh.length; i++) {
+      const t = i / SR;
+      oh[i] *= 0.34 * Math.exp(-t / (p.ohDecay * 0.16)) + 0.72 * Math.exp(-t / p.ohDecay);
+    }
+    return {
+      hatClosed: normalize(shape(ch), 0.62 * p.chLevel),
+      hatOpen: normalize(shape(oh), 0.66 * p.ohLevel),
+    };
+  }
+
+  // ---- build ---------------------------------------------------------------
+
+  // panel -> the four core voices as Float32Arrays at 44.1k. drums.js resamples
+  // if the context runs at another rate.
+  U.build808 = function (panel) {
+    const rnd = U.makePrng(NOISE_SEED).r;
+    const h = hats(panel);
+    return {
+      kick: bassDrum(panel, rnd),
+      snare: snareDrum(panel, rnd),
+      hatClosed: h.hatClosed,
+      hatOpen: h.hatOpen,
+    };
+  };
+
+  // ACCENT is the machine's one global knob: an accented step is louder, and on
+  // the real thing everything else drops slightly to make room. Gain only —
+  // the analogue accent also stiffens the bass drum's attack, which this does
+  // not model. Roughly loudness-neutral across the knob's range on purpose, so
+  // the accent draw changes the groove's shape and not the song's level.
+  U.accent808 = function (panel) {
+    const a = panel.accent;
+    return { hit: 1 + 0.42 * a, rest: 1 - 0.13 * a };
+  };
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+
+<!-- ===================== worker body ===================== -->
+<script type="text/plain" id="src-workerbody">
+self.onmessage = function (e) {
+  var m = e.data;
+  try {
+    var v = self.U.build808(m.panel);
+    var buf = new Float32Array(v[m.voice]);
+    self.postMessage({ id: m.id, ok: true, buf: buf }, [buf.buffer]);
+  } catch (err) {
+    self.postMessage({ id: m.id, ok: false, err: String((err && err.stack) || err) });
+  }
+};
+</script>
+
+<script>
+"use strict";
+/* =========================================================================
+   Unison — LISTENING PAGE
+
+   WHAT THIS IS. Jeff's surface. One question: is the voice wrong, and where.
+   Our hit is synthesised live from the engine's own tr808.js; his reference
+   hit sits next to it, level-matched; one key flips between them; three or
+   four knobs move the character by ear. When something is wrong he taps where
+   and sends me the settings.
+
+   WHAT THIS ISN'T. It is not the bench. There is deliberately NOT ONE NUMBER
+   on this screen — no plots, no deltas, no decay or centroid readouts. All of
+   that lives in the measurement bench, which is mine. If a number would help
+   here, it belongs there instead.
+
+   TWO HARD RULES, same as the bench.
+   1. The page never writes the repo. "Send settings" emits text to copy.
+   2. The reference NEVER leaves this browser — read with File.arrayBuffer(),
+      held in a Float32Array, never fetched or uploaded.
+   ========================================================================= */
+
+var SR = 44100;
+
+var ENGINE_SRC = document.getElementById("src-engine").textContent;
+var WORKER_BODY = document.getElementById("src-workerbody").textContent;
+(new Function(ENGINE_SRC))();
+var U = window.U;
+var R808 = U.PANEL_808_RANGES;
+
+/* ---- synthesis in a worker, inline if a worker can't be made -------------- */
+var worker = null, seq = 0, pending = {};
+(function () {
+  try {
+    var url = URL.createObjectURL(new Blob([ENGINE_SRC + "\n" + WORKER_BODY], { type: "text/javascript" }));
+    worker = new Worker(url);
+    worker.onmessage = function (e) {
+      var d = e.data, p = pending[d.id];
+      if (!p) return;
+      delete pending[d.id];
+      if (d.ok) p.res(d); else p.rej(new Error(d.err));
+    };
+    worker.onerror = function () { worker = null; };
+  } catch (err) { worker = null; }
+})();
+
+function build(panel, voice) {
+  if (!worker) {
+    try { return Promise.resolve({ buf: new Float32Array(U.build808(panel)[voice]) }); }
+    catch (e) { return Promise.reject(e); }
+  }
+  var id = ++seq;
+  return new Promise(function (res, rej) {
+    pending[id] = { res: res, rej: rej };
+    worker.postMessage({ id: id, panel: panel, voice: voice });
+  });
+}
+
+/* =========================================================================
+   THE VOICES — fewer knobs than the bench, on purpose. Only the ones that
+   change CHARACTER are here; the level knobs are gone because both sides are
+   level-matched at playback, so a level knob here would only lie.
+   ========================================================================= */
+var VOICES = [
+  { id: "kick",      label: "kick",       knobs: [
+      { key: "bdTune",   label: "pitch",        lo: "low",   hi: "high" },
+      { key: "bdDecay",  label: "decay",        lo: "short", hi: "long" },
+      { key: "bdTone",   label: "click",        lo: "soft",  hi: "hard" } ] },
+  { id: "snare",     label: "snare",      knobs: [
+      { key: "sdTune",   label: "pitch",        lo: "low",   hi: "high" },
+      { key: "sdSnappy", label: "snappy",       lo: "body",  hi: "noise" },
+      { key: "sdTone",   label: "tone",         lo: "dark",  hi: "bright" } ] },
+  { id: "hatClosed", label: "closed hat", knobs: [
+      { key: "chDecay",  label: "decay",        lo: "tight", hi: "loose" },
+      { key: "chTone",   label: "tone",         lo: "dark",  hi: "bright" },
+      { key: "ohTone",   label: "metal (bank)", lo: "flat",  hi: "sharp" } ] },
+  { id: "hatOpen",   label: "open hat",   knobs: [
+      { key: "ohDecay",  label: "decay",        lo: "short", hi: "long" },
+      { key: "ohTone",   label: "tone / metal", lo: "dark",  hi: "bright" } ] }
+];
+// The two hats share ONE oscillator bank in the machine and in the engine, so
+// the closed hat gets the bank's detune knob too — that is why "metal" appears
+// on both and moves both.
+
+function voiceSpec(id) {
+  for (var i = 0; i < VOICES.length; i++) if (VOICES[i].id === id) return VOICES[i];
+  return VOICES[0];
+}
+function midValues() {
+  var v = {};
+  for (var k in R808) v[k] = (R808[k][0] + R808[k][1]) / 2;
+  return v;
+}
+// The engine reads BOTH the value and its 0..1 position (pitch sweep, hat
+// detune, snare tone all key off pos), so both have to be handed over.
+function panelFrom(vals) {
+  var p = { pos: {} };
+  for (var k in R808) {
+    p[k] = vals[k];
+    p.pos[k] = (vals[k] - R808[k][0]) / (R808[k][1] - R808[k][0]);
+  }
+  return p;
+}
+
+var state = {
+  voiceId: "kick",
+  vals: midValues(),
+  ours: null,
+  refs: {},                       // voiceId -> { name, buf }
+  side: "ours",
+  taps: { attack: false, body: false, tail: false },
+  touched: {}                     // voiceId -> true once a knob moves
+};
+
+var el = {};
+["voices", "work", "sideOurs", "sideRef", "refSub", "flip", "taps", "drop", "file",
+ "slots", "knobs", "reset", "send", "emit", "emitText", "emitCopy", "emitClose"]
+  .forEach(function (id) { el[id] = document.getElementById(id); });
+
+/* =========================================================================
+   AUDIO — level-matched always. Peak-normalising both sides is the whole
+   reason a difference you hear is a difference in the SOUND.
+   ========================================================================= */
+var actx = null;
+function audio() {
+  if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: SR });
+  if (actx.state === "suspended") actx.resume();
+  return actx;
+}
+function levelMatch(x) {
+  var pk = 0, i;
+  for (i = 0; i < x.length; i++) { var a = Math.abs(x[i]); if (a > pk) pk = a; }
+  if (pk < 1e-9) return x;
+  var out = new Float32Array(x.length), g = 0.89 / pk;
+  for (i = 0; i < x.length; i++) out[i] = x[i] * g;
+  return out;
+}
+var playing = null;
+function play(which) {
+  var src = which === "ref" ? (state.refs[state.voiceId] && state.refs[state.voiceId].buf) : state.ours;
+  if (!src || !src.length) return;
+  var ctx = audio();
+  if (playing) { try { playing.stop(); } catch (e) {} }
+  var node = ctx.createBufferSource();
+  var ab = ctx.createBuffer(1, src.length, SR);
+  ab.copyToChannel(levelMatch(src), 0);
+  node.buffer = ab;
+  node.connect(ctx.destination);
+  node.start();
+  playing = node;
+}
+function setSide(which, alsoPlay) {
+  if (which === "ref" && !state.refs[state.voiceId]) return;
+  state.side = which;
+  el.sideOurs.className = "side" + (which === "ours" ? " on" : "");
+  el.sideRef.className = "side" + (which === "ref" ? " on" : "");
+  if (alsoPlay !== false) play(which);
+}
+
+/* =========================================================================
+   SYNTHESIS — debounced so a dragged knob is continuous, and it plays itself
+   when it lands so the ear gets the change without a second gesture.
+   ========================================================================= */
+var timer = null, runSeq = 0, wantPlay = false;
+function schedule(playWhenReady) {
+  wantPlay = wantPlay || !!playWhenReady;
+  el.work.className = "on";
+  if (timer) clearTimeout(timer);
+  timer = setTimeout(render, 50);
+}
+function render() {
+  timer = null;
+  var my = ++runSeq;
+  var panel = panelFrom(state.vals);
+  // SPEED, not a shortcut — carried over from the bench, where it was verified
+  // sample-identical: the kick and the snare read no hat parameter and consume
+  // the noise PRNG at a fixed offset, so pinning the hat oscillator bank to
+  // nothing cannot touch them, and it drops the build by an order of magnitude.
+  if (state.voiceId === "kick" || state.voiceId === "snare") { panel.chDecay = 0.0005; panel.ohDecay = 0.0005; }
+  build(panel, state.voiceId).then(function (r) {
+    if (my !== runSeq) return;
+    state.ours = r.buf;
+    el.work.className = "";
+    if (wantPlay) { wantPlay = false; setSide("ours"); }
+  })["catch"](function (e) {
+    if (my !== runSeq) return;
+    el.work.className = "";
+    console.error(e);
+  });
+}
+
+/* =========================================================================
+   KNOBS — no numbers. The ends are named in words because "short → long" is
+   what the ear is doing; a figure here would be a target, and targets are the
+   bench's job.
+   ========================================================================= */
+function buildKnobs() {
+  var spec = voiceSpec(state.voiceId);
+  el.knobs.innerHTML = "";
+  spec.knobs.forEach(function (kn) {
+    var r = R808[kn.key];
+    var row = document.createElement("div");
+    row.className = "knob";
+    row.innerHTML = '<label>' + kn.label + '</label>' +
+      '<input type="range" data-k="' + kn.key + '" min="0" max="1" step="0.001">' +
+      '<div class="ends"><span>' + kn.lo + '</span><span>' + kn.hi + '</span></div>';
+    el.knobs.appendChild(row);
+    var input = row.querySelector("input");
+    input.value = (state.vals[kn.key] - r[0]) / (r[1] - r[0]);
+    input.addEventListener("input", function () {
+      state.vals[kn.key] = r[0] + (r[1] - r[0]) * parseFloat(input.value);
+      state.touched[state.voiceId] = true;
+      schedule(false);
+    });
+    // play on release: dragging stays silent, landing on a setting speaks
+    ["change", "pointerup", "keyup"].forEach(function (ev) {
+      input.addEventListener(ev, function () { schedule(true); });
+    });
+  });
+}
+
+/* =========================================================================
+   VOICE TABS
+   ========================================================================= */
+function buildTabs() {
+  el.voices.innerHTML = "";
+  VOICES.forEach(function (v) {
+    var b = document.createElement("button");
+    b.textContent = v.label;
+    b.className = v.id === state.voiceId ? "on" : "";
+    b.addEventListener("click", function () { selectVoice(v.id); });
+    el.voices.appendChild(b);
+  });
+}
+function selectVoice(id) {
+  state.voiceId = id;
+  state.taps = { attack: false, body: false, tail: false };
+  buildTabs(); buildKnobs(); paintTaps(); paintRefs();
+  setSide("ours", false);
+  schedule(true);
+}
+
+/* =========================================================================
+   REFERENCE — dropped folder or files, matched to a voice by filename.
+   ========================================================================= */
+function voiceFromName(name) {
+  var n = String(name).toLowerCase();
+  if (/open/.test(n) || /(^|[^a-z])oh([^a-z]|$)/.test(n)) return "hatOpen";
+  if (/closed/.test(n) || /(^|[^a-z])(hc|ch)([^a-z]|$)/.test(n)) return "hatClosed";
+  if (/kick|bass ?drum/.test(n) || /(^|[^a-z])bd/.test(n)) return "kick";
+  if (/snare/.test(n) || /(^|[^a-z])sd/.test(n)) return "snare";
+  if (/hat/.test(n)) return "hatClosed";
+  return null;
+}
+function decode(file) {
+  return file.arrayBuffer().then(function (ab) {
+    return audio().decodeAudioData(ab);
+  }).then(function (dec) {
+    var n = dec.length, ch = dec.numberOfChannels, mono = new Float32Array(n), c, i;
+    for (c = 0; c < ch; c++) {
+      var d = dec.getChannelData(c);
+      for (i = 0; i < n; i++) mono[i] += d[i] / ch;
+    }
+    return mono;
+  });
+}
+function takeFiles(files) {
+  var list = [].slice.call(files).filter(function (f) { return /\.(wav|aif|aiff|mp3|m4a|flac|ogg)$/i.test(f.name); });
+  if (!list.length) return;
+  // ONE file dropped is an instruction: use this, for whatever voice it names,
+  // or for the voice on screen if it names none. A WHOLE FOLDER is a library,
+  // and there the plainest filename wins — ref-kick.wav is the one to load,
+  // ref-kick-long.wav is an alternate to reach for deliberately.
+  if (list.length === 1) {
+    var only = list[0], target = voiceFromName(only.name) || state.voiceId;
+    Promise.resolve(decode(only).then(function (buf) {
+      state.refs[target] = { name: only.name, buf: buf };
+    })["catch"](function () {})).then(function () {
+      if (target !== state.voiceId) selectVoice(target); else { paintRefs(); setSide("ref"); }
+    });
+    return;
+  }
+  var claimed = {};
+  var jobs = list.map(function (f) {
+    var v = voiceFromName(f.name);
+    if (!v) return null;
+    if (claimed[v] && claimed[v].length <= f.name.length) return null;
+    claimed[v] = f.name;
+    return decode(f).then(function (buf) {
+      if (claimed[v] === f.name) state.refs[v] = { name: f.name, buf: buf };
+    })["catch"](function () { /* a file we cannot decode is a file we ignore */ });
+  }).filter(Boolean);
+  Promise.all(jobs).then(function () { paintRefs(); setSide("ref"); });
+}
+function walkEntry(entry, out) {
+  return new Promise(function (done) {
+    if (!entry) return done();
+    if (entry.isFile) return entry.file(function (f) { out.push(f); done(); }, done);
+    if (entry.isDirectory) {
+      var reader = entry.createReader();
+      reader.readEntries(function (entries) {
+        Promise.all(entries.map(function (e) { return walkEntry(e, out); })).then(done);
+      }, done);
+      return;
+    }
+    done();
+  });
+}
+function paintRefs() {
+  el.slots.innerHTML = "";
+  VOICES.forEach(function (v) {
+    var got = state.refs[v.id];
+    var row = document.createElement("div");
+    row.className = "slot" + (v.id === state.voiceId ? " on" : "");
+    row.innerHTML = '<i class="' + (got ? "has" : "") + '">' + (got ? "●" : "○") + "</i>" +
+      "<b>" + v.label + "</b><span>" + (got ? got.name : "—") + "</span>";
+    el.slots.appendChild(row);
+  });
+  var has = !!state.refs[state.voiceId];
+  el.sideRef.disabled = !has;
+  el.refSub.textContent = has ? state.refs[state.voiceId].name : "drop one in →";
+  if (!has && state.side === "ref") setSide("ours", false);
+}
+
+/* =========================================================================
+   WHERE IS IT WRONG — three taps, and they ride along in the settings I get.
+   ========================================================================= */
+function paintTaps() {
+  [].slice.call(el.taps.querySelectorAll("button")).forEach(function (b) {
+    b.className = state.taps[b.dataset.tap] ? "on" : "";
+  });
+}
+
+/* =========================================================================
+   SEND SETTINGS — the entire handoff. Constants, not measurements.
+   ========================================================================= */
+function emitText() {
+  var spec = voiceSpec(state.voiceId), out = [];
+  var wrong = Object.keys(state.taps).filter(function (k) { return state.taps[k]; });
+  out.push("UNISON — listening page · " + new Date().toISOString().slice(0, 16).replace("T", " "));
+  out.push("voice: 808 " + spec.label + "   (engine @f840cc0)");
+  out.push("wrong in: " + (wrong.length ? wrong.join(", ") : "— not marked"));
+  out.push("reference: " + (state.refs[state.voiceId] ? state.refs[state.voiceId].name : "none loaded"));
+  out.push("");
+  out.push("panel positions (0..1 inside each range) — these are what I apply:");
+  spec.knobs.forEach(function (kn) {
+    var r = R808[kn.key], pos = (state.vals[kn.key] - r[0]) / (r[1] - r[0]);
+    out.push("  " + (kn.key + ":").padEnd(10) + pos.toFixed(4) + "   // " + kn.label +
+      " = " + trim(state.vals[kn.key]) + (kn.key.indexOf("Tune") > 0 ? " Hz" : (kn.key.indexOf("Decay") > 0 ? " s" : "")));
+  });
+  out.push("");
+  out.push("values, if you want the raw constants:");
+  spec.knobs.forEach(function (kn) {
+    out.push("  " + (kn.key + ":").padEnd(10) + trim(state.vals[kn.key]));
+  });
+  out.push("");
+  out.push("(Morgan: reproduce with the same 15-knob panel, the untouched knobs sit at range centre.)");
+  return out.join("\n");
+}
+function trim(v) {
+  var s = Number(v).toFixed(4);
+  if (s.indexOf(".") >= 0) s = s.replace(/0+$/, "").replace(/\.$/, "");
+  return s;
+}
+
+/* =========================================================================
+   WIRING
+   ========================================================================= */
+el.sideOurs.addEventListener("click", function () { setSide("ours"); });
+el.sideRef.addEventListener("click", function () { setSide("ref"); });
+el.flip.addEventListener("click", function () { setSide(state.side === "ours" ? "ref" : "ours"); });
+el.reset.addEventListener("click", function () {
+  var mid = midValues();
+  voiceSpec(state.voiceId).knobs.forEach(function (kn) { state.vals[kn.key] = mid[kn.key]; });
+  buildKnobs(); schedule(true);
+});
+el.taps.addEventListener("click", function (e) {
+  var b = e.target.closest("button");
+  if (!b) return;
+  state.taps[b.dataset.tap] = !state.taps[b.dataset.tap];
+  paintTaps();
+});
+el.drop.addEventListener("click", function () { el.file.click(); });
+el.file.addEventListener("change", function () { takeFiles(el.file.files); });
+window.addEventListener("dragover", function (e) { e.preventDefault(); el.drop.classList.add("hot"); });
+window.addEventListener("dragleave", function () { el.drop.classList.remove("hot"); });
+window.addEventListener("drop", function (e) {
+  e.preventDefault();
+  el.drop.classList.remove("hot");
+  var dt = e.dataTransfer;
+  if (!dt) return;
+  var items = dt.items ? [].slice.call(dt.items) : [];
+  var entries = items.map(function (it) { return it.webkitGetAsEntry ? it.webkitGetAsEntry() : null; })
+    .filter(Boolean);
+  if (entries.length) {
+    var out = [];
+    Promise.all(entries.map(function (en) { return walkEntry(en, out); })).then(function () { takeFiles(out); });
+  } else if (dt.files) {
+    takeFiles(dt.files);
+  }
+});
+el.send.addEventListener("click", function () {
+  el.emitText.value = emitText();
+  el.emit.classList.add("on");
+});
+el.emitClose.addEventListener("click", function () { el.emit.classList.remove("on"); });
+el.emitCopy.addEventListener("click", function () {
+  el.emitText.select();
+  try { document.execCommand("copy"); } catch (e) {}
+  el.emitCopy.textContent = "copied";
+  setTimeout(function () { el.emitCopy.textContent = "copy"; }, 900);
+});
+document.addEventListener("keydown", function (e) {
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+  var k = e.key.toLowerCase();
+  if (k === " " || e.code === "Space") { e.preventDefault(); play(state.side); }
+  else if (k === "f") { e.preventDefault(); setSide(state.side === "ours" ? "ref" : "ours"); }
+  else if (k === "1") setSide("ours");
+  else if (k === "2") setSide("ref");
+  else if (k === "escape") el.emit.classList.remove("on");
+});
+
+/* ---- go ---- */
+buildTabs();
+buildKnobs();
+paintTaps();
+paintRefs();
+render();
+window.__listen = state;                    // for headless verification only
+</script>
+</body>
+</html>
