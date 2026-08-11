@@ -1,0 +1,2064 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unison — Voice A/B Bench</title>
+<style>
+  :root{
+    --bg:#111214; --panel:#1a1c1f; --panel2:#232629; --line:#32363b;
+    --ink:#e9eaec; --dim:#8b9099; --accent:#4da3ff; --ref:#e8a33d;
+    --good:#49c17f; --warn:#e0574f;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:var(--bg); color:var(--ink); overflow:hidden;
+    font:12px/1.35 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  #app{display:grid;grid-template-rows:auto 1fr auto;height:100dvh;overflow:hidden}
+
+  header{
+    display:flex;align-items:center;gap:10px;padding:6px 10px;
+    background:var(--panel);border-bottom:1px solid var(--line)
+  }
+  header h1{margin:0;font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--ink)}
+  header h1 span{color:var(--dim);font-weight:400}
+  header .sp{margin-left:auto}
+  label.f{color:var(--dim);display:flex;align-items:center;gap:4px}
+  select,input,button{
+    font:inherit;background:var(--panel2);color:var(--ink);
+    border:1px solid var(--line);border-radius:5px;padding:2px 5px
+  }
+  button{cursor:pointer}
+  button:hover{border-color:#4a5057}
+  button.on{background:var(--accent);border-color:var(--accent);color:#06121f;font-weight:700}
+  input[type=text]{width:150px}
+  #status{color:var(--dim);font-variant-numeric:tabular-nums;min-width:210px;text-align:right}
+  #status.busy{color:var(--accent)}
+
+  main{
+    display:grid;grid-template-columns:296px minmax(0,1fr) 384px;gap:7px;
+    padding:7px;min-height:0;overflow:hidden
+  }
+  .pane{
+    background:var(--panel);border:1px solid var(--line);border-radius:8px;
+    padding:7px 8px;min-height:0;display:flex;flex-direction:column;overflow:hidden
+  }
+  .pane > h2{
+    margin:0 0 5px;font-size:10px;letter-spacing:.09em;text-transform:uppercase;
+    color:var(--dim);font-weight:700;display:flex;align-items:center;gap:6px
+  }
+  .pane > h2 b{color:var(--ink);font-weight:700;letter-spacing:0;text-transform:none;font-size:11px}
+  .pane > h2 .sp{margin-left:auto;font-weight:400;letter-spacing:0;text-transform:none}
+
+  /* ---- knob rack ---- */
+  #rack{overflow-y:auto;flex:1 1 auto;min-height:0}
+  .knob{display:grid;grid-template-columns:1fr auto;gap:2px 6px;margin-bottom:5px}
+  .knob .kl{color:var(--dim);font-size:10px;display:flex;align-items:baseline;gap:5px}
+  .knob .kl b{color:var(--ink);font-weight:600;font-size:11px}
+  .knob .kl i{font-style:normal;margin-left:auto;font-variant-numeric:tabular-nums}
+  .knob .kl i.out{color:var(--warn);font-weight:700}
+  .knob input[type=number]{width:72px;text-align:right;font-variant-numeric:tabular-nums;padding:1px 4px}
+  .knob .slot{position:relative;grid-column:1/-1;height:16px}
+  .knob .zone{
+    position:absolute;top:6px;height:4px;border-radius:2px;
+    background:rgba(77,163,255,.22);pointer-events:none
+  }
+  .knob input[type=range]{
+    -webkit-appearance:none;appearance:none;width:100%;height:16px;background:transparent;margin:0;
+    position:relative;padding:0;border:0
+  }
+  .knob input[type=range]::-webkit-slider-runnable-track{height:4px;background:var(--panel2);border-radius:2px;border:1px solid var(--line)}
+  .knob input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:11px;height:14px;border-radius:3px;background:var(--ink);
+    margin-top:-6px;border:1px solid #000
+  }
+  .rowbtns{display:flex;gap:5px;margin-top:5px;flex:0 0 auto}
+  .rowbtns button{flex:1;font-size:10px;padding:3px 2px}
+  .note{color:var(--dim);font-size:10px;line-height:1.35;margin:4px 0 0}
+
+  /* ---- centre ---- */
+  #transport{display:flex;align-items:center;gap:6px;flex-wrap:wrap;flex:0 0 auto}
+  #transport button{padding:4px 9px;font-weight:600}
+  #transport .keys{color:var(--dim);font-size:10px;margin-left:auto}
+  #drop{
+    border:1px dashed var(--line);border-radius:7px;padding:6px 8px;margin-top:6px;
+    display:flex;align-items:center;gap:8px;flex:0 0 auto;background:var(--panel2)
+  }
+  #drop.hot{border-color:var(--accent);background:rgba(77,163,255,.10)}
+  #drop{white-space:nowrap}
+  #drop .rn{color:var(--ref);font-weight:700;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto;min-width:96px}
+  #drop .hint{color:var(--dim);font-size:10px;overflow:hidden;text-overflow:ellipsis;flex:1 1 0;min-width:0}
+  #drop label.f{flex:0 0 auto;font-size:10px}
+  #drop input[type=number]{width:66px;text-align:right}
+  .plots{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:6px;margin-top:6px}
+  .plotbox{flex:1 1 0;min-height:0;position:relative;background:#0c0d0f;border:1px solid var(--line);border-radius:6px}
+  .plotbox canvas{position:absolute;inset:0;width:100%;height:100%}
+  .plotbox .cap{
+    position:absolute;left:6px;top:4px;font-size:9px;color:var(--dim);
+    letter-spacing:.06em;text-transform:uppercase;pointer-events:none
+  }
+  .plotbox .leg{position:absolute;right:6px;top:4px;font-size:9px;pointer-events:none}
+  .leg .o{color:var(--accent)} .leg .r{color:var(--ref)}
+
+  /* ---- measurement ---- */
+  #meas{overflow-y:auto;flex:1 1 auto;min-height:0}
+  table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+  th,td{padding:1px 3px;text-align:right;white-space:nowrap}
+  th{color:var(--dim);font-weight:600;font-size:9px;text-transform:uppercase;letter-spacing:.05em;
+     border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel)}
+  td:first-child,th:first-child{text-align:left;color:var(--dim)}
+  tr.sec td{
+    color:var(--dim);font-size:9px;letter-spacing:.09em;text-transform:uppercase;
+    padding-top:6px;font-weight:700
+  }
+  td.o{color:var(--accent)} td.r{color:var(--ref)} td.d{color:var(--ink)}
+  td.na{color:#5a5f66}
+
+  footer{
+    display:flex;gap:12px;align-items:center;padding:4px 10px;
+    background:var(--panel);border-top:1px solid var(--line);color:var(--dim);font-size:10px
+  }
+  footer .sp{margin-left:auto}
+  footer b{color:var(--ink)}
+
+  /* ---- emit overlay ---- */
+  #emit{
+    position:fixed;inset:0;background:rgba(8,9,11,.86);display:none;
+    align-items:center;justify-content:center;padding:24px;z-index:20
+  }
+  #emit.on{display:flex}
+  #emit .box{
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    width:min(820px,94vw);max-height:86vh;display:flex;flex-direction:column;padding:10px
+  }
+  #emit h2{margin:0 0 6px;font-size:11px;color:var(--dim);letter-spacing:.06em;text-transform:uppercase;display:flex;gap:8px}
+  #emit h2 .sp{margin-left:auto}
+  #emit textarea{
+    flex:1 1 auto;min-height:300px;background:#0c0d0f;color:var(--ink);border:1px solid var(--line);
+    border-radius:6px;padding:8px;font:11px/1.45 ui-monospace,Menlo,monospace;resize:none;white-space:pre
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <h1>UNISON <span>· voice A/B bench</span></h1>
+    <label class="f">inst <select id="inst"></select></label>
+    <label class="f">voice <select id="voice"></select></label>
+    <label class="f">hash <input type="text" id="hash" value="0x8e2c4b19f7a03d5e6c81b2470f9ad3e5" spellcheck="false"><button id="draw">draw panel</button></label>
+    <span class="sp"></span>
+    <span id="status">…</span>
+  </header>
+
+  <main>
+    <!-- ============ knobs ============ -->
+    <div class="pane">
+      <h2>panel <b id="voiceName">—</b><span class="sp" id="rangeHint"></span></h2>
+      <div id="rack"></div>
+      <div class="rowbtns">
+        <button id="mid">centre</button>
+        <button id="rand">random</button>
+        <button id="reset">patch default</button>
+      </div>
+      <p class="note" id="knobNote"></p>
+    </div>
+
+    <!-- ============ A/B + plots ============ -->
+    <div class="pane">
+      <div id="transport">
+        <button id="playA" class="on">▶ OURS</button>
+        <button id="playB">▶ REF</button>
+        <button id="flip">⇄ flip</button>
+        <button id="loop">loop</button>
+        <button id="blind">blind</button>
+        <button id="reveal" style="display:none">reveal</button>
+        <label class="f"><input type="checkbox" id="matchLvl" checked> match level</label>
+        <span class="keys">space play · f flip · 1/2 side · b blind · l loop · e emit</span>
+      </div>
+
+      <div id="drop">
+        <span class="rn" id="refName">drop a reference sample here</span>
+        <span class="hint" id="refInfo">wav / aif / mp3 — stays in this browser, never uploaded</span>
+        <label class="f">trim <input type="number" id="refStart" value="0" step="1" style="width:60px"> ms</label>
+        <label class="f">len <input type="number" id="refLen" value="0" step="1" style="width:66px"> ms</label>
+        <label class="f">gain <input type="number" id="refGain" value="0" step="0.5" style="width:56px"> dB</label>
+        <button id="pick">choose…</button>
+        <input type="file" id="file" accept="audio/*" style="display:none">
+      </div>
+
+      <div class="plots">
+        <div class="plotbox">
+          <canvas id="cEnv"></canvas>
+          <div class="cap">level envelope · dB below peak</div>
+          <div class="leg"><span class="o">■ ours</span> <span class="r">■ ref</span></div>
+        </div>
+        <div class="plotbox">
+          <canvas id="cCent"></canvas>
+          <div class="cap">spectral centroid (solid, log Hz) · tonal fraction (dotted)</div>
+          <div class="leg"><span class="o">■ ours</span> <span class="r">■ ref</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ measurement ============ -->
+    <div class="pane">
+      <h2>measurement <span class="sp" id="measNote">rig: analysis/features.mjs @f840cc0</span></h2>
+      <div id="meas">
+        <table id="tbl"><tbody></tbody></table>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <span>Δ is a <b>yardstick, not a target</b> — homage, not clone. Jeff decides which differences are wrong and which are ours.</span>
+    <span class="sp"></span>
+    <span>engine @f840cc0 · built 2026-08-11 · <b>the bench never writes the repo</b></span>
+  </footer>
+</div>
+
+<div id="emit"><div class="box">
+  <h2>write-back — paste by hand<span class="sp"><button id="emitCopy">copy</button> <button id="emitClose">close</button></span></h2>
+  <textarea id="emitText" spellcheck="false" readonly></textarea>
+</div></div>
+
+<!-- ===================== inlined engine (verbatim, private repo) ===================== -->
+<script type="text/plain" id="src-engine">
+/* ===== src/core/prng.js @ f840cc0 — verbatim from jeffdavis-studio/unison-engine ===== */
+// prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
+// token hash, consumed in canonical draw order (Technical Architecture v1.2).
+//
+// Discipline: every module draws from the same stream, in a documented, fixed
+// order. Never draw conditionally in a way that changes how many draws happen
+// for the same hash (draw first, discard if unused). Reordering draws is a
+// breaking change to every existing output.
+(function (g) {
+  "use strict";
+  const U = (g.U = g.U || {});
+
+  // sfc32 — small fast counter PRNG, 128-bit state, well-tested for this use.
+  // Seeded from the last 32 hex chars (four 32-bit words) of the token hash.
+  // XOR constants keep degenerate hashes (all zeros) from collapsing the state.
+  U.makePrng = function (hash) {
+    let h = String(hash).replace(/^0x/i, "").toLowerCase();
+    if (!/^[0-9a-f]*$/.test(h)) throw new Error("makePrng: non-hex hash");
+    h = h.padStart(32, "0");
+    const word = (i) => parseInt(h.slice(h.length - 8 * (i + 1), h.length - 8 * i), 16) >>> 0;
+    let a = (word(3) ^ 0x9e3779b9) >>> 0;
+    let b = (word(2) ^ 0x243f6a88) >>> 0;
+    let c = (word(1) ^ 0xb7e15162) >>> 0;
+    let d = (word(0) ^ 0x8aed2a6b) >>> 0;
+
+    function r() {
+      a >>>= 0; b >>>= 0; c >>>= 0; d >>>= 0;
+      const t = (a + b) | 0;
+      a = b ^ (b >>> 9);
+      b = (c + (c << 3)) | 0;
+      c = (c << 21) | (c >>> 11);
+      d = (d + 1) | 0;
+      const out = (t + d) | 0;
+      c = (c + out) | 0;
+      return (out >>> 0) / 4294967296;
+    }
+    for (let i = 0; i < 15; i++) r(); // warm-up: decorrelate from raw seed words
+
+    return {
+      r,                                                        // [0,1)
+      ri: (lo, hi) => lo + Math.floor(r() * (hi - lo + 1)),     // int, inclusive
+      pick: (arr) => arr[Math.floor(r() * arr.length)],
+      chance: (p) => r() < p,
+    };
+  };
+})(typeof window !== "undefined" ? window : globalThis);
+
+/* ===== src/core/mix.js @ f840cc0 — verbatim from jeffdavis-studio/unison-engine ===== */
+// mix.js — the fan-in ≤2 summing rule, as a primitive.
+//
+// Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
+// audio renders are NOT bit-reproducible wherever a node sums 3+ inputs —
+// float addition isn't associative and the browser doesn't fix the summation
+// order. Chain-mixing every summing point at fan-in ≤2 makes renders
+// bit-identical (SHA-256-equal) across pages and loads. Tone.js cannot adopt
+// this fix; it is why the engine is raw Web Audio.
+//
+// RULE: no AudioNode in this engine may ever receive more than two .connect()s.
+// Anywhere three or more signals meet, they meet through U.chainMixer.
+(function (g) {
+  "use strict";
+  const U = (g.U = g.U || {});
+
+  // Serial chain of 2-input gains. add() splices a fresh gain between the
+  // accumulator and `out`, so every summing node sums exactly two signals in a
+  // fixed order. Order of add() calls is part of the deterministic contract.
+  U.chainMixer = function (ctx, out) {
+    let acc = null;
+    let count = 0;
+    return {
+      add(node) {
+        count++;
+        if (!acc) { acc = ctx.createGain(); node.connect(acc); acc.connect(out); return; }
+        const link = ctx.createGain();
+        acc.disconnect(out);
+        acc.connect(link);
+        node.connect(link);
+        link.connect(out);
+        acc = link;
+      },
+      get count() { return count; },
+    };
+  };
+})(typeof window !== "undefined" ? window : globalThis);
+
+/* ===== src/instruments/tr808.js @ f840cc0 — verbatim from jeffdavis-studio/unison-engine ===== */
+// tr808.js — THE MACHINE. A TR-808-lineage core voice: bass drum, snare,
+// closed hat, open hat, each with a front panel the token actually turns.
+//
+// Homage, not trademark (founding brief): the circuits below are modelled on
+// the early-80s Japanese analogue rhythm machine that defines the electro /
+// early hip-hop lane — close, deliberately not slavish. Nothing user-facing
+// names a model number.
+//
+// WHY THIS EXISTS BESIDE drums.js AND NOT INSIDE IT. drums.js is the generic
+// kit: twelve voices, two flavour presets, every constant hardcoded. It still
+// owns clap, rim, toms, cowbell and congas, and it still supplies the whole
+// `studio` (Linn-lineage) kit, which is a different machine and its own later
+// task. What this file adds is the thing drums.js structurally could not be: a
+// real machine with a real panel, whose four core voices are SYNTHESISED FROM A
+// DRAWN PARAMETER SET rather than from constants. Extending drums.js in place
+// would have entangled the 808 panel with the Linn voicing that has to stay put
+// until its own build. So: new module, four voices, drums.js untouched except
+// for the four-line hand-off that lets a machine-flavour kit take its kick,
+// snare and hats from here.
+//
+// THE CIRCUITS, in the order they appear below.
+//
+//   BASS DRUM — a bridged-T network rung by the trigger pulse. It is close to a
+//   pure decaying sine that starts sharply above its resting pitch and falls to
+//   it in about 20ms; DECAY is feedback into the network (a longer ring, not a
+//   different pitch); TONE mixes in the raw trigger click ahead of the ring.
+//   Modelled here as: sine + fast pitch envelope + a small fast-dying second
+//   harmonic (the network's asymmetry) + a high-passed click + gentle
+//   saturation, which is what the machine's output stage does when the drum is
+//   loud.
+//
+//   SNARE — two tuned bridged-T oscillators (a low body and a partial roughly a
+//   twelfth above it) plus a separate noise generator through a bandpass. TUNE
+//   moves both oscillators. SNAPPY is the noise level against the drum body —
+//   the one knob everyone actually turns. TONE here drives the noise brightness
+//   and how long the noise rings, which is the audible half of the machine's
+//   own tone control.
+//
+//   HATS — six square-wave oscillators at fixed inharmonic frequencies, summed,
+//   high-passed, and gated by a VCA. Closed and open hat share ONE oscillator
+//   bank and differ only in their envelope and filter setting, exactly as the
+//   machine does — which is also why they share a VCA, and why a closed hat
+//   cuts an open one off. That choke is implemented in the kit (drums.js
+//   `fire`), because it is a scheduling behaviour, not a waveform.
+//
+// DETERMINISM. Two separate stories, both deliberate:
+//   - The PANEL comes from the song's PRNG stream, as a fixed block of 15 draws
+//     appended at the END of tier 1 (see session.js's canonical draw order).
+//     Fixed count, drawn for every song whether or not the 808 is the kit, so
+//     the count can never drift with the lane.
+//   - The NOISE inside the snare comes from a FIXED seed, never the song
+//     stream, so the waveform build consumes no draws.
+// The Math.sin / Math.exp exposure noted in drums.js applies here identically.
+//
+// LOUDNESS. Every voice is normalised to a fixed peak target before its LEVEL
+// knob rides it, and the level ranges are narrow (about ±1.3 dB). This is
+// mixdown guarantee 2 (Brief 2 §The Mixdown): a random panel draw is allowed to
+// change the character of the kit, and is not allowed to change the balance of
+// the record.
+(function (g) {
+  "use strict";
+  const U = (g.U = g.U || {});
+
+  const SR = 44100;
+  const NOISE_SEED = "808808808808808808808808808808ff";
+
+  // ---- panel ranges --------------------------------------------------------
+  // The archetype-plus-range model (Brief 1 §Patch book): each knob has a
+  // musically-safe span, and the draw lands anywhere in it with a soft pull
+  // toward the middle. These are the build-time dials — this table IS the
+  // machine's personality, and it is the thing to retune by ear.
+  const RANGE = {
+    bdTune:   [42, 64],        // Hz — where the ring settles
+    bdDecay:  [0.060, 0.235],  // sec — amplitude time constant (≈0.5–1.9s tail)
+    bdTone:   [0.05, 0.55],    // click into the ring
+    bdLevel:  [0.86, 1.14],
+    sdTune:   [158, 224],      // Hz — lower of the two body oscillators
+    sdSnappy: [0.20, 0.85],    // noise against body
+    sdTone:   [0.15, 0.90],    // noise brightness + ring length
+    sdLevel:  [0.84, 1.16],
+    chDecay:  [0.009, 0.030],  // sec — ≈40–120ms of hat
+    chTone:   [0.15, 0.85],    // high-pass corner + bank detune
+    chLevel:  [0.82, 1.18],
+    ohDecay:  [0.055, 0.210],  // sec — ≈0.35–1.3s of open hat
+    ohTone:   [0.15, 0.85],
+    ohLevel:  [0.80, 1.15],
+    accent:   [0.15, 0.95],    // the machine's one global knob
+  };
+  U.PANEL_808_RANGES = RANGE;
+
+  // Centre-biased position: era-typical settings are likely, the ends of every
+  // range stay genuinely reachable. Same shape as every other weighted draw in
+  // the engine (Brief 1 §Design language).
+  //
+  // The exponent must be BELOW 1 — that is what pulls a uniform draw toward the
+  // middle. Above 1 does the exact opposite and stacks the panel at the ends of
+  // every range; the first demo render caught it doing precisely that (a single
+  // draw with the kick's click at 98%, the snare's snappy at 100% and the hats
+  // wide open, which is not a machine anybody would leave set that way).
+  const K = 0.62;
+  function centred(t) {
+    return t < 0.5 ? 0.5 * Math.pow(2 * t, K) : 1 - 0.5 * Math.pow(2 - 2 * t, K);
+  }
+  const span = (r, pos) => r[0] + (r[1] - r[0]) * pos;
+
+  // EXACTLY 15 draws, in this order, always. Appended at the end of tier 1.
+  U.draw808Panel = function (R) {
+    const pos = {};
+    for (const k of ["bdTune", "bdDecay", "bdTone", "bdLevel",
+      "sdTune", "sdSnappy", "sdTone", "sdLevel",
+      "chDecay", "chTone", "chLevel",
+      "ohDecay", "ohTone", "ohLevel", "accent"]) {
+      pos[k] = centred(R.r());
+    }
+    const v = {};
+    for (const k in pos) v[k] = span(RANGE[k], pos[k]);
+    v.pos = pos;                       // 0..1 knob positions, for the readout
+    return v;
+  };
+
+  // A one-line human readout of what the token turned. This is what you read
+  // while listening, and what lands in the render manifest.
+  U.describe808 = function (p) {
+    const pct = (x) => Math.round(x * 100);
+    return "BD " + p.bdTune.toFixed(0) + "Hz d" + pct(p.pos.bdDecay) + " t" + pct(p.pos.bdTone) +
+      " | SD " + p.sdTune.toFixed(0) + "Hz snap" + pct(p.pos.sdSnappy) + " t" + pct(p.pos.sdTone) +
+      " | CH d" + pct(p.pos.chDecay) + " t" + pct(p.pos.chTone) +
+      " | OH d" + pct(p.pos.ohDecay) + " t" + pct(p.pos.ohTone) +
+      " | ACC " + pct(p.pos.accent);
+  };
+
+  // ---- DSP helpers ---------------------------------------------------------
+  // Deliberately a private copy of the same four primitives drums.js keeps
+  // private. Roughly 30 lines duplicated in the concatenated on-chain payload;
+  // hoisting them into core/ is a cheap later cleanup and is on the README's
+  // open list rather than folded into this task.
+
+  const alloc = (sec) => new Float32Array(Math.max(1, Math.round(sec * SR)));
+
+  function onePoleHP(x, hz) {
+    const a = Math.exp((-2 * Math.PI * hz) / SR);
+    let yPrev = 0, xPrev = 0;
+    for (let i = 0; i < x.length; i++) {
+      const xi = x[i];
+      const y = a * (yPrev + xi - xPrev);
+      x[i] = y; yPrev = y; xPrev = xi;
+    }
+    return x;
+  }
+
+  function onePoleLP(x, hz) {
+    const a = 1 - Math.exp((-2 * Math.PI * hz) / SR);
+    let y = 0;
+    for (let i = 0; i < x.length; i++) { y += a * (x[i] - y); x[i] = y; }
+    return x;
+  }
+
+  function bandpass(x, hz, q) {
+    const w = (2 * Math.PI * hz) / SR;
+    const alpha = Math.sin(w) / (2 * q);
+    const cw = Math.cos(w);
+    const b0 = alpha, b2 = -alpha;
+    const a0 = 1 + alpha, a1 = -2 * cw, a2 = 1 - alpha;
+    let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+    for (let i = 0; i < x.length; i++) {
+      const xi = x[i];
+      const y = (b0 * xi + b2 * x2 - a1 * y1 - a2 * y2) / a0;
+      x2 = x1; x1 = xi; y2 = y1; y1 = y;
+      x[i] = y;
+    }
+    return x;
+  }
+
+  function normalize(x, target) {
+    let peak = 0;
+    for (let i = 0; i < x.length; i++) { const a = Math.abs(x[i]); if (a > peak) peak = a; }
+    if (peak < 1e-9) return x;
+    const k = target / peak;
+    for (let i = 0; i < x.length; i++) x[i] *= k;
+    return x;
+  }
+
+  // De-click only: 0.3ms in, 2ms out. A buffered one-shot must not click at
+  // either end, but the fade-in is a tax on the attack and these are percussion
+  // — the whole identity of a hat is in its first few milliseconds. 0.3ms (13
+  // samples) is enough to kill a start-of-buffer step and short enough to be
+  // inaudible as a fade.
+  //
+  // ORDER MATTERS: shape() runs BEFORE normalize(), never after. Written the
+  // other way round first, and it cost the hats 11dB — their absolute peak
+  // lands inside the fade-in window (that is what a transient IS), so fading
+  // after normalizing silently undid the normalization on exactly the voices
+  // with the fastest attack. Measured: closed hat came out at 0.166 against a
+  // 0.62 target. normalize() must be the last thing to touch amplitude, or the
+  // patch-loudness guarantee is a comment rather than a fact.
+  function shape(x) {
+    const inN = Math.min(x.length, Math.round(0.0003 * SR));
+    for (let i = 0; i < inN; i++) x[i] *= i / inN;
+    const outN = Math.min(x.length, Math.round(0.002 * SR));
+    for (let i = 0; i < outN; i++) x[x.length - 1 - i] *= i / outN;
+    return x;
+  }
+
+  // ---- bass drum -----------------------------------------------------------
+
+  function bassDrum(p, rnd) {
+    const tau = p.bdDecay;
+    const x = alloc(Math.min(1.7, tau * 8 + 0.06));
+    const fEnd = p.bdTune;
+    const fStart = fEnd * 2.4;
+    // A higher-tuned drum sweeps down faster — the network's Q rises with pitch.
+    const tauP = 0.030 - 0.013 * p.pos.bdTune;
+    let ph = 0, ph2 = 0;
+    for (let i = 0; i < x.length; i++) {
+      const t = i / SR;
+      const f = fEnd + (fStart - fEnd) * Math.exp(-t / tauP);
+      ph += (2 * Math.PI * f) / SR;
+      ph2 += (2 * Math.PI * f * 2) / SR;
+      const env = Math.exp(-t / tau);
+      x[i] = (Math.sin(ph) + 0.13 * Math.sin(ph2) * Math.exp(-t / 0.012)) * env;
+    }
+    // TONE: the trigger pulse itself, high-passed, sitting in front of the ring.
+    const cn = Math.round(0.006 * SR);
+    const click = new Float32Array(cn);
+    for (let i = 0; i < cn; i++) {
+      const t = i / SR;
+      click[i] = ((rnd() * 2 - 1) * 0.5 + (i === 0 ? 1 : 0)) * Math.exp(-t / 0.0009);
+    }
+    onePoleHP(click, 1400);
+    for (let i = 0; i < cn && i < x.length; i++) x[i] += click[i] * p.bdTone * 0.9;
+    // output-stage saturation: rounds the transient, thickens the fundamental
+    const k = Math.tanh(1.25);
+    for (let i = 0; i < x.length; i++) x[i] = Math.tanh(x[i] * 1.25) / k;
+    return normalize(shape(x), 0.98 * p.bdLevel);
+  }
+
+  // ---- snare ---------------------------------------------------------------
+
+  function snareDrum(p, rnd) {
+    const tauBody = 0.030 + 0.020 * (1 - p.pos.sdTone);
+    const tauNoise = 0.055 + 0.105 * p.pos.sdTone;
+    const x = alloc(Math.max(tauBody, tauNoise) * 7 + 0.03);
+    const noise = new Float32Array(x.length);
+    for (let i = 0; i < noise.length; i++) noise[i] = rnd() * 2 - 1;
+    bandpass(noise, 1500 + 3300 * p.pos.sdTone, 0.85);
+    onePoleHP(noise, 700);
+    const f1 = p.sdTune, f2 = f1 * 1.83;
+    const snap = p.sdSnappy;
+    let p1 = 0, p2 = 0;
+    for (let i = 0; i < x.length; i++) {
+      const t = i / SR;
+      p1 += (2 * Math.PI * f1) / SR;
+      p2 += (2 * Math.PI * f2) / SR;
+      const body = (Math.sin(p1) + 0.62 * Math.sin(p2)) * Math.exp(-t / tauBody);
+      const nz = noise[i] * Math.exp(-t / tauNoise);
+      x[i] = body * (1 - 0.60 * snap) + nz * (0.30 + 0.95 * snap);
+    }
+    return normalize(shape(x), 0.95 * p.sdLevel);
+  }
+
+  // ---- hats ----------------------------------------------------------------
+  // The machine's six metallic oscillators. Fixed, inharmonic, and the reason
+  // an 808 hat sounds like nothing else.
+  const OSC = [205.3, 304.4, 369.6, 522.7, 540.0, 800.0];
+
+  // Band-limited square bank: odd harmonics summed up to just under Nyquist.
+  // Naive squares fold audibly here — the hat's whole signal lives ABOVE 6 kHz,
+  // which is exactly where the aliased partials land, so band-limiting is not
+  // fussiness, it is the difference between a hat and a ring modulator.
+  function oscBank(n, detune) {
+    const x = new Float32Array(n);
+    const ceiling = (SR / 2) * 0.92;
+    for (const f0 of OSC) {
+      const f = f0 * detune;
+      const hMax = Math.floor(ceiling / f);
+      for (let h = 1; h <= hMax; h += 2) {
+        const w = (2 * Math.PI * f * h) / SR;
+        const amp = 1 / h;
+        for (let i = 0; i < n; i++) x[i] += Math.sin(w * i) * amp;
+      }
+    }
+    return x;
+  }
+
+  function hats(p) {
+    // ONE bank, both voices — the shared oscillator section of the real thing.
+    const ohLen = Math.min(1.35, p.ohDecay * 7 + 0.04);
+    const chLen = Math.min(ohLen, p.chDecay * 7 + 0.02);
+    const detune = 0.94 + 0.13 * p.pos.ohTone;      // homage drift, one bank
+    const bank = oscBank(Math.round(ohLen * SR), detune);
+
+    // closed: short slice of the bank, its own high-pass, hard VCA decay
+    const ch = new Float32Array(Math.round(chLen * SR));
+    ch.set(bank.subarray(0, ch.length));
+    const chHz = 5400 + 3600 * p.pos.chTone;
+    onePoleHP(ch, chHz); onePoleHP(ch, chHz);
+    onePoleLP(ch, 15500);
+    for (let i = 0; i < ch.length; i++) ch[i] *= Math.exp(-(i / SR) / p.chDecay);
+
+    // open: the full bank, a slightly lower corner, and a two-stage envelope —
+    // the machine's open hat drops fast off the transient and then rings.
+    const oh = new Float32Array(bank.length);
+    oh.set(bank);
+    const ohHz = 4800 + 3400 * p.pos.ohTone;
+    onePoleHP(oh, ohHz); onePoleHP(oh, ohHz);
+    onePoleLP(oh, 15500);
+    for (let i = 0; i < oh.length; i++) {
+      const t = i / SR;
+      oh[i] *= 0.34 * Math.exp(-t / (p.ohDecay * 0.16)) + 0.72 * Math.exp(-t / p.ohDecay);
+    }
+    return {
+      hatClosed: normalize(shape(ch), 0.62 * p.chLevel),
+      hatOpen: normalize(shape(oh), 0.66 * p.ohLevel),
+    };
+  }
+
+  // ---- build ---------------------------------------------------------------
+
+  // panel -> the four core voices as Float32Arrays at 44.1k. drums.js resamples
+  // if the context runs at another rate.
+  U.build808 = function (panel) {
+    const rnd = U.makePrng(NOISE_SEED).r;
+    const h = hats(panel);
+    return {
+      kick: bassDrum(panel, rnd),
+      snare: snareDrum(panel, rnd),
+      hatClosed: h.hatClosed,
+      hatOpen: h.hatOpen,
+    };
+  };
+
+  // ACCENT is the machine's one global knob: an accented step is louder, and on
+  // the real thing everything else drops slightly to make room. Gain only —
+  // the analogue accent also stiffens the bass drum's attack, which this does
+  // not model. Roughly loudness-neutral across the knob's range on purpose, so
+  // the accent draw changes the groove's shape and not the song's level.
+  U.accent808 = function (panel) {
+    const a = panel.accent;
+    return { hit: 1 + 0.42 * a, rest: 1 - 0.13 * a };
+  };
+})(typeof window !== "undefined" ? window : globalThis);
+
+/* ===== src/instruments/juno.js @ f840cc0 — verbatim from jeffdavis-studio/unison-engine ===== */
+// juno.js — Juno-60-flavor poly voice, raw Web Audio, zero dependencies.
+// Ported from the 2026-07-21 bake-off winner (voice-raw.js), restructured to
+// live behind a desk strip: U.createJuno(ctx, strip, patchName) builds its own
+// voice bus (+ chorus when the patch calls for it) and feeds strip.input.
+//
+// VOICING (2026-07-22, Jeff): the Tone render's darker/rounder character was
+// "more of the era" — the raw engine stands, but the raw voice is dialed
+// toward it. Changes vs the bake-off patch: comp filter center down
+// (cutoffBase 500→430, cutoffEnv 3200→2500), chorus slower/wider/softer
+// (0.6→0.5 Hz, ±0.6→±0.9 ms, taps split 3.5/4.6 ms, wet 0.55→0.50).
+// A/B reference renders: unison-bakeoff-raw.m4a / unison-bakeoff-tone.m4a in
+// the Studio Advancement Drive folder.
+//
+// Patch model: saw DCO + sub-square (-1 oct), per-voice lowpass with envelope,
+// ADSR amp. All summing obeys the fan-in ≤2 rule (core/mix.js): voices
+// chain-mix into the voice bus; chorus output sums dry + wet only.
+(function (g) {
+  "use strict";
+  const U = (g.U = g.U || {});
+
+  const midiHz = (m) => 440 * Math.pow(2, (m - 69) / 12);
+
+  U.JUNO_PATCHES = {
+    comp: {
+      subLevel: 0.35, cutoffBase: 430, cutoffEnv: 2500, filterQ: 0.9,
+      fA: 0.006, fD: 0.28, fS: 0.35,
+      a: 0.005, d: 0.18, s: 0.65, r: 0.22, level: 0.16, chorus: true,
+    },
+    bass: {
+      subLevel: 0.5, cutoffBase: 220, cutoffEnv: 1400, filterQ: 1.1,
+      fA: 0.003, fD: 0.12, fS: 0.22,
+      a: 0.003, d: 0.10, s: 0.55, r: 0.08, level: 0.30, chorus: false,
+    },
+    // --- 2026-07-28: the four patches the composition engine needs beyond the
+    // bake-off pair. Same voice architecture, different envelopes and filter
+    // ranges — a Juno's whole range is the slider positions, so that's honest.
+    // Levels are first-pass and are a listening job, like the house faders.
+    sub: {
+      // 808-lineage bass: nearly no harmonics past the fundamental, long tail.
+      subLevel: 0.85, cutoffBase: 95, cutoffEnv: 260, filterQ: 0.7,
+      fA: 0.004, fD: 0.30, fS: 0.30,
+      a: 0.004, d: 0.20, s: 0.80, r: 0.30, level: 0.34, chorus: false,
+    },
+    pad: {
+      // slow in, slow out, filter well down — sits under everything
+      subLevel: 0.30, cutoffBase: 320, cutoffEnv: 1100, filterQ: 0.7,
+      fA: 0.45, fD: 1.20, fS: 0.55,
+      a: 0.40, d: 0.60, s: 0.85, r: 0.90, level: 0.11, chorus: true,
+    },
+    arp: {
+      // short and bright; every note is a pluck
+      subLevel: 0.20, cutoffBase: 700, cutoffEnv: 3600, filterQ: 1.4,
+      fA: 0.003, fD: 0.09, fS: 0.18,
+      a: 0.002, d: 0.07, s: 0.30, r: 0.10, level: 0.13, chorus: true,
+    },
+    lead: {
+      // singable: enough body to carry, filter open enough to cut the desk
+      subLevel: 0.28, cutoffBase: 620, cutoffEnv: 3000, filterQ: 1.6,
+      fA: 0.012, fD: 0.35, fS: 0.45,
+      a: 0.015, d: 0.22, s: 0.72, r: 0.28, level: 0.17, chorus: true,
+    },
+    stab: {
+      // the ORCH5 homage: instant attack, hard decay, brassy filter sweep
+      subLevel: 0.45, cutoffBase: 400, cutoffEnv: 4200, filterQ: 2.0,
+      fA: 0.002, fD: 0.14, fS: 0.12,
+      a: 0.002, d: 0.12, s: 0.25, r: 0.14, level: 0.15, chorus: false,
+    },
+  };
+
+  // Juno BBD-style chorus (mode I flavor): dry pass + two swept delay taps,
+  // one LFO with inverted polarity per side — the Juno stereo trick. Slightly
+  // split tap centers (3.5/4.6 ms) widen it without a second LFO.
+  // Fan-in check: `out` sums dry + wet (2); merger takes one tap per channel.
+  function makeChorus(ctx, out) {
+    const input = ctx.createGain();
+    const dry = ctx.createGain(); dry.gain.value = 1.0;
+    const wet = ctx.createGain(); wet.gain.value = 0.50;
+    const dL = ctx.createDelay(0.05), dR = ctx.createDelay(0.05);
+    dL.delayTime.value = 0.0035; dR.delayTime.value = 0.0046;
+    const lfo = ctx.createOscillator(); lfo.frequency.value = 0.5;
+    const depthL = ctx.createGain(); depthL.gain.value = +0.0009;
+    const depthR = ctx.createGain(); depthR.gain.value = -0.0009;
+    lfo.connect(depthL).connect(dL.delayTime);
+    lfo.connect(depthR).connect(dR.delayTime);
+    lfo.start(0);
+    const merger = ctx.createChannelMerger(2);
+    input.connect(dry).connect(out);
+    input.connect(dL).connect(merger, 0, 0);
+    input.connect(dR).connect(merger, 0, 1);
+    merger.connect(wet).connect(out);
+    return input;
+  }
+
+  // strip: a desk strip from U.createDesk (voice output lands in strip.input,
+  // ahead of trim → hp → fader, so the desk owns level and hygiene).
+  U.createJuno = function (ctx, strip, patchName) {
+    const p = U.JUNO_PATCHES[patchName];
+    if (!p) throw new Error("createJuno: unknown patch " + patchName);
+
+    // voice bus → [chorus] → strip input. Chorus is part of the instrument,
+    // not a desk insert — it's the Juno's own BBD, printed with the part.
+    let voiceTarget;
+    if (p.chorus) {
+      const chorusOut = ctx.createGain();
+      const chorusIn = makeChorus(ctx, chorusOut);
+      strip.input.add(chorusOut);
+      voiceTarget = chorusIn;
+    } else {
+      voiceTarget = ctx.createGain();
+      strip.input.add(voiceTarget);
+    }
+    const voiceMix = U.chainMixer(ctx, voiceTarget);
+
+    // DETERMINISM: hold a reference to every node we create. Chrome disposes a
+    // finished AudioScheduledSourceNode once it is unreachable from JS, and the
+    // *timing* of that disposal depends on GC, which depends on wall clock and
+    // memory pressure. Disposal ends the node's contribution a render quantum
+    // early or late, which is inaudible but changes the last bits — and a
+    // long, dense song renders differently run to run because of it. Holding
+    // references makes disposal never happen, so every render is identical.
+    // Measured 2026-07-28: without this, a 45s/3000-event render was bistable
+    // across pages (identical peak/rms, different SHA); with it, bit-exact.
+    const held = [];
+
+    function noteOn(t, midi, vel, dur) {
+      const f = midiHz(midi);
+
+      const saw = ctx.createOscillator(); saw.type = "sawtooth"; saw.frequency.value = f;
+      const sub = ctx.createOscillator(); sub.type = "square"; sub.frequency.value = f / 2;
+      const subG = ctx.createGain(); subG.gain.value = p.subLevel;
+
+      const filt = ctx.createBiquadFilter(); filt.type = "lowpass"; filt.Q.value = p.filterQ;
+      const peak = Math.min(p.cutoffBase + p.cutoffEnv * vel, ctx.sampleRate * 0.45);
+      filt.frequency.setValueAtTime(p.cutoffBase, t);
+      filt.frequency.linearRampToValueAtTime(peak, t + p.fA);
+      filt.frequency.exponentialRampToValueAtTime(Math.max(p.cutoffBase + p.cutoffEnv * p.fS * vel, 60), t + p.fA + p.fD);
+
+      const amp = ctx.createGain();
+      const lvl = p.level * vel;
+      amp.gain.setValueAtTime(0, t);
+      amp.gain.linearRampToValueAtTime(lvl, t + p.a);
+      amp.gain.linearRampToValueAtTime(lvl * p.s, t + p.a + p.d);
+      const offT = t + dur;
+      amp.gain.setValueAtTime(lvl * p.s, offT);
+      amp.gain.linearRampToValueAtTime(0.0001, offT + p.r);
+
+      // filt sums saw + sub (fan-in 2); each amp chain-mixes into the voice bus.
+      saw.connect(filt); sub.connect(subG).connect(filt);
+      filt.connect(amp);
+      voiceMix.add(amp);
+      saw.start(t); sub.start(t);
+      saw.stop(offT + p.r + 0.05); sub.stop(offT + p.r + 0.05);
+      held.push(saw, sub, subG, filt, amp);
+    }
+
+    return {
+      held,
+      noteOn,
+      schedule(events, t0) { for (const e of events) noteOn(t0 + e.t, e.midi, e.vel, e.dur); },
+    };
+  };
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+
+<!-- ===================== inlined analysis rig (verbatim, private repo) ===================== -->
+<script type="text/plain" id="src-analysis">
+(function (g) {
+"use strict";
+/* ===== analysis/fft.mjs @ f840cc0 ===== */
+// fft.mjs — radix-2 complex FFT + windows. Zero dependencies, same ethos as the
+// engine: plain JS, no bundler, no native modules.
+//
+// This is the numerical floor of the whole analysis rig. Everything else
+// (band envelopes, centroid, tonality) is a reading of the magnitude
+// spectrogram this file produces.
+
+const twiddleCache = new Map();
+
+function twiddles(n) {
+  let t = twiddleCache.get(n);
+  if (t) return t;
+  const cos = new Float64Array(n / 2), sin = new Float64Array(n / 2);
+  for (let i = 0; i < n / 2; i++) {
+    cos[i] = Math.cos((-2 * Math.PI * i) / n);
+    sin[i] = Math.sin((-2 * Math.PI * i) / n);
+  }
+  t = { cos, sin };
+  twiddleCache.set(n, t);
+  return t;
+}
+
+// In-place iterative radix-2 FFT. re/im are Float64Array of length n (power of 2).
+function fft(re, im) {
+  const n = re.length;
+  if ((n & (n - 1)) !== 0) throw new Error("fft: length must be a power of two");
+  // bit reversal
+  for (let i = 1, j = 0; i < n; i++) {
+    let bit = n >> 1;
+    for (; j & bit; bit >>= 1) j ^= bit;
+    j ^= bit;
+    if (i < j) {
+      let t = re[i]; re[i] = re[j]; re[j] = t;
+      t = im[i]; im[i] = im[j]; im[j] = t;
+    }
+  }
+  const { cos, sin } = twiddles(n);
+  for (let len = 2; len <= n; len <<= 1) {
+    const step = n / len;
+    for (let i = 0; i < n; i += len) {
+      for (let k = 0; k < len / 2; k++) {
+        const wi = k * step;
+        const wr = cos[wi], wj = sin[wi];
+        const ar = re[i + k], ai = im[i + k];
+        const br = re[i + k + len / 2], bi = im[i + k + len / 2];
+        const tr = br * wr - bi * wj;
+        const ti = br * wj + bi * wr;
+        re[i + k] = ar + tr; im[i + k] = ai + ti;
+        re[i + k + len / 2] = ar - tr; im[i + k + len / 2] = ai - ti;
+      }
+    }
+  }
+}
+
+function hann(n) {
+  const w = new Float64Array(n);
+  for (let i = 0; i < n; i++) w[i] = 0.5 - 0.5 * Math.cos((2 * Math.PI * i) / (n - 1));
+  return w;
+}
+
+// Magnitude spectrum of one frame of x starting at `off`, zero-padded to size.
+function magSpectrum(x, off, size, win) {
+  const re = new Float64Array(size), im = new Float64Array(size);
+  for (let i = 0; i < size; i++) {
+    const j = off + i;
+    re[i] = (j >= 0 && j < x.length ? x[j] : 0) * win[i];
+  }
+  fft(re, im);
+  const half = size / 2;
+  const mag = new Float64Array(half);
+  for (let i = 0; i < half; i++) mag[i] = Math.hypot(re[i], im[i]);
+  return mag;
+}
+
+// Short-time magnitude spectrogram.
+// Returns { frames: Float64Array[], hop, size, sr, times: Float64Array (sec) }
+function stft(x, sr, size = 1024, hop = 128) {
+  const win = hann(size);
+  const frames = [];
+  const times = [];
+  for (let off = 0; off + size <= x.length + size; off += hop) {
+    if (off >= x.length) break;
+    frames.push(magSpectrum(x, off, size, win));
+    times.push((off + size / 2) / sr);
+  }
+  return { frames, hop, size, sr, times: Float64Array.from(times) };
+}
+
+/* ===== analysis/features.mjs @ f840cc0 ===== */
+// features.mjs — THE MEASUREMENT CHANNEL of the sound-analysis rig.
+//
+// WHY THIS EXISTS. Morgan cannot hear. Describing a sound in words is not a
+// workable channel between Jeff's ear and the synthesis code (his call,
+// 2026-08-11). So the rig runs the SAME analysis over a real reference hit and
+// over ours and prints the SAME numbers, and "sounds off" becomes a distance
+// that can be iterated against without a human in the loop for every step.
+//
+// WHAT IS DELIBERATELY NOT HERE: raw waveform overlay and any sample-domain
+// difference. Two noise-based percussion hits with identical perceived timbre
+// have unrelated waveforms — phase makes that comparison meaningless. Every
+// feature below is phase-blind and time-aligned to the onset.
+//
+// WHAT IT MEASURES, chosen because these are the things ears actually notice:
+//   attack      — how fast the front edge arrives (time to peak, 10-90% rise)
+//   bandDecay   — per-octave-band decay times. "The tail rings too long" is
+//                 always a statement about a BAND, not about the whole hit.
+//   centroid    — spectral centroid trajectory across the hit. A hit whose
+//                 centroid stays high while the level falls sounds metallic;
+//                 one whose centroid falls with the level sounds like a drum.
+//   tonality    — tonal (narrow-peak) energy as a fraction of total, through
+//                 time. This separates "shh" from "whistle" and is the number
+//                 that most directly indexes Jeff's word "metallic".
+//   partials    — the strongest narrow partials and their individual decay
+//                 times. This is what catches pure sines ringing.
+//
+// HOMAGE, NOT CLONE. Nothing in this file scores a hit or declares a winner.
+// It produces a DIFFERENCE REPORT. Jeff decides which differences are wrong
+// and which are ours.
+
+
+
+const BANDS = [
+  [30, 60], [60, 120], [120, 240], [240, 480], [480, 960],
+  [960, 1920], [1920, 3840], [3840, 7680], [7680, 15360], [15360, 20000],
+];
+const BAND_LABELS = BANDS.map(([a, b]) =>
+  (a >= 1000 ? (a / 1000) + "k" : a) + "-" + (b >= 1000 ? (b / 1000) + "k" : b));
+
+const db = (x) => 20 * Math.log10(Math.max(x, 1e-12));
+
+// Trim to onset: drop everything before the first sample above -60 dBFS of the
+// hit's own peak, so a reference sample with 3ms of leading silence and our
+// buffer (which starts at sample 0) are compared from the same t=0.
+function trimOnset(x, floorDb = -60) {
+  let peak = 0;
+  for (let i = 0; i < x.length; i++) { const a = Math.abs(x[i]); if (a > peak) peak = a; }
+  const thr = peak * Math.pow(10, floorDb / 20);
+  let s = 0;
+  while (s < x.length && Math.abs(x[s]) < thr) s++;
+  return x.subarray(Math.max(0, s));
+}
+
+function normalizePeak(x, target = 1) {
+  let peak = 0;
+  for (let i = 0; i < x.length; i++) { const a = Math.abs(x[i]); if (a > peak) peak = a; }
+  const out = new Float32Array(x.length);
+  const k = peak > 1e-12 ? target / peak : 1;
+  for (let i = 0; i < x.length; i++) out[i] = x[i] * k;
+  return out;
+}
+
+// Short-window RMS envelope, in dB relative to its own maximum.
+function rmsEnvelope(x, sr, winSec = 0.005, hopSec = 0.001) {
+  const w = Math.max(4, Math.round(winSec * sr));
+  const h = Math.max(1, Math.round(hopSec * sr));
+  const n = Math.max(1, Math.floor((x.length - w) / h) + 1);
+  const env = new Float64Array(n), t = new Float64Array(n);
+  for (let f = 0; f < n; f++) {
+    let s = 0;
+    for (let i = 0; i < w; i++) { const v = x[f * h + i]; s += v * v; }
+    env[f] = Math.sqrt(s / w);
+    t[f] = (f * h + w / 2) / sr;
+  }
+  return { env, t };
+}
+
+// Time (sec) from the envelope's peak down to `drop` dB below it. Returns null
+// if the signal never gets there inside the file — which for a truncated
+// reference sample is a real and reportable answer, not a failure.
+function decayTime(env, t, drop) {
+  let pi = 0, pv = 0;
+  for (let i = 0; i < env.length; i++) if (env[i] > pv) { pv = env[i]; pi = i; }
+  const thr = pv * Math.pow(10, -drop / 20);
+  for (let i = pi; i < env.length; i++) if (env[i] <= thr) return t[i] - t[pi];
+  return null;
+}
+
+// Exponential time constant tau, fitted by least squares on ln(env) over the
+// -3 dB .. -30 dB stretch of the decay. tau is the physically meaningful number
+// (the machine's circuits ARE exponential decays), and it is directly
+// comparable to the tau constants in tr808.js.
+function fitTau(env, t) {
+  let pi = 0, pv = 0;
+  for (let i = 0; i < env.length; i++) if (env[i] > pv) { pv = env[i]; pi = i; }
+  if (pv < 1e-9) return null;
+  const hi = pv * Math.pow(10, -3 / 20), lo = pv * Math.pow(10, -30 / 20);
+  const xs = [], ys = [];
+  for (let i = pi; i < env.length; i++) {
+    if (env[i] > hi) continue;
+    if (env[i] < lo) break;
+    xs.push(t[i] - t[pi]); ys.push(Math.log(env[i]));
+  }
+  if (xs.length < 8) return null;
+  const n = xs.length;
+  const mx = xs.reduce((a, b) => a + b, 0) / n, my = ys.reduce((a, b) => a + b, 0) / n;
+  let sxy = 0, sxx = 0;
+  for (let i = 0; i < n; i++) { sxy += (xs[i] - mx) * (ys[i] - my); sxx += (xs[i] - mx) ** 2; }
+  if (sxx < 1e-12) return null;
+  const slope = sxy / sxx;
+  return slope < 0 ? -1 / slope : null;
+}
+
+// Median-filtered spectral floor: the noise bed. Anything standing well above
+// it is a tonal peak. This is the phase-blind way to ask "is this pitched?"
+function spectralFloor(mag, half = 12) {
+  const out = new Float64Array(mag.length);
+  const buf = [];
+  for (let i = 0; i < mag.length; i++) {
+    const a = Math.max(0, i - half), b = Math.min(mag.length, i + half + 1);
+    buf.length = 0;
+    for (let j = a; j < b; j++) buf.push(mag[j]);
+    buf.sort((p, q) => p - q);
+    out[i] = buf[buf.length >> 1];
+  }
+  return out;
+}
+
+// The full feature set for one hit.
+function analyze(xIn, sr, opts = {}) {
+  const size = opts.fftSize || 1024;
+  const hop = opts.hop || 128;
+  const x = normalizePeak(trimOnset(xIn), 1);
+  const dur = x.length / sr;
+
+  // ---- attack + overall envelope -------------------------------------------
+  const { env, t } = rmsEnvelope(x, sr);
+  let pi = 0, pv = 0;
+  for (let i = 0; i < env.length; i++) if (env[i] > pv) { pv = env[i]; pi = i; }
+  let i10 = 0, i90 = pi;
+  for (let i = 0; i <= pi; i++) { if (env[i] <= 0.1 * pv) i10 = i; }
+  for (let i = i10; i <= pi; i++) { if (env[i] >= 0.9 * pv) { i90 = i; break; } }
+  const attack = {
+    timeToPeakMs: +(t[pi] * 1000).toFixed(2),
+    rise10to90Ms: +((t[i90] - t[i10]) * 1000).toFixed(2),
+  };
+
+  const decay = {
+    t20Ms: nullableMs(decayTime(env, t, 20)),
+    t40Ms: nullableMs(decayTime(env, t, 40)),
+    t60Ms: nullableMs(decayTime(env, t, 60)),
+    tauMs: nullableMs(fitTau(env, t)),
+    fileMs: +(dur * 1000).toFixed(1),
+    truncated: decayTime(env, t, 40) === null,   // file ends before -40 dB
+  };
+
+  // ---- spectrogram ---------------------------------------------------------
+  const S = stft(x, sr, size, hop);
+  const binHz = sr / size;
+  const nBins = size / 2;
+
+  // ---- per-band energy envelopes + per-band decay --------------------------
+  const bandEnv = BANDS.map(() => new Float64Array(S.frames.length));
+  for (let f = 0; f < S.frames.length; f++) {
+    const mag = S.frames[f];
+    for (let b = 0; b < BANDS.length; b++) {
+      const lo = Math.max(1, Math.floor(BANDS[b][0] / binHz));
+      const hi = Math.min(nBins, Math.ceil(BANDS[b][1] / binHz));
+      let s = 0;
+      for (let i = lo; i < hi; i++) s += mag[i] * mag[i];
+      bandEnv[b][f] = Math.sqrt(s);
+    }
+  }
+  const bands = BANDS.map((_, b) => {
+    const e = bandEnv[b];
+    let pk = 0; for (let i = 0; i < e.length; i++) if (e[i] > pk) pk = e[i];
+    return {
+      band: BAND_LABELS[b],
+      peakDb: +db(pk).toFixed(1),
+      t20Ms: nullableMs(decayTime(e, S.times, 20)),
+      t40Ms: nullableMs(decayTime(e, S.times, 40)),
+      tauMs: nullableMs(fitTau(e, S.times)),
+    };
+  });
+
+  // Relative band balance at the peak of the hit and 100 ms in — "where the
+  // energy sits" at two moments, which is how a tail reads differently from a
+  // body even when the whole-hit spectrum looks fine.
+  const bandBalance = (sec) => {
+    const f = Math.min(S.frames.length - 1, Math.max(0, Math.round((sec * sr) / hop)));
+    let tot = 0;
+    const v = bandEnv.map((e) => { tot += e[f] * e[f]; return e[f]; });
+    return v.map((a) => +db(a / Math.sqrt(Math.max(tot, 1e-18))).toFixed(1));
+  };
+
+  // ---- centroid trajectory + tonality trajectory ---------------------------
+  const centroid = new Float64Array(S.frames.length);
+  const tonal = new Float64Array(S.frames.length);
+  const level = new Float64Array(S.frames.length);
+  const loBin = Math.max(1, Math.floor(60 / binHz));
+  for (let f = 0; f < S.frames.length; f++) {
+    const mag = S.frames[f];
+    let num = 0, den = 0;
+    for (let i = loBin; i < nBins; i++) { const p = mag[i] * mag[i]; num += p * i * binHz; den += p; }
+    centroid[f] = den > 1e-18 ? num / den : 0;
+    level[f] = Math.sqrt(den);
+    const floor = spectralFloor(mag);
+    let tot = 0, peakE = 0;
+    for (let i = loBin; i < nBins; i++) {
+      const p = mag[i] * mag[i];
+      tot += p;
+      if (mag[i] > floor[i] * 2.5) peakE += p;            // >8 dB above the bed
+    }
+    tonal[f] = tot > 1e-18 ? peakE / tot : 0;
+  }
+
+  const at = (sec) => Math.min(S.frames.length - 1, Math.max(0, Math.round((sec * sr) / hop)));
+  const marks = [0.002, 0.01, 0.02, 0.04, 0.08, 0.16, 0.32];
+  const centroidTrack = {};
+  const tonalTrack = {};
+  for (const m of marks) {
+    const f = at(m);
+    const inFile = m * sr < x.length;
+    centroidTrack[(m * 1000) + "ms"] = inFile ? Math.round(centroid[f]) : null;
+    tonalTrack[(m * 1000) + "ms"] = inFile ? +tonal[f].toFixed(3) : null;
+  }
+
+  // Tail = everything after the level has fallen 20 dB from its peak. This is
+  // the region Jeff means by "tail", defined once so every voice uses it.
+  let lp = 0; for (let f = 0; f < level.length; f++) if (level[f] > lp) lp = level[f];
+  const tailStart = (() => {
+    let pk = 0; for (let f = 0; f < level.length; f++) if (level[f] === lp) { pk = f; break; }
+    const thr = lp * Math.pow(10, -20 / 20);
+    for (let f = pk; f < level.length; f++) if (level[f] <= thr) return f;
+    return level.length - 1;
+  })();
+  let ct = 0, tt = 0, n = 0;
+  for (let f = tailStart; f < level.length; f++) {
+    if (level[f] < lp * 1e-3) break;              // stop at -60 dB, ignore the floor
+    ct += centroid[f]; tt += tonal[f]; n++;
+  }
+  const tail = {
+    startMs: +((tailStart * hop) / sr * 1000).toFixed(1),
+    centroidHz: n ? Math.round(ct / n) : null,
+    tonality: n ? +(tt / n).toFixed(3) : null,
+    frames: n,
+  };
+
+  // ---- dominant partials in the tail ---------------------------------------
+  // Averaged spectrum over the tail, then the strongest narrow peaks. This is
+  // what tells you a "noise" hit is actually two sine waves ringing.
+  const tailMag = new Float64Array(nBins);
+  let tf = 0;
+  for (let f = tailStart; f < S.frames.length; f++) {
+    if (level[f] < lp * 1e-3) break;
+    for (let i = 0; i < nBins; i++) tailMag[i] += S.frames[f][i];
+    tf++;
+  }
+  if (tf) for (let i = 0; i < nBins; i++) tailMag[i] /= tf;
+  const tfloor = spectralFloor(tailMag, 20);
+  const peaks = [];
+  for (let i = 2; i < nBins - 2; i++) {
+    if (tailMag[i] > tailMag[i - 1] && tailMag[i] >= tailMag[i + 1] && tailMag[i] > tfloor[i] * 2.0) {
+      // parabolic interpolation for sub-bin frequency accuracy
+      const a = tailMag[i - 1], b = tailMag[i], c = tailMag[i + 1];
+      const d = 0.5 * (a - c) / (a - 2 * b + c || 1e-12);
+      peaks.push({ hz: +((i + d) * binHz).toFixed(1), mag: b, prominenceDb: +db(b / tfloor[i]).toFixed(1) });
+    }
+  }
+  peaks.sort((p, q) => q.mag - p.mag);
+  const tailPartials = peaks.slice(0, 6).map((p) => ({ hz: p.hz, prominenceDb: p.prominenceDb }));
+
+  return {
+    sr, durMs: +(dur * 1000).toFixed(1),
+    attack, decay, tail,
+    bands, bandBalanceAtPeakDb: bandBalance(0.002), bandBalanceAt100msDb: bandBalance(0.1),
+    centroidTrack, tonalTrack, tailPartials,
+    // curves for plotting — not printed in the table
+    curves: {
+      times: Array.from(S.times),
+      centroid: Array.from(centroid),
+      tonal: Array.from(tonal),
+      levelDb: Array.from(level, (v) => +db(v / (lp || 1)).toFixed(2)),
+      bandsDb: bandEnv.map((e) => {
+        let pk = 0; for (let i = 0; i < e.length; i++) if (e[i] > pk) pk = e[i];
+        return Array.from(e, (v) => +db(v / (lp || 1)).toFixed(2));
+      }),
+      envTimes: Array.from(t), envDb: Array.from(env, (v) => +db(v / (pv || 1)).toFixed(2)),
+    },
+  };
+}
+
+function nullableMs(v) { return v === null || v === undefined ? null : +(v * 1000).toFixed(1); }
+
+// A DIFFERENCE REPORT between two analyses. Signed, per axis, never summed into
+// a single score — a single score would imply convergence on the reference is
+// the goal, and it is not (homage, not clone).
+function diff(ours, ref) {
+  const d = (a, b) => (a === null || b === null || a === undefined || b === undefined) ? null : +(a - b).toFixed(2);
+  const ratio = (a, b) => (!a || !b) ? null : +(a / b).toFixed(2);
+  return {
+    attack: {
+      timeToPeakMs: d(ours.attack.timeToPeakMs, ref.attack.timeToPeakMs),
+      rise10to90Ms: d(ours.attack.rise10to90Ms, ref.attack.rise10to90Ms),
+    },
+    decay: {
+      t20Ms: d(ours.decay.t20Ms, ref.decay.t20Ms),
+      t40Ms: d(ours.decay.t40Ms, ref.decay.t40Ms),
+      tauMs: d(ours.decay.tauMs, ref.decay.tauMs),
+      tauRatio: ratio(ours.decay.tauMs, ref.decay.tauMs),
+    },
+    tail: {
+      centroidHz: d(ours.tail.centroidHz, ref.tail.centroidHz),
+      centroidRatio: ratio(ours.tail.centroidHz, ref.tail.centroidHz),
+      tonality: d(ours.tail.tonality, ref.tail.tonality),
+    },
+    centroidTrack: Object.fromEntries(Object.keys(ours.centroidTrack)
+      .map((k) => [k, d(ours.centroidTrack[k], ref.centroidTrack[k])])),
+    tonalTrack: Object.fromEntries(Object.keys(ours.tonalTrack)
+      .map((k) => [k, d(ours.tonalTrack[k], ref.tonalTrack[k])])),
+    bands: ours.bands.map((b, i) => ({
+      band: b.band,
+      t20Ms: d(b.t20Ms, ref.bands[i].t20Ms),
+      tauMs: d(b.tauMs, ref.bands[i].tauMs),
+      tauRatio: ratio(b.tauMs, ref.bands[i].tauMs),
+    })),
+  };
+}
+
+g.FEAT = { analyze, diff, BANDS, BAND_LABELS, trimOnset, normalizePeak };
+})(typeof self !== "undefined" ? self : globalThis);
+</script>
+
+<!-- ===================== worker body ===================== -->
+<script type="text/plain" id="src-workerbody">
+self.onmessage = function (e) {
+  var m = e.data;
+  try {
+    var t0 = (self.performance || Date).now();
+    if (m.cmd === "build808") {
+      var v = self.U.build808(m.panel);
+      var buf = new Float32Array(v[m.voice]);
+      self.postMessage({ id: m.id, ok: true, buf: buf, ms: (self.performance || Date).now() - t0 }, [buf.buffer]);
+    } else if (m.cmd === "analyze") {
+      var an = self.FEAT.analyze(m.buf, m.sr);
+      self.postMessage({ id: m.id, ok: true, an: an, ms: (self.performance || Date).now() - t0 });
+    } else {
+      throw new Error("unknown cmd " + m.cmd);
+    }
+  } catch (err) {
+    self.postMessage({ id: m.id, ok: false, err: String((err && err.stack) || err) });
+  }
+};
+</script>
+
+<script>
+"use strict";
+/* =========================================================================
+   Unison Voice A/B Bench
+
+   WHAT THIS IS. Morgan can't hear. Jeff's ear is ground truth. The rig in
+   analysis/ turns "sounds off" into numbers, but it ran as a CLI over
+   pre-rendered files, so hearing a change meant rendering a batch and picking
+   from it. This page closes that loop: our voice is synthesised live from the
+   engine's own code, Jeff's own reference sample sits beside it, and the SAME
+   measurement runs on both and updates as a knob turns.
+
+   WHAT IT ISN'T. Not an optimiser. Nothing here scores a hit or drives toward
+   the reference — an optimiser that minimises distance to a sample is
+   clone-seeking by definition and the brief is homage. The distance is a
+   yardstick for locating WHERE a hit is wrong (attack / body / tail).
+
+   TWO HARD RULES.
+   1. The page NEVER writes the repo. The write-back panel (E) emits text.
+   2. The reference sample NEVER leaves this browser. No fetch, no upload; it
+      is read with File.arrayBuffer() and lives in a Float32Array.
+
+   ADDING AN INSTRUMENT is a data entry in INSTRUMENTS below: an id, a knob
+   list with ranges, a render() and an emit(). The 808 (pure buffer synthesis,
+   rendered in a worker) and the Juno (a live Web Audio node graph, rendered
+   through OfflineAudioContext) are deliberately the two shipped entries
+   because they are the two shapes an instrument can have here — anything else
+   in the rack is one of those two.
+   ========================================================================= */
+
+var SR = 44100;
+
+/* ---- load the inlined engine + analysis into this thread ---------------- */
+var ENGINE_SRC = document.getElementById("src-engine").textContent;
+var ANALYSIS_SRC = document.getElementById("src-analysis").textContent;
+var WORKER_BODY = document.getElementById("src-workerbody").textContent;
+(new Function(ENGINE_SRC))();
+(new Function(ANALYSIS_SRC))();
+var U = window.U, FEAT = window.FEAT;
+
+/* ---- worker: synthesis + measurement off the UI thread ------------------
+   Falls back to running inline on the main thread if a blob worker can't be
+   created, so a CSP or a sandbox costs speed and not the tool. */
+var worker = null, seq = 0, pending = {};
+(function initWorker() {
+  try {
+    var url = URL.createObjectURL(new Blob([ENGINE_SRC + "\n" + ANALYSIS_SRC + "\n" + WORKER_BODY],
+      { type: "text/javascript" }));
+    worker = new Worker(url);
+    worker.onmessage = function (e) {
+      var d = e.data, p = pending[d.id];
+      if (!p) return;
+      delete pending[d.id];
+      if (d.ok) p.res(d); else p.rej(new Error(d.err));
+    };
+    worker.onerror = function (ev) { console.warn("bench worker failed, running inline:", ev.message); worker = null; };
+  } catch (err) { console.warn("bench worker unavailable, running inline:", err); worker = null; }
+})();
+
+function inlineCall(m) {
+  var t0 = performance.now();
+  if (m.cmd === "build808") return { ok: true, buf: new Float32Array(U.build808(m.panel)[m.voice]), ms: performance.now() - t0 };
+  if (m.cmd === "analyze") return { ok: true, an: FEAT.analyze(m.buf, m.sr), ms: performance.now() - t0 };
+  throw new Error("unknown cmd " + m.cmd);
+}
+function call(m) {
+  if (!worker) { try { return Promise.resolve(inlineCall(m)); } catch (e) { return Promise.reject(e); } }
+  var id = ++seq;
+  m.id = id;
+  return new Promise(function (res, rej) { pending[id] = { res: res, rej: rej }; worker.postMessage(m); });
+}
+
+/* =========================================================================
+   INSTRUMENT REGISTRY — the whole "instrument-agnostic" claim lives here.
+   ========================================================================= */
+
+/* ---- 808: knob metadata. Ranges come from the engine's own RANGE table
+   (U.PANEL_808_RANGES), so the drawable span shown on every slider is the
+   real one and can never drift from the machine. ------------------------- */
+var R808 = U.PANEL_808_RANGES;
+var META808 = {
+  bdTune:   { label: "BD tune",   unit: "Hz", step: 0.5,    dp: 1 },
+  bdDecay:  { label: "BD decay",  unit: "s",  step: 0.001,  dp: 4 },
+  bdTone:   { label: "BD tone",   unit: "",   step: 0.005,  dp: 3 },
+  bdLevel:  { label: "BD level",  unit: "×",  step: 0.005,  dp: 3 },
+  sdTune:   { label: "SD tune",   unit: "Hz", step: 0.5,    dp: 1 },
+  sdSnappy: { label: "SD snappy", unit: "",   step: 0.005,  dp: 3 },
+  sdTone:   { label: "SD tone",   unit: "",   step: 0.005,  dp: 3 },
+  sdLevel:  { label: "SD level",  unit: "×",  step: 0.005,  dp: 3 },
+  chDecay:  { label: "CH decay",  unit: "s",  step: 0.0005, dp: 4 },
+  chTone:   { label: "CH tone",   unit: "",   step: 0.005,  dp: 3 },
+  chLevel:  { label: "CH level",  unit: "×",  step: 0.005,  dp: 3 },
+  ohDecay:  { label: "OH decay",  unit: "s",  step: 0.001,  dp: 4 },
+  ohTone:   { label: "OH tone",   unit: "",   step: 0.005,  dp: 3 },
+  ohLevel:  { label: "OH level",  unit: "×",  step: 0.005,  dp: 3 },
+  accent:   { label: "accent",    unit: "",   step: 0.005,  dp: 3 }
+};
+function knob808(key) {
+  var m = META808[key], r = R808[key], span = r[1] - r[0];
+  return {
+    key: key, label: m.label, unit: m.unit, step: m.step, dp: m.dp,
+    range: [r[0], r[1]],                                   // what a token can draw
+    min: Math.max(0, r[0] - 0.6 * span), max: r[1] + 0.6 * span   // what the slider allows
+  };
+}
+function panelFromValues(vals) {
+  var p = { pos: {} };
+  for (var k in R808) {
+    var v = vals[k] === undefined ? (R808[k][0] + R808[k][1]) / 2 : vals[k];
+    p[k] = v;
+    p.pos[k] = (v - R808[k][0]) / (R808[k][1] - R808[k][0]);     // may run outside 0..1: that is the point
+  }
+  return p;
+}
+
+var INST_808 = {
+  id: "808",
+  label: "808 — src/instruments/tr808.js",
+  voices: [
+    { id: "kick",      label: "bass drum",  knobs: ["bdTune", "bdDecay", "bdTone", "bdLevel"] },
+    { id: "snare",     label: "snare",      knobs: ["sdTune", "sdSnappy", "sdTone", "sdLevel"] },
+    { id: "hatClosed", label: "closed hat", knobs: ["chDecay", "chTone", "chLevel", "ohDecay", "ohTone"] },
+    { id: "hatOpen",   label: "open hat",   knobs: ["ohDecay", "ohTone", "ohLevel"] }
+  ],
+  note: "The two hats share ONE oscillator bank, exactly as the machine does — so the closed hat reads OH tone (bank detune) and OH decay (bank length) as well as its own knobs.",
+  knob: knob808,
+  defaults: function () {
+    var v = {};
+    for (var k in R808) v[k] = (R808[k][0] + R808[k][1]) / 2;
+    return v;
+  },
+  fromHash: function (hash) {
+    var p = U.draw808Panel(U.makePrng(hash)), v = {};
+    for (var k in R808) v[k] = p[k];
+    return v;
+  },
+  describe: function (vals) { return U.describe808(panelFromValues(vals)); },
+  render: function (voiceId, vals) {
+    var panel = panelFromValues(vals);
+    // SPEED, not a shortcut. build808() always builds all four voices, and the
+    // hat oscillator bank is ~6.7M Math.sin() calls — 750ms, which would make a
+    // continuous knob useless. The kick and the snare read NO hat parameter and
+    // consume the noise PRNG at a fixed offset (bassDrum always draws exactly
+    // 265 samples of click noise), so shrinking the bank cannot touch them.
+    // Verified 2026-08-11: kick and snare are BIT-IDENTICAL with the bank
+    // pinned, across five panel settings; build drops 750ms -> 93ms. Re-check
+    // by comparing U.build808(panel) against U.build808(pinned) sample-wise if
+    // tr808.js ever changes.
+    if (voiceId === "kick" || voiceId === "snare") { panel.chDecay = 0.0005; panel.ohDecay = 0.0005; }
+    return call({ cmd: "build808", panel: panel, voice: voiceId });
+  },
+  emit: function (voiceId, vals) {
+    var voice = null, i;
+    for (i = 0; i < INST_808.voices.length; i++) if (INST_808.voices[i].id === voiceId) voice = INST_808.voices[i];
+    var keys = voice.knobs, out = [];
+    out.push("// Unison voice bench — " + new Date().toISOString().slice(0, 16).replace("T", " "));
+    out.push("// instrument 808 · voice " + voiceId + " · engine @f840cc0");
+    out.push("// The bench never writes the repo. Paste by hand, then re-run harness/verify.mjs —");
+    out.push("// changing a voice changes every song every hash has ever produced.");
+    out.push("");
+    var outside0 = [], pos = [];
+    for (i = 0; i < keys.length; i++) {
+      var k = keys[i], r = R808[k];
+      pos.push(k + "=" + ((vals[k] - r[0]) / (r[1] - r[0])).toFixed(4));
+      if (vals[k] < r[0] || vals[k] > r[1]) outside0.push(k);
+    }
+    out.push("// 1. Reproduce this exact hit in Node (positions, not values):");
+    out.push("node analysis/render-voice.mjs --out out/bench --pos " + pos.join(","));
+    if (outside0.length) {
+      out.push("//    [!] " + outside0.join(", ") + " is outside 0..1 and render-voice.mjs CLAMPS to");
+      out.push("//        0..1, so that command will NOT reproduce this hit until step 3 is applied.");
+    }
+    out.push("");
+    out.push("// 2. Panel values now:");
+    for (i = 0; i < keys.length; i++) {
+      var kk = keys[i], mm = META808[kk];
+      out.push("//    " + kk + " = " + Number(vals[kk]).toFixed(mm.dp) + " " + mm.unit +
+        "   (pos " + (((vals[kk] - R808[kk][0]) / (R808[kk][1] - R808[kk][0])) * 100).toFixed(1) + "%)");
+    }
+    var outside = [];
+    for (i = 0; i < keys.length; i++) {
+      var k2 = keys[i], r2 = R808[k2];
+      if (vals[k2] < r2[0] || vals[k2] > r2[1]) outside.push(k2);
+    }
+    out.push("");
+    if (outside.length) {
+      out.push("// 3. [!] " + outside.join(", ") + " sits OUTSIDE the drawable range — no token can");
+      out.push("//        reach this setting today. Widen RANGE in src/instruments/tr808.js:");
+    } else {
+      out.push("// 3. Every value above is inside the drawable range, so this setting is one the");
+      out.push("//    token draw can already produce. To make it TYPICAL rather than possible,");
+      out.push("//    narrow RANGE in src/instruments/tr808.js around it:");
+    }
+    out.push("  const RANGE = {");
+    for (i = 0; i < keys.length; i++) {
+      var k3 = keys[i], r3 = R808[k3], m3 = META808[k3];
+      var lo = Math.min(r3[0], vals[k3]), hi = Math.max(r3[1], vals[k3]);
+      out.push("    " + (k3 + ":").padEnd(10) + "[" + fmtNum(lo, m3.dp) + ", " + fmtNum(hi, m3.dp) + "]," +
+        "   // now [" + fmtNum(r3[0], m3.dp) + ", " + fmtNum(r3[1], m3.dp) + "]" +
+        (outside.indexOf(k3) >= 0 ? "  <- widened to reach " + fmtNum(vals[k3], m3.dp) : ""));
+    }
+    out.push("  };");
+    out.push("");
+    out.push("// panel readout: " + U.describe808(panelFromValues(vals)));
+    return out.join("\n");
+  }
+};
+
+/* ---- Juno: THE PROOF THAT A NEW INSTRUMENT IS A DATA ENTRY --------------
+   Nothing above was generalised for this; the Juno entry below is the same
+   five fields, filled in differently. It is also the harder shape — a live
+   Web Audio node graph rather than buffer synthesis — and it still fits,
+   because the contract is only "give me a Float32Array".                    */
+var JUNO_KNOBS = [
+  { key: "subLevel",   label: "sub level",    unit: "",   min: 0,    max: 1,    step: 0.005, dp: 3 },
+  { key: "cutoffBase", label: "cutoff base",  unit: "Hz", min: 40,   max: 4000, step: 5,     dp: 0 },
+  { key: "cutoffEnv",  label: "cutoff env",   unit: "Hz", min: 0,    max: 6000, step: 10,    dp: 0 },
+  { key: "filterQ",    label: "filter Q",     unit: "",   min: 0.1,  max: 8,    step: 0.05,  dp: 2 },
+  { key: "fA",         label: "filt attack",  unit: "s",  min: 0,    max: 1,    step: 0.002, dp: 3 },
+  { key: "fD",         label: "filt decay",   unit: "s",  min: 0.01, max: 2,    step: 0.005, dp: 3 },
+  { key: "fS",         label: "filt sustain", unit: "",   min: 0,    max: 1,    step: 0.005, dp: 3 },
+  { key: "a",          label: "amp attack",   unit: "s",  min: 0,    max: 1,    step: 0.002, dp: 3 },
+  { key: "d",          label: "amp decay",    unit: "s",  min: 0.01, max: 2,    step: 0.005, dp: 3 },
+  { key: "s",          label: "amp sustain",  unit: "",   min: 0,    max: 1,    step: 0.005, dp: 3 },
+  { key: "r",          label: "amp release",  unit: "s",  min: 0.01, max: 2,    step: 0.005, dp: 3 },
+  { key: "level",      label: "level",        unit: "",   min: 0,    max: 0.6,  step: 0.005, dp: 3 },
+  { key: "chorus",     label: "chorus 0/1",   unit: "",   min: 0,    max: 1,    step: 1,     dp: 0 },
+  { key: "_midi",      label: "note (MIDI)",  unit: "",   min: 24,   max: 96,   step: 1,     dp: 0, bench: true },
+  { key: "_vel",       label: "velocity",     unit: "",   min: 0.05, max: 1,    step: 0.01,  dp: 2, bench: true },
+  { key: "_dur",       label: "gate",         unit: "s",  min: 0.05, max: 3,    step: 0.01,  dp: 2, bench: true }
+];
+var JUNO_KNOB_BY_KEY = {};
+JUNO_KNOBS.forEach(function (k) { JUNO_KNOB_BY_KEY[k.key] = k; });
+var JUNO_ALL_KEYS = JUNO_KNOBS.map(function (k) { return k.key; });
+
+function junoDefaults(patchName) {
+  var p = U.JUNO_PATCHES[patchName], v = {};
+  JUNO_KNOBS.forEach(function (k) {
+    if (k.key === "chorus") v.chorus = p.chorus ? 1 : 0;
+    else if (k.bench) v[k.key] = { _midi: 60, _vel: 0.9, _dur: 0.6 }[k.key];
+    else v[k.key] = p[k.key];
+  });
+  return v;
+}
+
+var INST_JUNO = {
+  id: "juno",
+  label: "juno — src/instruments/juno.js",
+  voices: Object.keys(U.JUNO_PATCHES).map(function (name) {
+    return { id: name, label: name + " patch", knobs: JUNO_ALL_KEYS };
+  }),
+  note: "One note, rendered through OfflineAudioContext with the engine's own createJuno() and chainMixer. Note / velocity / gate are bench-only — they are performance, not patch, and are excluded from the write-back.",
+  knob: function (key) { return JUNO_KNOB_BY_KEY[key]; },
+  defaults: function (voiceId) { return junoDefaults(voiceId || "comp"); },
+  fromHash: null,                                  // the Juno patch isn't drawn from the panel stream
+  describe: function (vals) {
+    return "note " + vals._midi + " vel " + vals._vel.toFixed(2) + " gate " + vals._dur.toFixed(2) + "s" +
+      (vals.chorus >= 0.5 ? " · chorus" : " · dry");
+  },
+  render: function (voiceId, vals) {
+    var t0 = performance.now();
+    var len = Math.max(0.25, vals._dur + vals.r + 0.5);
+    var oac = new OfflineAudioContext(1, Math.max(256, Math.round(len * SR)), SR);
+    var patch = {};
+    JUNO_KNOBS.forEach(function (k) { if (!k.bench && k.key !== "chorus") patch[k.key] = vals[k.key]; });
+    patch.chorus = vals.chorus >= 0.5;
+    U.JUNO_PATCHES.__bench = patch;                                  // data, not a rewrite
+    var strip = { input: U.chainMixer(oac, oac.destination) };       // the desk strip, stubbed
+    var j = U.createJuno(oac, strip, "__bench");
+    j.noteOn(0.005, Math.round(vals._midi), vals._vel, vals._dur);
+    return oac.startRendering().then(function (rendered) {
+      return { ok: true, buf: new Float32Array(rendered.getChannelData(0)), ms: performance.now() - t0 };
+    });
+  },
+  emit: function (voiceId, vals) {
+    var out = [];
+    out.push("// Unison voice bench — " + new Date().toISOString().slice(0, 16).replace("T", " "));
+    out.push("// instrument juno · patch " + voiceId + " · engine @f840cc0");
+    out.push("// The bench never writes the repo. Paste into U.JUNO_PATCHES in");
+    out.push("// src/instruments/juno.js, then re-run harness/verify.mjs.");
+    out.push("");
+    out.push("  " + voiceId + ": {");
+    out.push("    subLevel: " + fmtNum(vals.subLevel, 3) + ", cutoffBase: " + fmtNum(vals.cutoffBase, 0) +
+      ", cutoffEnv: " + fmtNum(vals.cutoffEnv, 0) + ", filterQ: " + fmtNum(vals.filterQ, 2) + ",");
+    out.push("    fA: " + fmtNum(vals.fA, 3) + ", fD: " + fmtNum(vals.fD, 3) + ", fS: " + fmtNum(vals.fS, 3) + ",");
+    out.push("    a: " + fmtNum(vals.a, 3) + ", d: " + fmtNum(vals.d, 3) + ", s: " + fmtNum(vals.s, 3) +
+      ", r: " + fmtNum(vals.r, 3) + ", level: " + fmtNum(vals.level, 3) + ", chorus: " + (vals.chorus >= 0.5) + ",");
+    out.push("  },");
+    out.push("");
+    out.push("// bench-only, NOT part of the patch: note " + vals._midi + ", vel " + fmtNum(vals._vel, 2) +
+      ", gate " + fmtNum(vals._dur, 2) + "s");
+    return out.join("\n");
+  }
+};
+
+var INSTRUMENTS = { "808": INST_808, juno: INST_JUNO };
+
+function fmtNum(v, dp) {
+  var s = Number(v).toFixed(dp);
+  if (s.indexOf(".") >= 0) s = s.replace(/0+$/, "").replace(/\.$/, "");
+  return s;
+}
+
+/* =========================================================================
+   STATE
+   ========================================================================= */
+var state = {
+  instId: "808",
+  voiceId: "snare",
+  vals: { "808": INST_808.defaults(), juno: INST_JUNO.defaults("comp") },
+  oursBuf: null, oursAn: null, synthMs: 0, measMs: 0,
+  ref: null,                       // { name, full:Float32Array, sr }
+  refAn: null, refSliceCache: null, refKey: "",
+  side: "ours", blind: false, blindSwap: false, loop: false, matchLvl: true,
+  busy: false, err: null
+};
+
+var el = {};
+["inst", "voice", "hash", "draw", "rack", "voiceName", "rangeHint", "knobNote", "status",
+ "playA", "playB", "flip", "loop", "blind", "reveal", "matchLvl", "drop", "refName", "refInfo",
+ "refStart", "refLen", "refGain", "pick", "file", "cEnv", "cCent", "tbl", "emit", "emitText",
+ "emitCopy", "emitClose", "mid", "rand", "reset", "measNote"].forEach(function (id) { el[id] = document.getElementById(id); });
+
+function inst() { return INSTRUMENTS[state.instId]; }
+function vals() { return state.vals[state.instId]; }
+function voiceSpec() {
+  var vs = inst().voices;
+  for (var i = 0; i < vs.length; i++) if (vs[i].id === state.voiceId) return vs[i];
+  return vs[0];
+}
+
+/* =========================================================================
+   KNOB RACK
+   ========================================================================= */
+function buildRack() {
+  var v = voiceSpec(), I = inst(), V = vals();
+  el.voiceName.textContent = v.label;
+  el.knobNote.textContent = I.note;
+  el.rangeHint.textContent = state.instId === "808" ? "tinted band = drawable range" : "";
+  el.rack.innerHTML = "";
+  v.knobs.forEach(function (key) {
+    var k = I.knob(key);
+    var row = document.createElement("div");
+    row.className = "knob";
+    var outside = k.range && (V[key] < k.range[0] - 1e-9 || V[key] > k.range[1] + 1e-9);
+    var posPct = k.range ? ((V[key] - k.range[0]) / (k.range[1] - k.range[0]) * 100) : null;
+    row.innerHTML =
+      '<div class="kl"><b>' + k.label + '</b>' + (k.unit ? "<span>" + k.unit + "</span>" : "") +
+        '<i class="' + (outside ? "out" : "") + '" data-pos="' + key + '">' +
+        (posPct === null ? "" : posPct.toFixed(0) + "%") + '</i></div>' +
+      '<input type="number" data-num="' + key + '" step="' + k.step + '" value="' + fmtNum(V[key], k.dp) + '">' +
+      '<div class="slot"><div class="zone"></div><input type="range" data-rng="' + key + '"></div>';
+    el.rack.appendChild(row);
+
+    var lo = Math.min(k.min, V[key]), hi = Math.max(k.max, V[key]);
+    var rng = row.querySelector("[data-rng]");
+    rng.min = lo; rng.max = hi; rng.step = k.step / 4; rng.value = V[key];
+    var zone = row.querySelector(".zone");
+    if (k.range) {
+      zone.style.left = ((k.range[0] - lo) / (hi - lo) * 100) + "%";
+      zone.style.width = ((k.range[1] - k.range[0]) / (hi - lo) * 100) + "%";
+    } else { zone.style.display = "none"; }
+
+    rng.addEventListener("input", function () { setVal(key, parseFloat(rng.value)); });
+    var num = row.querySelector("[data-num]");
+    num.addEventListener("change", function () {
+      var x = parseFloat(num.value);
+      if (isFinite(x)) { setVal(key, x); buildRack(); }        // rebuild: bounds may have moved
+    });
+  });
+}
+
+function setVal(key, x) {
+  vals()[key] = x;
+  var I = inst(), k = I.knob(key);
+  var num = el.rack.querySelector('[data-num="' + key + '"]');
+  if (num && document.activeElement !== num) num.value = fmtNum(x, k.dp);
+  var rng = el.rack.querySelector('[data-rng="' + key + '"]');
+  if (rng && document.activeElement !== rng) rng.value = x;
+  var pos = el.rack.querySelector('[data-pos="' + key + '"]');
+  if (pos && k.range) {
+    var p = (x - k.range[0]) / (k.range[1] - k.range[0]) * 100;
+    pos.textContent = p.toFixed(0) + "%";
+    pos.className = (x < k.range[0] - 1e-9 || x > k.range[1] + 1e-9) ? "out" : "";
+  }
+  schedule();
+}
+
+function setAll(v) { state.vals[state.instId] = v; buildRack(); schedule(); }
+
+/* =========================================================================
+   RENDER + MEASURE
+   ========================================================================= */
+var pendingTimer = null, runSeq = 0;
+function schedule() {
+  if (pendingTimer) clearTimeout(pendingTimer);
+  pendingTimer = setTimeout(refresh, 45);
+  setStatus(true);
+}
+
+function refresh() {
+  pendingTimer = null;
+  var my = ++runSeq;
+  state.err = null;
+  setStatus(true);
+  var I = inst();
+  Promise.resolve(I.render(state.voiceId, vals())).then(function (r) {
+    if (my !== runSeq) return null;
+    state.oursBuf = r.buf; state.synthMs = r.ms;
+    return call({ cmd: "analyze", buf: r.buf, sr: SR });
+  }).then(function (a) {
+    if (!a || my !== runSeq) return;
+    state.oursAn = a.an; state.measMs = a.ms;
+    setStatus(false);
+    drawAll();
+  })["catch"](function (e) {
+    if (my !== runSeq) return;
+    state.err = String(e && e.message || e);
+    console.error(e);
+    setStatus(false);
+    drawAll();
+  });
+}
+
+function refKey() {
+  if (!state.ref) return "";
+  return state.ref.name + "|" + el.refStart.value + "|" + el.refLen.value;
+}
+function refSlice() {
+  if (!state.ref) return null;
+  var k = refKey();
+  if (state.refKey === k && state.refSliceCache) return state.refSliceCache;
+  var full = state.ref.full;
+  var s = Math.max(0, Math.round(parseFloat(el.refStart.value || 0) / 1000 * SR));
+  var lenMs = parseFloat(el.refLen.value || 0);
+  var n = lenMs > 0 ? Math.round(lenMs / 1000 * SR) : full.length - s;
+  n = Math.max(64, Math.min(n, full.length - s));
+  state.refSliceCache = full.subarray(s, s + n);
+  state.refKey = k;
+  state.refAn = null;
+  return state.refSliceCache;
+}
+function measureRef() {
+  var buf = refSlice();
+  if (!buf) { state.refAn = null; drawAll(); return; }
+  setStatus(true);
+  call({ cmd: "analyze", buf: new Float32Array(buf), sr: SR }).then(function (a) {
+    state.refAn = a.an; setStatus(false); drawAll();
+  })["catch"](function (e) { state.err = String(e); setStatus(false); drawAll(); });
+}
+
+function setStatus(busy) {
+  state.busy = busy;
+  el.status.className = busy ? "busy" : "";
+  if (state.err) { el.status.textContent = "ERROR " + state.err.slice(0, 60); el.status.className = ""; return; }
+  el.status.textContent = busy ? "working…"
+    : "synth " + Math.round(state.synthMs) + "ms · measure " + Math.round(state.measMs) + "ms"
+      + (worker ? "" : " · inline");
+}
+
+/* =========================================================================
+   AUDIO / A-B
+   ========================================================================= */
+var actx = null;
+function audio() {
+  if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: SR });
+  if (actx.state === "suspended") actx.resume();
+  return actx;
+}
+function peakNorm(x) {
+  var pk = 0, i;
+  for (i = 0; i < x.length; i++) { var a = Math.abs(x[i]); if (a > pk) pk = a; }
+  if (pk < 1e-9) return x;
+  var out = new Float32Array(x.length), g = 0.89 / pk;
+  for (i = 0; i < x.length; i++) out[i] = x[i] * g;
+  return out;
+}
+var loopTimer = null;
+function playSide(which) {
+  var buf = which === "ours" ? state.oursBuf : refSlice();
+  if (!buf || !buf.length) return;
+  var ctx = audio();
+  var src = ctx.createBufferSource();
+  var ab = ctx.createBuffer(1, buf.length, SR);
+  ab.copyToChannel(state.matchLvl ? peakNorm(buf) : Float32Array.from(buf), 0);
+  src.buffer = ab;
+  var g = ctx.createGain();
+  var db = which === "ref" ? parseFloat(el.refGain.value || 0) : 0;
+  g.gain.value = Math.pow(10, db / 20);
+  src.connect(g); g.connect(ctx.destination);
+  src.start();
+}
+function setSide(which) {
+  state.side = which;
+  playSide(which);
+  paintTransport();
+  if (state.loop) startLoop();
+}
+function startLoop() {
+  stopLoop();
+  loopTimer = setInterval(function () { playSide(state.side); }, 620);
+}
+function stopLoop() { if (loopTimer) { clearInterval(loopTimer); loopTimer = null; } }
+
+function paintTransport() {
+  var aIsOurs = !state.blind || !state.blindSwap;
+  el.playA.textContent = state.blind ? "▶ A" : "▶ OURS";
+  el.playB.textContent = state.blind ? "▶ B" : "▶ REF";
+  var onA = (state.side === "ours") === aIsOurs;
+  el.playA.className = onA ? "on" : "";
+  el.playB.className = onA ? "" : "on";
+  el.blind.className = state.blind ? "on" : "";
+  el.loop.className = state.loop ? "on" : "";
+  el.reveal.style.display = state.blind ? "" : "none";
+}
+
+/* =========================================================================
+   MEASUREMENT TABLE
+   ========================================================================= */
+var TRACK_MARKS = ["2ms", "10ms", "20ms", "40ms", "80ms", "160ms", "320ms"];
+function num(v, dp) { return (v === null || v === undefined || !isFinite(v)) ? null : Number(v).toFixed(dp); }
+
+function tableRows() {
+  var o = state.oursAn, r = state.refAn;
+  var rows = [];
+  function push(label, get, dp, dInvert) {
+    var ov = o ? get(o) : null, rv = r ? get(r) : null;
+    var dv = (ov === null || rv === null || ov === undefined || rv === undefined) ? null : ov - rv;
+    rows.push({ label: label, o: num(ov, dp), r: num(rv, dp), d: dv === null ? null : (dv > 0 ? "+" : "") + dv.toFixed(dp) });
+  }
+  rows.push({ sec: "attack" });
+  push("time to peak (ms)", function (a) { return a.attack.timeToPeakMs; }, 2);
+  push("rise 10-90 (ms)", function (a) { return a.attack.rise10to90Ms; }, 2);
+  rows.push({ sec: "decay — whole hit" });
+  push("tau (ms)", function (a) { return a.decay.tauMs; }, 1);
+  push("t20 (ms)", function (a) { return a.decay.t20Ms; }, 1);
+  push("t40 (ms)", function (a) { return a.decay.t40Ms; }, 1);
+  push("file length (ms)", function (a) { return a.decay.fileMs; }, 1);
+  rows.push({ sec: "tail (after -20 dB)" });
+  push("starts (ms)", function (a) { return a.tail.startMs; }, 1);
+  push("centroid (Hz)", function (a) { return a.tail.centroidHz; }, 0);
+  push("tonality (0-1)", function (a) { return a.tail.tonality; }, 3);
+  rows.push({ sec: "centroid trajectory (Hz)" });
+  TRACK_MARKS.forEach(function (m) { push("@ " + m, function (a) { return a.centroidTrack[m]; }, 0); });
+  rows.push({ sec: "tonal fraction" });
+  TRACK_MARKS.forEach(function (m) { push("@ " + m, function (a) { return a.tonalTrack[m]; }, 3); });
+  rows.push({ sec: "per-band tau (ms)" });
+  var bands = (o && o.bands) || (r && r.bands) || [];
+  bands.forEach(function (b, i) {
+    push(b.band + " Hz", function (a) { return a.bands[i] ? a.bands[i].tauMs : null; }, 1);
+  });
+  return rows;
+}
+
+function drawTable() {
+  var body = el.tbl.querySelector("tbody");
+  var html = '<tr><th>measure</th><th>ours</th><th>ref</th><th>Δ</th></tr>';
+  tableRows().forEach(function (row) {
+    if (row.sec) { html += '<tr class="sec"><td colspan="4">' + row.sec + "</td></tr>"; return; }
+    html += "<tr><td>" + row.label + "</td>"
+      + '<td class="' + (row.o === null ? "na" : "o") + '">' + (row.o === null ? "—" : row.o) + "</td>"
+      + '<td class="' + (row.r === null ? "na" : "r") + '">' + (row.r === null ? "—" : row.r) + "</td>"
+      + '<td class="' + (row.d === null ? "na" : "d") + '">' + (row.d === null ? "—" : row.d) + "</td></tr>";
+  });
+  var o = state.oursAn;
+  if (o && o.tailPartials && o.tailPartials.length) {
+    html += '<tr class="sec"><td colspan="4">tail partials — ours</td></tr>';
+    o.tailPartials.slice(0, 3).forEach(function (p) {
+      html += "<tr><td>" + p.hz.toFixed(0) + " Hz</td><td colspan=3 class='o'>+" + p.prominenceDb.toFixed(1) + " dB over the bed</td></tr>";
+    });
+  }
+  var r = state.refAn;
+  if (r && r.tailPartials && r.tailPartials.length) {
+    html += '<tr class="sec"><td colspan="4">tail partials — ref</td></tr>';
+    r.tailPartials.slice(0, 3).forEach(function (p) {
+      html += "<tr><td>" + p.hz.toFixed(0) + " Hz</td><td colspan=3 class='r'>+" + p.prominenceDb.toFixed(1) + " dB over the bed</td></tr>";
+    });
+  }
+  body.innerHTML = html;
+}
+
+/* =========================================================================
+   PLOTS
+   ========================================================================= */
+function fitCanvas(c) {
+  var dpr = window.devicePixelRatio || 1;
+  var w = c.clientWidth, h = c.clientHeight;
+  if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) {
+    c.width = Math.round(w * dpr); c.height = Math.round(h * dpr);
+  }
+  var g = c.getContext("2d");
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, w, h);
+  return { g: g, w: w, h: h };
+}
+function grid(g, w, h, labels) {
+  g.strokeStyle = "#22262a"; g.lineWidth = 1;
+  for (var i = 1; i < 4; i++) {
+    var y = 16 + (h - 26) * i / 4;
+    g.beginPath(); g.moveTo(30, y); g.lineTo(w - 4, y); g.stroke();
+  }
+  g.fillStyle = "#6b7079"; g.font = "9px ui-monospace,Menlo,monospace";
+  labels.forEach(function (l) { g.fillText(l.t, 2, l.y); });
+}
+function line(g, xs, ys, x0, x1, y0, y1, w, h, color, dash) {
+  g.strokeStyle = color; g.lineWidth = 1.4; g.setLineDash(dash || []);
+  g.beginPath();
+  var started = false;
+  for (var i = 0; i < xs.length; i++) {
+    var xv = xs[i], yv = ys[i];
+    if (yv === null || !isFinite(yv)) continue;
+    if (xv > x1) break;
+    var px = 30 + (w - 34) * (xv - x0) / (x1 - x0);
+    var py = 16 + (h - 26) * (1 - (yv - y0) / (y1 - y0));
+    if (py < 12) py = 12; if (py > h - 8) py = h - 8;
+    if (!started) { g.moveTo(px, py); started = true; } else g.lineTo(px, py);
+  }
+  g.stroke(); g.setLineDash([]);
+}
+function maxTime() {
+  var t = 0.05;
+  if (state.oursAn) t = Math.max(t, state.oursAn.durMs / 1000);
+  if (state.refAn) t = Math.max(t, state.refAn.durMs / 1000);
+  return Math.min(t, 1.6);
+}
+function drawEnv() {
+  var c = fitCanvas(el.cEnv), g = c.g, w = c.w, h = c.h, T = maxTime();
+  grid(g, w, h, [{ t: "0", y: 20 }, { t: "-20", y: 20 + (h - 26) / 3 }, { t: "-40", y: 20 + 2 * (h - 26) / 3 }, { t: "-60", y: h - 8 }]);
+  g.fillStyle = "#6b7079"; g.fillText(T.toFixed(2) + "s", w - 30, h - 2);
+  [[state.refAn, "#e8a33d"], [state.oursAn, "#4da3ff"]].forEach(function (p) {
+    var a = p[0]; if (!a) return;
+    line(g, a.curves.envTimes, a.curves.envDb, 0, T, -60, 0, w, h, p[1]);
+  });
+}
+function drawCentroid() {
+  var c = fitCanvas(el.cCent), g = c.g, w = c.w, h = c.h, T = maxTime();
+  var lo = Math.log(60), hi = Math.log(16000);
+  grid(g, w, h, [{ t: "16k", y: 20 }, { t: "2k", y: 20 + (h - 26) / 3 }, { t: "250", y: 20 + 2 * (h - 26) / 3 }, { t: "60", y: h - 8 }]);
+  [[state.refAn, "#e8a33d"], [state.oursAn, "#4da3ff"]].forEach(function (p) {
+    var a = p[0]; if (!a) return;
+    var lg = a.curves.centroid.map(function (v) { return v > 20 ? Math.log(v) : null; });
+    line(g, a.curves.times, lg, 0, T, lo, hi, w, h, p[1]);
+    line(g, a.curves.times, a.curves.tonal, 0, T, 0, 1, w, h, p[1], [2, 3]);
+  });
+}
+function drawAll() { drawTable(); drawEnv(); drawCentroid(); setStatus(state.busy); }
+
+/* =========================================================================
+   REFERENCE FILE — local only, never uploaded
+   ========================================================================= */
+function loadFile(file) {
+  el.refName.textContent = "decoding " + file.name + "…";
+  file.arrayBuffer().then(function (ab) {
+    return audio().decodeAudioData(ab);
+  }).then(function (dec) {
+    var n = dec.length, ch = dec.numberOfChannels, mono = new Float32Array(n), c, i;
+    for (c = 0; c < ch; c++) {
+      var d = dec.getChannelData(c);
+      for (i = 0; i < n; i++) mono[i] += d[i] / ch;
+    }
+    state.ref = { name: file.name, full: mono, sr: dec.sampleRate };
+    state.refSliceCache = null; state.refKey = "";
+    el.refName.textContent = file.name;
+    el.refInfo.textContent = (n / SR * 1000).toFixed(0) + " ms · " + ch + "ch → mono · " + SR + " Hz · local only";
+    el.refStart.value = 0; el.refLen.value = 0;
+    measureRef();
+  })["catch"](function (e) {
+    el.refName.textContent = "could not decode " + file.name;
+    el.refInfo.textContent = String(e && e.message || e);
+  });
+}
+
+/* =========================================================================
+   WIRING
+   ========================================================================= */
+function fillInstruments() {
+  el.inst.innerHTML = Object.keys(INSTRUMENTS).map(function (id) {
+    return '<option value="' + id + '">' + INSTRUMENTS[id].label + "</option>";
+  }).join("");
+  el.inst.value = state.instId;
+}
+function fillVoices() {
+  el.voice.innerHTML = inst().voices.map(function (v) {
+    return '<option value="' + v.id + '">' + v.label + "</option>";
+  }).join("");
+  el.voice.value = state.voiceId;
+}
+
+el.inst.addEventListener("change", function () {
+  state.instId = el.inst.value;
+  state.voiceId = inst().voices[0].id;
+  if (state.instId === "juno") state.vals.juno = INST_JUNO.defaults(state.voiceId);
+  fillVoices(); buildRack(); schedule();
+  el.hash.parentNode.style.opacity = inst().fromHash ? 1 : 0.35;
+});
+el.voice.addEventListener("change", function () {
+  state.voiceId = el.voice.value;
+  if (state.instId === "juno") state.vals.juno = INST_JUNO.defaults(state.voiceId);
+  buildRack(); schedule();
+});
+el.draw.addEventListener("click", function () {
+  var I = inst();
+  if (!I.fromHash) return;
+  try { setAll(I.fromHash(el.hash.value.trim())); }
+  catch (e) { state.err = "hash: " + e.message; setStatus(false); }
+});
+el.mid.addEventListener("click", function () {
+  if (state.instId === "808") return setAll(INST_808.defaults());
+  setAll(INST_JUNO.defaults(state.voiceId));
+});
+el.reset.addEventListener("click", function () {
+  if (state.instId === "juno") return setAll(INST_JUNO.defaults(state.voiceId));
+  setAll(INST_808.defaults());
+});
+el.rand.addEventListener("click", function () {
+  var I = inst(), V = vals(), keys = voiceSpec().knobs;
+  keys.forEach(function (key) {
+    var k = I.knob(key), lo = k.range ? k.range[0] : k.min, hi = k.range ? k.range[1] : k.max;
+    var x = lo + Math.random() * (hi - lo);
+    V[key] = k.step >= 1 ? Math.round(x) : x;
+  });
+  buildRack(); schedule();
+});
+
+el.playA.addEventListener("click", function () { setSide(!state.blind || !state.blindSwap ? "ours" : "ref"); });
+el.playB.addEventListener("click", function () { setSide(!state.blind || !state.blindSwap ? "ref" : "ours"); });
+el.flip.addEventListener("click", function () { setSide(state.side === "ours" ? "ref" : "ours"); });
+el.loop.addEventListener("click", function () { state.loop = !state.loop; state.loop ? startLoop() : stopLoop(); paintTransport(); });
+el.blind.addEventListener("click", function () {
+  state.blind = !state.blind;
+  state.blindSwap = Math.random() < 0.5;
+  paintTransport();
+});
+el.reveal.addEventListener("click", function () {
+  alert("A = " + (state.blindSwap ? "REFERENCE" : "OURS") + "   ·   B = " + (state.blindSwap ? "OURS" : "REFERENCE")
+    + "\n\nCurrently playing: " + (state.side === "ours" ? "OURS" : "REFERENCE"));
+});
+el.matchLvl.addEventListener("change", function () { state.matchLvl = el.matchLvl.checked; });
+
+el.pick.addEventListener("click", function () { el.file.click(); });
+el.file.addEventListener("change", function () { if (el.file.files[0]) loadFile(el.file.files[0]); });
+["refStart", "refLen"].forEach(function (id) {
+  el[id].addEventListener("change", function () { measureRef(); });
+});
+window.addEventListener("dragover", function (e) { e.preventDefault(); el.drop.classList.add("hot"); });
+window.addEventListener("dragleave", function () { el.drop.classList.remove("hot"); });
+window.addEventListener("drop", function (e) {
+  e.preventDefault(); el.drop.classList.remove("hot");
+  var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+  if (f) loadFile(f);
+});
+
+function openEmit() {
+  el.emitText.value = inst().emit(state.voiceId, vals());
+  el.emit.classList.add("on");
+}
+el.emitClose.addEventListener("click", function () { el.emit.classList.remove("on"); });
+el.emitCopy.addEventListener("click", function () {
+  el.emitText.select();
+  try { document.execCommand("copy"); } catch (e) { /* clipboard is a nicety */ }
+  el.emitCopy.textContent = "copied";
+  setTimeout(function () { el.emitCopy.textContent = "copy"; }, 900);
+});
+
+document.addEventListener("keydown", function (e) {
+  var t = e.target.tagName;
+  if (t === "INPUT" || t === "TEXTAREA" || t === "SELECT") {
+    if (e.key === "Escape") e.target.blur();
+    return;
+  }
+  var k = e.key.toLowerCase();
+  if (k === " " || e.code === "Space") { e.preventDefault(); playSide(state.side); }
+  else if (k === "f") { e.preventDefault(); setSide(state.side === "ours" ? "ref" : "ours"); }
+  else if (k === "1") setSide("ours");
+  else if (k === "2") setSide("ref");
+  else if (k === "b") el.blind.click();
+  else if (k === "l") el.loop.click();
+  else if (k === "e") { e.preventDefault(); el.emit.classList.contains("on") ? el.emit.classList.remove("on") : openEmit(); }
+  else if (k === "escape") el.emit.classList.remove("on");
+});
+window.addEventListener("resize", function () { drawEnv(); drawCentroid(); });
+
+/* ---- go ---- */
+fillInstruments();
+fillVoices();
+buildRack();
+paintTransport();
+drawAll();
+refresh();
+window.__bench = state;                       // for headless verification
+</script>
+</body>
+</html>
