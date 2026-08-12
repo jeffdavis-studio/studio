@@ -102,6 +102,8 @@
   .slot b{font-weight:600;width:88px;color:var(--dim)}
   .slot.on b{color:var(--ink)}
   .slot span{color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .slot.warn i,.slot.warn b{color:#e2705a}
+  .slot.warn span{color:#c9836f}
 
   /* ---------- knobs ---------- */
   #knobs{flex:1 1 auto;display:flex;flex-direction:column;gap:26px;justify-content:center;min-height:0}
@@ -203,10 +205,10 @@
     </div>
   </main>
 
-  <!-- provenance lives HERE and not on screen: engine @f840cc0 · built 2026-08-11.
+  <!-- provenance lives HERE and not on screen: engine @f840cc0 · built 2026-08-12.
        Nothing numeric is allowed in the visible layout — the moment a figure
        appears, the page starts arguing with the ear instead of serving it. -->
-  <footer title="engine @f840cc0 · built 2026-08-11">
+  <footer title="engine @f840cc0 · built 2026-08-12">
     <span>Both sides are level-matched, so loudness is never what you are hearing.</span>
     <span class="sp"></span>
     <button id="send">send settings to Morgan</button>
@@ -737,6 +739,7 @@ var state = {
   vals: midValues(),
   ours: null,
   refs: {},                       // voiceId -> { name, buf }
+  refNote: "",                    // what the matcher refused, shown on screen
   side: "ours",
   taps: { attack: false, body: false, tail: false },
   touched: {}                     // voiceId -> true once a knob moves
@@ -873,13 +876,20 @@ function selectVoice(id) {
 /* =========================================================================
    REFERENCE — dropped folder or files, matched to a voice by filename.
    ========================================================================= */
+// A name I do not recognise is REFUSED, not guessed at.
+//
+// This used to end with a bare /hat/ catch-all that sent anything unmatched to
+// the closed hat, and it used to read the two-letter code "hc" as "hat closed".
+// On the real machine HC is HI CONGA — closed hi hat is CH. That one wrong
+// reading is how two conga samples reached Jeff labelled as closed hats, and he
+// heard it before we caught it. Both are gone. Open is still tested before
+// closed so "hat-open" cannot be swallowed by a closed-adjacent rule.
 function voiceFromName(name) {
   var n = String(name).toLowerCase();
   if (/open/.test(n) || /(^|[^a-z])oh([^a-z]|$)/.test(n)) return "hatOpen";
-  if (/closed/.test(n) || /(^|[^a-z])(hc|ch)([^a-z]|$)/.test(n)) return "hatClosed";
+  if (/closed/.test(n) || /(^|[^a-z])ch([^a-z]|$)/.test(n)) return "hatClosed";
   if (/kick|bass ?drum/.test(n) || /(^|[^a-z])bd/.test(n)) return "kick";
   if (/snare/.test(n) || /(^|[^a-z])sd/.test(n)) return "snare";
-  if (/hat/.test(n)) return "hatClosed";
   return null;
 }
 function decode(file) {
@@ -902,7 +912,11 @@ function takeFiles(files) {
   // and there the plainest filename wins — ref-kick.wav is the one to load,
   // ref-kick-long.wav is an alternate to reach for deliberately.
   if (list.length === 1) {
-    var only = list[0], target = voiceFromName(only.name) || state.voiceId;
+    var only = list[0], named = voiceFromName(only.name), target = named || state.voiceId;
+    // No name match on a single deliberate drop is not a guess — it is you
+    // pointing at a file for the voice already on screen. But say so, so it can
+    // never be mistaken for the matcher having recognised it.
+    state.refNote = named ? "" : only.name + " — no voice in the name, loaded into the tab you were on";
     Promise.resolve(decode(only).then(function (buf) {
       state.refs[target] = { name: only.name, buf: buf };
     })["catch"](function () {})).then(function () {
@@ -910,16 +924,20 @@ function takeFiles(files) {
     });
     return;
   }
-  var claimed = {};
+  var claimed = {}, refused = [];
   var jobs = list.map(function (f) {
     var v = voiceFromName(f.name);
-    if (!v) return null;
+    if (!v) { refused.push(f.name); return null; }
     if (claimed[v] && claimed[v].length <= f.name.length) return null;
     claimed[v] = f.name;
     return decode(f).then(function (buf) {
       if (claimed[v] === f.name) state.refs[v] = { name: f.name, buf: buf };
     })["catch"](function () { /* a file we cannot decode is a file we ignore */ });
   }).filter(Boolean);
+  // Files the matcher would not name are NOT loaded, and they are NOT silent.
+  // Silently dropping them is how you end up A/B-ing against nothing, or worse,
+  // against the wrong voice.
+  state.refNote = refused.length ? "not loaded, name matches no voice: " + refused.join(", ") : "";
   Promise.all(jobs).then(function () { paintRefs(); setSide("ref"); });
 }
 function walkEntry(entry, out) {
@@ -946,6 +964,16 @@ function paintRefs() {
       "<b>" + v.label + "</b><span>" + (got ? got.name : "—") + "</span>";
     el.slots.appendChild(row);
   });
+  if (state.refNote) {
+    var warn = document.createElement("div");
+    warn.className = "slot warn";
+    var wi = document.createElement("i"); wi.textContent = "!";
+    var wb = document.createElement("b"); wb.textContent = "unmatched";
+    var ws = document.createElement("span"); ws.textContent = state.refNote;
+    ws.title = state.refNote;
+    warn.appendChild(wi); warn.appendChild(wb); warn.appendChild(ws);
+    el.slots.appendChild(warn);
+  }
   var has = !!state.refs[state.voiceId];
   el.sideRef.disabled = !has;
   el.refSub.textContent = has ? state.refs[state.voiceId].name : "drop one in →";
