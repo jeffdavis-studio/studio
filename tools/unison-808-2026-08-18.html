@@ -1,0 +1,1627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unison 808</title>
+<style>
+  :root{
+    --bg:#0f1012; --panel:#191b1e; --panel2:#212428; --line:#33383e;
+    --ink:#eceef0; --dim:#868c95; --hot:#e8a33d; --acc:#e0574f; --go:#5fbf7a;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:var(--bg);color:var(--ink);overflow:hidden;
+    font:13px/1.35 ui-sans-serif,-apple-system,"Helvetica Neue",Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;user-select:none
+  }
+  #app{display:grid;grid-template-rows:auto minmax(0,1fr) auto;height:100dvh;overflow:hidden}
+
+  /* ---------------- transport ---------------- */
+  header{
+    display:flex;align-items:center;gap:16px;padding:9px 16px;
+    background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:nowrap
+  }
+  header h1{margin:0;font-size:13px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;white-space:nowrap}
+  header h1 span{color:var(--dim);font-weight:400;letter-spacing:.04em;text-transform:none}
+  .tbtn{
+    font:inherit;font-size:12px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;
+    padding:8px 16px;border-radius:8px;cursor:pointer;
+    background:var(--panel2);color:var(--ink);border:1px solid var(--line);white-space:nowrap
+  }
+  .tbtn:hover{border-color:#4c535b}
+  #play.on{background:var(--go);color:#08170e;border-color:var(--go)}
+  .tgroup{display:flex;align-items:center;gap:7px;white-space:nowrap}
+  .tgroup label{font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--dim)}
+  .tgroup input[type=range]{width:88px}
+  #bpmv{font-variant-numeric:tabular-nums;color:var(--ink);width:26px;text-align:right;font-size:12px}
+  header .sp{margin-left:auto}
+  #work{width:9px;height:9px;border-radius:50%;background:#2c3036;transition:background .1s;flex:0 0 auto}
+  #work.on{background:var(--hot)}
+
+  /* ---------------- main ---------------- */
+  main{
+    display:grid;grid-template-columns:minmax(0,1fr) minmax(430px,.86fr);
+    gap:12px;padding:12px 16px;min-height:0;overflow:hidden
+  }
+  .col{display:flex;flex-direction:column;gap:12px;min-height:0}
+  .card{
+    background:var(--panel);border:1px solid var(--line);border-radius:11px;
+    padding:11px 13px;min-height:0;display:flex;flex-direction:column;overflow:hidden
+  }
+  .card h2{
+    margin:0 0 9px;font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--dim);font-weight:700;display:flex;align-items:center;gap:10px;flex:0 0 auto
+  }
+  .card h2 .sp{margin-left:auto}
+  .rowbtn{
+    font:inherit;font-size:10px;letter-spacing:.10em;text-transform:uppercase;
+    background:var(--panel2);border:1px solid var(--line);color:var(--dim);cursor:pointer;
+    padding:4px 10px;border-radius:6px
+  }
+  .rowbtn:hover{color:var(--ink);border-color:#4c535b}
+
+  /* ---------------- the machine: pads + steps ---------------- */
+  /* The lanes FILL the card rather than sitting in the middle of it: a pad you
+     play wants to be a big target, and a 900px laptop has the room. */
+  #grid{flex:1 1 auto;display:flex;flex-direction:column;gap:5px;min-height:0}
+  .lane{display:grid;grid-template-columns:112px 22px minmax(0,1fr);gap:6px;align-items:stretch;flex:1 1 0;min-height:0}
+  .pad{
+    font:inherit;font-size:12px;font-weight:600;letter-spacing:.05em;
+    padding:0 9px;border-radius:8px;cursor:pointer;text-align:left;
+    background:var(--panel2);border:1px solid var(--line);color:var(--ink);
+    display:flex;align-items:center;gap:7px;overflow:hidden;white-space:nowrap
+  }
+  .pad kbd{
+    font:inherit;font-size:9px;color:#5c626a;border:1px solid #383e45;border-radius:3px;
+    padding:0 4px;flex:0 0 auto
+  }
+  .pad:hover{border-color:#4c535b}
+  .pad.lit{background:var(--hot);border-color:var(--hot);color:#1a1005}
+  .mute{
+    font:inherit;font-size:10px;cursor:pointer;border-radius:5px;padding:0;
+    background:var(--panel2);border:1px solid var(--line);color:#4b5158;text-align:center
+  }
+  .mute.on{color:var(--go);border-color:#3c5a45}
+  .steps{display:grid;grid-template-columns:repeat(16,minmax(0,1fr));gap:3px;min-height:0}
+  .st{
+    height:100%;min-height:0;border-radius:5px;cursor:pointer;padding:0;
+    background:#191c20;border:1px solid #2b3037
+  }
+  .st.q{background:#1e2228}
+  .st:hover{border-color:#4c535b}
+  .st.on{background:var(--ink);border-color:var(--ink)}
+  .st.on.q{background:var(--ink)}
+  .st.now{box-shadow:0 0 0 2px var(--hot) inset}
+  #ruler{display:grid;grid-template-columns:112px 22px minmax(0,1fr);gap:6px;flex:0 0 auto;margin-bottom:2px}
+  #ruler div:last-child{display:grid;grid-template-columns:repeat(16,minmax(0,1fr));gap:3px}
+  #ruler b{
+    font-weight:400;font-size:9px;color:#4b5158;text-align:center;letter-spacing:.06em
+  }
+  /* accent lane sits under the voices — the machine's one global step control */
+  .lane.acc .pad{color:var(--acc);border-color:#4a2b28;background:#20191a}
+  .lane.acc .st.on{background:var(--acc);border-color:var(--acc)}
+
+  /* ---------------- knob rack ---------------- */
+  #rack{
+    flex:1 1 auto;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:0 18px;min-height:0;overflow:hidden
+  }
+  .rcol{display:flex;flex-direction:column;gap:16px;min-width:0}
+  .grp{display:flex;flex-direction:column;gap:9px}
+  .grp>h3{
+    margin:2px 0 0;font-size:9px;letter-spacing:.16em;text-transform:uppercase;
+    color:#5c626a;font-weight:700;border-bottom:1px solid #262a2f;padding-bottom:3px
+  }
+  .knob{display:flex;flex-direction:column;gap:1px}
+  .knob label{font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--dim)}
+  .knob .ends{display:flex;justify-content:space-between;font-size:9px;color:#4b5158;margin-top:-2px}
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;width:100%;height:16px;background:transparent;
+    margin:0;padding:0;border:0;cursor:pointer
+  }
+  input[type=range]::-webkit-slider-runnable-track{
+    height:4px;background:#15171a;border-radius:2px;border:1px solid var(--line)
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:12px;height:16px;border-radius:4px;background:var(--ink);
+    margin-top:-7px;border:1px solid #000
+  }
+  input[type=range]::-moz-range-track{height:4px;background:#15171a;border-radius:2px;border:1px solid var(--line)}
+  input[type=range]::-moz-range-thumb{width:12px;height:16px;border-radius:4px;background:var(--ink);border:1px solid #000}
+  .knob.moved label{color:var(--ink)}
+
+  /* ---------------- footer ---------------- */
+  footer{
+    display:flex;align-items:center;gap:16px;padding:8px 16px;
+    background:var(--panel);border-top:1px solid var(--line);color:var(--dim);font-size:11px
+  }
+  footer .sp{margin-left:auto}
+  footer kbd{
+    font:inherit;font-size:10px;color:var(--dim);border:1px solid #383e45;border-radius:3px;padding:0 4px
+  }
+  #boot{
+    position:fixed;inset:0;background:rgba(10,11,13,.94);display:flex;align-items:center;
+    justify-content:center;z-index:30;cursor:pointer;flex-direction:column;gap:12px
+  }
+  #boot.off{display:none}
+  #boot b{font-size:20px;letter-spacing:.16em;text-transform:uppercase}
+  #boot span{color:var(--dim);font-size:13px}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <h1>Unison <span>· 808</span></h1>
+    <button class="tbtn" id="play">play</button>
+    <div class="tgroup">
+      <label for="bpm">tempo</label>
+      <input type="range" id="bpm" min="60" max="180" step="1" value="104">
+      <span id="bpmv">104</span>
+    </div>
+    <div class="tgroup">
+      <label for="swing">swing</label>
+      <input type="range" id="swing" min="0" max="0.6" step="0.01" value="0">
+    </div>
+    <div class="tgroup">
+      <label for="vol">volume</label>
+      <input type="range" id="vol" min="0" max="1" step="0.01" value="0.8">
+    </div>
+    <span class="sp"></span>
+    <button class="tbtn" id="draw">draw a panel</button>
+    <button class="tbtn" id="reset">reset</button>
+    <span id="work" title="building the kit"></span>
+  </header>
+
+  <main>
+    <!-- ============ left: the machine ============ -->
+    <div class="col">
+      <div class="card" style="flex:1 1 auto">
+        <h2>the kit
+          <span class="sp"></span>
+          <button class="rowbtn" id="patClear">clear</button>
+          <button class="rowbtn" id="patInit">pattern</button>
+        </h2>
+        <div id="ruler"><b></b><b></b><div id="rulerSteps"></div></div>
+        <div id="grid"></div>
+      </div>
+    </div>
+
+    <!-- ============ right: every knob ============ -->
+    <div class="col">
+      <div class="card" style="flex:1 1 auto">
+        <h2>the panel <span class="sp"></span><span style="color:#4b5158;letter-spacing:.06em">every knob, live</span></h2>
+        <div id="rack"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Provenance lives in the tooltip, not in the layout: engine @1a9895b, built
+       2026-08-18. Nothing that measures the sound appears on this screen. -->
+  <footer title="engine @1a9895b · built 2026-08-18">
+    <span><kbd>1</kbd>–<kbd>9</kbd> play a voice &nbsp;·&nbsp; <kbd>space</kbd> start / stop</span>
+    <span class="sp"></span>
+    <span>Nothing is sampled. Every hit is synthesised in the browser by the engine's own code, live off the knobs.</span>
+  </footer>
+</div>
+
+<div id="boot"><b>Unison 808</b><span>click anywhere to start the audio</span></div>
+
+<!-- ===================== inlined engine (verbatim, private repo) ===================== -->
+<script type="text/plain" id="src-engine">
+/* ===== src/core/prng.js @ 1a9895b — verbatim from jeffdavis-studio/unison-engine ===== */
+// prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
+// token hash, consumed in canonical draw order (Technical Architecture v1.2).
+//
+// Discipline: every module draws from the same stream, in a documented, fixed
+// order. Never draw conditionally in a way that changes how many draws happen
+// for the same hash (draw first, discard if unused). Reordering draws is a
+// breaking change to every existing output.
+(function (g) {
+  "use strict";
+  const U = (g.U = g.U || {});
+
+  // sfc32 — small fast counter PRNG, 128-bit state, well-tested for this use.
+  // Seeded from the last 32 hex chars (four 32-bit words) of the token hash.
+  // XOR constants keep degenerate hashes (all zeros) from collapsing the state.
+  U.makePrng = function (hash) {
+    let h = String(hash).replace(/^0x/i, "").toLowerCase();
+    if (!/^[0-9a-f]*$/.test(h)) throw new Error("makePrng: non-hex hash");
+    h = h.padStart(32, "0");
+    const word = (i) => parseInt(h.slice(h.length - 8 * (i + 1), h.length - 8 * i), 16) >>> 0;
+    let a = (word(3) ^ 0x9e3779b9) >>> 0;
+    let b = (word(2) ^ 0x243f6a88) >>> 0;
+    let c = (word(1) ^ 0xb7e15162) >>> 0;
+    let d = (word(0) ^ 0x8aed2a6b) >>> 0;
+
+    function r() {
+      a >>>= 0; b >>>= 0; c >>>= 0; d >>>= 0;
+      const t = (a + b) | 0;
+      a = b ^ (b >>> 9);
+      b = (c + (c << 3)) | 0;
+      c = (c << 21) | (c >>> 11);
+      d = (d + 1) | 0;
+      const out = (t + d) | 0;
+      c = (c + out) | 0;
+      return (out >>> 0) / 4294967296;
+    }
+    for (let i = 0; i < 15; i++) r(); // warm-up: decorrelate from raw seed words
+
+    return {
+      r,                                                        // [0,1)
+      ri: (lo, hi) => lo + Math.floor(r() * (hi - lo + 1)),     // int, inclusive
+      pick: (arr) => arr[Math.floor(r() * arr.length)],
+      chance: (p) => r() < p,
+    };
+  };
+})(typeof window !== "undefined" ? window : globalThis);
+
+/* ===== src/instruments/tr808.js @ 1a9895b — verbatim from jeffdavis-studio/unison-engine ===== */
+// tr808.js — THE MACHINE. A TR-808-lineage core voice: bass drum, snare,
+// closed hat, open hat, each with a front panel the token actually turns.
+//
+// Homage, not trademark (founding brief): the circuits below are modelled on
+// the early-80s Japanese analogue rhythm machine that defines the electro /
+// early hip-hop lane — close, deliberately not slavish. Nothing user-facing
+// names a model number.
+//
+// WHY THIS EXISTS BESIDE drums.js AND NOT INSIDE IT. drums.js is the generic
+// kit: twelve voices, two flavour presets, every constant hardcoded. It still
+// owns clap, rim, toms, cowbell and congas, and it still supplies the whole
+// `studio` (Linn-lineage) kit, which is a different machine and its own later
+// task. What this file adds is the thing drums.js structurally could not be: a
+// real machine with a real panel, whose four core voices are SYNTHESISED FROM A
+// DRAWN PARAMETER SET rather than from constants. Extending drums.js in place
+// would have entangled the 808 panel with the Linn voicing that has to stay put
+// until its own build. So: new module, four voices, drums.js untouched except
+// for the four-line hand-off that lets a machine-flavour kit take its kick,
+// snare and hats from here.
+//
+// THE CIRCUITS, in the order they appear below.
+//
+//   BASS DRUM — a bridged-T network rung by the trigger pulse. It is close to a
+//   pure decaying sine that starts sharply above its resting pitch and falls to
+//   it in about 20ms; DECAY is feedback into the network (a longer ring, not a
+//   different pitch); TONE mixes in the raw trigger click ahead of the ring.
+//   Modelled here as: sine + fast pitch envelope + a small fast-dying second
+//   harmonic (the network's asymmetry) + a high-passed click + gentle
+//   saturation, which is what the machine's output stage does when the drum is
+//   loud.
+//
+//   SNARE — two tuned bridged-T oscillators (a low body and a partial roughly a
+//   twelfth above it) plus a separate noise generator through a bandpass. TUNE
+//   moves both oscillators. SNAPPY is the noise level against the drum body —
+//   the one knob everyone actually turns. TONE here drives the noise brightness
+//   and how long the noise rings, which is the audible half of the machine's
+//   own tone control.
+//
+//   HATS — six square-wave oscillators at fixed inharmonic frequencies, summed,
+//   high-passed, and gated by a VCA. Closed and open hat share ONE oscillator
+//   bank and differ only in their envelope and filter setting, exactly as the
+//   machine does — which is also why they share a VCA, and why a closed hat
+//   cuts an open one off. That choke is implemented in the kit (drums.js
+//   `fire`), because it is a scheduling behaviour, not a waveform.
+//
+//   TOMS (low / mid / high) — the same bridged-T ring as the bass drum, damped
+//   harder and tuned up, with the trigger pulse itself audible as a short
+//   noise thud in front of it. One knob each, TUNING, exactly as the machine
+//   has. The DECAY is a property of each circuit, not a knob: measured across
+//   the corpus's five TUNING cells per family it barely moves (LT 89.9→86.1 ms,
+//   MT 57.9→55.1, HT 44.5→41.5), while the pitch moves 1.22x. So decay is a
+//   constant per family with a small tuning-dependent shortening, and TUNING
+//   is a frequency knob and nothing else.
+//
+//   HAND CLAP — ONE noise source through ONE bandpass, gated by a VCA that is
+//   opened three times in fast succession and then held open onto a long
+//   decay. Not "three noise bursts plus a tail" as a generic clap is written:
+//   the bursts and the tail are the same noise through the same filter, which
+//   is why an 808 clap sounds like one event and not like four. No knob — the
+//   machine gives the clap a LEVEL and nothing else.
+//
+//   RIM SHOT — a bridged-T rung once and damped hard. Two resonances and a
+//   trigger click, over in about 13 ms. Also no knob.
+//
+// THE THREE FAMILIES ABOVE WERE MEASURED BEFORE THEY WERE WRITTEN
+// (analysis/measure-extra-808.mjs), the order the Juno pass established. The
+// numbers below are that measurement, not an approximation of the idea of an
+// 808 — clap burst spacing off a 0.5 ms envelope, rim resonances off a window
+// sized to a 13 ms hit, tom fundamentals off an interpolated FFT peak.
+//
+// DETERMINISM. Two separate stories, both deliberate:
+//   - The PANEL comes from the song's PRNG stream, as a fixed block of 15 draws
+//     appended at the END of tier 1 (see session.js's canonical draw order).
+//     Fixed count, drawn for every song whether or not the 808 is the kit, so
+//     the count can never drift with the lane.
+//   - The NOISE inside the snare comes from a FIXED seed, never the song
+//     stream, so the waveform build consumes no draws.
+// The Math.sin / Math.exp exposure noted in drums.js applies here identically.
+//
+// LOUDNESS. Every voice is normalised to a fixed peak target before its LEVEL
+// knob rides it, and the level ranges are narrow (about ±1.3 dB). This is
+// mixdown guarantee 2 (Brief 2 §The Mixdown): a random panel draw is allowed to
+// change the character of the kit, and is not allowed to change the balance of
+// the record.
+(function (g) {
+  "use strict";
+  const U = (g.U = g.U || {});
+
+  const SR = 44100;
+  const NOISE_SEED = "808808808808808808808808808808ff";
+  // A SECOND fixed seed, for the hat oscillators' frequency jitter (see hats()).
+  // Separate from NOISE_SEED on purpose: the hats are built BEFORE the kick and
+  // snare in build808, so sharing one stream would make every future change to
+  // the hat bank silently re-roll the snare's noise. Fixed seed, never the song
+  // stream — same determinism story as NOISE_SEED.
+  const HAT_SEED = "80811a7808ba7808ca7808da7808ea7f";
+
+  // ---- panel ranges --------------------------------------------------------
+  // The archetype-plus-range model (Brief 1 §Patch book): each knob has a
+  // musically-safe span, and the draw lands anywhere in it with a soft pull
+  // toward the middle. These are the build-time dials — this table IS the
+  // machine's personality, and it is the thing to retune by ear.
+  //
+  // RE-CENTRED 2026-08-12 by analysis/apply-fit.mjs against the verified
+  // reference pack (each knob's centre now sits on the fitted value; spans are
+  // the originals unless a physical bound forced a shrink). Three entries below
+  // are marked INERT: the DSP reads only `p.pos.<knob>` for those, so editing
+  // the numbers moves the panel readout and nothing audible. Their fit lives in
+  // the DSP coefficients instead. See analysis/apply-fit.mjs.
+  const RANGE = {
+    bdTune:   [38.906, 60.906], // Hz — where the ring settles
+    bdDecay:  [0.0158, 0.4959, 0.70], // sec — geometric; machine spans 16.9–535.6 ms, we spanned 128–319
+    bdTone:   [0.05, 0.55],     // click into the ring
+    bdLevel:  [0.86, 1.14],
+    sdTune:   [168.8, 234.8],   // Hz — lower of the two body oscillators
+    sdSnappy: [0.02, 1.30],     // noise against body — see the tonality ladder below
+    sdTone:   [0.15, 0.90],     // INERT — position-driven (noise brightness + ring length)
+    sdLevel:  [0.84, 1.16],
+    chDecay:  [0.0049, 0.0259], // sec — ≈20–115ms of hat
+    chTone:   [0.15, 0.85],     // INERT — position-driven (high-pass corner + bank detune)
+    chLevel:  [0.82, 1.18],
+    ohDecay:  [0.0215, 0.2440, 0.20], // sec — geometric; machine spans 21.5–241.0 ms (defaded), we spanned 92–243
+    ohTone:   [0.15, 0.85],     // INERT — position-driven (high-pass corner + bank detune)
+    ohLevel:  [0.80, 1.15],
+    accent:   [0.15, 0.95],     // the machine's one global knob
+    // ---- the extended voices, 2026-08-17 --------------------------------
+    // TOM TUNING, one knob per family, spanning exactly what the corpus's five
+    // TUNING cells measure (interpolated FFT fundamental at 20 ms):
+    //   LT  81.55 → 99.76 Hz     MT  124.71 → 154.05     HT  170.24 → 212.34
+    // These are not "a range we chose" — they are the machine's, endpoint to
+    // endpoint, and the whole knob is 1.22-1.25x, which is much narrower than
+    // a generic tom would give you.
+    ltTune:   [81.55, 99.76],
+    mtTune:   [124.71, 154.05],
+    htTune:   [170.24, 212.34],
+    // No TONE or DECAY knobs here, because the machine has none: the tom, clap
+    // and rim circuits expose LEVEL and (for the toms) TUNING. Modelling a knob
+    // the machine does not have would be a different instrument.
+    cpLevel:  [0.84, 1.16],
+    rsLevel:  [0.82, 1.18],
+    tomLevel: [0.84, 1.16],
+  };
+  U.PANEL_808_RANGES = RANGE;
+
+  // sdSnappy, the knob both the 08-12 fitter and Jeff's ear railed at its 1.00
+  // ceiling. Tail tonality is the axis it moves, and the machine sweeps a whole
+  // drum-to-crack range on it that we only covered the top half of. Laddered
+  // against the machine's five SNAPPY cells (tail tonality, RMS):
+  //
+  //   RANGE.sdSnappy      p0     p25     p50     p75    p100      RMS
+  //   machine          0.982   0.669   0.246   0.138   0.126
+  //   [0.70, 1.00]     0.262   0.214   0.183   0.154   0.137   0.3820
+  //   [0.02, 1.00]     0.994   0.783   0.437   0.231   0.137   0.1081
+  //   [0.02, 1.30]     0.994   0.666   0.289   0.141   0.103   0.0225
+  //
+  // A curve exponent was tried too and lost to the plain linear map every time.
+  // The 1.30 top is deliberate headroom: 1.00 was where both fits ran out.
+
+  // Centre-biased position: era-typical settings are likely, the ends of every
+  // range stay genuinely reachable. Same shape as every other weighted draw in
+  // the engine (Brief 1 §Design language).
+  //
+  // The exponent must be BELOW 1 — that is what pulls a uniform draw toward the
+  // middle. Above 1 does the exact opposite and stacks the panel at the ends of
+  // every range; the first demo render caught it doing precisely that (a single
+  // draw with the kick's click at 98%, the snare's snappy at 100% and the hats
+  // wide open, which is not a machine anybody would leave set that way).
+  const K = 0.62;
+  function centred(t) {
+    return t < 0.5 ? 0.5 * Math.pow(2 * t, K) : 1 - 0.5 * Math.pow(2 - 2 * t, K);
+  }
+  // Two-element ranges are linear, which is right for a knob whose useful span
+  // is narrow. The DECAY knobs are not that: measured across the corpus's own
+  // grid, the machine's kick decay runs 16.9 -> 535.6 ms (31.8x) and its open
+  // hat 21.5 -> 241.0 ms (11.2x, after cutting the sample editor's fade), and
+  // both are steep at the bottom and saturating at the top. A linear map cannot
+  // be both, so a third element makes the range geometric with the position
+  // warped by `pos ** curve`. Fitted against the machine's five cells per knob,
+  // log-RMS error:
+  //
+  //   kick     linear 0.3262   warped-geometric @0.70  0.1417
+  //   openhat  linear 0.7869   warped-geometric @0.20  0.1710
+  const span = (r, pos) =>
+    r.length < 3 ? r[0] + (r[1] - r[0]) * pos
+                 : r[0] * Math.pow(r[1] / r[0], Math.pow(pos, r[2]));
+
+  // THE ONE PLACE positions become panel values. The bench rig used to carry its
+  // own copy of this map (analysis/render-voice.mjs), which was harmless while
+  // every range was linear and silently wrong the moment one was not — the
+  // fitter would have been measuring a panel the song path never produces.
+  // Everything now goes through here.
+  U.panel808FromPos = function (pos) {
+    const v = {}, at = {};
+    for (const k in RANGE) {
+      const t = pos[k] === undefined ? 0.5 : Math.max(0, Math.min(1, pos[k]));
+      at[k] = t;
+      v[k] = span(RANGE[k], t);
+    }
+    v.pos = at;                        // 0..1 knob positions, for the readout
+    return v;
+  };
+
+  // EXACTLY 21 draws, in this order, always. Appended at the end of tier 1.
+  //
+  // WAS 15 UNTIL 2026-08-17, and the count going up is a deliberate breaking
+  // change, made while nothing is published. The six new draws are APPENDED, so
+  // the original fifteen keep their values for a given hash — what shifts is
+  // everything drawn after the block. Adding them anywhere but the end would
+  // have re-rolled the kick and snare of every hash for a tom knob, which is a
+  // worse trade than a clean break. The count is fixed and drawn for every song
+  // whether or not the 808 is the kit, exactly as before, so it can never drift
+  // with the lane.
+  U.draw808Panel = function (R) {
+    const pos = {};
+    for (const k of ["bdTune", "bdDecay", "bdTone", "bdLevel",
+      "sdTune", "sdSnappy", "sdTone", "sdLevel",
+      "chDecay", "chTone", "chLevel",
+      "ohDecay", "ohTone", "ohLevel", "accent",
+      "ltTune", "mtTune", "htTune", "cpLevel", "rsLevel", "tomLevel"]) {
+      pos[k] = centred(R.r());
+    }
+    return U.panel808FromPos(pos);
+  };
+
+  // A one-line human readout of what the token turned. This is what you read
+  // while listening, and what lands in the render manifest.
+  U.describe808 = function (p) {
+    const pct = (x) => Math.round(x * 100);
+    return "BD " + p.bdTune.toFixed(0) + "Hz d" + pct(p.pos.bdDecay) + " t" + pct(p.pos.bdTone) +
+      " | SD " + p.sdTune.toFixed(0) + "Hz snap" + pct(p.pos.sdSnappy) + " t" + pct(p.pos.sdTone) +
+      " | CH d" + pct(p.pos.chDecay) + " t" + pct(p.pos.chTone) +
+      " | OH d" + pct(p.pos.ohDecay) + " t" + pct(p.pos.ohTone) +
+      " | ACC " + pct(p.pos.accent);
+  };
+
+  // ---- DSP helpers ---------------------------------------------------------
+  // Deliberately a private copy of the same four primitives drums.js keeps
+  // private. Roughly 30 lines duplicated in the concatenated on-chain payload;
+  // hoisting them into core/ is a cheap later cleanup and is on the README's
+  // open list rather than folded into this task.
+
+  const alloc = (sec) => new Float32Array(Math.max(1, Math.round(sec * SR)));
+
+  function onePoleHP(x, hz) {
+    const a = Math.exp((-2 * Math.PI * hz) / SR);
+    let yPrev = 0, xPrev = 0;
+    for (let i = 0; i < x.length; i++) {
+      const xi = x[i];
+      const y = a * (yPrev + xi - xPrev);
+      x[i] = y; yPrev = y; xPrev = xi;
+    }
+    return x;
+  }
+
+  function onePoleLP(x, hz) {
+    const a = 1 - Math.exp((-2 * Math.PI * hz) / SR);
+    let y = 0;
+    for (let i = 0; i < x.length; i++) { y += a * (x[i] - y); x[i] = y; }
+    return x;
+  }
+
+  function bandpass(x, hz, q) {
+    const w = (2 * Math.PI * hz) / SR;
+    const alpha = Math.sin(w) / (2 * q);
+    const cw = Math.cos(w);
+    const b0 = alpha, b2 = -alpha;
+    const a0 = 1 + alpha, a1 = -2 * cw, a2 = 1 - alpha;
+    let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+    for (let i = 0; i < x.length; i++) {
+      const xi = x[i];
+      const y = (b0 * xi + b2 * x2 - a1 * y1 - a2 * y2) / a0;
+      x2 = x1; x1 = xi; y2 = y1; y1 = y;
+      x[i] = y;
+    }
+    return x;
+  }
+
+  function normalize(x, target) {
+    let peak = 0;
+    for (let i = 0; i < x.length; i++) { const a = Math.abs(x[i]); if (a > peak) peak = a; }
+    if (peak < 1e-9) return x;
+    const k = target / peak;
+    for (let i = 0; i < x.length; i++) x[i] *= k;
+    return x;
+  }
+
+  // De-click only: 0.3ms in, 2ms out. A buffered one-shot must not click at
+  // either end, but the fade-in is a tax on the attack and these are percussion
+  // — the whole identity of a hat is in its first few milliseconds. 0.3ms (13
+  // samples) is enough to kill a start-of-buffer step and short enough to be
+  // inaudible as a fade.
+  //
+  // ORDER MATTERS: shape() runs BEFORE normalize(), never after. Written the
+  // other way round first, and it cost the hats 11dB — their absolute peak
+  // lands inside the fade-in window (that is what a transient IS), so fading
+  // after normalizing silently undid the normalization on exactly the voices
+  // with the fastest attack. Measured: closed hat came out at 0.166 against a
+  // 0.62 target. normalize() must be the last thing to touch amplitude, or the
+  // patch-loudness guarantee is a comment rather than a fact.
+  function shape(x) {
+    const inN = Math.min(x.length, Math.round(0.0003 * SR));
+    for (let i = 0; i < inN; i++) x[i] *= i / inN;
+    const outN = Math.min(x.length, Math.round(0.002 * SR));
+    for (let i = 0; i < outN; i++) x[x.length - 1 - i] *= i / outN;
+    return x;
+  }
+
+  // ---- onset bloom ---------------------------------------------------------
+  // The OPEN HAT does not arrive at full amplitude on its first millisecond.
+  // Its VCA opens onto a bank that is already running, but the filter after it
+  // has to charge, so the front of the hit holds level for ~12 ms instead of
+  // decaying from the first sample. Modelled as a small swell, not a ramp:
+  //
+  //   bloom(t) = 1 - depth * exp(-t / rise)
+  //
+  // THE KICK DELIBERATELY DOES NOT GET ONE, and that is the finding of the
+  // 2026-08-14 pass rather than an omission. The brief was to give kick and
+  // open hat an attack rise, on the rig's `rise 10-90` probe reading 13.97 ms
+  // for the machine's kick against 0 ms for ours — an apparent 14 ms ring-up.
+  // It is not one. `rise10to90Ms` comes off a 5 ms RMS envelope, and a 5 ms
+  // window over a 55 Hz waveform does not average a whole cycle; it ripples at
+  // twice the fundamental. Measured instead cycle by cycle — the peak of each
+  // half-cycle, which no window can smear — the machine's kick is at its
+  // MAXIMUM on its first positive half-cycle, 1.0 ms in:
+  //
+  //   ref-kick, positive half-cycles only   1.0ms 1.00   10.1ms 0.83
+  //                                        26.6ms 0.88   44.3ms 0.81
+  //
+  // There is no ring-up to model. What the raw half-cycle series does show —
+  // 0.87 / 0.91 / 0.72 / 1.00 / 0.77 / 0.84 taking both signs — is half-cycle
+  // ASYMMETRY: the machine's positive and negative excursions differ by 10-25%
+  // early on and converge as the hit decays. That is a real and much larger
+  // difference from our symmetric sine, it is what makes the RMS probe ripple
+  // in the first place, and this file does not model it. It is the honest next
+  // kick task, and it is not an envelope.
+  //
+  // Laddering confirmed the trap. analysis/onset-ladder.mjs will happily hand
+  // the kick a bloom — depth 0.44 / rise 14 ms scores 0.2249 against 0.2735 for
+  // none — and the whole of that gain is the artefact. At that cell `rise 10-90`
+  // goes 0 -> 14.97 ms, landing on the machine's 13.97, while `attack peak`
+  // moves 23.46 -> 30.44 ms AWAY from a reference whose peak is its first
+  // positive half-cycle at 1.0 ms. The objective bought a probe and sold the
+  // sound. Note also that BOTH of the ladder's criteria are computed off 5 ms
+  // RMS windows, so on a 55 Hz waveform neither one is independent of the
+  // ripple — which is why the cycle-by-cycle series above, and not the ladder,
+  // is the authority here. Fitting it would have shipped a kick that fades in
+  // from silence over 14 ms.
+  //
+  // The open hat is the opposite case and gets the bloom: it is broadband, so
+  // its RMS envelope has no ripple artefact and the ladder's criteria mean what
+  // they say. Reference envelope over the first 12 ms holds 0.88-0.92 and peaks
+  // at 12 ms; ours fell from 1.00 at 4 ms to 0.77 by 9 ms. Depth 0.44 / rise
+  // 5.5 ms is not either criterion's argmin and is not meant to be — the shape
+  // error floor is broad and flat (0.1125 at no bloom -> 0.0483 here, against a
+  // best of 0.0464) and the objective's step down happens right here (0.2911 ->
+  // 0.1973, against a best of 0.1835). What settles it is the third number both
+  // argmins get wrong: `attack peak` lands on 13.48 ms against the reference's
+  // 13.48. Past 0.56 the shape error turns back up.
+  //
+  // The kick keeps the TERM at depth zero rather than losing it. `1 - 0*exp(x)`
+  // is exactly 1.0 in IEEE754, so the drum is bit-identical to one without it —
+  // but the ladder can still sweep the kick and reproduce the finding above
+  // instead of taking a comment's word for it. An absence nobody can re-measure
+  // is how this gets chased a third time.
+  //
+  // Exposed on U for the same reason PANEL_808_RANGES is: the ladder sweeps the
+  // REAL voice rather than a second copy of it that can drift out of agreement
+  // with this file.
+  const ONSET = {
+    bdDepth: 0, bdRise: 0.0090,      // bass drum: deliberately none — see above
+    ohDepth: 0.44, ohRise: 0.0055,   // open hat:  laddered 2026-08-14
+  };
+  U.ONSET_808 = ONSET;
+
+  // ---- circuit constants ---------------------------------------------------
+  // The parts of these voices that are NOT knobs on the machine — filter
+  // corners, burst spacing, damping. Gathered here and exposed on U for the
+  // same reason ONSET and PANEL_808_RANGES are: analysis/fit-circuit.mjs fits
+  // them against the reference by perturbing THE REAL VOICE, so there is no
+  // second copy of the synthesis to drift out of agreement with this file.
+  // Every number below carries where it came from.
+  const CIRCUIT = {
+    // BASS DRUM half-cycle asymmetry — the 2026-08-14 pass's named next gap,
+    // picked up 2026-08-17. The machine's kick is not a symmetric sine: its
+    // positive and negative excursions differ 10-25% early in the hit and
+    // converge as it decays. Modelled as a quadratic term, y = x + d*x², which
+    // is the shape that behaves that way for free — at amplitude A the peak
+    // ratio is (1+dA)/(1−dA), so the asymmetry is largest when the drum is
+    // loudest and vanishes as A falls, with no envelope to schedule. It also
+    // adds the even harmonic a real bridged-T asymmetry adds. The DC the
+    // quadratic leaves behind is removed by a 12 Hz high-pass, which is the
+    // output stage's AC coupling doing what it actually does.
+    bdAsym: 0.0,          // fitted below; 0 is bit-identical to no term at all
+
+    // HAND CLAP. Bursts read off a 0.5 ms envelope of CP.WAV — a 5 ms window
+    // smears 10 ms bursts into each other, the same artefact that cost the
+    // onset pass a scope item. Measured burst peaks: 2.24, 12.22, 25.19 ms,
+    // i.e. gaps of 10.0 and 13.0 ms. Everything after 25 ms is the tail's own
+    // noise ripple, not a fourth pulse. Band peaks put the filter at 960-1.92k
+    // (40.3 dB) with 480-960 next (34.1), and the tail's strongest partial is
+    // 964 Hz — so one bandpass near 1 kHz, moderate Q, not a bright clap.
+    cpBandHz: 1000, cpQ: 1.4, cpHpHz: 620,
+    cpGap1: 0.0100, cpGap2: 0.0130,   // sec, between burst 1-2 and 2-3
+    cpBurstTau: 0.0016,               // sec, each pulse's own damping
+    cpTailTau: 0.0330,                // sec, the VCA's long open after burst 3
+    cpTailLevel: 0.92,
+
+    // RIM SHOT. Two resonances off a 1024-point window sized to the 13 ms hit:
+    // 476.1 Hz at 0 dB and 1711.6 Hz at −5.7 dB. Damping from the band decays
+    // (240-960 Hz t20 = 8.7 ms, 960-1.92k t20 = 5.8 ms — the high resonance
+    // dies first, which is why the hit reads as a click and not a tone).
+    rsF1: 476.1, rsF2: 1711.6, rsA2: 0.52,
+    rsTau1: 0.0032, rsTau2: 0.0019, rsClick: 0.30,
+
+    // TOMS. Decay per family from the corpus, taken at the middle of each
+    // TUNING knob, with the small shortening the knob actually causes folded in
+    // as `tomTauTilt` (LT 89.9→86.1 ms over the whole knob is −4.2%).
+    ltTau: 0.0875, mtTau: 0.0579, htTau: 0.0418,
+    tomTauTilt: -0.05,
+    // The bridged-T's pitch drop. Small — a tom is nearly a steady sine by
+    // 10 ms, unlike the kick, which sweeps 2.4x.
+    tomDrop: 0.09, tomDropTau: 0.014,
+    tomClick: 0.16, tomClickHp: 1800, tomClickTau: 0.0016,
+  };
+  U.CIRCUIT_808 = CIRCUIT;
+
+  // ---- bass drum -----------------------------------------------------------
+
+  function bassDrum(p, rnd) {
+    const tau = p.bdDecay;
+    const x = alloc(Math.min(2.6, tau * 8 + 0.06));
+    const fEnd = p.bdTune;
+    const fStart = fEnd * 2.4;
+    // A higher-tuned drum sweeps down faster — the network's Q rises with pitch.
+    const tauP = 0.03183 - 0.013 * p.pos.bdTune;
+    let ph = 0, ph2 = 0;
+    for (let i = 0; i < x.length; i++) {
+      const t = i / SR;
+      const f = fEnd + (fStart - fEnd) * Math.exp(-t / tauP);
+      ph += (2 * Math.PI * f) / SR;
+      ph2 += (2 * Math.PI * f * 2) / SR;
+      // ONSET.bdDepth is ZERO on purpose — see ONSET above. The machine's kick
+      // is at full amplitude on its first half-cycle; the 14 ms "rise" the rig
+      // reports is its own window rippling against a 55 Hz waveform. The term
+      // stays so analysis/onset-ladder.mjs can re-derive that, and multiplies
+      // by exactly 1.0 while the depth is zero.
+      const env = Math.exp(-t / tau) * (1 - ONSET.bdDepth * Math.exp(-t / ONSET.bdRise));
+      x[i] = (Math.sin(ph) + 0.13 * Math.sin(ph2) * Math.exp(-t / 0.012)) * env;
+    }
+    // TONE: the trigger pulse itself, high-passed, sitting in front of the ring.
+    const cn = Math.round(0.006 * SR);
+    const click = new Float32Array(cn);
+    for (let i = 0; i < cn; i++) {
+      const t = i / SR;
+      click[i] = ((rnd() * 2 - 1) * 0.5 + (i === 0 ? 1 : 0)) * Math.exp(-t / 0.0009);
+    }
+    onePoleHP(click, 1400);
+    for (let i = 0; i < cn && i < x.length; i++) x[i] += click[i] * p.bdTone * 0.9;
+    // HALF-CYCLE ASYMMETRY, 2026-08-17. See CIRCUIT.bdAsym. Applied BEFORE the
+    // output-stage saturation, because on the machine it is the ringing network
+    // that is asymmetric and the output stage that then rounds the result — the
+    // other order would have the saturator flatten the asymmetry it is supposed
+    // to pass on. At bdAsym = 0 this loop is `x + 0*x*x`, which is exactly x in
+    // IEEE754, so the drum is bit-identical to one without the term.
+    if (CIRCUIT.bdAsym !== 0) {
+      for (let i = 0; i < x.length; i++) x[i] = x[i] + CIRCUIT.bdAsym * x[i] * x[i];
+      onePoleHP(x, 12);   // the output stage's AC coupling: take the DC back out
+    }
+    // output-stage saturation: rounds the transient, thickens the fundamental
+    const k = Math.tanh(1.25);
+    for (let i = 0; i < x.length; i++) x[i] = Math.tanh(x[i] * 1.25) / k;
+    return normalize(shape(x), 0.98 * p.bdLevel);
+  }
+
+  // ---- snare ---------------------------------------------------------------
+
+  // DECAY, read off the machine's own panel grid rather than fitted blind.
+  //
+  // The 08-11 rig's Finding 1 (snare decay far too long) and Finding 4 (our TONE
+  // knob lengthens the hit; the machine's does not) are the same bug seen twice,
+  // and measuring the corpus's 25 TONE x SNAPPY cells says what the shape should
+  // be. Machine tauMs, rows TONE 0..100, cols SNAPPY 0..100:
+  //
+  //            sn0   sn25   sn50   sn75  sn100
+  //    tn0    28.5   28.5   28.7   31.0   30.4
+  //   tn25    28.5   28.6   28.4   29.8   30.6
+  //   tn50    27.5   27.6   28.4   29.4   32.6
+  //   tn75    22.3   22.4   26.8   30.6   31.8
+  //  tn100    16.1   16.1   25.4   29.5   31.3
+  //
+  // Read the edges. At SNAPPY 0 the tail is the drum alone (the machine's tail
+  // tonality there is 0.98-0.99 at every TONE), so that column IS the body decay:
+  // 28.5 ms falling to 16.1 as TONE opens. At SNAPPY 100 the tail is the noise,
+  // and it sits at ~31 ms no matter where TONE is. So the machine's TONE shortens
+  // the BODY and leaves the NOISE alone — ours did the opposite, stretching the
+  // noise from 32 to 137 ms while the drum barely moved. Hence:
+  //
+  //   tauBody  = 16.1 ms + 12.4 ms * (1 - TONE)     the sn0 column, endpoint to endpoint
+  //   tauNoise = 32 ms, flat                         the sn100 row, which is flat
+  //
+  // Laddered over all 25 cells against the machine (mean |log ratio|, lower is
+  // better) — the shaped model beats both today's and a fully flat pair:
+  //
+  //   candidate                       tau     t20     t40
+  //   current                      1.0465  0.9851  1.0097
+  //   flat 32/26 (no TONE term)    0.1091  0.2292  0.1037
+  //   16.1+12.4 / 32 flat  <-      0.1004  0.1820  0.0892
+  //
+  // TONE now only moves the noise's bandpass, which is what a TONE knob is for.
+  function snareDrum(p, rnd) {
+    const tauBody = 0.0161 + 0.0124 * (1 - p.pos.sdTone);
+    const tauNoise = 0.032;
+    const x = alloc(Math.max(tauBody, tauNoise) * 7 + 0.03);
+    const noise = new Float32Array(x.length);
+    for (let i = 0; i < noise.length; i++) noise[i] = rnd() * 2 - 1;
+    bandpass(noise, 778.3 + 3300 * p.pos.sdTone, 0.85);
+    onePoleHP(noise, 700);
+    const f1 = p.sdTune, f2 = f1 * 1.83;
+    const snap = p.sdSnappy;
+    let p1 = 0, p2 = 0;
+    for (let i = 0; i < x.length; i++) {
+      const t = i / SR;
+      p1 += (2 * Math.PI * f1) / SR;
+      p2 += (2 * Math.PI * f2) / SR;
+      const body = (Math.sin(p1) + 0.62 * Math.sin(p2)) * Math.exp(-t / tauBody);
+      const nz = noise[i] * Math.exp(-t / tauNoise);
+      // The noise term used to be `0.30 + 0.95 * snap` — a floor of 0.30 that no
+      // SNAPPY setting could remove, so our snare was never the tonal drum the
+      // machine is at SNAPPY 0 (tail tonality 0.98-0.99 there, ours ~0.5). Same
+      // value at snap = 1 (1.25), but the knob now actually reaches zero.
+      x[i] = body * (1 - 0.60 * snap) + nz * (1.25 * snap);
+    }
+    return normalize(shape(x), 0.95 * p.sdLevel);
+  }
+
+  // ---- hats ----------------------------------------------------------------
+  // The machine's six metallic oscillators. Fixed, inharmonic, and the reason
+  // an 808 hat sounds like nothing else.
+  const OSC = [205.3, 304.4, 369.6, 522.7, 540.0, 800.0];
+
+  // FREQUENCY JITTER — the thing that makes this a bank of oscillators rather
+  // than a chord. Added 2026-08-13, and it is the largest single change in this
+  // file since it was written.
+  //
+  // The machine's six oscillators are free-running Schmitt triggers, and their
+  // edge timing is genuinely noisy. Six IDEAL squares are not: they are a line
+  // spectrum, and the measurement said so loudly — tonal fraction 0.64-0.71 at
+  // 20-40 ms against the reference machine's 0.24-0.27, on both hats, at every
+  // panel position. That gap is why the 08-12 fitter AND Jeff's ear, blind to
+  // each other, both ran ohTone to its darkest, least-detuned rail: they were
+  // both trying to buy noise with a tone control, which does not sell it.
+  //
+  // WHAT WAS MEASURED BEFORE THIS WAS WRITTEN (analysis/hat-variants.mjs, twelve
+  // candidates over both hats and three panel cells):
+  //   detune spread   ±3% / ±8% per oscillator: tonality 0.64 -> 0.68 / 0.66.
+  //                   NOTHING. Moving partials around does not fill the space
+  //                   between them, and this was the obvious first idea.
+  //   noise blend     15% / 35% band-limited noise: tonality does fall (0.19 /
+  //                   0.09) — and the centroid rises 12856 / 14228 Hz against
+  //                   the machine's 11122. It buys the number by making a
+  //                   different, brighter instrument. Rejected on the centroid.
+  //   extra partials  six more inharmonic oscillators: 0.58. Half the distance,
+  //                   twice the CPU, and the bank stops being six oscillators.
+  //   jitter          ±6% at a 90 Hz wander: 0.22 / 0.17 / 0.22 against the
+  //                   machine's 0.27 / 0.20 / 0.32, and the centroid error
+  //                   IMPROVES (open hat -3.0% -> -0.2%). This one.
+  //
+  // The depth was laddered, not guessed: mean |Δtonality| across both hats and
+  // three cells reads 0.422 at zero, 0.097 at ±4%, 0.046 at ±6%, 0.052 at ±7%,
+  // 0.071 at ±10%. ±6% is the floor of that curve, not the end of it.
+  //
+  // It is NOT a panel knob. A machine's oscillators do not have a jitter
+  // control; this is a property of the circuit, so it is a constant here.
+  const HAT_JITTER = 0.06;      // ±6% instantaneous frequency
+  const HAT_JITTER_HZ = 90;     // how fast it wanders
+
+  // Smooth random walk in [-1, 1], one value per sample: white noise through a
+  // one-pole, renormalised. Deterministic from HAT_SEED — the same walk on
+  // every render, forever, which is what keeps a token's song a fixed thing.
+  function jitterWalk(n, rateHz, rnd) {
+    const w = new Float32Array(n);
+    const a = 1 - Math.exp((-2 * Math.PI * rateHz) / SR);
+    let y = 0, peak = 1e-9;
+    for (let i = 0; i < n; i++) {
+      y += a * ((rnd() * 2 - 1) - y);
+      w[i] = y;
+      const m = Math.abs(y); if (m > peak) peak = m;
+    }
+    for (let i = 0; i < n; i++) w[i] /= peak;
+    return w;
+  }
+
+  // Band-limited square bank: odd harmonics summed up to just under Nyquist.
+  // Naive squares fold audibly here — the hat's whole signal lives ABOVE 6 kHz,
+  // which is exactly where the aliased partials land, so band-limiting is not
+  // fussiness, it is the difference between a hat and a ring modulator.
+  //
+  // Every harmonic rides the SAME accumulated phase (h * phi). That is what
+  // makes this one jittering oscillator instead of a pile of unrelated detuned
+  // sines — the whole square wobbles, the way an actual oscillator does.
+  // The jitter walk is always generated at BANK_MAX and then used up to `n`, so
+  // that a given seed produces ONE realization regardless of how long the bank
+  // is asked for. It used to be generated at `n` — and since `n` follows the OPEN
+  // hat's decay while the CLOSED hat is cut from the same bank, turning the open
+  // hat's knob silently re-rolled the closed hat's noise. The extra cost is the
+  // walk loop only; the expensive harmonic sum still runs over `n` alone.
+  const BANK_MAX = Math.round(1.35 * SR);
+  // The bank is a pure function of (n, detune) — its only other input is the
+  // FIXED `HAT_SEED` prng, handed in fresh on every call — and `hats()` only
+  // ever COPIES out of it (`ch.set(bank.subarray(…))`, `oh.set(bank)`), never
+  // writes into it. So a cache here is bit-identical by construction, not
+  // approximately identical.
+  //
+  // Why it exists: this loop is ~13.7M `Math.sin` calls (6 oscillators x ~40 odd
+  // harmonics x up to 1.35 s), which is essentially all of build808's ~1.1 s.
+  // A live panel — a knob you turn and hear — cannot pay that on every move.
+  // With the cache, turning any knob that is not a HAT knob costs ~100 ms.
+  // Small and keyed, not unbounded: only two knobs feed it, so the working set
+  // is tiny, and the cap keeps a long session from holding megabytes of stale
+  // banks.
+  const BANK_CACHE = new Map();
+  const BANK_CACHE_MAX = 24;
+  function oscBank(n, detune, rnd) {
+    const key = n + ":" + detune;
+    const hit = BANK_CACHE.get(key);
+    if (hit) return hit;
+    const x = oscBankBuild(n, detune, rnd);
+    if (BANK_CACHE.size >= BANK_CACHE_MAX) BANK_CACHE.delete(BANK_CACHE.keys().next().value);
+    BANK_CACHE.set(key, x);
+    return x;
+  }
+
+  function oscBankBuild(n, detune, rnd) {
+    const x = new Float32Array(n);
+    const ceiling = (SR / 2) * 0.92;
+    const phi = new Float64Array(n);
+    for (const f0 of OSC) {
+      const f = f0 * detune;
+      const hMax = Math.floor(ceiling / f);
+      if (hMax < 1) continue;
+      const jw = jitterWalk(BANK_MAX, HAT_JITTER_HZ, rnd);
+      const base = (2 * Math.PI * f) / SR;
+      let ph = 0;
+      for (let i = 0; i < n; i++) { phi[i] = ph; ph += base * (1 + HAT_JITTER * jw[i]); }
+      for (let h = 1; h <= hMax; h += 2) {
+        const amp = 1 / h;
+        for (let i = 0; i < n; i++) x[i] += Math.sin(h * phi[i]) * amp;
+      }
+    }
+    return x;
+  }
+
+  function hats(p) {
+    // ONE bank, both voices — the shared oscillator section of the real thing.
+    const ohLen = Math.min(1.35, p.ohDecay * 7 + 0.04);
+    const chLen = Math.min(ohLen, p.chDecay * 7 + 0.02);
+    const detune = 0.875 + 0.13 * p.pos.ohTone;      // homage drift, one bank
+    const bank = oscBank(Math.round(ohLen * SR), detune, U.makePrng(HAT_SEED).r);
+
+    // closed: short slice of the bank, its own high-pass, hard VCA decay
+    const ch = new Float32Array(Math.round(chLen * SR));
+    ch.set(bank.subarray(0, ch.length));
+    // 7200..13200. The old top was 10800, and the machine's own closed hat
+    // measures 11122 Hz at 20 ms — ABOVE it. That is the rail both the 08-12
+    // fitter and Jeff's ear hit from opposite directions: the brightest hat we
+    // could build was still darker than the reference.
+    const chHz = 7200 + 6000 * p.pos.chTone;
+    onePoleHP(ch, chHz); onePoleHP(ch, chHz);
+    onePoleLP(ch, 15500);
+    for (let i = 0; i < ch.length; i++) ch[i] *= Math.exp(-(i / SR) / p.chDecay);
+
+    // open: the full bank, a slightly lower corner, and a two-stage envelope —
+    // the machine's open hat drops fast off the transient and then rings.
+    const oh = new Float32Array(bank.length);
+    oh.set(bank);
+    const ohHz = 3100 + 3400 * p.pos.ohTone;
+    onePoleHP(oh, ohHz); onePoleHP(oh, ohHz);
+    onePoleLP(oh, 15500);
+    for (let i = 0; i < oh.length; i++) {
+      const t = i / SR;
+      oh[i] *= (0.34 * Math.exp(-t / (p.ohDecay * 0.16)) + 0.72 * Math.exp(-t / p.ohDecay)) *
+        (1 - ONSET.ohDepth * Math.exp(-t / ONSET.ohRise));
+    }
+    return {
+      hatClosed: normalize(shape(ch), 0.62 * p.chLevel),
+      hatOpen: normalize(shape(oh), 0.66 * p.ohLevel),
+    };
+  }
+
+  // ---- toms ----------------------------------------------------------------
+  // Same ring as the bass drum, damped harder, plus the trigger pulse as an
+  // audible thud. `fEnd` is the TUNING knob; `tau` is the circuit's, not a
+  // knob's, and tilts slightly with tuning because the machine's does.
+  function tomVoice(fEnd, tau, pos, level, rnd) {
+    const t7 = tau * (1 + CIRCUIT.tomTauTilt * pos);
+    const x = alloc(t7 * 8 + 0.04);
+    let ph = 0;
+    for (let i = 0; i < x.length; i++) {
+      const t = i / SR;
+      const f = fEnd * (1 + CIRCUIT.tomDrop * Math.exp(-t / CIRCUIT.tomDropTau));
+      ph += (2 * Math.PI * f) / SR;
+      x[i] = Math.sin(ph) * Math.exp(-t / t7);
+    }
+    const cn = Math.round(0.008 * SR);
+    const click = new Float32Array(cn);
+    for (let i = 0; i < cn; i++) click[i] = (rnd() * 2 - 1) * Math.exp(-(i / SR) / CIRCUIT.tomClickTau);
+    onePoleHP(click, CIRCUIT.tomClickHp);
+    for (let i = 0; i < cn && i < x.length; i++) x[i] += click[i] * CIRCUIT.tomClick;
+    return normalize(shape(x), 0.92 * level);
+  }
+
+  // ---- hand clap -----------------------------------------------------------
+  // ONE noise source, ONE bandpass, a VCA opened four times. The order matters:
+  // the gate is applied to the FILTERED noise, so every burst and the tail are
+  // the same filter ringing — which is the difference between an 808 clap and
+  // four separate noise events glued together.
+  function handClap(p, rnd) {
+    const len = CIRCUIT.cpGap1 + CIRCUIT.cpGap2 + CIRCUIT.cpTailTau * 8 + 0.03;
+    const x = alloc(len);
+    for (let i = 0; i < x.length; i++) x[i] = rnd() * 2 - 1;
+    bandpass(x, CIRCUIT.cpBandHz, CIRCUIT.cpQ);
+    onePoleHP(x, CIRCUIT.cpHpHz);
+    const t1 = 0, t2 = CIRCUIT.cpGap1, t3 = CIRCUIT.cpGap1 + CIRCUIT.cpGap2;
+    for (let i = 0; i < x.length; i++) {
+      const t = i / SR;
+      let g = 0;
+      if (t >= t1) g += Math.exp(-(t - t1) / CIRCUIT.cpBurstTau);
+      if (t >= t2) g += Math.exp(-(t - t2) / CIRCUIT.cpBurstTau);
+      if (t >= t3) {
+        g += Math.exp(-(t - t3) / CIRCUIT.cpBurstTau);
+        g += CIRCUIT.cpTailLevel * Math.exp(-(t - t3) / CIRCUIT.cpTailTau);
+      }
+      x[i] *= g;
+    }
+    return normalize(shape(x), 0.90 * p.cpLevel);
+  }
+
+  // ---- rim shot ------------------------------------------------------------
+  // A resonator rung once and damped hard. Two modes and the trigger click,
+  // over in about 13 ms — which is why it cuts through a mix at a level that
+  // would be inaudible on any other voice.
+  function rimShot(p, rnd) {
+    const x = alloc(0.06);
+    let p1 = 0, p2 = 0;
+    for (let i = 0; i < x.length; i++) {
+      const t = i / SR;
+      p1 += (2 * Math.PI * CIRCUIT.rsF1) / SR;
+      p2 += (2 * Math.PI * CIRCUIT.rsF2) / SR;
+      x[i] = Math.sin(p1) * Math.exp(-t / CIRCUIT.rsTau1) +
+        CIRCUIT.rsA2 * Math.sin(p2) * Math.exp(-t / CIRCUIT.rsTau2);
+    }
+    const cn = Math.round(0.003 * SR);
+    const click = new Float32Array(cn);
+    for (let i = 0; i < cn; i++) click[i] = (rnd() * 2 - 1) * Math.exp(-(i / SR) / 0.0004);
+    onePoleHP(click, 2200);
+    for (let i = 0; i < cn && i < x.length; i++) x[i] += click[i] * CIRCUIT.rsClick;
+    return normalize(shape(x), 0.88 * p.rsLevel);
+  }
+
+  // ---- build ---------------------------------------------------------------
+
+  // panel -> the four core voices as Float32Arrays at 44.1k. drums.js resamples
+  // if the context runs at another rate.
+  // ORDER IS PART OF THE CONTRACT: every voice below draws from ONE fixed-seed
+  // noise stream, so inserting a voice in the middle would re-roll the noise of
+  // everything after it. New voices go on the END, after the snare.
+  U.build808 = function (panel) {
+    const rnd = U.makePrng(NOISE_SEED).r;
+    const h = hats(panel);
+    return {
+      kick: bassDrum(panel, rnd),
+      snare: snareDrum(panel, rnd),
+      hatClosed: h.hatClosed,
+      hatOpen: h.hatOpen,
+      clap: handClap(panel, rnd),
+      rim: rimShot(panel, rnd),
+      tomLo: tomVoice(panel.ltTune, CIRCUIT.ltTau, panel.pos.ltTune, panel.tomLevel, rnd),
+      tomMid: tomVoice(panel.mtTune, CIRCUIT.mtTau, panel.pos.mtTune, panel.tomLevel, rnd),
+      tomHi: tomVoice(panel.htTune, CIRCUIT.htTau, panel.pos.htTune, panel.tomLevel, rnd),
+    };
+  };
+
+  // ACCENT is the machine's one global knob: an accented step is louder, and on
+  // the real thing everything else drops slightly to make room. Gain only —
+  // the analogue accent also stiffens the bass drum's attack, which this does
+  // not model. Roughly loudness-neutral across the knob's range on purpose, so
+  // the accent draw changes the groove's shape and not the song's level.
+  U.accent808 = function (panel) {
+    const a = panel.accent;
+    return { hit: 1 + 0.42 * a, rest: 1 - 0.13 * a };
+  };
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+
+<!-- ===================== worker body ===================== -->
+<script type="text/plain" id="src-workerbody">
+self.onmessage = function (e) {
+  var m = e.data, out = {}, xfer = [], k;
+  try {
+    var v = self.U.build808(m.panel);
+    for (k in v) { var b = new Float32Array(v[k]); out[k] = b; xfer.push(b.buffer); }
+    self.postMessage({ id: m.id, ok: true, voices: out }, xfer);
+  } catch (err) {
+    self.postMessage({ id: m.id, ok: false, err: String((err && err.stack) || err) });
+  }
+};
+</script>
+
+<!-- ===================== fitted panel positions ===================== -->
+<script>
+window.FIT_POS = {"bdDecay":0.6641,"sdTune":0.0859,"sdSnappy":0.7813,"sdTone":0.4375,"chDecay":0.5391,"chTone":0.4688,"ohDecay":0.9844,"ohTone":0.625,"ltTune":0.8438,"mtTune":0.3516,"htTune":0.4844};
+/* fitted knob positions @ 1a9895b — 11 knobs, from 9 fit records; every other knob opens at range centre.
+   bdDecay <- kick
+   sdTune <- snare
+   sdSnappy <- snare
+   sdTone <- snare
+   chDecay <- hatClosed
+   chTone <- hatClosed
+   ohDecay <- hatOpen
+   ohTone <- hatOpen
+   ltTune <- tomLo
+   mtTune <- tomMid
+   htTune <- tomHi */
+</script>
+
+<script>
+"use strict";
+/* =========================================================================
+   UNISON 808 — THE INSTRUMENT
+
+   WHAT THIS IS. The whole machine, to play. All nine voices are hittable, all
+   twenty-one knobs are on screen and forceable, and a sixteen-step pattern runs
+   underneath so the kit is heard AS A KIT rather than as nine one-shots in a
+   row. Every sound is synthesised here, now, from the engine's own tr808.js —
+   the same file the song render calls. There are no samples anywhere in this
+   page and there never will be.
+
+   WHAT THIS ISN'T. Not a bench, and not an A/B. There is deliberately NOT ONE
+   MEASUREMENT on this screen: no residuals, no decay figures, no reference to
+   compare against. Numbers are Morgan's surface and ears are Jeff's, and the
+   split is the point — the moment a figure appears here the page starts arguing
+   with the ear instead of serving it. Tempo is a musical control, not a
+   measurement, which is why it is the one number allowed.
+
+   WHERE IT OPENS. At the fitted panel, not at range centre — see the long note
+   in unison-bench-build.mjs. Centre stopped being the optimum on 08-13 and
+   handing over a knowingly-worse machine would be asking the wrong question.
+
+   ONE HARD RULE, same as the listening page: this page never writes anything.
+   It reads no network, uploads nothing, and stores nothing.
+   ========================================================================= */
+
+var SR = 44100;
+var NSTEP = 16;
+
+var ENGINE_SRC = document.getElementById("src-engine").textContent;
+var WORKER_BODY = document.getElementById("src-workerbody").textContent;
+(new Function(ENGINE_SRC))();
+var U = window.U;
+var R808 = U.PANEL_808_RANGES;
+
+/* =========================================================================
+   THE VOICES — every one build808 returns, in the machine's own panel order.
+   The roster is written here rather than derived, because the LABELS and the
+   keyboard order are a human decision; but it is checked against the engine at
+   boot, so a voice added to tr808.js can never go quietly missing from Jeff's
+   instrument the way it did from render-voice.mjs.
+   ========================================================================= */
+var VOICES = [
+  { id: "kick",      label: "bass drum" },
+  { id: "snare",     label: "snare" },
+  { id: "hatClosed", label: "closed hat" },
+  { id: "hatOpen",   label: "open hat" },
+  { id: "clap",      label: "hand clap" },
+  { id: "rim",       label: "rim shot" },
+  { id: "tomLo",     label: "low tom" },
+  { id: "tomMid",    label: "mid tom" },
+  { id: "tomHi",     label: "high tom" }
+];
+
+/* =========================================================================
+   THE RACK — all twenty-one knobs, grouped the way the front panel groups
+   them. Ends are named in words, never in units: "short → long" is what the
+   hand is doing, and a figure there would be a target to hit instead of a
+   sound to find.
+
+   The level knobs ARE here, unlike on the listening page, and for the opposite
+   reason: there is nothing to level-match against, so level is a real musical
+   control — it is how the kit gets balanced.
+   ========================================================================= */
+var RACK = [
+  [ { title: "bass drum", knobs: [
+        { key: "bdTune",   label: "tune",   lo: "low",   hi: "high" },
+        { key: "bdDecay",  label: "decay",  lo: "short", hi: "long" },
+        { key: "bdTone",   label: "tone",   lo: "soft",  hi: "hard" },
+        { key: "bdLevel",  label: "level",  lo: "back",  hi: "front" } ] },
+    { title: "snare drum", knobs: [
+        { key: "sdTune",   label: "tune",   lo: "low",   hi: "high" },
+        { key: "sdSnappy", label: "snappy", lo: "body",  hi: "wires" },
+        { key: "sdTone",   label: "tone",   lo: "dark",  hi: "bright" },
+        { key: "sdLevel",  label: "level",  lo: "back",  hi: "front" } ] } ],
+
+  [ { title: "closed hat", knobs: [
+        { key: "chDecay",  label: "decay",  lo: "tight", hi: "loose" },
+        { key: "chTone",   label: "tone",   lo: "dark",  hi: "bright" },
+        { key: "chLevel",  label: "level",  lo: "back",  hi: "front" } ] },
+    { title: "open hat", knobs: [
+        { key: "ohDecay",  label: "decay",  lo: "short", hi: "long" },
+        { key: "ohTone",   label: "metal",  lo: "flat",  hi: "sharp" },
+        { key: "ohLevel",  label: "level",  lo: "back",  hi: "front" } ] },
+    { title: "hand clap", knobs: [
+        { key: "cpLevel",  label: "level",  lo: "back",  hi: "front" } ] },
+    { title: "rim shot", knobs: [
+        { key: "rsLevel",  label: "level",  lo: "back",  hi: "front" } ] } ],
+
+  [ { title: "toms", knobs: [
+        { key: "ltTune",   label: "low tune",  lo: "low", hi: "high" },
+        { key: "mtTune",   label: "mid tune",  lo: "low", hi: "high" },
+        { key: "htTune",   label: "high tune", lo: "low", hi: "high" },
+        { key: "tomLevel", label: "level",     lo: "back", hi: "front" } ] },
+    { title: "accent", knobs: [
+        { key: "accent",   label: "depth",  lo: "even",  hi: "hard" } ] } ]
+];
+// "metal" is on the OPEN hat and moves BOTH hats, because in the machine and in
+// the engine the two share one oscillator bank. That is not a bug to hide with
+// a duplicate knob; it is the instrument, and it is why the closed hat changes
+// when you touch it.
+
+/* =========================================================================
+   PANEL STATE — positions, 0..1, because positions are what the engine's own
+   fit records are written in and what several knobs (pitch sweep, hat detune,
+   snare tone) actually read.
+   ========================================================================= */
+function centrePos() {
+  var p = {};
+  for (var k in R808) p[k] = 0.5;
+  return p;
+}
+function fittedPos() {
+  var p = centrePos(), f = window.FIT_POS || {};
+  for (var k in f) if (k in p) p[k] = f[k];
+  return p;
+}
+// The engine owns the position -> value map, curves and all. Asking it is the
+// only way this page cannot drift from the renderer: a second copy here was
+// exactly the bug render-voice.mjs shipped with, harmless while every range was
+// linear and silently wrong the moment one carried a curve.
+function panelFrom(pos) { return U.panel808FromPos(pos); }
+
+var state = {
+  pos: fittedPos(),
+  voices: null,                   // id -> Float32Array, the built kit
+  buffers: {},                    // id -> AudioBuffer
+  pattern: {},                    // id -> [16] booleans, plus "accent"
+  mutes: {},                      // id -> true when muted
+  playing: false,
+  step: 0,
+  bpm: 104,
+  swing: 0,
+  vol: 0.8,
+  moved: {}                       // knobs the hand has touched, for the label tint
+};
+
+/* THE PATTERN it opens on. Every one of the nine voices appears in it, which is
+   not decoration: a kit where one voice is silent should be audible as such
+   within a bar, without hunting for the pad. The toms descend through the back
+   half as a fill; the rim answers the snare. */
+var INIT_PATTERN = {
+  kick:      [0, 6, 10],
+  snare:     [4, 12],
+  hatClosed: [0, 2, 4, 6, 8, 10, 12],
+  hatOpen:   [14],
+  clap:      [12],
+  rim:       [7],
+  tomHi:     [11],
+  tomMid:    [13],
+  tomLo:     [15],
+  accent:    [0, 8]
+};
+function blankPattern() {
+  var p = {}, i;
+  var ids = VOICES.map(function (v) { return v.id; }).concat(["accent"]);
+  ids.forEach(function (id) {
+    p[id] = [];
+    for (i = 0; i < NSTEP; i++) p[id].push(false);
+  });
+  return p;
+}
+function initPattern() {
+  var p = blankPattern();
+  for (var id in INIT_PATTERN) INIT_PATTERN[id].forEach(function (s) { p[id][s] = true; });
+  return p;
+}
+state.pattern = initPattern();
+
+var el = {};
+["play", "bpm", "bpmv", "swing", "vol", "draw", "reset", "work", "grid", "rack",
+ "ruler", "rulerSteps", "patClear", "patInit", "boot"]
+  .forEach(function (id) { el[id] = document.getElementById(id); });
+
+/* =========================================================================
+   BUILDING THE KIT — in a worker, and LATEST-WINS.
+
+   build808 costs about 110 ms with the hat oscillator bank cached and about a
+   second when a hat knob moves and it has to be rebuilt. Queueing every drag
+   frame would stack those; instead exactly one build is ever in flight and only
+   the most recent request survives, so the wait is one build long no matter how
+   far the knob travels. That is what makes this continuous rather than batched.
+   ========================================================================= */
+var worker = null, seq = 0, pending = null, queued = null, inFlight = false;
+(function () {
+  try {
+    var url = URL.createObjectURL(new Blob([ENGINE_SRC + "\n" + WORKER_BODY], { type: "text/javascript" }));
+    worker = new Worker(url);
+    worker.onmessage = function (e) {
+      var d = e.data;
+      inFlight = false;
+      if (d.ok && pending === d.id) adopt(d.voices);
+      else if (!d.ok) console.error("build808:", d.err);
+      pump();
+    };
+    worker.onerror = function (err) { console.error("worker died, building on the main thread", err); worker = null; };
+  } catch (err) { worker = null; }
+})();
+
+function requestBuild(pos) {
+  queued = JSON.parse(JSON.stringify(pos));
+  el.work.className = "on";
+  pump();
+}
+function pump() {
+  if (!queued || inFlight) { if (!queued && !inFlight) el.work.className = ""; return; }
+  var pos = queued; queued = null;
+  var panel = panelFrom(pos);
+  if (!worker) {
+    // No worker (file:// in some browsers) is a slower instrument, not a broken
+    // one. It blocks the UI for the build; it does not change a sample.
+    try { adopt(U.build808(panel)); } catch (e) { console.error(e); }
+    el.work.className = "";
+    return;
+  }
+  inFlight = true;
+  pending = ++seq;
+  worker.postMessage({ id: pending, panel: panel });
+}
+function adopt(voices) {
+  state.voices = voices;
+  state.buffers = {};
+  if (actx) for (var i = 0; i < VOICES.length; i++) makeBuffer(VOICES[i].id);
+  el.work.className = queued || inFlight ? "on" : "";
+}
+
+/* =========================================================================
+   AUDIO
+   ========================================================================= */
+var actx = null, master = null;
+function audio() {
+  if (!actx) {
+    actx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: SR });
+    master = actx.createGain();
+    master.gain.value = state.vol;
+    master.connect(actx.destination);
+  }
+  if (actx.state === "suspended") actx.resume();
+  return actx;
+}
+function makeBuffer(id) {
+  var x = state.voices && state.voices[id];
+  if (!x || !x.length) return null;
+  var ab = actx.createBuffer(1, x.length, SR);
+  ab.copyToChannel(x, 0);
+  state.buffers[id] = ab;
+  return ab;
+}
+function bufferFor(id) {
+  if (!actx) return null;
+  return state.buffers[id] || makeBuffer(id);
+}
+
+// The 808's hi-hats share one output: a closed hat CHOKES a ringing open hat.
+// Without this the pattern's open hat rings straight through the next closed
+// one and the kit stops sounding like the machine at exactly the moment the
+// groove needs it most.
+var openHat = null;
+function stopOpenHat(at) {
+  if (!openHat) return;
+  try {
+    openHat.gain.gain.setValueAtTime(openHat.gain.gain.value, at);
+    openHat.gain.gain.linearRampToValueAtTime(0, at + 0.004);   // ramped, or it clicks
+    openHat.src.stop(at + 0.006);
+  } catch (e) {}
+  openHat = null;
+}
+function fire(id, at, accented) {
+  var buf = bufferFor(id);
+  if (!buf) return;
+  var ctx = audio();
+  var t = at == null ? ctx.currentTime + 0.001 : at;
+  var acc = U.accent808(panelFrom(state.pos));
+  var g = ctx.createGain();
+  g.gain.value = accented ? acc.hit : acc.rest;
+  var src = ctx.createBufferSource();
+  src.buffer = buf;
+  src.connect(g); g.connect(master);
+  if (id === "hatClosed") stopOpenHat(t);
+  src.start(t);
+  if (id === "hatOpen") { stopOpenHat(t); openHat = { src: src, gain: g }; }
+  flash(id, t - ctx.currentTime);
+}
+function flash(id, delay) {
+  setTimeout(function () {
+    var pad = document.querySelector('.pad[data-v="' + id + '"]');
+    if (!pad) return;
+    pad.classList.add("lit");
+    setTimeout(function () { pad.classList.remove("lit"); }, 90);
+  }, Math.max(0, delay * 1000));
+}
+
+/* =========================================================================
+   THE SEQUENCER — lookahead scheduling, because setTimeout is not a clock.
+   Steps are placed on the AudioContext's own timeline ahead of time; the timer
+   only decides WHICH steps to place, so a busy main thread (a knob drag, a
+   rebuild landing) cannot make the groove stumble.
+   ========================================================================= */
+var LOOKAHEAD = 0.12, TICK = 25;
+var nextTime = 0, nextStep = 0, ticker = null;
+
+function stepDur() { return 60 / state.bpm / 4; }
+function stepOffset(i) {
+  // Swing delays the off-eighths, the way a drum machine's shuffle does.
+  return (i % 2 === 1) ? state.swing * 0.5 * stepDur() : 0;
+}
+function scheduleAhead() {
+  var ctx = audio();
+  while (nextTime < ctx.currentTime + LOOKAHEAD) {
+    var i = nextStep;
+    var at = nextTime + stepOffset(i);
+    var accented = !!state.pattern.accent[i];
+    for (var v = 0; v < VOICES.length; v++) {
+      var id = VOICES[v].id;
+      if (state.mutes[id]) continue;
+      if (state.pattern[id][i]) fire(id, at, accented);
+    }
+    paintNow(i, at - ctx.currentTime);
+    nextTime += stepDur();
+    nextStep = (nextStep + 1) % NSTEP;
+  }
+}
+function start() {
+  audio();
+  state.playing = true;
+  el.play.className = "tbtn on";
+  el.play.textContent = "stop";
+  nextStep = 0;
+  nextTime = actx.currentTime + 0.06;
+  scheduleAhead();
+  ticker = setInterval(scheduleAhead, TICK);
+}
+function stop() {
+  state.playing = false;
+  el.play.className = "tbtn";
+  el.play.textContent = "play";
+  if (ticker) clearInterval(ticker);
+  ticker = null;
+  stopOpenHat(actx ? actx.currentTime : 0);
+  paintNow(-1, 0);
+}
+function paintNow(i, delay) {
+  setTimeout(function () {
+    var olds = document.querySelectorAll(".st.now");
+    for (var k = 0; k < olds.length; k++) olds[k].classList.remove("now");
+    if (i < 0) return;
+    var cur = document.querySelectorAll('.st[data-s="' + i + '"]');
+    for (var j = 0; j < cur.length; j++) cur[j].classList.add("now");
+  }, Math.max(0, delay * 1000));
+}
+
+/* =========================================================================
+   THE GRID
+   ========================================================================= */
+function buildGrid() {
+  el.rulerSteps.innerHTML = "";
+  for (var i = 0; i < NSTEP; i++) {
+    var b = document.createElement("b");
+    b.textContent = (i % 4 === 0) ? String(i / 4 + 1) : "";
+    el.rulerSteps.appendChild(b);
+  }
+  el.grid.innerHTML = "";
+  var rows = VOICES.map(function (v, n) { return { id: v.id, label: v.label, key: String(n + 1), acc: false }; });
+  rows.push({ id: "accent", label: "accent", key: "", acc: true });
+  rows.forEach(function (row) {
+    var lane = document.createElement("div");
+    lane.className = "lane" + (row.acc ? " acc" : "");
+
+    var pad = document.createElement("button");
+    pad.className = "pad";
+    pad.dataset.v = row.id;
+    pad.innerHTML = (row.key ? '<kbd>' + row.key + "</kbd>" : "<kbd>·</kbd>") +
+      "<span>" + row.label + "</span>";
+    if (!row.acc) pad.addEventListener("pointerdown", function () { fire(row.id, null, false); });
+    else pad.disabled = true;
+    lane.appendChild(pad);
+
+    var mute = document.createElement("button");
+    mute.className = "mute" + (row.acc ? "" : " on");
+    mute.textContent = row.acc ? "" : "●";
+    mute.title = "mute this voice in the pattern";
+    if (row.acc) { mute.style.visibility = "hidden"; }
+    else mute.addEventListener("click", function () {
+      state.mutes[row.id] = !state.mutes[row.id];
+      mute.className = "mute" + (state.mutes[row.id] ? "" : " on");
+    });
+    lane.appendChild(mute);
+
+    var steps = document.createElement("div");
+    steps.className = "steps";
+    for (var i = 0; i < NSTEP; i++) {
+      var s = document.createElement("button");
+      s.className = "st" + (Math.floor(i / 4) % 2 === 0 ? " q" : "") +
+        (state.pattern[row.id][i] ? " on" : "");
+      s.dataset.s = i;
+      s.dataset.v = row.id;
+      steps.appendChild(s);
+    }
+    steps.addEventListener("click", function (e) {
+      var s = e.target.closest(".st");
+      if (!s) return;
+      var i = +s.dataset.s, id = s.dataset.v;
+      state.pattern[id][i] = !state.pattern[id][i];
+      s.classList.toggle("on", state.pattern[id][i]);
+      if (!state.playing && state.pattern[id][i] && id !== "accent") fire(id, null, false);
+    });
+    lane.appendChild(steps);
+    el.grid.appendChild(lane);
+  });
+}
+
+/* =========================================================================
+   THE RACK
+   ========================================================================= */
+function buildRack() {
+  el.rack.innerHTML = "";
+  RACK.forEach(function (col) {
+    var c = document.createElement("div");
+    c.className = "rcol";
+    col.forEach(function (grp) {
+      var g = document.createElement("div");
+      g.className = "grp";
+      var h = document.createElement("h3");
+      h.textContent = grp.title;
+      g.appendChild(h);
+      grp.knobs.forEach(function (kn) {
+        var row = document.createElement("div");
+        row.className = "knob" + (state.moved[kn.key] ? " moved" : "");
+        row.innerHTML = '<label>' + kn.label + "</label>" +
+          '<input type="range" data-k="' + kn.key + '" min="0" max="1" step="0.002">' +
+          '<div class="ends"><span>' + kn.lo + "</span><span>" + kn.hi + "</span></div>";
+        var input = row.querySelector("input");
+        input.value = state.pos[kn.key];
+        input.addEventListener("input", function () {
+          state.pos[kn.key] = parseFloat(input.value);
+          state.moved[kn.key] = true;
+          row.className = "knob moved";
+          requestBuild(state.pos);
+        });
+        // Not playing? A knob you turn in silence still has to speak, or the
+        // instrument only works while the pattern runs.
+        input.addEventListener("change", function () {
+          if (!state.playing) setTimeout(function () { fire(voiceOfKnob(kn.key), null, false); }, 130);
+        });
+        g.appendChild(row);
+      });
+      c.appendChild(g);
+    });
+    el.rack.appendChild(c);
+  });
+}
+function paintRack() {
+  var inputs = el.rack.querySelectorAll("input[type=range]");
+  for (var i = 0; i < inputs.length; i++) inputs[i].value = state.pos[inputs[i].dataset.k];
+}
+var KNOB_VOICE = {
+  bd: "kick", sd: "snare", ch: "hatClosed", oh: "hatOpen",
+  cp: "clap", rs: "rim", lt: "tomLo", mt: "tomMid", ht: "tomHi"
+};
+function voiceOfKnob(k) {
+  if (k === "tomLevel") return "tomMid";
+  if (k === "accent") return "kick";
+  return KNOB_VOICE[k.slice(0, 2)] || "kick";
+}
+
+/* =========================================================================
+   WIRING
+   ========================================================================= */
+el.play.addEventListener("click", function () { state.playing ? stop() : start(); });
+el.bpm.addEventListener("input", function () {
+  state.bpm = +el.bpm.value;
+  el.bpmv.textContent = state.bpm;
+});
+el.swing.addEventListener("input", function () { state.swing = +el.swing.value; });
+el.vol.addEventListener("input", function () {
+  state.vol = +el.vol.value;
+  if (master) master.gain.value = state.vol;
+});
+el.reset.addEventListener("click", function () {
+  state.pos = fittedPos();
+  state.moved = {};
+  buildRack();
+  requestBuild(state.pos);
+});
+// A DRAWN panel — the machine a song actually gets. Every hash pulls a different
+// 808 out of the same circuits, and hearing that spread is half of knowing
+// whether the instrument is any good.
+el.draw.addEventListener("click", function () {
+  var hex = "0x" + Array.from({ length: 64 }, function () {
+    return "0123456789abcdef"[Math.floor(Math.random() * 16)];
+  }).join("");
+  var p = U.draw808Panel(U.makePrng(hex));
+  for (var k in state.pos) if (p.pos && k in p.pos) state.pos[k] = p.pos[k];
+  state.moved = {};
+  buildRack();
+  requestBuild(state.pos);
+});
+el.patClear.addEventListener("click", function () { state.pattern = blankPattern(); buildGrid(); });
+el.patInit.addEventListener("click", function () { state.pattern = initPattern(); buildGrid(); });
+
+document.addEventListener("keydown", function (e) {
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.key === " " || e.code === "Space") { e.preventDefault(); state.playing ? stop() : start(); return; }
+  var n = "123456789".indexOf(e.key);
+  if (n >= 0 && n < VOICES.length) { e.preventDefault(); fire(VOICES[n].id, null, false); }
+});
+el.boot.addEventListener("click", function () {
+  audio();
+  for (var i = 0; i < VOICES.length; i++) makeBuffer(VOICES[i].id);
+  el.boot.className = "off";
+});
+
+/* =========================================================================
+   BOOT
+   ========================================================================= */
+// The roster is a human list; the engine is the authority. If tr808.js grows a
+// tenth voice, say so loudly rather than shipping an instrument that is missing
+// it — that exact silence is what render-voice.mjs did for a day.
+(function checkRoster() {
+  var built = U.build808(panelFrom(centrePos()));
+  var have = Object.keys(built), listed = VOICES.map(function (v) { return v.id; });
+  var missing = have.filter(function (k) { return listed.indexOf(k) < 0; });
+  if (missing.length) console.error("VOICES is missing engine voices:", missing.join(", "));
+  state.voices = built;
+})();
+
+buildGrid();
+buildRack();
+requestBuild(state.pos);
+
+// Headless verification hooks only — nothing in the UI reads these.
+window.__inst = state;
+window.__fire = fire;
+window.__start = start;
+window.__stop = stop;
+</script>
+</body>
+</html>
