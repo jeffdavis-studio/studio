@@ -5,6 +5,9 @@ for (let i = 0; i < 64; i++) {
 }
 
 let R, w, h, sd, t, st, topic, sub, s, shape, comp, ci, cReversed, c1, c2, config;
+// Set by setup(), consumed by draw(): what a given method is required to achieve, the methods
+// allowed to attempt it, and how to build a config for any one of them.
+let reqsFor, candidates, configFor;
 let topics = [
   ["Balance", "Repetition", "Structure", "Proportion", "Symmetry", "Asymmetry", "Diversity"],
   ["Color", "Hue", "Value", "Saturation", "Mixture", "Gradation", "Harmony"],
@@ -24,12 +27,30 @@ let colors = [["#f21424", "#ffd7d7"], ["#f23f08", "#ffe9ef"], ["#a3131d", "#ed14
 //   shapes:    which shape primitives it supports
 //   defaults:  knob values when no subtopic constraint overrides them
 //   subtopics: which subtopics use this method, with per-subtopic knob overrides
-//   draw:      the rendering function, receives (shape, config) with pre-merged config
+//   plan:      receives (shape, config) with pre-merged config, makes every decision, and returns
+//              { manifest, state } — see below
+//   render:    receives that state and puts the composition on the canvas
+//
+// Deciding and drawing are separate calls, and every roll of the dice belongs to the first one:
+// plan touches the PRNG and nothing else, render touches the canvas and nothing else. That is what
+// lets a composition be rolled, inspected, and thrown away before any of it is painted, which is
+// how a knob can be demanded rather than merely requested — the planner keeps rolling until a plan
+// actually delivers what was asked. See deriveRequirements and planForDemands.
+//
+//   manifest: the knobs as they finally stand, after every rule in the method has had its say.
+//             This is what a demand is checked against and what the console reports, so a feature a
+//             method took back off cannot be reported as delivered. Effective rather than literal:
+//             a knob only consulted under some other value reads "none" when it went unused.
+//   state:    everything render needs, threaded explicitly. Nothing is shared between the two
+//             beyond this, so a plan is a complete, inspectable description of a composition.
 //
 // Knob conventions:
 //   Binary knobs:       0-1 = probability, true/false = forced. Resolved via chance().
-//   Multi-option knobs: "random" = equal odds across options, or a specific string to force.
-//                        Resolved in draw via: let x = resolveChoice(config.x, [...options]).
+//   Multi-option knobs: "random" = equal odds across options, "any" = any option but "none", or a
+//                        specific string to force. A method's rules may still move a forced value;
+//                        whether that is allowed to stand depends on whether it was pinned by an
+//                        override, which is what makes it a demand.
+//                        Resolved in plan via: let x = resolveChoice(config.x, [...options]).
 // ============================================================================
 
 // Grid line-density control: the maximum number of drawn lines along either axis of a grid,
@@ -39,13 +60,20 @@ let colors = [["#f21424", "#ffd7d7"], ["#f23f08", "#ffe9ef"], ["#a3131d", "#ed14
 // busier grids, lower it for sparser ones.
 const GRID_MAX_LINES_PER_AXIS = 24;
 
-// How close to a sliver a largeShape triangle is allowed to get, as the floor on its shortest
-// altitude divided by its longest side. Stated this way rather than as a base:height ratio
-// because a lattice triangle can be tilted, which leaves "base" and "height" undefined — this
-// measure is a property of the triangle's own shape and so is indifferent to how it sits. It
-// is scale-free and peaks at √3/2 = 0.866 for an equilateral, so the usable band is narrow;
-// 0.5 matches where the older base:height cap of 1.5 actually landed (it admitted 0.52 and up).
-const LARGE_SHAPE_TRI_MIN_ALT = 0.5;
+// How close to a sliver any largeShape form is allowed to get: the floor on its minimum width
+// divided by its diameter — the narrowest slab that will hold the form, over the greatest
+// distance across it. Stated this way rather than as a width:height ratio because every form
+// here can be tilted, which leaves "width" and "height" undefined, while this is a property of
+// the form's own shape and so is indifferent to how it sits. It is scale-free, and one number
+// serves all three families: a circle scores 1, an upright square 1/√2 = 0.707, an equilateral
+// triangle √3/2 = 0.866, a 2:1 ellipse exactly 0.5. For a triangle it works out to the shortest
+// altitude over the longest side, the form this test used to take before it was generalized.
+//
+// The value sits just above the 0.5 that 2:1 scores, which makes 2:1 the failure case rather
+// than the boundary: a form has to be better than that to be drawn. Polygons are held to the
+// same number and so end up stricter in plain aspect terms, since their diameter runs corner to
+// corner rather than along an axis — a 2:1 rectangle scores 0.447, not 0.5.
+const LARGE_SHAPE_MIN_WIDTH = 0.55;
 
 // Divisions per side of the invisible lattice every largeShape is sized and placed on: a
 // unit is sd/LARGE_SHAPE_UNITS. MUST be even — the parity is what lets a centered shape land
@@ -103,7 +131,7 @@ let methods = {
       "Symmetry": { allowedShapes: ["Line", "Circle", "Square"] },
       "Asymmetry": { allowedShapes: ["Circle", "Square", "Triangle"] }
     },
-    draw: function(shape, config) {
+    plan: function(shape, config) {
       let colorScheme = resolveChoice(config.colorScheme, ["single", "binary", "gradient"]);
       let outline = chance(config.outline);
       // Line is a full-width rect — outlining it just produces a rect stroke that reads
@@ -205,12 +233,6 @@ let methods = {
         palette = buildColorPalette(colorScheme, nt);
       }
 
-      print("Color Scheme:", colorScheme);
-      print("Outline:", outline ? "Yes" : "No");
-      print("Alignment:", alignment);
-      print("Elements:", nt);
-      print("Compression:", compression === 1 ? "None" : "×" + compression);
-      print("Range:", range);
       // Stroke weight is chosen once for the whole progression so the compensating offsets
       // (which hide the stroke overshoot at canvas edges) stay in sync with the actual weight.
       // Cap by the minimum perpendicular distance between adjacent concentric outlines so
@@ -236,10 +258,32 @@ let methods = {
       let minGapPx = sd * minDeltaP * shrinkFactor / canvasUnits;
       let swNames = ["medium", "thin", "fine", "hairline"];
       let sw = outline ? pickStrokeWidth(sd, swNames, minGapPx) : 0;
-      if (outline) {
-        let swName = swNames.find(n => strokeWidth(sd, n) === sw) || "custom";
-        print("Stroke:", swName);
-      }
+      let swName = outline ? (swNames.find(n => strokeWidth(sd, n) === sw) || "custom") : null;
+
+      return {
+        manifest: {
+          colorScheme: colorScheme, outline: outline, alignment: alignment,
+          range: range, compression: compression
+        },
+        state: {
+          colorScheme: colorScheme, outline: outline, alignment: alignment, range: range,
+          compression: compression, nt: nt, corner: corner, edge: edge,
+          palette: palette, sizes: sizes, sw: sw, swName: swName
+        }
+      };
+    },
+
+    render: function(p) {
+      let { colorScheme, outline, alignment, range, compression, nt,
+            corner, edge, palette, sizes, sw, swName } = p;
+
+      print("Color Scheme:", colorScheme);
+      print("Outline:", outline ? "Yes" : "No");
+      print("Alignment:", alignment);
+      print("Elements:", nt);
+      print("Compression:", compression === 1 ? "None" : "×" + compression);
+      print("Range:", range);
+      if (outline) print("Stroke:", swName);
 
       for (let i = 0; i < nt; i++) {
         let sz = sizes[i];
@@ -418,7 +462,7 @@ let methods = {
       "Structure": {},
       "Symmetry": {}
     },
-    draw: function(shape, config) {
+    plan: function(shape, config) {
       let layout = resolveChoice(config.layout, ["single", "linear", "stacked"]);
       let spacing = resolveChoice(config.spacing, ["even", "variable"]);
       let coverage = resolveChoice(config.coverage, ["all", "scattered"]);
@@ -761,6 +805,29 @@ let methods = {
         }
       }
 
+      // The knobs as they finally stand, after every rule above has had its say. This is what a
+      // demand is measured against, and what the console reports, so neither can disagree with
+      // what was drawn.
+      return {
+        manifest: {
+          layout: layout, rangeMode: rangeMode, tbEdge: tbEdge, lrEdge: lrEdge,
+          spacing: spacing, coverage: coverage, emphasis: emphasis
+        },
+        state: {
+          layout: layout, rangeMode: rangeMode, tbEdge: tbEdge, lrEdge: lrEdge, spacing: spacing,
+          coverage: coverage, emphasis: emphasis, swName: swName, sw: sw,
+          gc: gc, gr: gr, ic: ic, ir: ir, vm: vm, hm: hm, gw: gw, gh: gh, cm: cm, rm: rm,
+          offX: offX, offY: offY, lrHatched: lrHatched, tbHatched: tbHatched,
+          holes: holes, holeMap: holeMap, fillCells: fillCells
+        }
+      };
+    },
+
+    render: function(p) {
+      let { layout, rangeMode, tbEdge, lrEdge, spacing, coverage, emphasis, swName, sw,
+            gc, gr, ic, ir, vm, hm, gw, gh, cm, rm, offX, offY,
+            lrHatched, tbHatched, holes, holeMap, fillCells } = p;
+
       print("Layout:", layout);
       print("Grid Size:", gc + "×" + gr, "(outer), " + ic + "×" + ir, "(inner)");
       print("Range Mode:", rangeMode);
@@ -840,17 +907,24 @@ let methods = {
   // ---------------------------------------------------------------------------
   // SHAPE GRID
   // Array of shapes in a uniform grid with optional emphasis.
-  // Knobs: colorScheme, outline, coverage (all/scattered/wander/cluster/void), aspect (square/wide/tall),
-  //   emphasis (none/anomaly/focus), range
-  //   colorScheme: shared with shapeProgression/grid. Iteration unit is the cell. Gradient
-  //     sweeps along one grid axis with no direction trait of its own — the global quarter-turn
-  //     canvas rotation supplies the apparent direction, and buildColorPalette's own reversal
-  //     decides which end is c1. For binary, each cell is an independent c1-or-c2 pick (not a
-  //     strict checkerboard).
+  // Knobs: colorScheme (single/gradient), outline, coverage (all/scattered/wander/cluster/void),
+  //   aspect (square/wide/tall), emphasis (none/anomaly/focus/scale), anomalyKind, scaleSpan,
+  //   minAxis, range
+  //   colorScheme: single or gradient. Iteration unit is the cell. Gradient sweeps along one
+  //     grid axis with no direction trait of its own — the global quarter-turn canvas rotation
+  //     supplies the apparent direction, and buildColorPalette's own reversal decides which end
+  //     is c1.
+  //     No binary. Its c2 is the canvas background, so in a method that paints solid cells it
+  //     never reads as a second color — a c2 cell is simply a cell that isn't there. That makes
+  //     it a coverage rather than a scheme, and one that overrides the coverage knob's own work:
+  //     it took every field this method can lay out, blob and lattice alike, and returned the
+  //     same random half of it. The knob that means "some cells, chosen at random" is
+  //     coverage="scattered", which says it once and says it where it can be reasoned about.
   //   coverage: distribution of shapes across cells. "all" → every cell. "scattered" → each
   //     cell independently 50%. "wander" → a random-walk blob (meandering, irregular). "cluster"
-  //     → a compact, roughly-circular blob grown toward its own centroid. "void" → the inverse
-  //     of cluster: full coverage with a rounded blob-shaped hole punched out.
+  //     → a compact, roughly-circular blob grown toward its own centroid, sized anywhere from 3
+  //     cells to half the grid. "void" → the inverse of cluster: full coverage with a rounded
+  //     blob-shaped hole punched out.
   //   emphasis: single deliberate outlier, one cell singled out from the field. Whichever
   //     value is in play, the cell is one that renders and is kept off the grid's perimeter
   //     ring where there is an interior to put it in — the perimeter is cropped in half under
@@ -858,10 +932,25 @@ let methods = {
   //     "anomaly" breaks the field at that cell, in one of two ways set by anomalyKind.
   //     "focus" recolors it — the outlier is the strongest thing on the canvas. Filled, it takes
   //       c1 and the field is held back from that color by whatever means the scheme allows
-  //       (matching stripe): single mutes every other cell to the c1↔c2 midpoint; binary mutes
-  //       its c1 cells and spares its c2 cells, which match the background and read as gaps;
-  //       gradient shifts its whole fade one step in so no cell sits at c1. Outlined draws are
-  //       always single and read focus through fill instead: all cells stroked c1, focus solid.
+  //       (matching stripe): single mutes every other cell to the c1↔c2 midpoint, and gradient
+  //       shifts its whole fade one step in so no cell sits at c1. Outlined draws are always
+  //       single and read focus through fill instead: all cells stroked c1, focus solid.
+  //     "scale" grows it — the same primitive as the field, drawn once across a square block of
+  //       cells instead of one. The outlier deviates in size alone: same form, same color, same
+  //       stroke, same grid. It spans the gaps between the cells it covers as well as the cells
+  //       themselves, so it sits on the field's own rhythm rather than beside it, and those
+  //       cells stop being drawn in their own right — it stands in their place rather than on
+  //       top of them. Needs every cell of the block drawn, or the outlier straddles holes and
+  //       reads as something laid over the grid instead of part of it; needs one more cell than
+  //       the block on each axis, or the block spans an axis end to end and reads as a band; and
+  //       needs four more shapes left over once it has taken its own, or there is no field left
+  //       for it to be an outlier in.
+  //   scaleSpan: how many cells on a side the scale block covers — "2x2" or "3x3". Only
+  //     consulted when emphasis="scale". A 3×3 asks a lot of the field (nine drawn cells in a
+  //     square, five cells on each axis to stay off the perimeter, thirteen shapes in total), so
+  //     when the grid or the coverage can't seat one it steps down to 2×2 rather than taking the
+  //     emphasis off — the same trade anomalyKind makes when a hole can't read and it
+  //     substitutes a shape instead.
   //   No "scattered" emphasis value because that's just coverage="scattered" — the layout knob
   //   covers the many-deviations case.
   //   anomalyKind: which way an anomaly breaks the field. "hole" empties the cell, so the
@@ -876,7 +965,15 @@ let methods = {
   //     smaller copy of its neighbors instead of a different form, the substitute is handed to
   //     the other candidate shape. Either kind needs ≥3 drawn cells:
   //     two regular shapes for the third to deviate from. Only consulted when
-  //     emphasis="anomaly".
+  //     emphasis="anomaly". Hole additionally requires coverage="all" — every other coverage mode
+  //     is already dropping cells, which leaves an emptied one reading as one more gap rather
+  //     than as the outlier — so sparser grids always take the substitution instead.
+  //   minAxis: fewest cells the grid may have on either axis, 1 by default. A count rather than
+  //     a word, so it is honored by narrowing the roll rather than by re-rolling for it. Raising
+  //     it also raises the total, since it applies to both axes and the 5:1 ratio cap holds the
+  //     other one near it. Mostly a review tool — the emphases and the blob coverages all have
+  //     floors of their own, and a scope that keeps landing on grids too small to host what it
+  //     is looking at can ask for room instead of spending refreshes finding it.
   //   range: canvas framing applied uniformly to all four edges — "inset" (margin on every
   //     side), "touching" (grid meets the canvas edge), or "extended" (cells bleed off-canvas).
   //     touching/extended require zero-margin support (not available for Square or outline mode).
@@ -890,6 +987,8 @@ let methods = {
       aspect: "random",
       emphasis: "random",
       anomalyKind: "random",
+      scaleSpan: "random",
+      minAxis: 1,
       range: "random"
     },
     // Knob overrides intentionally blank for now — see largeShape's subtopics comment for
@@ -900,8 +999,8 @@ let methods = {
       "Structure": {},
       "Symmetry": { allowedShapes: ["Circle", "Square"] }
     },
-    draw: function(shape, config) {
-      let colorScheme = resolveChoice(config.colorScheme, ["single", "binary", "gradient"]);
+    plan: function(shape, config) {
+      let colorScheme = resolveChoice(config.colorScheme, ["single", "gradient"]);
       let outline = chance(config.outline);
       if (!shapeCaps[shape].gridAllowsOutline) outline = false;
       // Outlined cells are strokes, not solid fills — per-cell color variation reads as
@@ -909,8 +1008,15 @@ let methods = {
       if (outline) colorScheme = "single";
       let coverage = resolveChoice(config.coverage, ["all", "scattered", "wander", "cluster", "void"]);
       let aspect = resolveChoice(config.aspect, ["square", "wide", "tall"]);
-      let emphasis = resolveChoice(config.emphasis, ["none", "anomaly", "focus"]);
+      let emphasis = resolveChoice(config.emphasis, ["none", "anomaly", "focus", "scale"]);
       let anomalyKind = resolveChoice(config.anomalyKind, ["hole", "shape"]);
+      let scaleSpan = resolveChoice(config.scaleSpan, ["2x2", "3x3"]);
+      // A hole needs a full field for its absence to read as deliberate. Every coverage mode but
+      // "all" is already removing cells, so an emptied one arrives as another gap among many
+      // instead of as the outlier — the same reason grid keeps its single-segment anomaly out of a
+      // scattered lattice. A substitution has no such problem at any coverage: it deviates in form
+      // while leaving the field's count alone, so it stays legible however sparse the grid is.
+      if (coverage !== "all") anomalyKind = "shape";
       // A shape anomaly substitutes one of the other primitives the method builds grids from.
       // Which one is settled once cell dimensions are known (see the Circle/ratio check below) —
       // Triangle stays eligible even when outlined, though the method won't build a whole grid
@@ -936,10 +1042,15 @@ let methods = {
       // cell dimensions also depend on solveAxis (insets, extended edges), but they track
       // this ratio closely enough that the proxy is a reliable filter.
       const MAX_CELL_RATIO = 5;
+      // minAxis raises the floor on both counts at once. It is a constraint on the roll rather
+      // than a demand on the outcome, since it is answered here by construction and there is
+      // nothing left for the planner to check. Clamped to the ceiling so a floor set past it
+      // narrows the grid to one size instead of looping forever.
+      let minAxis = Math.max(1, Math.min(config.minAxis || 1, 10));
       let rows, cols;
       do {
-        rows = R.random_int(1, 10);
-        cols = R.random_int(1, 10);
+        rows = R.random_int(minAxis, 10);
+        cols = R.random_int(minAxis, 10);
       } while (
         (rows === 1 && cols === 1) ||
         Math.max(rows, cols) / Math.min(rows, cols) > MAX_CELL_RATIO
@@ -997,8 +1108,16 @@ let methods = {
       } else if (coverage === "cluster") {
         // Compact clustering: a roughly-circular blob grown toward its own centroid (see growBlob),
         // giving a tight, disk-like group rather than wander's meander.
+        //
+        // The blob reads as a group of cells gathered inside a field, which sets both ends of its
+        // size. Three cells is where a group starts — two are a pair, and a pair gathers nothing.
+        // Half the grid is where the field stops being the larger thing: past that the blob is the
+        // composition and the empty cells are what reads as gathered, which is the void coverage
+        // saying it the other way around. Rolled across that whole range rather than from a few
+        // set ratios, since how much of its grid a blob takes is the thing being looked at.
         let totalCells = rows * cols;
-        let target = Math.max(2, Math.ceil(totalCells * R.random_choice([0.3, 0.5, 0.7])));
+        let lo = Math.min(3, totalCells);
+        let target = R.random_int(lo, Math.max(lo, Math.floor(totalCells * 0.5)));
         drawn = growBlob(cols, rows, target, R.random_int(0, cols - 1), R.random_int(0, rows - 1));
       } else if (coverage === "void") {
         // Inverse cluster: full coverage minus a compact circular blob, so the field reads as a
@@ -1029,8 +1148,19 @@ let methods = {
       // otherwise land on 0 or 1 cell).
       let totalCells = rows * cols;
       if (emphasis === "anomaly" && totalCells < 3) { emphasis = "none"; anomalyShape = null; }
+      // A scale block needs room around it on both axes: with no more cells than the block has
+      // on one of them it reaches end to end and reads as a band across the canvas rather than
+      // as one member of the field grown. A 3×3 that can't be seated steps down to 2×2 before
+      // the emphasis is given up on. Its cells then come out of the field, so the drawn floor
+      // below asks for four more on top of them — the same shape of rule as the anomaly's, which
+      // wants two regular cells left for its one deviation to deviate from.
+      let span = emphasis === "scale" ? (scaleSpan === "3x3" ? 3 : 2) : 1;
+      if (emphasis === "scale") {
+        if (cols < span + 1 || rows < span + 1) span = 2;
+        if (cols < 3 || rows < 3) emphasis = "none";
+      }
       let hole = emphasis === "anomaly" && anomalyKind === "hole";
-      let minDrawn = emphasis === "anomaly" ? 3 : 2;
+      let minDrawn = emphasis === "anomaly" ? 3 : emphasis === "scale" ? span * span + 4 : 2;
       {
         let keys = new Set(drawn.map(p => p[0] + "," + p[1]));
         while (drawn.length < minDrawn) {
@@ -1041,47 +1171,53 @@ let methods = {
       }
       let drawnSet = new Set(drawn.map(p => p[0] + "," + p[1]));
 
-      // --- Color palette: binary ---
-      // Each cell is an independent c1-or-c2 pick (not a strict checkerboard). Built ahead of
-      // the emphasis target so the target can steer onto a c1 cell — mirrors stripe, where the
-      // same ordering keeps a binary anomaly off the invisible c2 bands. Gradient runs the
-      // other way round: it fits its fade to the cells that survive the anomaly, so it is
-      // built once the target is known.
-      let binaryPalette = colorScheme === "binary" ? buildColorPalette("binary", cols * rows) : null;
-      let inked = function(p) { return binaryPalette[p[1] * cols + p[0]] === c1; };
-      // Independent per-cell picks can come up all-c2 across the drawn cells, which renders as
-      // an empty canvas and leaves the emphasis target nowhere visible to land. Ink one.
-      if (binaryPalette && !drawn.some(inked)) {
-        let p = R.random_choice(drawn);
-        binaryPalette[p[1] * cols + p[0]] = c1;
-      }
-
       // --- Emphasis target ---
       // Shared by every emphasis — focus and both anomaly kinds single out the same cell, so
       // they get the same placement rules. Always a drawn cell, so the outlier lands on a shape
-      // that would otherwise render, then two conditions narrow the pool in priority order:
-      //   - keep it off the perimeter ring, whatever the coverage. Under range="extended" that
-      //     ring is half off-canvas, so an outlier there is cut in two and may not read as the
-      //     thing it is at all — a cropped substitute stops looking like its own primitive.
-      //     Under the other ranges nothing is cropped, but an outlier on the edge still reads
-      //     as a ragged border rather than as a break inside the field.
-      //   - binary needs a c1 cell. The c2 cells already render in the background color, so
-      //     emptying one is invisible and reshaping one nearly so. This one outranks the
-      //     interior preference — an outlier on the perimeter still reads, an invisible one
-      //     does not — so it falls back across the whole drawn set rather than giving up.
-      // Each condition relaxes if it would leave nothing: a grid 2 cells or less along an axis
-      // has no interior to speak of, and sparse coverage may not have drawn any of it.
-      let interior = drawn.filter(p =>
-        (cols <= 2 || (p[0] > 0 && p[0] < cols - 1)) &&
-        (rows <= 2 || (p[1] > 0 && p[1] < rows - 1)));
-      let targetPool = interior.length > 0 ? interior : drawn;
-      if (binaryPalette) {
-        let pool = targetPool.filter(inked);
-        if (pool.length === 0) pool = drawn.filter(inked);
-        targetPool = pool;
+      // that would otherwise render, and kept off the perimeter ring whatever the coverage:
+      // under range="extended" that ring is half off-canvas, so an outlier there is cut in two
+      // and may not read as the thing it is at all — a cropped substitute stops looking like its
+      // own primitive. Under the other ranges nothing is cropped, but an outlier on the edge
+      // still reads as a ragged border rather than as a break inside the field. The condition
+      // relaxes if it would leave nothing: a grid 2 cells or less along an axis has no interior
+      // to speak of, and sparse coverage may not have drawn any of it.
+      //
+      // Scale is the one emphasis that occupies more than a cell, so both tests are read against
+      // the block rather than against its origin: the pool starts from the origins whose whole
+      // block is drawn, and the interior test measures from the far corner.
+      let blockDrawn = function(p, n) {
+        if (p[0] + n > cols || p[1] + n > rows) return false;
+        for (let di = 0; di < n; di++)
+          for (let dj = 0; dj < n; dj++)
+            if (!drawnSet.has((p[0] + di) + "," + (p[1] + dj))) return false;
+        return true;
+      };
+      let poolFor = function(n) {
+        let base = n === 1 ? drawn : drawn.filter(p => blockDrawn(p, n));
+        let interior = base.filter(p =>
+          (cols <= n + 1 || (p[0] > 0 && p[0] + n - 1 < cols - 1)) &&
+          (rows <= n + 1 || (p[1] > 0 && p[1] + n - 1 < rows - 1)));
+        return interior.length > 0 ? interior : base;
+      };
+      let targetPool = poolFor(span);
+      // The coverage may have left no square of drawn cells big enough anywhere in the field.
+      // Step the block down before giving the emphasis up, matching the grid-size rule above.
+      if (targetPool.length === 0 && span === 3) {
+        span = 2;
+        targetPool = poolFor(span);
       }
-      let targetCell = R.random_choice(targetPool);
+      // Not even the smallest block fits: there is nothing to grow, so the emphasis is dropped
+      // rather than shrunk onto a single cell, which would be no emphasis at all.
+      if (targetPool.length === 0) emphasis = "none";
+      let targetCell = R.random_choice(targetPool.length > 0 ? targetPool : drawn);
       let ec = targetCell[0], er = targetCell[1];
+      // The cells the enlarged shape covers stop being drawn in their own right.
+      if (emphasis === "scale") {
+        for (let di = 0; di < span; di++)
+          for (let dj = 0; dj < span; dj++)
+            if (di || dj) drawnSet.delete((ec + di) + "," + (er + dj));
+        drawn = drawn.filter(p => drawnSet.has(p[0] + "," + p[1]));
+      }
 
       // --- Layout (margins and spacing) ---
       // To keep the visual rhythm consistent on each axis, the inset margin and the internal
@@ -1180,10 +1316,10 @@ let methods = {
       let sw = outline ? pickStrokeWidth(unit, swWeights, maxGap) : 0;
 
       // --- Color palette: gradient / single ---
-      // For single, every cell is c1; binary was built above. Gradient sweeps along one grid
-      // axis, chosen as the axis with more divisions so the fade gets the most steps — sweeping
-      // a 1×8 grid the short way would collapse it to a flat field. There is no direction
-      // trait: the canvas rotation supplies the direction.
+      // For single, every cell is c1. Gradient sweeps along one grid axis, chosen as the axis
+      // with more divisions so the fade gets the most steps — sweeping a 1×8 grid the short way
+      // would collapse it to a flat field. There is no direction trait: the canvas rotation
+      // supplies the direction.
       let sweepByCol = cols >= rows;
       let sweepOf = function(i, j) { return sweepByCol ? i : j; };
       // Cells that actually render: coverage modes drop cells, and a hole drops one more. A
@@ -1194,9 +1330,7 @@ let methods = {
       let reserveC1 = emphasis === "focus" && colorScheme === "gradient";
       let palette;
       let sweepSlot = null;
-      if (colorScheme === "binary") {
-        palette = binaryPalette;
-      } else if (colorScheme === "gradient") {
+      if (colorScheme === "gradient") {
         // Fit the fade to the sweep positions that render rather than to the whole axis. A
         // visible subset sitting entirely at the faint end used to be patched afterwards by
         // overwriting one palette slot with c1 — but slots are shared by every cell at that
@@ -1211,20 +1345,37 @@ let methods = {
       }
       let cellColor = function(i, j) {
         if (colorScheme === "single") return c1;
-        if (colorScheme === "binary") return palette[j * cols + i];
         return palette[sweepSlot[sweepOf(i, j)]];
       };
 
-      // Visibility guard for binary: the palette entries that map to rendered cells might all
-      // happen to be c2, making the composition invisible against the c2 background. Ensure at
-      // least one rendered cell uses c1. Gradient needs no guard — its fade is fitted to the
-      // rendered cells above, so it always reaches c1.
-      if (colorScheme === "binary") {
-        if (visibleCells.length > 0 && !visibleCells.some(p => cellColor(p[0], p[1]) === c1)) {
-          let p = R.random_choice(visibleCells);
-          palette[p[1] * cols + p[0]] = c1;
+      // anomalyKind and scaleSpan are reported as what they turned out to be rather than as what
+      // was rolled: each is only consulted under its own emphasis, a substitution that found no
+      // candidate shape leaves anomalyShape unset, and a block that couldn't be seated has
+      // stepped down by now. So a demand for a particular kind or size carries the demand for
+      // the emphasis to exist with it, instead of being satisfied by a value nothing acted on.
+      return {
+        manifest: {
+          colorScheme: colorScheme, outline: outline, coverage: coverage, aspect: aspect,
+          range: range, emphasis: emphasis,
+          anomalyKind: hole ? "hole" : (anomalyShape ? "shape" : "none"),
+          scaleSpan: emphasis === "scale" ? span + "x" + span : "none"
+        },
+        state: {
+          colorScheme: colorScheme, outline: outline, coverage: coverage, aspect: aspect,
+          range: range, emphasis: emphasis, anomalyKind: anomalyKind, anomalyShape: anomalyShape,
+          hole: hole, span: span, cols: cols, rows: rows, cellW: cellW, cellH: cellH,
+          marginLeft: marginLeft, marginTop: marginTop, offX: offX, offY: offY,
+          spH: spH, spV: spV,
+          sw: sw, swWeights: swWeights, unit: unit, sweepByCol: sweepByCol,
+          drawn: drawn, drawnSet: drawnSet, cellColor: cellColor, ec: ec, er: er
         }
-      }
+      };
+    },
+
+    render: function(p) {
+      let { colorScheme, outline, coverage, aspect, range, emphasis, anomalyKind, anomalyShape,
+            hole, span, cols, rows, cellW, cellH, marginLeft, marginTop, offX, offY, spH, spV,
+            sw, swWeights, unit, sweepByCol, drawn, drawnSet, cellColor, ec, er } = p;
 
       print("Color Scheme:", colorScheme + (colorScheme === "gradient" ? " (" + (sweepByCol ? "by column" : "by row") + ")" : ""));
       print("Grid Size:", cols + "×" + rows);
@@ -1233,7 +1384,9 @@ let methods = {
       print("Range:", range);
       print("Coverage:", coverage, coverage !== "all" ? "(" + drawn.length + "/" + (rows * cols) + ")" : "");
       print("Emphasis:", emphasis + (emphasis === "anomaly" ? " (" + anomalyKind + (anomalyShape ? " → " + anomalyShape : "") + ")" : ""),
-            emphasis !== "none" ? "at (" + ec + "," + er + ")" : "");
+            emphasis === "none" ? ""
+              : emphasis === "scale" ? span + "×" + span + " at (" + ec + "," + er + ")"
+              : "at (" + ec + "," + er + ")");
 
       // --- Draw ---
       for (let i = 0; i < cols; i++) {
@@ -1246,6 +1399,14 @@ let methods = {
           let y = marginTop + offY[j];
           let cw = cellW[i];
           let ch = cellH[j];
+          if (isTarget && emphasis === "scale") {
+            // Across the block's cells AND the gaps between them, so the enlarged shape lands on
+            // the same grid lines its neighbors do rather than floating inside the block.
+            for (let k = 1; k < span; k++) {
+              cw += spH + cellW[i + k];
+              ch += spV + cellH[j + k];
+            }
+          }
 
           let focused = isTarget && emphasis === "focus";
           let cc = cellColor(i, j);
@@ -1260,11 +1421,9 @@ let methods = {
           } else {
             noStroke();
             // Focus gives the outlier c1 and holds the FIELD back from it, so the outlier is the
-            // strongest thing on the canvas rather than the most washed out. How the field is
-            // held back depends on the scheme, matching stripe: single and binary mute their c1
-            // cells to the c1↔c2 midpoint, but binary's c2 cells are left alone since they match
-            // the background and read as gaps — muting those would fill the gaps in. Gradient
-            // needs no muting at all; its fade was already shifted clear of c1 when built.
+            // strongest thing on the canvas rather than the most washed out. Under single that
+            // means muting every other cell to the c1↔c2 midpoint. Gradient needs no muting at
+            // all; its fade was already shifted clear of c1 when built.
             let muted = emphasis === "focus" && colorScheme !== "gradient" && cc === c1;
             solidFill = focused ? c1 : (muted ? betterLerp(c1, c2, 0.5) : cc);
             fill(solidFill);
@@ -1278,9 +1437,9 @@ let methods = {
               // substitute's — this runs for every solid cell in the loop (regular triangle or
               // substitute square alike) so whichever one lands on either side of the shared
               // line already carries it. Every other pairing only meets its neighbors at a
-              // slanted edge or a single point, so it doesn't need the patch. A cell colored
-              // c2 (binary's background-matching bands) has no visible fill to seam against —
-              // it already reads as a gap, so it's excluded rather than stroked for nothing.
+              // slanted edge or a single point, so it doesn't need the patch. A cell that has
+              // come out at the background color has no visible fill to seam against — it
+              // already reads as a gap, so it's excluded rather than stroked for nothing.
               stroke(solidFill);
               strokeWeight(1);
             }
@@ -1310,13 +1469,17 @@ let methods = {
   // Line is the only shape: a stripe IS a line, either drawn at band width (filled) or as the
   // rule that separates one band from the next (outlined). That is a style decision, not a
   // shape one, so it lives in the outline knob rather than in the shape pool.
-  // Knobs: colorScheme, outline, alignment, range, spacing, coverage, emphasis, varied, subdivision, stripeChoices
+  // Knobs: colorScheme, outline, alignment, range, spacing, coverage, emphasis, stripeChoices
   //   colorScheme: shared with shapeProgression/shapeGrid, but binary here is stripe-specific:
   //     "binary" → strict c1/c2 alternation (adjacent same-color stripes would merge into a
   //     wider stripe, defeating the purpose of binary, so independent random picks are not
   //     used here); "gradient" → smooth lerp across the stripes that render. "single" doesn't
   //     apply to filled bands (would render as a uniform fill); outline forces single, since
   //     the rules are strokes, not fills (per the grid convention).
+  //     Filled binary paints its c2 bands in the background color, so the canvas shows bars with
+  //     gaps between them. That makes the stripe count odd: an even count would end on the other
+  //     color from the one it started on, leaving a bar against one edge and a gap — read as
+  //     margin — against the other, so the field looks pushed to one side.
   //   outline: filled bands vs. the rules between them. Filled draws each stripe as a solid
   //     band of its palette color. Outlined draws only the boundaries — outlining the bands
   //     themselves would double every internal edge and lay the cross-axis edges along the
@@ -1334,26 +1497,70 @@ let methods = {
   //     oversized frame and clip it back to a square, cutting stripes off mid-run rather than
   //     terminating them at a margin, so it reads as a crop rather than an inset composition;
   //     diagonal always resolves to touching instead. Stripe always terminates at or within
-  //     the canvas; there is no "extended" range for stripe.
+  //     the canvas; there is no "extended" range for stripe. A scale emphasis resolves this the
+  //     other way, to inset — and the alignment to aligned with it, and the outline off, those
+  //     being the only terms on which an inset band exists to widen. See emphasis.
   //   spacing: "even" (every stripe is 1/N of the band) or "variable" (proportions from
   //     distribute(n), so stripe widths vary). Matches shapeProgression/shapeGrid spacing.
+  //     An anomaly resolves this to even — see emphasis.
   //   coverage: "all" (every stripe drawn) or "scattered" (each stripe independently 50%
   //     drawn — skipped stripes reveal the canvas background).
-  //   emphasis: single outlier — "anomaly" (one stripe removed) or "focus". Focus always
-  //     gives the outlier c1 and holds the field back from it, by whatever means that scheme
-  //     allows: single (outlined) mutes every other rule to the c1↔c2 midpoint; binary mutes
-  //     its c1 bands and spares its c2 bands, which read as background gaps and carry the
-  //     alternation; gradient shifts its whole fade one step in so no band sits at c1.
-  //     A binary anomaly is restricted to the c1 bands — removing a c2 band is invisible.
-  //     Suppressed when scattered.
-  //   varied: outlined only — outer frame lines (the boundaries at the ends of the stripe
-  //     axis when range="inset") rendered at a heavier weight than internal boundary lines.
-  //     Mirrors grid's outer/inner stroke distinction. Only meaningful when range="inset" AND
-  //     outline=true (outer frame is drawn only at inset; filled bands have no separators).
-  //   subdivision: pick one stripe and replace it with M sub-stripes (M = 2-4) of equal
-  //     width spanning the original stripe's band. Mirrors shapeGrid's "one cell → mini-grid"
-  //     pattern. Final stripe count grows from n to n + (M - 1), and the palette adapts.
-  //   stripeChoices: discrete list of allowed primary stripe counts.
+  //   emphasis: single outlier — one element singled out of the field, in one of four ways.
+  //     "focus" recolors it. Focus always gives the outlier c1 and holds the field back from it,
+  //       by whatever means that scheme allows: single (outlined) mutes every other rule to the
+  //       c1↔c2 midpoint; binary mutes its c1 bands and spares its c2 bands, which read as
+  //       background gaps and carry the alternation. Focus rules out gradient, which has no
+  //       uniform field for an exception to register against — every band already has its own
+  //       tone, so the focused one reads as one more step in the fade. A focus roll resolves the
+  //       scheme to binary.
+  //     "anomaly" removes it. An anomaly needs a regular field left standing for its absence to
+  //       be measured against, which costs it two of the knobs above: it draws its count only
+  //       from the ≥4 entries of stripeChoices and resolves spacing to even. It is always cut
+  //       from inside the run — never the outermost element that renders, whose absence reads as
+  //       a narrower field, a wider margin, or an unclosed frame rather than as an omission, and
+  //       never its exact middle, whose absence reads as the field being divided in two. Both
+  //       rules count the elements that render, not the stripe slots, so the count they ask for
+  //       varies: ≥4 stripes filled, ≥5 outlined and touching (which drops its frame lines), and
+  //       ≥8 filled and binary, where only the c1 bands read and every other slot is one.
+  //     "scale" widens one band to three times its neighbors, the run staying flush to the same
+  //       bounds — the extra share comes out of the field rather than the frame. It is the only
+  //       treatment in the method that alters the layout rather than the paint.
+  //       Three and not two because doubled is the smallest departure the treatment can make,
+  //       and at that size the eye is left deciding whether it is looking at an emphasis or at a
+  //       measuring error. Filled always, since what it widens is a band and outlined draws no
+  //       bands — only the rules between them. Inset always, and so aligned always, since a
+  //       widened band needs the run's extent visible to be widened within. It costs the same
+  //       knobs an anomaly does and for a related reason (a single deviation is read against a
+  //       regular field, and a wider stripe in particular is only wider against neighbors that
+  //       agree on a width), and it takes the same three placement rules: never an end band,
+  //       never the exact middle, never a binary c2. It reads the filled rows of the same count
+  //       table with one more condition on top — the widened band takes three of the run's n + 2
+  //       shares, and past a third of the span it stops reading as a member of the field at all,
+  //       which puts its floor at seven.
+  //     "concentration" divides it. One stripe is replaced by M pieces (M = 3-6) of equal width
+  //       spanning the band it occupied, so the field keeps its interval everywhere but that one
+  //       place, where it densifies — shapeGrid's "one cell → mini-grid" as a single axis. Three
+  //       pieces at the least, on the same argument scale makes for tripling rather than
+  //       doubling: a slot halved is one new division in the field, which is as easily read as a
+  //       stripe that landed slightly off as it is as a densification. Two new divisions state a
+  //       finer interval, and an interval is what the treatment is for. Six at the most, which
+  //       against the largest count in the pool is a cluster of pieces a seventy-second of the
+  //       run wide — fine enough to read as texture rather than as stripes, which is the far end
+  //       of the treatment rather than a departure from it. Note that the stroke unit is the
+  //       narrowest cell, so a dense cluster thins the rules across the whole composition.
+  //       The final stripe count grows from n to n + (M − 1) and the palette adapts, which is why
+  //       the binary parity rule counts the pieces rather than the roll. It is the inverse of
+  //       scale, and it is placed the same way and for the same reasons: never an end slot,
+  //       whose cluster has the frame on one side instead of a neighbor and so reads as the
+  //       field fraying toward that edge, and never the exact middle, where it reads as a field
+  //       parted around a dense center. Its count floor is the field's own, read before the
+  //       split — the slots that matter are the ones that stay regular, and the cluster is one
+  //       departure however many pieces it arrives in.
+  //     All four are suppressed when scattered.
+  //   stripeChoices: discrete list of allowed primary stripe counts. Every emphasis but focus
+  //     draws only from the entries big enough to carry it (see emphasis); a list with none of
+  //     those turns the treatment off. Filled binary adds one to an even roll (see colorScheme),
+  //     so the count drawn is not always one of the entries.
   // ---------------------------------------------------------------------------
   stripe: {
     shapes: ["Line"],
@@ -1365,8 +1572,6 @@ let methods = {
       spacing: "random",
       coverage: "random",
       emphasis: "random",
-      varied: 0.3,
-      subdivision: "random",
       stripeChoices: [3, 4, 5, 6, 8, 10, 12]
     },
     // Knob overrides intentionally blank for now — see largeShape's subtopics comment for why.
@@ -1380,7 +1585,7 @@ let methods = {
       "Symmetry": {},
       "Asymmetry": {}
     },
-    draw: function(shape, config) {
+    plan: function(shape, config) {
       let colorScheme = resolveChoice(config.colorScheme, ["binary", "gradient"]);
       let outline = chance(config.outline);
       // Outlined stripes are strokes, and strokes are always c1 (per the grid convention) — a
@@ -1396,27 +1601,134 @@ let methods = {
       if (!rangeOptions.includes(range)) range = "touching";
       let spacing = resolveChoice(config.spacing, ["even", "variable"]);
       let coverage = resolveChoice(config.coverage, ["all", "scattered"]);
-      let emphasis = resolveChoice(config.emphasis, ["none", "anomaly", "focus"]);
-      let subdivision = resolveChoice(config.subdivision, ["none", "subdivided"]);
-      let varied = chance(config.varied);
-      // varied only applies to outlined stripes (filled bands have no separator strokes) AND
-      // only to inset, where the outer frame lines are visibly drawn at the inset boundary.
-      // Touching puts them on the canvas edge instead, where there is no pair to vary.
-      if (!outline || range !== "inset") varied = false;
+      let emphasis = resolveChoice(config.emphasis,
+        ["none", "anomaly", "focus", "scale", "concentration"]);
+      // One factor, no roll. Doubled is the smallest departure the treatment can make, and at a
+      // size that small the eye is left deciding whether it is looking at an emphasis or at a
+      // measuring error; tripled cannot be read any other way. See scale under emphasis.
+      let scaleF = 3;
       // Suppress the single-element emphasis when scattered: one removed or recolored element
       // is imperceptible amid the probabilistic per-stripe removals of scattered.
       if (coverage === "scattered") emphasis = "none";
+      // Focus works by giving one band c1 and holding the field back off it, which takes a field
+      // uniform enough for the exception to register against. A gradient has no such field: every
+      // band already carries its own tone, so the focused one reads as another step in the fade
+      // rather than as the one band that broke the pattern. Binary keeps the alternation the focus
+      // interrupts, so focus resolves the scheme to binary rather than the other way around — the
+      // emphasis is the subject here, and the palette is what serves it.
+      if (emphasis === "focus" && colorScheme === "gradient") colorScheme = "binary";
+      // Three of the emphases are departures from an interval, and a viewer can only see a
+      // departure from an interval where there is an interval to depart from. Variable spacing is
+      // that measure taken away: when no two stripes are the same width to begin with, a gap is
+      // just another width, a wide stripe is just the widest one, and a cluster of narrow ones is
+      // just the narrow end of the range — every one of them a reading the roll was going to
+      // produce whether or not anything was emphasized. So all three resolve the spacing to even.
+      // Focus is the exception: it recolors a stripe that stays exactly where it is, so there is
+      // no interval involved and nothing for the spacing to obscure.
+      if (emphasis === "anomaly" || emphasis === "scale" || emphasis === "concentration") {
+        spacing = "even";
+      }
+      // Scale is filled and framed, and for the same reason: what it grows is a band's width, so
+      // it needs bands, and it needs the run to show where they stop. Outlined draws no bands at
+      // all — only the rules between them — so there is nothing there to widen. Touching draws
+      // bands but hands their extent to the canvas edge, where the widened one arrives at the
+      // same place every other band does and the extra size has nothing to be extra against. An
+      // inset frames the run on all four sides, and since a diagonal one cannot be inset (see
+      // range), scale settles the alignment too. The color scheme goes back to being rolled: it
+      // was only single because the composition was outlined, which it no longer is. The emphasis
+      // is the subject here and the rest serves it, as with focus and the palette above.
+      if (emphasis === "scale") {
+        alignment = "aligned";
+        range = "inset";
+        if (outline) {
+          outline = false;
+          colorScheme = resolveChoice(config.colorScheme, ["binary", "gradient"]);
+        }
+      }
 
-      // --- Stripe count + subdivision ---
-      let n = R.random_choice(config.stripeChoices);
-      // Pick one stripe to densify (if subdivision active). Replace that stripe's slot with
-      // M equal-width sub-stripes. Final count = n + (M - 1).
+      // --- Stripe count ---
+      // A removal has to leave a pattern standing to be read against, and three survivors is
+      // where that starts: two are only a pair, and a pair states no interval for a gap to
+      // violate — it reads as two stripes placed apart rather than as three with one missing.
+      // (shapeGrid's hole settles for two survivors because a grid is a field in both directions
+      // at once, where even two neighbors imply the lattice the gap sits in. A stripe field has
+      // only the one axis to establish itself on.) The floor is put on the pool rather than
+      // tested afterwards: a count that cannot carry an anomaly would otherwise have to abandon
+      // it, and abandoning it leaves the evened field it asked for with nothing to show.
+      //
+      // Four of what, though. The run the viewer counts is the elements that put ink on the
+      // canvas, and how many of those a given count yields depends on the channel — so the floor
+      // is stated in rendered elements and converted back into a stripe count here:
+      //   outlined + inset    — the frame boundaries are kept, so nFinal stripes give nFinal+1
+      //                         lines; four of them arrive before the four-stripe floor does
+      //   outlined + touching — the frame boundaries fall on the canvas edge and are dropped,
+      //                         leaving only the nFinal-1 internal lines, so it takes five
+      //   filled + binary     — only the c1 bands read; the c2 ones are painted in the background
+      //                         color and register as the gaps between bars. Alternation puts a
+      //                         c1 in every other slot, so it takes eight to be sure of four bars
+      //                         whichever color the alternation starts on (the parity rule below
+      //                         then raises that to nine, which is still sure of four)
+      //   filled + gradient   — every band carries its own tone, so all four of four read
+      //
+      // Scale reads the filled rows of that same table — a grown band needs a field to be grown
+      // against, just as a missing one needs a field to be missing from — and asks for more on
+      // top of them. The widened band takes scaleF of the run's scaleF + n − 1 shares, and past a
+      // third of the span it stops reading as a member of the field at all: at four stripes a
+      // tripled one owns half the canvas, which is a block with some lines beside it rather than
+      // a field with one stripe grown. Holding it to a third gives n ≥ 2·scaleF + 1, so seven.
+      //
+      // Concentration reads the table unchanged. It is counted BEFORE the split, since the slots
+      // it needs are the ones that stay regular: the cluster is one departure however many pieces
+      // it arrives in, and the field it departs from is what the floor is protecting.
+      let countPool = config.stripeChoices;
+      let renderedFloor = function() {
+        if (outline) return range === "touching" ? 5 : 4;
+        return colorScheme === "binary" ? 8 : 4;
+      };
+      if (emphasis === "anomaly" || emphasis === "concentration") {
+        let enough = countPool.filter(c => c >= renderedFloor());
+        // A pool with nothing large enough is a configuration that rules the treatment out. Say
+        // so now, so the manifest reports what this composition is instead of what it set out
+        // to be.
+        if (enough.length > 0) countPool = enough;
+        else emphasis = "none";
+      } else if (emphasis === "scale") {
+        let enough = countPool.filter(c => c >= Math.max(renderedFloor(), 2 * scaleF + 1));
+        if (enough.length > 0) countPool = enough;
+        else emphasis = "none";
+      }
+      let n = R.random_choice(countPool);
+      // How many pieces the concentrated slot is split into. Which slot that is gets rolled
+      // below, after the count is final.
       let subIdx = -1, subM = 0;
-      if (subdivision === "subdivided" && n >= 2) {
-        subIdx = R.random_int(0, n - 1);
-        subM = R.random_int(2, 4);
-      } else {
-        subdivision = "none";
+      if (emphasis === "concentration") subM = R.random_int(3, 6);
+
+      // Filled binary wants an odd number of stripes. Its c2 bands are painted in the background
+      // color, so what the canvas shows is bars separated by gaps — and strict alternation over an
+      // even count starts and ends on different colors, which puts a bar hard against one edge and
+      // a gap against the other. The gap is not read as part of the composition; it is read as
+      // margin, so the whole field looks shoved to one side. An odd count ends on the color it
+      // started on, and both readings of that are balanced: bars at both edges, or equal margins
+      // at both. The correction adds a stripe rather than dropping one so it can never fall back
+      // through a floor the count was chosen to clear.
+      // A concentration's extra pieces are counted in, since it is the final stripe count the
+      // palette alternates over, not the rolled one. Outlined stripes are unaffected — every rule
+      // is a c1 stroke, so there are no background bands to weigh an edge down — and so is
+      // gradient, whose bands each carry their own tone and so all belong to the composition.
+      if (!outline && colorScheme === "binary" && (n + Math.max(subM - 1, 0)) % 2 === 0) n += 1;
+
+      // Which slot concentrates. The two rules an anomaly is placed by apply here for the same
+      // reasons, read against the slots rather than the rendered run because a slot is what gets
+      // split: never an end slot, whose cluster has the frame on one side instead of a neighbor
+      // and so reads as the field fraying toward that edge, and never the exact middle, where it
+      // reads as a field parted around a dense center — deliberate and symmetric rather than a
+      // deviation. The count floor above guarantees at least one slot survives both.
+      if (subM > 0) {
+        let slots = [];
+        let mid = n % 2 === 1 ? (n - 1) / 2 : -1;
+        for (let i = 1; i < n - 1; i++) if (i !== mid) slots.push(i);
+        if (slots.length > 0) subIdx = R.random_choice(slots);
+        else { subM = 0; emphasis = "none"; }
       }
 
       // Build base per-stripe proportions (sum to 1). Even = uniform; variable uses the shared
@@ -1512,21 +1824,73 @@ let methods = {
       // filled, a surviving boundary line when outlined. Picking a suppressed element would
       // make the emphasis a silent no-op — an anomaly that removes nothing, or a focus that
       // mutes the whole field with no element left at full strength.
-      // A binary anomaly has the same problem in the color dimension: the c2 bands already
-      // render in the background color, so removing one changes nothing. Restrict it to c1.
+      // Concentration is placed already — its target is a slot, chosen before the split that
+      // created the extra slots this indexing counts — so it sits this out.
       let ei = -1;
-      if (emphasis === "anomaly" || emphasis === "focus") {
+      if (emphasis !== "none" && emphasis !== "concentration") {
         let candidates = [];
         if (outline) {
           for (let i = 0; i <= nFinal; i++) if (drawBoundary[i]) candidates.push(i);
         } else {
-          let anomalyInBinary = emphasis === "anomaly" && colorScheme === "binary";
-          for (let i = 0; i < nFinal; i++) {
-            if (drawnMask[i] && !(anomalyInBinary && palette[i] === c2)) candidates.push(i);
-          }
+          for (let i = 0; i < nFinal; i++) if (drawnMask[i]) candidates.push(i);
+        }
+        // Focus takes any of those: it recolors an element that stays on the canvas, so wherever
+        // it lands there is still something there to read. An anomaly takes an element away, and
+        // an absence is only legible against the pattern it left behind. That the pattern is
+        // regular, and that there is enough of it, were settled by the knob and count blocks
+        // above; what is left is which part of it to cut from.
+        //
+        // Scale is placed by the same three rules, which is not a coincidence: both treatments
+        // are read as a departure from the field, so both need the field intact on either side of
+        // them. An end element has the canvas edge on one side instead of a neighbor, so growing
+        // it reads as a wider margin or a heavier border — the same misreading a missing end
+        // element gets. An element at dead center reads as a field divided around a central
+        // panel, deliberate and symmetric, which is the same trap the middle holds for a gap. And
+        // a binary c2 band is background: widening one widens a gap rather than a bar.
+        if (emphasis === "anomaly" || emphasis === "scale") {
+          // Binary comes off the list first. Its c2 bands are painted in the background color, so
+          // they are not elements the viewer can lose — the composition reads as c1 bars with gaps
+          // between them, and taking a gap away changes nothing.
+          if (colorScheme === "binary") candidates = candidates.filter(i => palette[i] !== c2);
+          // Then never the element at either end of what is left. A missing end element is not
+          // read as a gap but as the field being one narrower, or as a wider margin, since there
+          // is nothing past it to mark where it should have been. Only an absence with the pattern
+          // continuing on both sides of it can be seen as something taken away.
+          // Both filters have to run in this order, and on the rendered run rather than on the
+          // index range, because each channel hides something different at its edges: touching
+          // drops the boundaries at 0 and nFinal, which makes boundary 1 the outermost line on the
+          // canvas; binary's alternation can put a c2 band at slot 0, which makes bar 1 the
+          // outermost bar. Slicing the ends off an index range would clear neither, while slicing
+          // them off the run that renders clears both — and inset's frame lines with them, whose
+          // loss reads as an unclosed edge rather than as an omission.
+          //
+          // The exact middle is out as well. A gap at dead center is not read as one element
+          // gone from a run: it reads as the run having been divided into two equal halves, which
+          // is a composition in its own right, and a deliberate-looking one — symmetry rather
+          // than deviation. An anomaly has to sit somewhere that cannot be mistaken for a plan.
+          // Only a run of odd length has such a point to avoid; an even one centers on the join
+          // between two elements, where neither can claim to be the middle.
+          let mid = candidates.length % 2 === 1 ? candidates[(candidates.length - 1) / 2] : -1;
+          candidates = candidates.slice(1, -1).filter(i => i !== mid);
         }
         if (candidates.length > 0) ei = R.random_choice(candidates);
         else emphasis = "none";
+      }
+
+      // --- Scale: widen the chosen band ---
+      // The one treatment in the method that changes the layout rather than the paint, so the
+      // axis is solved a second time with the new proportions. Nothing above has read the first
+      // solve — the coverage mask, the boundary mask and the binary palette all count slots
+      // rather than measure them. Re-solving keeps the run flush to the same bounds instead of
+      // pushing it past them: the widened band takes its extra share out of the field, not out
+      // of the frame.
+      if (emphasis === "scale" && ei >= 0) {
+        props[ei] *= scaleF;
+        let total = props.reduce((a, b) => a + b, 0);
+        props = props.map(v => v / total);
+        axis = solveAxis(drawSpan, props, range, range, marginPick, marginPick, 0);
+        cells = axis.cells;
+        marginStart = axis.marginStart;
       }
 
       // Stripes that actually render: coverage drops stripes, an anomaly drops one more.
@@ -1540,12 +1904,13 @@ let methods = {
       // visible subset sitting entirely at the faint end used to be patched afterwards by
       // overwriting one slot with c1, which landed a band out of sequence; fitting the fade to
       // the rendered run keeps it monotonic and still guarantees it reaches c1.
-      // Under focus, reserveC1 shifts the fade clear of c1 so the outlier can own that color.
+      // The fade runs all the way to c1 because nothing here needs that color held in reserve:
+      // focus is the only treatment that would have wanted it, and focus resolves the scheme to
+      // binary before reaching this point (see the knob block above).
       // Single means outlined, which strokes c1 directly and never consults the palette.
-      let reserveC1 = emphasis === "focus" && colorScheme === "gradient";
       let gradSlot = null;
       if (colorScheme === "gradient") {
-        palette = buildColorPalette("gradient", visibleIdx.length, reserveC1);
+        palette = buildColorPalette("gradient", visibleIdx.length);
         gradSlot = {};
         for (let k = 0; k < visibleIdx.length; k++) gradSlot[visibleIdx[k]] = k;
       } else if (colorScheme === "single") {
@@ -1571,22 +1936,36 @@ let methods = {
       let unit = Math.min.apply(null, cells);
       let r = unit / sd;
       let swWeights = pickStrokeWeights(["thick", "heavy", "medium"], r);
-      let sw = 0, swOuter = 0, swInner = 0, swName = "";
+      let sw = 0, swName = "";
       if (outline) {
-        // varied needs ≥2 distinct weights to form an outer/inner pair.
-        if (varied && swWeights.length < 2) varied = false;
-        if (varied) {
-          let vp = pickVariedPair(unit, swWeights);
-          swOuter = vp.swOuter;
-          swInner = vp.swInner;
-          sw = swOuter;
-          swName = vp.swName;
-        } else {
-          let pick = R.random_choice(swWeights);
-          sw = strokeWidth(unit, pick);
-          swName = pick;
-        }
+        let pick = R.random_choice(swWeights);
+        sw = strokeWidth(unit, pick);
+        swName = pick;
       }
+
+      return {
+        manifest: {
+          colorScheme: colorScheme, outline: outline, alignment: alignment, range: range,
+          spacing: spacing, coverage: coverage, emphasis: emphasis
+        },
+        state: {
+          colorScheme: colorScheme, outline: outline, alignment: alignment, range: range,
+          spacing: spacing, coverage: coverage, emphasis: emphasis,
+          scaleF: scaleF,
+          n: n, nFinal: nFinal, subM: subM, subIdx: subIdx, cells: cells,
+          drawSpan: drawSpan, drawBoundary: drawBoundary, drawnMask: drawnMask,
+          crossMargin: crossMargin, crossSpan: crossSpan, marginPick: marginPick,
+          marginStart: marginStart, stripeColor: stripeColor, ei: ei,
+          sw: sw, swName: swName
+        }
+      };
+    },
+
+    render: function(p) {
+      let { colorScheme, outline, alignment, range, spacing, coverage, emphasis,
+            scaleF, n, nFinal, subM, subIdx, cells, drawSpan, drawBoundary, drawnMask,
+            crossMargin, crossSpan, marginPick, marginStart, stripeColor, ei,
+            sw, swName } = p;
 
       print("Color Scheme:", colorScheme);
       print("Outline:", outline ? "Yes" : "No");
@@ -1598,9 +1977,12 @@ let methods = {
       print("Range:", range, range === "inset" ? "| Margin: " + Math.round(marginPick) : "");
       print("Spacing:", spacing);
       print("Coverage:", coverage, coverage !== "all" ? "(" + drawnMask.filter(x => x).length + "/" + nFinal + ")" : "");
-      print("Emphasis:", emphasis, ei >= 0 ? "at " + (outline ? "boundary " : "stripe ") + ei : "");
-      print("Subdivision:", subdivision, subIdx >= 0 ? "at stripe " + subIdx + " (+" + subM + " sub)" : "");
-      if (outline) print("Stroke:", swName, "| Varied:", varied ? "Yes" : "No");
+      print("Emphasis:", emphasis,
+        emphasis === "concentration" ? "at stripe " + subIdx + " (into " + subM + ")"
+        : ei < 0 ? ""
+        : emphasis === "scale" ? "at stripe " + ei + " (" + scaleF + "× width)"
+        : "at " + (outline ? "boundary " : "stripe ") + ei);
+      if (outline) print("Stroke:", swName);
 
       // --- Draw ---
       // Diagonal compositions rotate the local frame 45° around the canvas center, and the
@@ -1656,12 +2038,12 @@ let methods = {
         // c1↔c2 midpoint and the focus line keeps c1, so the outlier is the strongest line on
         // the canvas instead of the most washed out. Matches shapeGrid's filled focus.
         let focusActive = emphasis === "focus" && ei >= 0;
+        // Scale grows the rule itself here rather than the space around it: same position, same
+        // color, scaleF times the weight. The spacing stays exactly as the field set it.
         for (let i = 0; i <= nFinal; i++) {
           if (!drawBoundary[i]) continue;
           stroke(focusActive && i !== ei ? betterLerp(c1, c2, 0.5) : c1);
-          // Varied stroke: outer frame lines (i === 0 || i === nFinal) get the heavier weight.
-          let isOuter = (i === 0 || i === nFinal);
-          strokeWeight(varied ? (isOuter ? swOuter : swInner) : sw);
+          strokeWeight(sw);
           line(crossMargin, boundaries[i], drawSpan - crossMargin, boundaries[i]);
         }
       }
@@ -1727,7 +2109,7 @@ let methods = {
   //     lattice line. A regular (axis-parallel) line has no cross extent at all beyond stroke
   //     thickness, and gets its centerline placed on a lattice line instead.
   //
-  // Knobs: outline, regularity, fit, alignment, insetMinU/insetMaxU
+  // Knobs: outline, regularity, fit, insetMinU/insetMaxU
   //
   //   outline: filled vs stroked. Line is intrinsically a stroke (forced outline=true).
   //     When stroked, the path is pulled in by sw/2 so the OUTER edge of the stroke lands on
@@ -1773,8 +2155,8 @@ let methods = {
   //           it is enumerated and one member chosen, so the footprint is always filled exactly
   //           rather than approached by rejection. Members with an axis-parallel side (the old
   //           base-and-apex triangle) are in there alongside fully tilted ones. Slivers are
-  //           excluded by LARGE_SHAPE_TRI_MIN_ALT, a tilt-independent measure of how far from
-  //           equilateral a triangle has drifted.
+  //           excluded by LARGE_SHAPE_MIN_WIDTH, the tilt-independent thinness measure every
+  //           irregular form here is held to.
   //
   //   fit: how the built form meets the canvas — three classes, in descending contact with it.
   //     All of them work on the same available box, the lattice less the margin, and in all of
@@ -1795,13 +2177,14 @@ let methods = {
   //       vertices, or by a non-square footprint. The shortfall is always a whole lattice unit
   //       or more, never a sliver — that is the lattice's guarantee, and it is what makes this
   //       read as a deliberate class rather than as a near miss.
-  //     "inset" — a whole-unit margin on all four sides, so the shape floats free of the edges
-  //       entirely. Never shrinks the shape to make room for anything; only the box moves
-  //       (see alignment).
+  //     "inset" — an equal whole-unit margin on all four sides, so the shape floats free of the
+  //       edges entirely and sits dead center in the canvas.
   //
   //     Not every form can be every class, so the roll is taken from what the form can reach:
-  //         Line              → inscribed only. Both endpoints are driving-axis extremes, so it
-  //                             has no cross-only vertex to strand.
+  //         Line              → inset only. It has no cross-only vertex to strand and so could
+  //                             be inscribed at any placement, but edge to edge it divides the
+  //                             canvas instead of sitting on it. The margin is what makes it read
+  //                             as a form.
   //         regular Circle    → inscribed only. Square footprint by definition; four tangents.
   //         Ellipse           → partial only. Its cross axis is capped well under the driving
   //                             one, and an ellipse on a square footprint is a circle.
@@ -1813,28 +2196,15 @@ let methods = {
   //                             exception: stranding its apex means flushing its base, which
   //                             would lay the base along the canvas edge, so it can only be
   //                             partial when filled.
-  //     Nothing is cropped in any class, with one deliberate exception: an inscribed oblique
-  //     line runs its cap past the edge so the stroke meets the edge at its full width rather
-  //     than on a corner (see the ink reserve).
-  //     insetMinU / insetMaxU: the margin per side when centered, in whole lattice units,
-  //       rolled once and shared by both axes so a regular form's box is the same size on
-  //       each. insetMinU also doubles as the hard floor offset can never cross (below).
-  //
-  //   alignment: only consulted when fit is "inset" (the edge classes get their asymmetry from
-  //     which edge they sit flush against). Both settings keep the shape at full size; they
-  //     differ only in where its box sits, never in how big it is.
-  //     "centered" — margin is split evenly: both sides of both axes get exactly the rolled
-  //       insetU, so the box — and the shape filling it — is dead center.
-  //     "offset" — rolls its OWN margin from offsetMarginMinU/MaxU (narrower and larger than
-  //       the centered range, so there is always room to give some up), then moves
-  //       offsetShiftMinU..MaxU whole units from one side to the other — capped so the
-  //       shifted side never drops below the insetMinU floor — on whichever axis or axes
-  //       offsetAxis selects ("horizontal", "vertical", or "both"; an unselected axis stays
-  //       symmetric). Moving the margin rather than shrinking the shape means an offset
-  //       shape is exactly as large as a centered one would be at the same total margin — it
-  //       just isn't centered in it. Note a centered BOX is not the same as a centered
-  //       composition — the irregular forms carry their weight off to one side regardless of
-  //       where the box sits.
+  //     Nothing is cropped in any class: every form's ink lands whole inside the canvas.
+  //     insetMinU / insetMaxU: the margin per side, in whole lattice units, rolled once and
+  //       given to all four sides, so the box — and the shape filling it — is dead center.
+  //       Note that a centered BOX is not the same as a centered composition: the irregular
+  //       forms carry their weight off to one side regardless of where the box sits, and the
+  //       edge classes get their asymmetry from which edge they sit flush against. Placing the
+  //       box itself off center is not on offer; it read as a shape that had drifted rather
+  //       than one that had been placed, and the edge classes already say the same thing with
+  //       conviction.
   //
   // There is one degenerate combination, and it resolves inside the construction rather than
   // by rewriting a trait: a regular square whose tilt parameter p is 0 and which meets the
@@ -1852,16 +2222,12 @@ let methods = {
       outline: 0.5,
       regularity: "random",
       fit: "random",
-      alignment: "random",
+      // Two units per side is the cap, which on a 16-unit lattice leaves the shape 12 of the 16
+      // it could have. A third unit takes it to 10, and by then the margin has stopped reading
+      // as a breath around a canvas-scale form and started reading as a border with a shape
+      // inside it — which is a different composition, and not the one this method is for.
       insetMinU: 1,
-      insetMaxU: 3,
-      // Offset rolls its own, narrower margin range so there is always room for the shift
-      // below without breaching the insetMinU floor.
-      offsetMarginMinU: 2,
-      offsetMarginMaxU: 3,
-      offsetShiftMinU: 1,
-      offsetShiftMaxU: 2,
-      offsetAxis: "random"
+      insetMaxU: 2
     },
     // Overrides are intentionally blank: every subtopic below draws from `defaults` for now.
     // The keys still register largeShape against each subtopic (coverage audit, the real
@@ -1875,7 +2241,7 @@ let methods = {
       "Focus": {},
       "Figure/Ground": {}
     },
-    draw: function(shape, config) {
+    plan: function(shape, config) {
       let outline = chance(config.outline);
       // Line has no interior — always a stroke regardless of the outline knob.
       if (shape === "Line") outline = true;
@@ -1892,9 +2258,10 @@ let methods = {
       // is taken from what the form can reach rather than rolled freely and patched up after.
       let fitOptions = ["inset"];
       if (shape === "Line") {
-        // Both endpoints are driving-axis extremes, so a line has no cross-only vertex at all
-        // and is fully inscribed however it is placed. It can never be partial.
-        fitOptions.push("inscribed");
+        // Inset only. Both endpoints are driving-axis extremes, so a line has no cross-only
+        // vertex at all and would be fully inscribed however it is placed — but a line running
+        // edge to edge reads as the canvas being divided rather than as a form sitting on it,
+        // which is the one thing this method is not for. A margin is what makes it a form.
       } else if (shape === "Circle") {
         // The cross-axis tangent points are cross-only on BOTH sides, which needs a square
         // footprint to reach — true of a circle by definition, and impossible for an ellipse,
@@ -1922,29 +2289,16 @@ let methods = {
       // Both edge classes pin the shape to the canvas; only inset gives it a margin to float in.
       let edgeFit = fit !== "inset";
 
-      // Inset is the only class with room to move — the others are pinned by definition.
-      let alignment = fit === "inset"
-        ? resolveChoice(config.alignment, ["centered", "offset"])
-        : null;
-
       // =====================================================================
       // 1. Footprint — how many whole lattice units the form occupies
       // =====================================================================
       let G = LARGE_SHAPE_UNITS;
       let U = sd / G;
 
-      // Average available box, in units. G is even and the margin total is fixed at 2*marginU
-      // per axis regardless of how alignment splits it between the two sides (see below), so
-      // this stays even and identical for both axes no matter what alignment rolls.
-      // Offset rolls marginU from its own narrower range (offsetMarginMinU/MaxU) rather than
-      // the base insetMinU/MaxU, so there is always at least offsetShiftMaxU of room to give
-      // up on the shifted side without breaching the insetMinU floor.
-      let marginU = 0;
-      if (fit === "inset") {
-        marginU = alignment === "offset"
-          ? R.random_int(config.offsetMarginMinU, config.offsetMarginMaxU)
-          : R.random_int(config.insetMinU, config.insetMaxU);
-      }
+      // Available box, in units. One margin is rolled and every side gets it, so the total per
+      // axis is 2*marginU and the box stays even — which is the parity the centering math
+      // depends on — and identical on both axes.
+      let marginU = fit === "inset" ? R.random_int(config.insetMinU, config.insetMaxU) : 0;
       let availU = G - 2 * marginU;
 
       // Even-only roll, so every span keeps the parity the centering math depends on.
@@ -1955,31 +2309,27 @@ let methods = {
         return lo + 2 * R.random_int(0, (hi - lo) / 2);
       };
 
-      // Driving axis: always the full available box. Nothing shrinks the shape to make room
-      // to move — offset instead redistributes the margin itself (see the per-axis split
-      // below), so the shape is exactly as large under offset as it is centered.
+      // Driving axis: always the full available box. Nothing here shrinks the shape.
       let spanU = availU;
 
-      // Per-axis margin split. Centered (and both edge classes, where marginU is 0 anyway) keeps
-      // both sides at marginU. Offset moves offsetShiftMinU..MaxU whole units from one side
-      // to the other — capped so the shifted side never goes below the insetMinU floor — on
-      // whichever axis or axes offsetAxis selects; an axis it doesn't select stays symmetric.
-      let offsetAxis = alignment === "offset"
-        ? resolveChoice(config.offsetAxis, ["horizontal", "vertical", "both"])
-        : null;
-      let shiftAxis = function(doShift) {
-        if (!doShift) return { start: marginU, end: marginU };
-        let kMax = Math.min(config.offsetShiftMaxU, marginU - config.insetMinU);
-        if (kMax < config.offsetShiftMinU) return { start: marginU, end: marginU };
-        let k = R.random_int(config.offsetShiftMinU, kMax) * (R.random_bool(0.5) ? -1 : 1);
-        return { start: marginU - k, end: marginU + k };
-      };
-      let mx = shiftAxis(offsetAxis === "horizontal" || offsetAxis === "both");
-      let my = shiftAxis(offsetAxis === "vertical" || offsetAxis === "both");
+      // The box, in margin units per side. Both sides of both axes carry the same margin, and
+      // the edge classes carry none at all, so this is the one description both need.
+      let box = { start: marginU, end: marginU };
 
       // Cross axis. Ranges are expressed against spanU so the aspect stays in a sane band at
       // any size: no near-square "irregular" forms and no unreadable slivers. The quad needs
       // 4 units to have a lattice point strictly inside each of its edges.
+      //
+      // The floors are where LARGE_SHAPE_MIN_WIDTH is answered, each converted into the footprint
+      // that delivers it. An ellipse fills its footprint, so its width ratio IS crossU/spanU and
+      // the floor is the constant itself — which leaves it a narrow band, since the ceiling below
+      // is what keeps an irregular circle from reading as a circle.
+      //
+      // The polygons are penalized by their diagonals and need a fatter box for the same number.
+      // Their floor is 0.7 rather than the bare minimum that admits one passing member, because
+      // both are chosen from a family and a floor set at that minimum leaves a family of nearly
+      // none: at 0.7 a third or more of the triangles clear the bar even under the bans below,
+      // and better than half the quad rolls do.
       //
       // The fit class constrains this too, for the forms whose cross-only vertices sit on both
       // sides: those are fully inscribed only when the footprint is square (which flushes both
@@ -1990,18 +2340,19 @@ let methods = {
       if (shape === "Line") {
         crossU = regularity === "regular" ? 0 : rollEven(Math.max(2, spanU * 0.3), spanU);
       } else if (shape === "Circle") {
-        crossU = regularity === "regular" ? spanU : rollEven(spanU / 3, spanU / 1.5);
+        crossU = regularity === "regular" ? spanU
+          : rollEven(spanU * LARGE_SHAPE_MIN_WIDTH, spanU / 1.5);
       } else if (shape === "Square") {
         crossU = regularity === "regular" || fit === "inscribed"
           ? spanU
-          : rollEven(Math.max(4, spanU * 0.45), fit === "partial" ? spanU - 2 : spanU);
+          : rollEven(Math.max(4, spanU * 0.7), fit === "partial" ? spanU - 2 : spanU);
       } else {
-        // The triangle's own proportions are policed by LARGE_SHAPE_TRI_MIN_ALT during the
+        // The triangle's own proportions are policed by LARGE_SHAPE_MIN_WIDTH during the
         // build; this floor only keeps the FOOTPRINT from getting squat, since a squat one
         // leaves too few members of the family passing that test to choose between.
         crossU = regularity === "regular"
           ? 0
-          : rollEven(Math.max(4, spanU * 0.6), fit === "partial" ? spanU - 2 : spanU);
+          : rollEven(Math.max(4, spanU * 0.7), fit === "partial" ? spanU - 2 : spanU);
       }
 
       // =====================================================================
@@ -2042,15 +2393,30 @@ let methods = {
               verts: [[p - hx, -hx], [hx, p - hx], [hx - p, hx], [-hx, hx - p]]
             };
           }
-          // One lattice vertex per footprint edge, strictly inside it (never a corner).
-          return {
+          // One lattice vertex per footprint edge, strictly inside it (never a corner). The four
+          // are rolled independently, which is what lets a quad shear: top and bottom drifting to
+          // opposite ends, with left and right following, folds it into a diagonal bar inside a
+          // footprint that is nowhere near squat. So the roll is measured and repeated. Unlike the
+          // triangle below the family here runs to tens of thousands of members, too many to
+          // enumerate per draw — but the midpoint diamond is its widest member at any footprint,
+          // and the floor above is set so that member always clears the bar, which gives the rolls
+          // somewhere certain to land when they keep coming back thin.
+          let quad = null;
+          for (let attempt = 0; attempt < 24 && !quad; attempt++) {
+            let cand = {
+              kind: "poly",
+              verts: [
+                [ R.random_int(-hx + 1, hx - 1), -hy ],                            // top
+                [ hx,                             R.random_int(-hy + 1, hy - 1) ], // right
+                [ R.random_int(-hx + 1, hx - 1),  hy ],                            // bottom
+                [-hx,                             R.random_int(-hy + 1, hy - 1) ]  // left
+              ]
+            };
+            if (widthRatio(cand) >= LARGE_SHAPE_MIN_WIDTH) quad = cand;
+          }
+          return quad || {
             kind: "poly",
-            verts: [
-              [ R.random_int(-hx + 1, hx - 1), -hy ],                            // top
-              [ hx,                             R.random_int(-hy + 1, hy - 1) ], // right
-              [ R.random_int(-hx + 1, hx - 1),  hy ],                            // bottom
-              [-hx,                             R.random_int(-hy + 1, hy - 1) ]  // left
-            ]
+            verts: [[0, -hy], [hx, 0], [0, hy], [-hx, 0]]
           };
         }
 
@@ -2097,21 +2463,9 @@ let methods = {
                 if (banDriving && (a === hx || a === -hx)) continue;
                 if (banFlatCross && (banBothCross ? (b === hy || b === -hy) : b === flushY)) continue;
                 let v = [[sx * hx, sy * hy], [-sx * hx, b], [a, -sy * hy]];
-                // Twice the area, via the cross product of two edges. Zero means collinear.
-                let area2 = Math.abs(
-                  (v[1][0] - v[0][0]) * (v[2][1] - v[0][1]) -
-                  (v[2][0] - v[0][0]) * (v[1][1] - v[0][1])
-                );
-                if (area2 === 0) continue;
-                let longest = 0;
-                for (let i = 0; i < 3; i++) {
-                  longest = Math.max(longest, Math.hypot(
-                    v[(i + 1) % 3][0] - v[i][0], v[(i + 1) % 3][1] - v[i][1]));
-                }
-                // Shortest altitude ÷ longest side: the altitude onto the longest side is the
-                // shortest one, and area2 / longest is that altitude.
-                let q = area2 / (longest * longest);
-                if (q >= LARGE_SHAPE_TRI_MIN_ALT) tris.push(v);
+                let q = widthRatio({ kind: "poly", verts: v });
+                if (q === 0) continue; // collinear
+                if (q >= LARGE_SHAPE_MIN_WIDTH) tris.push(v);
                 if (!fallback || q > fallback.q) fallback = { v: v, q: q };
               }
             }
@@ -2142,12 +2496,11 @@ let methods = {
       };
 
       // --- Stroke selection ---
-      // medium (sd/10) excluded: on a shape this large it reads as heavy/clunky rather than
-      // a clean outline. thin excluded for the same reason at the other end — on a
-      // canvas-scale form it reads as wispy rather than structural. fine and hairline remain.
-      // Rolled before the fit because a stroke has width: the ink extends past the path,
-      // and the fit has to reserve room for it or the shape gets cropped.
-      let swName = R.random_choice(["fine", "hairline"]);
+      // One weight, no roll. Everything heavier than fine (sd/25) reads as clunky at this
+      // scale rather than as a clean outline, and hairline (sd/120) goes the other way: on a
+      // form that spans the canvas it reads as wispy rather than structural, and it is the
+      // outline that carries the whole drawing here. That leaves fine on its own.
+      let swName = "fine";
       let sw = strokeWidth(sd, swName);
 
       // --- Ink reserve ---
@@ -2171,19 +2524,12 @@ let methods = {
           let dy = geom.verts[1][1] - geom.verts[0][1];
           let dl = Math.hypot(dx, dy);
           let cx = Math.abs(dx / dl), cy = Math.abs(dy / dl);
-          // A cap is square to the LINE, so on an oblique line it meets a canvas edge at a
-          // corner. Holding back the OUTER corner keeps every scrap of ink on the canvas, but
-          // it also pulls the line back until that single corner is all that touches, and the
-          // cap slants away from the edge leaving a wedge of background beside it. Holding back
-          // the INNER corner instead runs the cap out past the edge, so the stroke meets the
-          // edge at its full width and the frame does the cutting — the only overrun anywhere
-          // in this method, and a deliberate one. Inset lines keep the outer reserve: their
-          // boundary is a lattice line, and ink is meant to stop on it, not cross it.
-          //
-          // The two agree exactly on an axis-parallel line (cy === 0), whose cap is already
-          // square to the edge, and the inner reserve is never negative because these lines
-          // are at most 45° off axis (crossU <= spanU, so cy <= cx).
-          pad = (sw / 2) * (edgeFit ? cx - cy : cx + cy);
+          // A cap is square to the LINE, so on an oblique line its corners are the furthest
+          // reach of the ink. Holding back the outer corner keeps every scrap of it inside the
+          // margin: a line's boundary here is a lattice line, and ink is meant to stop on it,
+          // not cross it. On an axis-parallel line (cy === 0) this is just sw/2, the cap being
+          // already square to the box.
+          pad = (sw / 2) * (cx + cy);
         }
       }
 
@@ -2248,12 +2594,11 @@ let methods = {
       }
 
       // --- Placement ---
-      // Returns the ink's start coordinate on one axis, given that axis's own margin split.
-      // Both axes' boxes are the same length (availU*U) regardless of the split, so whichever
-      // axis ends up driving (its ink exactly fills the box) is simply placed AT the box
-      // origin — the margin split already did the offsetting, no separate driving/cross case
-      // needed. Only the shorter (cross) axis for an irregular form has real leftover here,
-      // and that leftover placement is whole units too, so the whole result stays on-lattice.
+      // Returns the ink's start coordinate on one axis, given the box's margin. Both axes' boxes
+      // are the same length (availU*U), so whichever axis ends up driving — its ink exactly fills
+      // the box — is simply placed AT the box origin, with no separate driving/cross case needed.
+      // Only the shorter (cross) axis of an irregular form has real leftover here, and that
+      // leftover placement is whole units too, so the whole result stays on-lattice.
       // `flush` names the end this axis should sit against, or null to roll it.
       let placeInk = function(margin, extent, flush) {
         let boxOrigin = margin.start * U;
@@ -2269,14 +2614,10 @@ let methods = {
           if (flush === "end") return boxOrigin + free;
           return R.random_bool(0.5) ? boxOrigin : boxOrigin + free;
         }
-        if (alignment === "offset") {
-          let maxK = Math.floor(free / U + 1e-9);
-          return boxOrigin + R.random_int(0, Math.max(0, maxK)) * U;
-        }
         return boxOrigin + free / 2;
       };
-      let inkX = placeInk(mx, inkW, null);
-      let inkY = placeInk(my, inkH, flushSide);
+      let inkX = placeInk(box, inkW, null);
+      let inkY = placeInk(box, inkH, flushSide);
 
       // ink box → path box: the reserve is the gap between them on every side.
       let mapX = function(x) { return inkX + pad + (x - ext.minx) * sx; };
@@ -2313,7 +2654,25 @@ let methods = {
         }).length;
       }
 
-      // --- Render ---
+      return {
+        manifest: {
+          outline: outline, regularity: regularity, fit: fit
+        },
+        state: {
+          outline: outline, regularity: regularity, fit: fit,
+          edgeFit: edgeFit, fitted: fitted, geom: geom,
+          G: G, U: U, inkW: inkW, inkH: inkH, inkX: inkX, inkY: inkY,
+          marginU: marginU, contacts: contacts, vertsOnEdge: vertsOnEdge,
+          sw: sw, swName: swName
+        }
+      };
+    },
+
+    render: function(p) {
+      let { outline, regularity, fit, edgeFit, fitted, geom,
+            G, U, inkW, inkH, inkX, inkY, marginU, contacts, vertsOnEdge,
+            sw, swName } = p;
+
       let renderShape = function(g, swVal, colorVal) {
         // Polygons are the one kind whose ink is corrected here rather than in the fit's
         // reserve, because a miter at a sharp corner reaches much further than swVal/2.
@@ -2359,9 +2718,9 @@ let methods = {
           (vertsOnEdge === null ? "" : " | Vertices on edge: " + vertsOnEdge + " of " + fitted.verts.length)
         : "");
       if (fit === "inset") {
-        print("Alignment:", alignment, "| Margin budget:", marginU + "u/side",
-          offsetAxis ? "| Offset axis: " + offsetAxis : "");
-        print("Box L/R/T/B:", mx.start + "u", mx.end + "u", my.start + "u", my.end + "u",
+        // The box is symmetric by construction, so only the ink is worth listing per side: an
+        // irregular form's cross axis has leftover inside the box, and that is where it went.
+        print("Margin:", marginU + "u/side",
           "| Ink L/R/T/B:", inU(inkX), inU(sd - inkX - inkW), inU(inkY), inU(sd - inkY - inkH));
       }
       // The built form in lattice coordinates, which is where tilt now comes from and so the
@@ -2405,16 +2764,161 @@ function chance(val) {
 // Use for knobs like fill, aspect, layout, etc. where the default is "random" + a specific value forces.
 // "any" asks for a feature on without naming which variant: it picks from the options but skips
 // "none", which is how these knobs spell off. That lets one config turn a feature on across methods
-// whose option lists differ — grid's emphasis carries hierarchy, shapeGrid's and stripe's do not — so
-// the caller doesn't have to know each method's vocabulary. On a knob with no "none" it behaves as
-// "random". Note this asks for the knob to be set, not for the outcome to survive: a method can still
-// suppress the feature downstream when the composition it rolled cannot host it legibly.
+// whose option lists differ — grid's emphasis carries hierarchy and shapeGrid's carries scale, and
+// no other method has either — so the caller doesn't have to know each method's vocabulary. On a knob with no "none" it behaves as
+// "random". A method can still take the feature back off downstream when the composition it rolled
+// cannot host it legibly; what happens then is decided by whether the knob was pinned, which is
+// what deriveRequirements below is for.
 function resolveChoice(val, options) {
   if (val === "any") {
     let on = options.filter(o => o !== "none");
     return R.random_choice(on.length > 0 ? on : options);
   }
-  return val === "random" ? R.random_choice(options) : val;
+  // "!value" bans one variant and leaves the rest to chance. Barring one outcome is not the same
+  // as naming another: the roll stays as free as it was, so the composition still reaches every
+  // reading it could have, and the method's own suppression rules can still take the feature back
+  // off — which a ban is content with, since off is not the banned thing either. A method whose
+  // options never included the value has nothing to ban and rolls normally.
+  if (typeof val === "string" && val.charAt(0) === "!") {
+    let left = options.filter(o => o !== val.slice(1));
+    if (left.length === 0) throw new UnsupportedChoice(val, options);
+    return R.random_choice(left);
+  }
+  if (val === "random" || val === undefined || val === null) return R.random_choice(options);
+  // A value this knob has no option for. Passing it through would put a word the method never
+  // implements into its own manifest, where it would then read as the demand having been met by a
+  // draw that ignored it — the exact outcome this architecture is meant to rule out. Raised rather
+  // than corrected because the option list can be narrowed by shape and by earlier rolls, so it is
+  // for the planner to decide whether to re-roll or hand the job to another method.
+  if (!options.includes(val)) throw new UnsupportedChoice(val, options);
+  return val;
+}
+
+// Marker for the case above, so the planner can tell "this attempt asked for a word I don't know"
+// apart from a genuine error in a method.
+class UnsupportedChoice extends Error {
+  constructor(value, options) {
+    super("no option for \"" + value + "\" (has " + options.join(", ") + ")");
+    this.value = value;
+    this.options = options;
+  }
+}
+
+// --- Requirements ---
+// Every method resolves its knobs, then applies rules that can take a feature back off when the
+// composition it rolled cannot host that feature legibly — a grid with no internal line to break,
+// a shape grid too small for an outlier to deviate from anything. Those rules are the quality
+// floor and they stay. What changes is what happens when one fires: instead of the draw going out
+// missing something that was asked for, the attempt is discarded and another is rolled. So a knob
+// pinned in a config is a demand on the OUTCOME rather than a request on the way in, and it is
+// checked against what the plan achieved.
+//
+// A knob is a demand when it names something definite: a value, "any" for "some variant other
+// than off", or "!value" for anything but the one named. Probabilities and weight tables are
+// rolls, and say nothing about how they must land. Only the override layer is read — a method's
+// defaults are what it does when nobody asked for anything, so they never constrain the result.
+//
+// A ban is carried as a demand even though resolveChoice has already kept the value off the roll,
+// because the roll is not the only place an outcome comes from: a method can substitute one
+// variant for another downstream when the composition it rolled cannot host what it picked, and
+// a substitution that lands on the banned value would otherwise go out unchallenged.
+function deriveRequirements(overrides) {
+  let reqs = {};
+  for (let key in (overrides || {})) {
+    let val = overrides[key];
+    if (val === "any") reqs[key] = { on: true };
+    else if (typeof val === "string" && val.charAt(0) === "!") reqs[key] = { not: val.slice(1) };
+    else if (val === "random" || Array.isArray(val)) continue;
+    else if (typeof val === "string") reqs[key] = { value: val };
+    else if (typeof val === "boolean") reqs[key] = { value: val };
+    else if (val === 0 || val === 1) reqs[key] = { value: val === 1 };
+  }
+  return reqs;
+}
+
+// Whether a method takes part in the demanded knobs at all. Read off the method's own defaults, so
+// there is no capability table to fall out of step with what the methods actually do: a knob it
+// never rolls is a knob it can never satisfy, and it should not be offered the job in the first
+// place. Which values of a knob it can reach is left to the attempts below, since several option
+// lists are narrowed by shape and by earlier rolls and could not be restated here without
+// duplicating that logic.
+function canAttempt(methodName, reqs) {
+  let defaults = (methods[methodName] && methods[methodName].defaults) || {};
+  for (let key in reqs) {
+    if (defaults[key] === undefined) return false;
+  }
+  return true;
+}
+
+// The first demand a plan failed to meet, described for the report, or null when it qualifies.
+// "on" accepts any value that isn't one of the ways these knobs spell off; "not" accepts every
+// value but the one named, off included.
+function unmetRequirement(manifest, reqs) {
+  for (let key in reqs) {
+    let req = reqs[key];
+    let got = manifest[key];
+    let off = got === "none" || got === false || got === undefined || got === null;
+    let bad = req.on ? off : req.not !== undefined ? got === req.not : got !== req.value;
+    if (bad) {
+      return key + " came out " + got + ", required "
+        + (req.on ? "any" : req.not !== undefined ? "anything but " + req.not : req.value);
+    }
+  }
+  return null;
+}
+
+// How many rolls one method gets before the job passes to another. Generous because a rejected
+// attempt costs only arithmetic — nothing has been drawn — and because the odds of a given feature
+// surviving vary a lot by method: emphasis lands far more often in shapeGrid than in stripe.
+const PLAN_ATTEMPTS = 80;
+
+// Roll compositions until one delivers the demanded outcome. This is only safe to do because every
+// method decides everything before it paints anything, so a plan that falls short can be dropped
+// whole with nothing on the canvas to undo. With no demands the first plan always qualifies, which
+// is what keeps the unconstrained pipeline consuming precisely the randomness it did before.
+function planComposition(methodName, shape, config, reqs) {
+  let unmet = null;
+  for (let i = 0; i < PLAN_ATTEMPTS; i++) {
+    let plan;
+    try {
+      plan = methods[methodName].plan(shape, config);
+    } catch (e) {
+      // A knob pinned to a word this method has no option for. Whether that is permanent or just
+      // this roll depends on the knob — several option lists are narrowed by shape and by earlier
+      // rolls — so it counts as one failed attempt rather than a verdict on the method.
+      if (!(e instanceof UnsupportedChoice)) throw e;
+      unmet = e.message;
+      continue;
+    }
+    unmet = unmetRequirement(plan.manifest, reqs);
+    if (!unmet) return { plan: plan, method: methodName, attempts: i + 1 };
+  }
+  return { plan: null, method: methodName, attempts: PLAN_ATTEMPTS, unmet: unmet };
+}
+
+// Shape and subtopic are fixed inputs, so the method is the only part of the selection free to
+// move. Try the one that was picked, and if it cannot land the demand within its budget hand the
+// job to another that could. Nothing here settles for a composition that drops the demand: when no
+// method can host it, that is a real gap between what was asked for and what the methods build,
+// and it is reported as one.
+//
+// Demands are looked up per method rather than passed in as one set, because an override today is
+// written per method per subtopic — so handing the job to another method also means reading that
+// method's own terms rather than holding it to terms written for a different one.
+function planForDemands(primary, candidates, shape, configFor, reqsFor) {
+  let first = planComposition(primary, shape, configFor(primary), reqsFor(primary));
+  if (first.plan) return first;
+  // Reordering costs randomness, so it happens only once the primary has actually failed — an
+  // unconstrained draw never gets here, and its stream stays untouched.
+  let others = candidates.filter(function(m) { return m !== primary && canAttempt(m, reqsFor(m)); });
+  for (let name of scramble(others)) {
+    let next = planComposition(name, shape, configFor(name), reqsFor(name));
+    if (next.plan) {
+      next.replaced = primary;
+      return next;
+    }
+  }
+  return { plan: null, method: null, unmet: first.unmet, tried: [primary].concat(others) };
 }
 
 // Grow a compact, roughly-circular blob on a cols×rows grid. Starting from a seed cell, we
@@ -2494,6 +2998,35 @@ function drawShape(shape, x, y, w, h, sw) {
   }
 }
 
+// Minimum width ÷ diameter for a built largeShape form: how far it is from being a sliver, on
+// the scale LARGE_SHAPE_MIN_WIDTH is set against. An ellipse reduces to its minor axis over its
+// major. For a polygon the narrowest slab always lies flush to an edge, so the minimum width is
+// the smallest of the per-edge extents, and the diameter is the greatest distance between two
+// vertices — both exact for the convex forms built here, and a lower bound if one ever isn't,
+// which errs toward calling a shape thin rather than passing a thin one.
+function widthRatio(g) {
+  if (g.kind === "ellipse") return Math.min(g.rx, g.ry) / Math.max(g.rx, g.ry);
+  let v = g.verts;
+  let minW = Infinity, diam = 0;
+  for (let i = 0; i < v.length; i++) {
+    for (let k = i + 1; k < v.length; k++) {
+      diam = Math.max(diam, Math.hypot(v[k][0] - v[i][0], v[k][1] - v[i][1]));
+    }
+    let a = v[i], b = v[(i + 1) % v.length];
+    let ex = b[0] - a[0], ey = b[1] - a[1];
+    let len = Math.hypot(ex, ey);
+    if (len < 1e-9) return 0;
+    let lo = Infinity, hi = -Infinity;
+    for (let k = 0; k < v.length; k++) {
+      let d = (-ey * (v[k][0] - a[0]) + ex * (v[k][1] - a[1])) / len;
+      lo = Math.min(lo, d);
+      hi = Math.max(hi, d);
+    }
+    minW = Math.min(minW, hi - lo);
+  }
+  return diam > 1e-9 ? minW / diam : 0;
+}
+
 // Inset a convex polygon by d, by offsetting each edge inward along its normal and
 // re-intersecting adjacent offsets. Stroking the result at weight 2d puts the OUTER boundary of
 // the ink — miters included — on the original outline. Callers are convex by construction and d
@@ -2552,8 +3085,8 @@ function shapeBox(shape, x, y, w, h) {
 // Engines pick the named subset appropriate to their visual character. grid, shapeGrid,
 // and stripe share pickStrokeWeights' identical thick/heavy/medium(+thin/fine) list;
 // shapeProgression picks from medium/thin/fine/hairline directly, filtered by its own
-// gap constraint; largeShape picks from fine/hairline directly — a canvas-scale form
-// only reads cleanly at the two thinnest weights (see largeShape's own stroke comment).
+// gap constraint; largeShape doesn't pick at all and always uses fine — a canvas-scale
+// form reads cleanly at that one weight only (see largeShape's own stroke comment).
 // The catalog is the union of all current per-engine values; named entries can be
 // added later without touching engine code.
 const STROKE_WEIGHTS = {
@@ -2562,7 +3095,7 @@ const STROKE_WEIGHTS = {
   medium:   10,   // unit/10  — shared by grid/shapeGrid/stripe, and shapeProgression
   thin:     16,   // unit/16  — shared by grid/shapeGrid/stripe, and shapeProgression
   fine:     25,   // unit/25  — shared by grid/shapeGrid/stripe, shapeProgression, largeShape
-  hairline:120    // unit/120 — canvas-scale weight for shapeProgression and largeShape
+  hairline:120    // unit/120 — thinnest, for shapeProgression
 };
 
 // Clearance policy: strokes are centered on the rendered position (line, shape edge)
@@ -2590,27 +3123,6 @@ function pickStrokeWeights(baseNames, ratio) {
   if (ratio >= 1/20) names.push("thin");
   if (ratio >= 1/10) names.push("fine");
   return names;
-}
-
-// Pick a varied outer/inner stroke-weight pair from a weight name list.
-// Used by grid (outer group border vs inner cell lines) and stripe (outer frame
-// vs internal boundaries). Returns { swOuter, swInner, swName } or null if
-// the list has fewer than 2 entries (can't form a pair).
-// The pair is chosen so outer > inner (earlier in the list = heavier).
-function pickVariedPair(unit, names) {
-  if (names.length < 2) return null;
-  let pairs = [];
-  for (let a = 0; a < names.length - 1; a++) {
-    for (let b = a + 1; b < names.length; b++) {
-      pairs.push([a, b]);
-    }
-  }
-  let pair = R.random_choice(pairs);
-  return {
-    swOuter: strokeWidth(unit, names[pair[0]]),
-    swInner: strokeWidth(unit, names[pair[1]]),
-    swName: names[pair[0]] + "/" + names[pair[1]]
-  };
 }
 
 // Pick one weight uniformly from a list of names, optionally filtered so the chosen
@@ -2786,18 +3298,88 @@ let testShape = null;                   // e.g. "Line", "Circle", "Square", "Tri
 // A test case is one family worth reviewing: which methods to sample from, and knob values layered
 // over whichever method gets picked. One case is drawn per refresh, so a list of them reviews
 // several families side by side rather than one at a time. Takes precedence over testMethod above;
-// set to null to go back to it. Use "any" on a multi-option knob to turn a feature on without
-// naming the variant, and remember a method can still suppress a feature it cannot host legibly —
-// these cases ask for the knob, not the outcome.
-// Null: no family scoped, so testMethod above runs full random across every method. The two cases
-// last used are kept commented for easy revert, and as a reminder of the shape of one.
+// set to null to go back to it. On a multi-option knob, "any" turns a feature on without naming
+// the variant, and "!variant" rules one out while leaving the rest of the roll alone.
+//
+// A pinned knob is a demand on the OUTCOME: every draw from a case shows the feature it names, or
+// reports why it could not and draws nothing. So a case is a review of one family, not a sample
+// that happens to include it — no refresh is spent on a composition that quietly left the feature
+// out. See deriveRequirements.
 let testCases = null;
+
+// Saved scopes — swap one of these back in when the current work is done.
+//
+// shapeGrid read as a concentration: the cluster coverage on its own, with no emphasis, so what
+// every refresh shows is the blob's own shape rather than the blob with something singled out of
+// it. One flat color, so the only thing varying across the field is which cells are in it — a
+// gradient tints by position in the grid, which describes the lattice the cells were placed on
+// rather than the shape they ended up making. And 3 cells on both axes at the least, so the blob
+// always has a field to be compact inside of.
+// These four are a candidate definition for the Concentration subtopic rather than anything the
+// method should hardwire, so they live here until that subtopic is wired up.
 // let testCases = [
-//   // Emphasis across the three methods that implement it.
+//   {
+//     methods: ["shapeGrid"],
+//     config: { coverage: "cluster", emphasis: "none", colorScheme: "single", minAxis: 3 }
+//   }
+// ];
+//
+// shapeGrid at full random.
+// let testCases = [
+//   { methods: ["shapeGrid"], config: {} }
+// ];
+//
+// Stripe's concentration. Fires in every channel the method has, filled and outlined both, since
+// unlike scale it only changes where the divisions fall.
+// let testCases = [
+//   { methods: ["stripe"], config: { emphasis: "concentration" } }
+// ];
+//
+// stripe at full random, for reading the newer emphases against the field they share.
+// let testCases = [
+//   { methods: ["stripe"], config: {} }
+// ];
+//
+// Stripe's scale. Filled and inset always, so this is also the scope for reading how much of the
+// method's range it takes off the table when it fires.
+// let testCases = [
+//   { methods: ["stripe"], config: { emphasis: "scale" } }
+// ];
+//
+// grid at full random.
+// let testCases = [
+//   { methods: ["grid"], config: {} }
+// ];
+//
+// shapeGrid's scale outlier, the treatment just finished. Span left random, so refreshing shows
+// both block sizes; pin scaleSpan to review one of them on its own.
+// let testCases = [
+//   { methods: ["shapeGrid"], config: { emphasis: "scale" } }
+// ];
+//
+// shapeProgression at full random.
+// let testCases = [
+//   { methods: ["shapeProgression"], config: {} }
+// ];
+//
+// largeShape at full random, the method just finished. Worth re-running after any change to
+// LARGE_SHAPE_MIN_WIDTH or the cross-axis floors, since those decide the whole family of forms.
+// let testCases = [
+//   { methods: ["largeShape"], config: {} }
+// ];
+//
+// Stripe's anomaly. Worth re-running after any change to the count pool or the palette, since both
+// feed the run the anomaly is cut from.
+// let testCases = [
+//   { methods: ["stripe"], config: { emphasis: "anomaly" } }
+// ];
+//
+// The broad review: emphasis across the three methods that implement it, plus gradient in the two
+// that have it. Both of those methods force colorScheme to single when outlined, so outlined rolls
+// simply fail the gradient demand and get re-rolled — no need to pin outline off by hand.
+// let testCases = [
 //   { methods: ["grid", "shapeGrid", "stripe"], config: { emphasis: "any" } },
-//   // Gradient in the two that have it. outline is pinned off because both force colorScheme to
-//   // single when outlined, which would hide the gradient being reviewed.
-//   { methods: ["shapeGrid", "stripe"], config: { colorScheme: "gradient", outline: 0 } }
+//   { methods: ["shapeGrid", "stripe"], config: { colorScheme: "gradient" } }
 // ];
 
 function setup() {
@@ -2817,15 +3399,23 @@ function setup() {
     } else {
       methodList = Array.isArray(testMethod) ? testMethod : [testMethod];
     }
-    // Pick shape first (from the union of shapes supported across the test methods),
-    // then pick a method that supports it. Mirrors the real pipeline's filter logic.
+    // A test case's knobs apply to whichever method is picked, so every method answers to the same
+    // demands here.
+    let caseReqs = deriveRequirements(overrides);
+    reqsFor = function() { return caseReqs; };
+    // Methods that never roll a demanded knob are dropped before the shape is picked, not after: a
+    // shape contributed only by an ineligible method would be a shape nothing left in the pool can
+    // draw, and the shape is not something the planner may re-roll. With nothing demanded this
+    // filter passes everything through and the selection is exactly what it was.
+    let eligible = methodList.filter(m => canAttempt(m, caseReqs));
     let shapePool = testShape ? [testShape]
-      : [...new Set(methodList.flatMap(m => methods[m].shapes))];
+      : [...new Set((eligible.length > 0 ? eligible : methodList).flatMap(m => methods[m].shapes))];
     shape = R.random_choice(shapePool);
-    let compatible = methodList.filter(m => methods[m].shapes.includes(shape));
-    comp = R.random_choice(compatible);
+    candidates = eligible.filter(m => methods[m].shapes.includes(shape));
+    comp = candidates.length > 0 ? R.random_choice(candidates) : null;
     // Copy rather than alias the defaults, so a case's overrides can't leak into the registry.
-    config = Object.assign({}, methods[comp].defaults || {}, overrides);
+    configFor = function(m) { return Object.assign({}, methods[m].defaults || {}, overrides); };
+    config = comp ? configFor(comp) : {};
     topic = "Test";
     sub = "Test";
   } else {
@@ -2838,14 +3428,14 @@ function setup() {
     s = R.random_int(0, shapes.length - 1);
     shape = shapes[s];
 
-    let compatibleMethods = getMethodsForSubtopic(sub, shape);
-    if (compatibleMethods.length > 0) {
-      comp = R.random_choice(compatibleMethods);
-    } else {
-      comp = null;
-    }
+    // A subtopic's overrides are what it demands of the composition; a method's own defaults are
+    // just how it behaves when nothing was asked, so they never constrain anything.
+    reqsFor = function(m) { return deriveRequirements(methods[m].subtopics[sub] || {}); };
+    candidates = getMethodsForSubtopic(sub, shape).filter(m => canAttempt(m, reqsFor(m)));
+    comp = candidates.length > 0 ? R.random_choice(candidates) : null;
 
-    config = comp ? resolveConfig(comp, sub) : {};
+    configFor = function(m) { return resolveConfig(m, sub); };
+    config = comp ? configFor(comp) : {};
   }
 
   // --- Color selection: preset palette ---
@@ -2896,6 +3486,16 @@ function draw() {
 
   background(c2);
 
+  // Plan before reporting. The planner may hand the job to a different method than the one setup
+  // picked, and printing first would name a method that never ran.
+  let picked = (comp && methods[comp])
+    ? planForDemands(comp, candidates, shape, configFor, reqsFor)
+    : null;
+  if (picked && picked.plan) {
+    comp = picked.method;
+    config = configFor(comp);
+  }
+
   print("Hash:", tokenData.hash);
   print("Palette:", ci, cReversed ? "(reversed)" : "");
   print("Topic:", topic);
@@ -2904,10 +3504,30 @@ function draw() {
   print("Method:", comp);
   print("Config:", Object.keys(config).length > 0 ? config : "defaults");
 
-  if (comp && methods[comp]) {
-    methods[comp].draw(shape, config);
-  } else {
+  let demands = comp ? reqsFor(comp) : {};
+  let demanded = Object.keys(demands);
+  if (demanded.length > 0 && picked) {
+    print("Required:", demanded.map(function(k) {
+      let d = demands[k];
+      return k + "=" + (d.on ? "any" : d.not !== undefined ? "not " + d.not : d.value);
+    }).join(", "),
+      picked.plan
+        ? "| met on attempt " + picked.attempts + " of " + PLAN_ATTEMPTS +
+          (picked.replaced ? " (" + picked.replaced + " could not, handed to " + comp + ")" : "")
+        : "| UNMET");
+  }
+
+  if (picked && picked.plan) {
+    methods[comp].render(picked.plan.state);
+  } else if (!comp) {
     print("No compatible methods available");
+  } else {
+    // Deliberately draws nothing. A composition that quietly dropped what was required of it is
+    // the failure this architecture exists to prevent, so the gap is left visible instead: either
+    // the demand is unreachable for this shape, or no method has been built that can host it.
+    print("REQUIREMENT UNMET:", picked.unmet, "|", shape, "under", sub,
+      "| tried", picked.tried.join(", "), "at " + PLAN_ATTEMPTS + " attempts each.",
+      "Nothing drawn.");
   }
 
   pop();
