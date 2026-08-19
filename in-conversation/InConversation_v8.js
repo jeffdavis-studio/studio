@@ -3935,6 +3935,14 @@ function auditCoverage() {
 let testMethod = null;  // array (repeat to weight), string, or null
 let testShape = null;   // e.g. "Line", "Circle", "Square", "Triangle" (null = random)
 
+// Hold the real pipeline to one subject. Unlike the two above this bypasses nothing: the
+// topic/subtopic draw still runs, every method wired to the subtopic is still in the running, each
+// answers on its own terms, and the demands are still enforced — the roll is just narrowed to the
+// one subtopic instead of every wired one. Which is what it takes to review a subject as the
+// pipeline actually composes it, since a subtopic is answered by several methods in different ways
+// and a testCases entry can only name knobs.
+let testSubtopic = null;  // subtopic name, or null for every wired subtopic
+
 // A test case is one family worth reviewing: which methods to sample from, and knob values layered
 // over whichever method gets picked. One case is drawn per refresh, so a list of them reviews
 // several families side by side rather than one at a time. Takes precedence over testMethod above;
@@ -3948,6 +3956,14 @@ let testShape = null;   // e.g. "Line", "Circle", "Square", "Triangle" (null = r
 let testCases = null;
 
 // Saved scopes — swap one of these back in when the current work is done.
+//
+// Grid's hierarchy on its own. Only useful for reading the emphasis apart from the subtopic that
+// carries it: grid is the one method with an emphasis by this name, and the Hierarchy subtopic also
+// answers through shapeGrid's and stripe's gradients, which this never shows. For the subject as
+// the pipeline composes it, use testSubtopic above.
+// let testCases = [
+//   { methods: ["grid"], config: { emphasis: "hierarchy" } }
+// ];
 //
 // largeShape at full random, now that the inset margin runs the lattice's whole 1-to-7 span.
 // let testCases = [
@@ -4123,6 +4139,11 @@ function setup() {
         let candShapes = shapes.filter(sh => getMethodsForSubtopic(topics[ti][si], sh).length > 0);
         if (candShapes.length > 0) wired.push([ti, si, candShapes]);
       }
+    }
+    if (testSubtopic) {
+      let held = wired.filter(x => topics[x[0]][x[1]] === testSubtopic);
+      if (held.length > 0) wired = held;
+      else print("testSubtopic \"" + testSubtopic + "\" is not wired to any method — ignoring.");
     }
     // Nothing wired at all is a broken registry rather than a composition to roll, so the old
     // free roll is left in place to fail loudly rather than quietly drawing from an empty pool.
