@@ -908,8 +908,8 @@ let methods = {
   // SHAPE GRID
   // Array of shapes in a uniform grid with optional emphasis.
   // Knobs: colorScheme (single/gradient), outline, coverage (all/scattered/wander/cluster/void),
-  //   aspect (square/wide/tall), emphasis (none/anomaly/focus/scale), anomalyKind, scaleSpan,
-  //   minAxis, range
+  //   aspect (square/wide/tall), emphasis (none/anomaly/focus/scale/concentration), anomalyKind,
+  //   scaleSpan, concSpan, concSparse, minAxis, range
   //   colorScheme: single or gradient. Iteration unit is the cell. Gradient sweeps along one
   //     grid axis with no direction trait of its own — the global quarter-turn canvas rotation
   //     supplies the apparent direction, and buildColorPalette's own reversal decides which end
@@ -924,11 +924,16 @@ let methods = {
   //     cell independently 50%. "wander" → a random-walk blob (meandering, irregular). "cluster"
   //     → a compact, roughly-circular blob grown toward its own centroid, sized anywhere from 3
   //     cells to half the grid. "void" → the inverse of cluster: full coverage with a rounded
-  //     blob-shaped hole punched out.
-  //   emphasis: single deliberate outlier, one cell singled out from the field. Whichever
-  //     value is in play, the cell is one that renders and is kept off the grid's perimeter
-  //     ring where there is an interior to put it in — the perimeter is cropped in half under
-  //     range="extended", and reads as a ragged border under the others.
+  //     blob-shaped hole punched out, the hole sized by that same 3-to-half roll since it is the
+  //     same object with the shapes on the other side of it.
+  //   emphasis: which Emphasis treatment the composition carries. Values are named for the
+  //     subtopics of the Emphasis topic, so each one added here is a subtopic becoming buildable.
+  //     All but the last single out one part of the field — a cell for anomaly and focus, a square
+  //     block for scale and concentration — and that part is always one that renders, kept off the
+  //     grid's perimeter ring where there is an interior to put it in, since the perimeter is
+  //     cropped in half under range="extended" and reads as a ragged border under the others.
+  //     Isolation is the exception: it marks the field by what is missing from it, so there is no
+  //     singled-out part to place and the perimeter rule has nothing to apply to.
   //     "anomaly" breaks the field at that cell, in one of two ways set by anomalyKind.
   //     "focus" recolors it — the outlier is the strongest thing on the canvas. Filled, it takes
   //       c1 and the field is held back from that color by whatever means the scheme allows
@@ -945,12 +950,90 @@ let methods = {
   //       the block on each axis, or the block spans an axis end to end and reads as a band; and
   //       needs four more shapes left over once it has taken its own, or there is no field left
   //       for it to be an outlier in.
-  //   scaleSpan: how many cells on a side the scale block covers — "2x2" or "3x3". Only
-  //     consulted when emphasis="scale". A 3×3 asks a lot of the field (nine drawn cells in a
-  //     square, five cells on each axis to stay off the perimeter, thirteen shapes in total), so
-  //     when the grid or the coverage can't seat one it steps down to 2×2 rather than taking the
-  //     emphasis off — the same trade anomalyKind makes when a hole can't read and it
-  //     substitutes a shape instead.
+  //     "concentration" packs it — scale's inverse, working the same square block of cells, but
+  //       filling it with MORE of the field's shapes rather than one bigger one. The shapes stay
+  //       exactly the field's size; only the step between them shortens. That is the whole point
+  //       of the treatment and the reason it costs so much elsewhere: shapes here fill their
+  //       cells, so size and pitch are one number, and the only way to raise the density without
+  //       touching the size is to make the room to do it in. So the field opens up — every gap
+  //       widens to concSparse shape-widths — and the patch keeps a normal grid's own density,
+  //       which now reads as dense against everything around it. The field's shapes come out
+  //       smaller than a normal grid's for the canvas the gaps take, which is what holds the cell
+  //       count down to 6 an axis here.
+  //       The patch runs 3 to 5 shapes across. Under three it is not gathered enough to read as
+  //       one; over five the eye stops counting and takes the block as a grey mass, which is the
+  //       same failure as letting the shapes touch, seen from further off.
+  //       Coverage resolves to "all", colorScheme to "single", aspect to "square" and range to
+  //       "inset". The first two are the ones that matter: the reading is a difference in
+  //       density, and a coverage that drops cells at random is a second density variation
+  //       competing with it, while a gradient tints by grid position and so hands the patch a
+  //       different tone from its field — which turns a difference in spacing into a difference
+  //       in color. The other two had nothing left to say once the sparseness began deriving its
+  //       own margins. The block rules are scale's, unchanged.
+  //     "isolation" strands it — a rounded blob of cells emptied out of an otherwise full field,
+  //       with one shape left standing in the middle of the gap. Both halves are the treatment.
+  //       The void alone is a field with a piece missing and missing is all it says; the lone form
+  //       alone is just another cell. Together the empty ring holds the field off at a distance
+  //       and the form is left on its own inside it, which is the thing being built. It is also
+  //       the only treatment here that marks a shape without touching the shape: everything the
+  //       eye reads happens in the cells around it.
+  //       The form is the field's own primitive at the field's own size on the field's own
+  //       lattice, since the only thing that should set it apart is where it stands. A different
+  //       primitive reads as anomaly's substitution and a different size reads as scale, and
+  //       either way the isolation stops carrying the piece and becomes a second remark about a
+  //       shape that is already deviating some other way.
+  //       Where it stands is settled on how few shapes surround the cell, since a blob is not a
+  //       disc and the middle of a lopsided one can still have the field against one side; the
+  //       perimeter is avoided where possible, that ring being cropped under range="extended", and
+  //       the centroid only breaks ties. Then all eight neighbors are emptied outright, whatever
+  //       the blob left there — two shapes with nothing between them are in the relation every
+  //       other pair in the field has, corners included, and one such neighbor is enough for the
+  //       form to rejoin the field it is meant to stand apart from. Cleared here rather than
+  //       demanded of the roll because no void short of 9 cells can promise a clear ring at every
+  //       shape a blob might take, and sizing for that worst case would cost every draw to fix a
+  //       fraction of them. The placement earns most of it back: more often than not the chosen
+  //       cell is already clear and nothing is removed.
+  //       The form also has to be the ONLY thing standing alone. A blob that meets the edge of the
+  //       grid in two places cuts a piece of field off behind it, and that piece is a second thing
+  //       on its own in the picture — at one cell literally another isolated form, competing with
+  //       the one placed on purpose, and at three or four a stray clump with no reason to be
+  //       there. So the field is checked for pieces that touch nothing else, corner contact
+  //       included, and everything outside the largest is emptied too, which reads as the void
+  //       having taken that corner as well.
+  //       Both removals are priced before either is made. The field keeps 4 shapes at the least,
+  //       and the gap has to stay under half the grid — void's own ceiling, reapplied after the
+  //       fact because the ring and the strays are taken after the roll that observed it, and a
+  //       gap grown past half stops being a hole in a field and becomes a field with some shapes
+  //       around the rim. Failing either, the treatment is turned down whole rather than left
+  //       half-cut, and the planner re-rolls.
+  //       Coverage resolves to "void", since that IS the treatment rather than a setting for it.
+  //       No other distribution can carry it: "all" leaves nothing absent, and the three that do
+  //       remove cells remove them all over the field, where a hole among holes is not a hole.
+  //       Nothing else is forced, because nothing else is in the way — an absence is the one mark
+  //       that competes with no other knob for the channel it reads on, so color, aspect, framing
+  //       and outline all stay free.
+  //       The grid takes a floor of 5 cells on both axes, which is set by the cleared ring: at 3
+  //       the ring reaches both edges and halves the field every time, at 4 it spares a single
+  //       line of cells and the piece reads as two strips, and at 5 it sits inside the field with
+  //       room on both sides. That also covers what a hole needs on its own account — an interior
+  //       to sit in, which an axis of two or fewer does not have. The hole's own size is void's,
+  //       4 cells to half the grid.
+  //   scaleSpan / concSpan: how many cells on a side the scale or concentration block covers —
+  //     "2x2" or "3x3". Each is only consulted under its own emphasis. A 3×3 asks a lot of the
+  //     field (nine drawn cells in a square, five cells on each axis to stay off the perimeter,
+  //     thirteen shapes in total), so when the grid or the coverage can't seat one it steps down
+  //     to 2×2 rather than taking the emphasis off — the same trade anomalyKind makes when a hole
+  //     can't read and it substitutes a shape instead. Concentration is the one case that can
+  //     step the other way: a 2×2 block is three shape-widths across at the least sparse setting
+  //     and fits three shapes, no more than the two it replaced plus one, so where the field is
+  //     barely open the block widens to 3×3 to have gaps worth reclaiming.
+  //   concSparse: how far the field opens up for a concentration, as the gap between its shapes
+  //     over the size of one — 1 means gaps as wide as the shapes. Rolled from the list, so the
+  //     density contrast varies from draw to draw; the patch's count follows from it, since a
+  //     more open field leaves more room to reclaim, up to the cap. Past the point where the cap
+  //     binds, a wider setting still reads: the field is more open even though the patch has
+  //     stopped growing, and the contrast between them goes on widening. Only consulted when
+  //     emphasis="concentration".
   //   No "scattered" emphasis value because that's just coverage="scattered" — the layout knob
   //   covers the many-deviations case.
   //   anomalyKind: which way an anomaly breaks the field. "hole" empties the cell, so the
@@ -988,6 +1071,8 @@ let methods = {
       emphasis: "random",
       anomalyKind: "random",
       scaleSpan: "random",
+      concSpan: "random",
+      concSparse: [1, 1.5, 2],
       minAxis: 1,
       range: "random"
     },
@@ -1008,9 +1093,40 @@ let methods = {
       if (outline) colorScheme = "single";
       let coverage = resolveChoice(config.coverage, ["all", "scattered", "wander", "cluster", "void"]);
       let aspect = resolveChoice(config.aspect, ["square", "wide", "tall"]);
-      let emphasis = resolveChoice(config.emphasis, ["none", "anomaly", "focus", "scale"]);
+      let emphasis = resolveChoice(config.emphasis,
+        ["none", "anomaly", "focus", "scale", "concentration", "isolation"]);
       let anomalyKind = resolveChoice(config.anomalyKind, ["hole", "shape"]);
       let scaleSpan = resolveChoice(config.scaleSpan, ["2x2", "3x3"]);
+      let concSpan = resolveChoice(config.concSpan, ["2x2", "3x3"]);
+      // How far the field opens up, as the gap between its shapes over the size of one. See the
+      // layout block, which is where this is spent.
+      let concSparse = R.random_choice(config.concSparse);
+      // Concentration is read as a difference in density, so it takes over every other knob that
+      // moves density around — otherwise the reading it depends on is being written by something
+      // else at the same time. Coverage is the direct competitor: a field with cells missing at
+      // random is a field whose density already varies, and the patch becomes the densest part of
+      // a noisy gradient instead of the one departure from a regular field. The layout below
+      // derives its own margins from the sparseness, which is the whole composition here, so the
+      // aspect bias and the edge states have nothing left to say — an inset is also what frames
+      // the field, and a field is what the patch needs to be dense against.
+      // The color scheme goes for the same reason the coverage does. A gradient tints by position
+      // in the grid, so it lays a second reading across the canvas — one that varies along an axis
+      // while the density varies at one place — and the patch arrives already a different tone
+      // from the field it is meant to be denser than, which turns a difference in spacing into a
+      // difference in color. Flat, the only thing that changes anywhere is how close together the
+      // shapes are.
+      if (emphasis === "concentration") {
+        coverage = "all";
+        aspect = "square";
+        colorScheme = "single";
+      }
+      // Isolation IS the void coverage, so it takes it rather than hoping to roll it. None of the
+      // other distributions can carry the reading: "all" leaves nothing absent, and the three that
+      // remove cells remove them everywhere, where a hole among holes is not a hole. Nothing else
+      // is forced, because nothing else is in the way — the treatment is an absence, and an
+      // absence is the one mark that does not compete with color, aspect or framing for the
+      // channel it reads on.
+      if (emphasis === "isolation") coverage = "void";
       // A hole needs a full field for its absence to read as deliberate. Every coverage mode but
       // "all" is already removing cells, so an emptied one arrives as another gap among many
       // instead of as the outlier — the same reason grid keeps its single-segment anomaly out of a
@@ -1032,6 +1148,7 @@ let methods = {
         : ["inset", "extended"];
       let range = resolveChoice(config.range, edgeStates);
       if (!edgeStates.includes(range)) range = "inset";
+      if (emphasis === "concentration") range = "inset";
       let topEdge = range, rightEdge = range, bottomEdge = range, leftEdge = range;
 
       // --- Grid dimensions ---
@@ -1047,10 +1164,31 @@ let methods = {
       // nothing left for the planner to check. Clamped to the ceiling so a floor set past it
       // narrows the grid to one size instead of looping forever.
       let minAxis = Math.max(1, Math.min(config.minAxis || 1, 10));
+      // A concentration is bounded at both ends. It spends canvas on the gaps it opens up, so its
+      // shapes come out smaller than a normal grid's at the same count — and the patch has to hold
+      // several of them side by side inside two or three of those cells, so ten across a sparse
+      // canvas leaves nothing big enough to read either way. At the other end its block needs
+      // three cells on both axes before it can be seated at all, and a roll that lands under that
+      // has nothing to do but throw the emphasis away. Both are answered here, where the counts
+      // come from, rather than downstream where the only remedy left is to give up.
+      //
+      // Isolation floors higher, at 5, and the number comes from the ring it clears around its
+      // form. That ring is 3 cells across, so on a 3-wide grid it reaches both edges and cuts the
+      // field in half every single time; at 4 it spares one line of cells, which holds the field
+      // together by a thread and leaves the composition looking like two strips. 5 is where the
+      // ring sits inside the field with something to spare on both sides, and it subsumes the
+      // reason concentration floors at 3 — a hole wants an interior to sit in, and an axis of two
+      // or fewer has none, so the blob reaches an edge and the piece reads as a field that was
+      // cropped rather than one with something taken out of it. No ceiling either way: a hole in a
+      // fine field reads as well as one in a coarse field, the two differing only in how much of
+      // the field the same hole spans.
+      let maxAxis = emphasis === "concentration" ? 6 : 10;
+      let axisFloor = emphasis === "concentration" ? 3 : emphasis === "isolation" ? 5 : 1;
+      let loAxis = Math.min(Math.max(minAxis, axisFloor), maxAxis);
       let rows, cols;
       do {
-        rows = R.random_int(minAxis, 10);
-        cols = R.random_int(minAxis, 10);
+        rows = R.random_int(loAxis, maxAxis);
+        cols = R.random_int(loAxis, maxAxis);
       } while (
         (rows === 1 && cols === 1) ||
         Math.max(rows, cols) / Math.min(rows, cols) > MAX_CELL_RATIO
@@ -1121,13 +1259,32 @@ let methods = {
         drawn = growBlob(cols, rows, target, R.random_int(0, cols - 1), R.random_int(0, rows - 1));
       } else if (coverage === "void") {
         // Inverse cluster: full coverage minus a compact circular blob, so the field reads as a
-        // solid grid with a rounded hole punched out. The void spans a minority of the grid and
-        // always leaves ≥2 cells behind; its seed is biased toward the interior (when there's
-        // room) so the hole sits inside the field rather than biting an edge.
+        // solid grid with a rounded hole punched out.
+        //
+        // The hole is sized as cluster's blob is, because it is very nearly the same object read
+        // the other way round — grown by the same routine from the same kind of seed, the only
+        // difference being which side of it gets the shapes. So the ceiling carries over intact:
+        // half the grid is where the field stops being the larger thing, and past it the hole
+        // becomes the composition while the shapes around it read as the gathered thing, which is
+        // cluster stated backwards. Rolled across the range for cluster's reason too — how much of
+        // its grid the blob takes is the thing being looked at, and a few set ratios would only
+        // ever show three answers to it.
+        //
+        // The floor is where the two part company, at 4 cells against cluster's 3. A blob is a
+        // group of things and three things make one, but a hole is not a group of anything — it is
+        // a space, and a space has to be big enough to be somewhere rather than just a break in
+        // the pattern. Three absent cells still read as three shapes that are missing; four begin
+        // to read as a place where there are none. Isolation leans on that directly, needing room
+        // in the gap to stand something in the middle of.
+        //
+        // Capped to leave 2 cells standing, which binds only on grids too small to hold the floor
+        // and the ceiling at once. The seed is biased toward the interior where there is room, so
+        // the hole sits inside the field rather than biting an edge.
         let totalCells = rows * cols;
+        let lo = Math.min(4, totalCells);
         let voidTarget = Math.min(
-          Math.max(1, Math.ceil(totalCells * R.random_choice([0.2, 0.35, 0.5]))),
-          totalCells - 2
+          R.random_int(lo, Math.max(lo, Math.floor(totalCells * 0.5))),
+          Math.max(1, totalCells - 2)
         );
         let seedI = cols > 2 ? R.random_int(1, cols - 2) : R.random_int(0, cols - 1);
         let seedJ = rows > 2 ? R.random_int(1, rows - 2) : R.random_int(0, rows - 1);
@@ -1148,19 +1305,64 @@ let methods = {
       // otherwise land on 0 or 1 cell).
       let totalCells = rows * cols;
       if (emphasis === "anomaly" && totalCells < 3) { emphasis = "none"; anomalyShape = null; }
-      // A scale block needs room around it on both axes: with no more cells than the block has
-      // on one of them it reaches end to end and reads as a band across the canvas rather than
-      // as one member of the field grown. A 3×3 that can't be seated steps down to 2×2 before
-      // the emphasis is given up on. Its cells then come out of the field, so the drawn floor
-      // below asks for four more on top of them — the same shape of rule as the anomaly's, which
-      // wants two regular cells left for its one deviation to deviate from.
-      let span = emphasis === "scale" ? (scaleSpan === "3x3" ? 3 : 2) : 1;
-      if (emphasis === "scale") {
+      // Scale and concentration both work a square block of cells, and both need room around it
+      // on both axes: with no more cells than the block has on one of them it reaches end to end
+      // and reads as a band across the canvas rather than as one part of the field treated. A 3×3
+      // that can't be seated steps down to 2×2 before the emphasis is given up on. The block's
+      // cells then come out of the field, so the drawn floor below asks for four more on top of
+      // them — the same shape of rule as the anomaly's, which wants two regular cells left for
+      // its one deviation to deviate from.
+      let blockEmphasis = emphasis === "scale" || emphasis === "concentration";
+      let span = emphasis === "scale" ? (scaleSpan === "3x3" ? 3 : 2)
+        : emphasis === "concentration" ? (concSpan === "3x3" ? 3 : 2)
+        : 1;
+      if (blockEmphasis) {
         if (cols < span + 1 || rows < span + 1) span = 2;
         if (cols < 3 || rows < 3) emphasis = "none";
       }
+      // How many shapes the patch fits across its block, at the field's own shape size. The block
+      // spans its own cells plus the sparse gaps between them — span + (span−1)·concSparse shape
+      // widths — and the patch packs that full width with as many shapes as will go while keeping
+      // some air between them, since shapes left touching read as one solid mass rather than as a
+      // dense group of the field's own members. Measured in shape widths rather than pixels, so
+      // it comes out the same on both axes and can be settled here, before the layout runs.
+      //
+      // Whether it comes out denser at all is arithmetic rather than aesthetics, and the two knobs
+      // are not independent about it: the gaps a block reclaims are the ones INSIDE it, so a 2×2
+      // block reclaims exactly one and has to be handed a wide one to gain anything. Rearranged,
+      // a gain needs concSparse ≥ (span·air + 1)/(span − 1) — about 1.25 shape widths for a 2×2
+      // block and 0.69 for a 3×3, so the widest block works at every setting and the narrow one
+      // does not. When the roll lands on a pair that cannot gain, the field opens further rather
+      // than the block widening, because the span is a knob that can be pinned and the sparseness
+      // is not: the demandable value is kept and the free one gives way.
+      // The count is capped as well as floored. Past five across, the patch stops being read as
+      // shapes gathered closely and starts being read as a texture — the eye gives up counting
+      // and takes the block as one grey mass, which is the same failure as letting them touch,
+      // arrived at from further away. Capping it rather than dropping the sparse settings that
+      // reach it keeps those settings for the field they open up, which is half the contrast:
+      // the patch simply stops short of the room available and takes wider gaps of its own.
+      const CONC_MIN_AIR = 1 / 8;
+      const CONC_MAX_ACROSS = 5;
+      let concCount = 0;
+      if (emphasis === "concentration") {
+        let fitAcross = function(n, k) {
+          return Math.min(CONC_MAX_ACROSS,
+            Math.floor((n + (n - 1) * k + CONC_MIN_AIR) / (1 + CONC_MIN_AIR)));
+        };
+        if (fitAcross(span, concSparse) <= span) {
+          let open = config.concSparse.filter(k => fitAcross(span, k) > span);
+          if (open.length > 0) concSparse = Math.min.apply(null, open);
+          else if (span === 2 && cols >= 4 && rows >= 4) span = 3;
+        }
+        concCount = fitAcross(span, concSparse);
+        if (concCount <= span) emphasis = "none";
+      }
       let hole = emphasis === "anomaly" && anomalyKind === "hole";
-      let minDrawn = emphasis === "anomaly" ? 3 : emphasis === "scale" ? span * span + 4 : 2;
+      // Read off the emphasis as it stands rather than off blockEmphasis above, since either
+      // block treatment may have been given up on by now.
+      let minDrawn = emphasis === "anomaly" ? 3
+        : (emphasis === "scale" || emphasis === "concentration") ? span * span + 4
+        : 2;
       {
         let keys = new Set(drawn.map(p => p[0] + "," + p[1]));
         while (drawn.length < minDrawn) {
@@ -1169,7 +1371,160 @@ let methods = {
           if (!keys.has(key)) { drawn.push([i, j]); keys.add(key); }
         }
       }
+      // A distribution that ended up drawing every cell IS coverage="all", whatever it was rolled
+      // as, and the manifest has to say so. Each of the sparse modes can land there on a small
+      // enough grid: a blob grown until it is the field, a hole the minimum above filled back in,
+      // or a scattered run whose coins all came up heads. Left named as it was rolled, a demand
+      // for void would be answered with a solid grid — the silent non-delivery this architecture
+      // exists to rule out. Reported honestly it costs nothing, since the planner simply re-rolls
+      // onto a grid with the room to hold one.
+      if (drawn.length === rows * cols) coverage = "all";
       let drawnSet = new Set(drawn.map(p => p[0] + "," + p[1]));
+
+      // --- Isolation's lone form ---
+      // A void on its own is a field with a piece missing, and missing is all it says. What makes
+      // it isolation is something left behind in the gap: one shape standing where the rest of
+      // them were taken away, with the empty cells around it holding the field off at a distance.
+      // The void is what does the isolating and the form is what gets isolated — neither reads
+      // without the other, which is why this is part of the treatment rather than an option on it.
+      //
+      // It is the field's own shape at the field's own size on the field's own lattice, because
+      // the only thing that should set it apart is where it stands. Give it a different primitive
+      // and the composition reads as anomaly's substitution, give it a different size and it reads
+      // as scale — either way the isolation stops being what carries the piece and becomes a
+      // second thing about a shape that is already deviating some other way. Standing in a cell of
+      // the grid rather than at the exact center of the gap is the same argument: on the lattice
+      // it is unmistakably one of the field's own, left behind, and off it it would read as
+      // something else that arrived later.
+      //
+      // Which of the emptied cells it stands in is settled on how few shapes are next to it,
+      // before anything else. Being surrounded is the whole treatment, and a blob is not a disc —
+      // put the form at the centroid of a lopsided one and the field can still be reaching it from
+      // two sides while empty cells go spare elsewhere. So the count of neighboring shapes is what
+      // is minimized, and the other two rules only separate candidates that tie on it.
+      //
+      // First of those is the perimeter rule the rest of the treatments follow, here for the same
+      // reason: that ring is cropped in half under range="extended" and reads as a ragged border
+      // under the others, neither of which a form meant to be seen alone can afford. A preference
+      // and not a requirement, since a blob may not reach the interior at all. Then the centroid,
+      // so that among cells equally clear and equally placed the form takes the middle of the gap.
+      let isoCell = null;
+      if (emphasis === "isolation") {
+        let missing = [];
+        for (let i = 0; i < cols; i++)
+          for (let j = 0; j < rows; j++)
+            if (!drawnSet.has(i + "," + j)) missing.push([i, j]);
+        let mx = missing.reduce((a, p) => a + p[0], 0) / missing.length;
+        let my = missing.reduce((a, p) => a + p[1], 0) / missing.length;
+        // What is minimized is the neighbors that are NOT emptied cells — shapes and off-grid
+        // alike. Both halves of that matter. Counting empty neighbors instead would hand the
+        // corners the argument, a corner having only three neighbors on the grid at all. And
+        // counting only the shapes would do the same thing more quietly, since the fewer neighbors
+        // a cell has the fewer of them can be shapes, so the edge would keep winning on a
+        // technicality. Ground beyond the canvas is not empty field — it is not field — and a form
+        // there is at the border of the piece rather than in the middle of a space.
+        let exposed = function(p) {
+          let n = 0;
+          for (let di = -1; di <= 1; di++) {
+            for (let dj = -1; dj <= 1; dj++) {
+              if (!di && !dj) continue;
+              let x = p[0] + di, y = p[1] + dj;
+              if (x < 0 || x >= cols || y < 0 || y >= rows) n++;
+              else if (drawnSet.has(x + "," + y)) n++;
+            }
+          }
+          return n;
+        };
+        let edge = p => (p[0] === 0 || p[0] === cols - 1 || p[1] === 0 || p[1] === rows - 1) ? 1 : 0;
+        let distTo = p => (p[0] - mx) * (p[0] - mx) + (p[1] - my) * (p[1] - my);
+        isoCell = missing.reduce(function(best, p) {
+          let d = exposed(p) - exposed(best);
+          if (d !== 0) return d < 0 ? p : best;
+          d = edge(p) - edge(best);
+          if (d !== 0) return d < 0 ? p : best;
+          return distTo(p) < distTo(best) ? p : best;
+        });
+        // Then every cell around the form is emptied, on all eight sides, whatever the blob left
+        // beside it. A neighbor is a neighbor: two shapes with nothing between them are in the
+        // relation every other pair in the field already has, and one of those is enough for the
+        // form to rejoin the field it is supposed to stand apart from. Across a corner the two are
+        // further apart but they are still adjacent cells of the same lattice, and the eye reads
+        // the diagonal run as readily as the straight one — a grid has no direction it is not
+        // looked at along. So the form gets a clear ring or it is not isolated.
+        //
+        // Taken here rather than asked of the roll because no blob size short of nine cells can
+        // promise a clear ring at every shape the blob might come out, and sizing the void for the
+        // worst case would cost every draw to fix a fraction of them. Most draws pay nothing:
+        // the placement above already puts the form where fewest shapes surround it, and more
+        // often than not that cell is clear on its own and nothing is removed at all.
+        let crowded = new Set();
+        for (let di = -1; di <= 1; di++) {
+          for (let dj = -1; dj <= 1; dj++) {
+            if (!di && !dj) continue;
+            let key = (isoCell[0] + di) + "," + (isoCell[1] + dj);
+            if (drawnSet.has(key)) crowded.add(key);
+          }
+        }
+
+        // What is left of the field once that ring is gone, split into groups of shapes that touch
+        // one another — corner contact counting as touching, the same adjacency the ring is
+        // cleared on, since that is what being next to something means here.
+        //
+        // There should be exactly one such group. A blob that reaches the edge of the grid in two
+        // places cuts a piece of the field off behind it, and a piece cut off is a second thing
+        // standing on its own in the picture — at one cell it is literally another isolated form,
+        // competing with the one the treatment placed on purpose, and at three or four it is a
+        // stray clump with no more reason to be there. Either way the composition stops having a
+        // subject. So everything outside the largest group is emptied along with the ring, which
+        // reads as the void simply having taken that corner too.
+        let groupsOf = function(cells) {
+          let rest = new Set(cells.map(p => p[0] + "," + p[1]));
+          let out = [];
+          for (let c of cells) {
+            if (!rest.has(c[0] + "," + c[1])) continue;
+            rest.delete(c[0] + "," + c[1]);
+            let group = [c], stack = [c];
+            while (stack.length > 0) {
+              let q = stack.pop();
+              for (let di = -1; di <= 1; di++) {
+                for (let dj = -1; dj <= 1; dj++) {
+                  if (!di && !dj) continue;
+                  let nk = (q[0] + di) + "," + (q[1] + dj);
+                  if (rest.has(nk)) {
+                    rest.delete(nk);
+                    let np = [q[0] + di, q[1] + dj];
+                    group.push(np);
+                    stack.push(np);
+                  }
+                }
+              }
+            }
+            out.push(group);
+          }
+          return out.sort((a, b) => b.length - a.length);
+        };
+        let groups = groupsOf(drawn.filter(p => !crowded.has(p[0] + "," + p[1])));
+        let field = groups.length > 0 ? groups[0] : [];
+
+        // Both removals are priced before either is made, so a composition that cannot afford them
+        // is turned down whole rather than left half-cut.
+        //
+        // The field has to keep 4 shapes, the count the block treatments ask for on the same
+        // reasoning: it is what the form is being set apart FROM, and below that there is nothing
+        // for it to be apart from. And it has to stay the larger part of the grid, which is void's
+        // own ceiling reasoning applied where it now bites — the roll already holds the blob to
+        // half, but the ring and the strays are taken after that roll, and a gap grown past half
+        // by them stops being a hole in a field and becomes the field itself with some shapes
+        // around the rim. Where either fails the planner re-rolls, which lands on a bigger grid
+        // soon enough, since both failures come of there having been too little field to start on.
+        if (field.length < 4 || (field.length + 1) * 2 <= rows * cols) {
+          emphasis = "none";
+          isoCell = null;
+        } else {
+          drawn = field.concat([isoCell]);
+          drawnSet = new Set(drawn.map(p => p[0] + "," + p[1]));
+        }
+      }
 
       // --- Emphasis target ---
       // Shared by every emphasis — focus and both anomaly kinds single out the same cell, so
@@ -1182,9 +1537,9 @@ let methods = {
       // relaxes if it would leave nothing: a grid 2 cells or less along an axis has no interior
       // to speak of, and sparse coverage may not have drawn any of it.
       //
-      // Scale is the one emphasis that occupies more than a cell, so both tests are read against
-      // the block rather than against its origin: the pool starts from the origins whose whole
-      // block is drawn, and the interior test measures from the far corner.
+      // Scale and concentration occupy more than a cell, so both tests are read against the block
+      // rather than against its origin: the pool starts from the origins whose whole block is
+      // drawn, and the interior test measures from the far corner.
       let blockDrawn = function(p, n) {
         if (p[0] + n > cols || p[1] + n > rows) return false;
         for (let di = 0; di < n; di++)
@@ -1205,14 +1560,30 @@ let methods = {
       if (targetPool.length === 0 && span === 3) {
         span = 2;
         targetPool = poolFor(span);
+        // A narrower block reclaims fewer gaps, which can leave the patch no denser than the
+        // cells it replaced — the same test as above, re-run because its input just changed, and
+        // answered the same way, by opening the field further.
+        if (emphasis === "concentration") {
+          let fit = function(k) {
+            return Math.min(CONC_MAX_ACROSS,
+              Math.floor((span + (span - 1) * k + CONC_MIN_AIR) / (1 + CONC_MIN_AIR)));
+          };
+          if (fit(concSparse) <= span) {
+            let open = config.concSparse.filter(k => fit(k) > span);
+            if (open.length > 0) concSparse = Math.min.apply(null, open);
+          }
+          concCount = fit(concSparse);
+          if (concCount <= span) emphasis = "none";
+        }
       }
-      // Not even the smallest block fits: there is nothing to grow, so the emphasis is dropped
+      // Not even the smallest block fits: there is nothing to work, so the emphasis is dropped
       // rather than shrunk onto a single cell, which would be no emphasis at all.
       if (targetPool.length === 0) emphasis = "none";
       let targetCell = R.random_choice(targetPool.length > 0 ? targetPool : drawn);
       let ec = targetCell[0], er = targetCell[1];
-      // The cells the enlarged shape covers stop being drawn in their own right.
-      if (emphasis === "scale") {
+      // The cells the block covers stop being drawn in their own right — the treatment stands in
+      // their place rather than on top of them.
+      if (emphasis === "scale" || emphasis === "concentration") {
         for (let di = 0; di < span; di++)
           for (let dj = 0; dj < span; dj++)
             if (di || dj) drawnSet.delete((ec + di) + "," + (er + dj));
@@ -1253,6 +1624,21 @@ let methods = {
         else { vmInset = l; hmInset = s; }
       }
 
+      // A concentration sets its own margins instead, because for it the gap is the subject and
+      // the shape size is what falls out — the reverse of the pool above, which fixes the gap in
+      // pixels and leaves the cells whatever is left. Asking for a gap of k shape widths on an
+      // axis of n cells fills the canvas as n cells plus the (n−1) gaps between them plus the two
+      // margins, and holding the margins to the gap the way the rest of this block does gives
+      //   n·c + (n+1)·k·c = sd,  so  c = sd / (k(n+1) + n).
+      // One k for both axes, which is what makes the field uniformly sparse: the gap-to-shape
+      // ratio comes out identical everywhere even where the two cell sizes differ. That identity
+      // is also what lets the patch be measured in shape widths alone, back where its count was
+      // settled, since both axes then report the same block width.
+      if (emphasis === "concentration") {
+        vmInset = concSparse * sd / (concSparse * (cols + 1) + cols);
+        hmInset = concSparse * sd / (concSparse * (rows + 1) + rows);
+      }
+
       // Per-axis spacing equals that axis's inset baseline — keeps the rhythm consistent
       // between "canvas edge → first cell" and "cell → cell" on every axis.
       let spH = vmInset;
@@ -1280,6 +1666,20 @@ let methods = {
       let shapeW = totalW / cols;
       let shapeH = totalH / rows;
       let unit = Math.min(shapeW, shapeH);
+
+      // The patch's own gaps. Its shapes are the field's shapes at the field's size, and its
+      // count was chosen as the most of them that will fit across the block, so what is left over
+      // after they are laid down is the air between them — divided evenly, which lands the patch
+      // flush to the block's outer bounds and so onto the same grid lines its neighbors sit on.
+      // Smaller than the field's gap by construction: had it come out as large, another shape
+      // would have fitted and the count would have been higher.
+      let concGapH = 0, concGapV = 0;
+      if (emphasis === "concentration") {
+        let blockW = span * cellW[ec] + (span - 1) * spH;
+        let blockH = span * cellH[er] + (span - 1) * spV;
+        concGapH = (blockW - concCount * cellW[ec]) / (concCount - 1);
+        concGapV = (blockH - concCount * cellH[er]) / (concCount - 1);
+      }
 
       let offX = [0];
       for (let i = 0; i < cols; i++) offX.push(offX[i] + cellW[i] + spH);
@@ -1310,9 +1710,14 @@ let methods = {
       // --- Stroke weight (proportional to cell unit, only used in outline mode) ---
       // All catalog weights from thick to fine, filtered by cell-to-canvas ratio and the
       // inter-cell spacing constraint (stroke must fit within the gap between shapes).
+      // The gap to clear is the tightest one on the canvas, which under a concentration is not the
+      // field's: the patch is where the shapes come closest together, and one stroke weight serves
+      // the whole composition. Sized to the field instead, a weight that sits comfortably in gaps
+      // a whole shape wide would close the patch's up into a solid mass — and the patch is the
+      // subject, so it is the patch that sets the bound.
       let r2 = unit / sd;
       let swWeights = pickStrokeWeights(["thick", "heavy", "medium"], r2);
-      let maxGap = sp;
+      let maxGap = emphasis === "concentration" ? Math.min(concGapH, concGapV) : sp;
       let sw = outline ? pickStrokeWidth(unit, swWeights, maxGap) : 0;
 
       // --- Color palette: gradient / single ---
@@ -1348,17 +1753,18 @@ let methods = {
         return palette[sweepSlot[sweepOf(i, j)]];
       };
 
-      // anomalyKind and scaleSpan are reported as what they turned out to be rather than as what
-      // was rolled: each is only consulted under its own emphasis, a substitution that found no
-      // candidate shape leaves anomalyShape unset, and a block that couldn't be seated has
-      // stepped down by now. So a demand for a particular kind or size carries the demand for
+      // anomalyKind and the two span knobs are reported as what they turned out to be rather than
+      // as what was rolled: each is only consulted under its own emphasis, a substitution that
+      // found no candidate shape leaves anomalyShape unset, and a block that couldn't be seated
+      // has stepped down by now. So a demand for a particular kind or size carries the demand for
       // the emphasis to exist with it, instead of being satisfied by a value nothing acted on.
       return {
         manifest: {
           colorScheme: colorScheme, outline: outline, coverage: coverage, aspect: aspect,
           range: range, emphasis: emphasis,
           anomalyKind: hole ? "hole" : (anomalyShape ? "shape" : "none"),
-          scaleSpan: emphasis === "scale" ? span + "x" + span : "none"
+          scaleSpan: emphasis === "scale" ? span + "x" + span : "none",
+          concSpan: emphasis === "concentration" ? span + "x" + span : "none"
         },
         state: {
           colorScheme: colorScheme, outline: outline, coverage: coverage, aspect: aspect,
@@ -1366,8 +1772,10 @@ let methods = {
           hole: hole, span: span, cols: cols, rows: rows, cellW: cellW, cellH: cellH,
           marginLeft: marginLeft, marginTop: marginTop, offX: offX, offY: offY,
           spH: spH, spV: spV,
+          concSparse: concSparse, concCount: concCount, concGapH: concGapH, concGapV: concGapV,
           sw: sw, swWeights: swWeights, unit: unit, sweepByCol: sweepByCol,
-          drawn: drawn, drawnSet: drawnSet, cellColor: cellColor, ec: ec, er: er
+          drawn: drawn, drawnSet: drawnSet, cellColor: cellColor, ec: ec, er: er,
+          isoCell: isoCell
         }
       };
     },
@@ -1375,7 +1783,8 @@ let methods = {
     render: function(p) {
       let { colorScheme, outline, coverage, aspect, range, emphasis, anomalyKind, anomalyShape,
             hole, span, cols, rows, cellW, cellH, marginLeft, marginTop, offX, offY, spH, spV,
-            sw, swWeights, unit, sweepByCol, drawn, drawnSet, cellColor, ec, er } = p;
+            concSparse, concCount, concGapH, concGapV,
+            sw, swWeights, unit, sweepByCol, drawn, drawnSet, cellColor, ec, er, isoCell } = p;
 
       print("Color Scheme:", colorScheme + (colorScheme === "gradient" ? " (" + (sweepByCol ? "by column" : "by row") + ")" : ""));
       print("Grid Size:", cols + "×" + rows);
@@ -1386,6 +1795,13 @@ let methods = {
       print("Emphasis:", emphasis + (emphasis === "anomaly" ? " (" + anomalyKind + (anomalyShape ? " → " + anomalyShape : "") + ")" : ""),
             emphasis === "none" ? ""
               : emphasis === "scale" ? span + "×" + span + " at (" + ec + "," + er + ")"
+              : emphasis === "concentration"
+                ? span + "×" + span + " → " + concCount + "×" + concCount + " at (" + ec + "," + er + ")"
+                  + " | Field gap: " + concSparse + "× shape"
+              // The lone form's cell, and the size of the gap holding the field off it.
+              : emphasis === "isolation"
+                ? "at (" + isoCell[0] + "," + isoCell[1] + ") | Void: "
+                  + (rows * cols - drawn.length) + " of " + (rows * cols) + " cells"
               : "at (" + ec + "," + er + ")");
 
       // --- Draw ---
@@ -1454,6 +1870,15 @@ let methods = {
             // the same footprint its stroked neighbors have (see drawShape).
             let box = shapeBox(shape, x, y, cw, ch);
             drawShape(anomalyShape, box[0], box[1], box[2], box[3], outline ? sw : 0);
+          } else if (isTarget && emphasis === "concentration") {
+            // The block's whole footprint, filled with the field's own shape at the field's own
+            // size — cw and ch are still one cell here, which is the point of the treatment. Only
+            // the step between them is shorter, so more of them fit in the same room.
+            for (let a = 0; a < concCount; a++) {
+              for (let b = 0; b < concCount; b++) {
+                drawShape(shape, x + a * (cw + concGapH), y + b * (ch + concGapV), cw, ch);
+              }
+            }
           } else {
             drawShape(shape, x, y, cw, ch);
           }
@@ -1480,6 +1905,12 @@ let methods = {
   //     gaps between them. That makes the stripe count odd: an even count would end on the other
   //     color from the one it started on, leaving a bar against one edge and a gap — read as
   //     margin — against the other, so the field looks pushed to one side.
+  //     Two emphases resolve gradient to binary rather than the other way around, since in both
+  //     the treatment is the subject and the palette is what serves it. Focus needs a uniform
+  //     field for its one recolored band to register against, and gradient gives every band a tone
+  //     of its own. Isolation needs a field of countable members for its stranded one to have been
+  //     one of, and gradient's bands sit edge to edge — divided as finely as isolation divides
+  //     them, the tone steps close up and the run reads as a wash rather than as bands.
   //   outline: filled bands vs. the rules between them. Filled draws each stripe as a solid
   //     band of its palette color. Outlined draws only the boundaries — outlining the bands
   //     themselves would double every internal edge and lay the cross-axis edges along the
@@ -1556,7 +1987,46 @@ let methods = {
   //       parted around a dense center. Its count floor is the field's own, read before the
   //       split — the slots that matter are the ones that stay regular, and the cluster is one
   //       departure however many pieces it arrives in.
-  //     All four are suppressed when scattered.
+  //     "isolation" strands one element. Every slot divides into M pieces the way concentration's
+  //       one slot does, so the whole field becomes the fine thing, and then one slot is emptied
+  //       and a single element is left standing in the middle of what it cleared. That element is
+  //       one of the field's own — same kind of mark, same size, one of the members left behind
+  //       when the rest of them went — which is what makes the emptiness around it read as
+  //       something taken away rather than as a design.
+  //       Emptying the slot and leaving it at that was the first attempt and it does not work: a
+  //       slot of plain width among divided ones reads as the place where the field stops, which
+  //       is to say as a hole, and a hole is an absence rather than a subject. It is the same
+  //       finding shapeGrid's isolation reached from the other direction, where a void alone read
+  //       as a bite out of the field until a lone form was put in it.
+  //       How much emptiness is what decides whether it reads at all, and the measure is a full
+  //       field slot on each side. That is the field's own unit, so the eye has something to judge
+  //       the distance by and finds a whole one of them of nothing; less than that and the spacing
+  //       is merely wider than the interval rather than a break in it — which matters most under
+  //       binary, whose c2 bands already put a gap of one piece between every bar. The cleared
+  //       region takes its extra width out of the field rather than out of the frame.
+  //       Which element is left behind follows from what the channel draws, and the region is
+  //       sized to land it at the center. Filled draws bands, so the region spans an odd 2M + 1
+  //       pieces and the middle piece stays. Outlined draws only the rules between bands, so a
+  //       band left in the gap would arrive as the two rules bounding it — a pair of lines where
+  //       the field is made of single ones, which reads as two stripes rather than the one. There
+  //       the region spans an even 2M instead, putting a boundary at the center rather than a
+  //       piece, and that one rule stays.
+  //       The slot it clears is chosen by the two rules the other treatments are placed by, and
+  //       they read the same here: an end slot has the frame beside it rather than a neighbor, so
+  //       the cleared space there reads as a wide margin, and the exact middle reads as a field
+  //       parted around a panel — symmetric and deliberate rather than a deviation.
+  //       It resolves gradient to binary (see colorScheme) and forces the stranded band to c1
+  //       wherever the alternation would have handed it c2, since a background-colored stripe
+  //       alone in a gap is nothing at all and the treatment would come out as the plain hole it
+  //       is the answer to.
+  //       Its count bounds are its own, and neither is about ink. The run it renders is not the
+  //       count it rolls — around (c + 1)·M rather than c — so every rendered floor in the table
+  //       above is cleared long before the pool is consulted. What it needs is 4 slots at the
+  //       least, below which no slot satisfies both placement rules, and few enough slots that the
+  //       division has room: the run is held to 42 stripes, and an entry that would overrun that
+  //       even at its coarsest division is dropped rather than divided into a texture. M is then
+  //       whatever the count leaves room for, up to concentration's 6.
+  //     All five are suppressed when scattered.
   //   stripeChoices: discrete list of allowed primary stripe counts. Every emphasis but focus
   //     draws only from the entries big enough to carry it (see emphasis); a list with none of
   //     those turns the treatment off. Filled binary adds one to an even roll (see colorScheme),
@@ -1602,11 +2072,20 @@ let methods = {
       let spacing = resolveChoice(config.spacing, ["even", "variable"]);
       let coverage = resolveChoice(config.coverage, ["all", "scattered"]);
       let emphasis = resolveChoice(config.emphasis,
-        ["none", "anomaly", "focus", "scale", "concentration"]);
+        ["none", "anomaly", "focus", "scale", "concentration", "isolation"]);
       // One factor, no roll. Doubled is the smallest departure the treatment can make, and at a
       // size that small the eye is left deciding whether it is looking at an emphasis or at a
       // measuring error; tripled cannot be read any other way. See scale under emphasis.
       let scaleF = 3;
+      // Isolation's two bounds. The first is how finely the field divides, and it is the same 3
+      // that concentration starts at, for the same reason: two pieces in a slot read as a slot
+      // that happens to be halved, and it takes three before the eye stops counting them
+      // individually and starts reading the slot as divided. The second holds the whole run to a
+      // width the eye can still take as separate stripes — every slot divides here, so the count
+      // multiplies rather than adds, and left alone a wide pool and a fine division would put a
+      // hundred stripes on the canvas and read as tone rather than as a field.
+      const ISO_MIN_PIECES = 3;
+      const ISO_MAX_STRIPES = 42;
       // Suppress the single-element emphasis when scattered: one removed or recolored element
       // is imperceptible amid the probabilistic per-stripe removals of scattered.
       if (coverage === "scattered") emphasis = "none";
@@ -1617,6 +2096,15 @@ let methods = {
       // interrupts, so focus resolves the scheme to binary rather than the other way around — the
       // emphasis is the subject here, and the palette is what serves it.
       if (emphasis === "focus" && colorScheme === "gradient") colorScheme = "binary";
+      // Isolation resolves to binary for a related reason, arrived at from the field's side rather
+      // than the outlier's. What it strands has to read as one of the field's own members, and
+      // that takes a field of members to have been one of. Gradient's bands sit edge to edge with
+      // a tone step between them, and isolation divides every slot, so the steps get small enough
+      // that the run stops reading as bands at all and becomes a wash — a wash with a slit cut in
+      // it and a sliver left in the slit, which is not the same picture. Binary's bands alternate
+      // with the background, so however fine the division goes the field stays a countable row of
+      // bars and the stranded one is plainly another of them.
+      if (emphasis === "isolation" && colorScheme === "gradient") colorScheme = "binary";
       // Three of the emphases are departures from an interval, and a viewer can only see a
       // departure from an interval where there is an interval to depart from. Variable spacing is
       // that measure taken away: when no two stripes are the same width to begin with, a gap is
@@ -1625,7 +2113,8 @@ let methods = {
       // produce whether or not anything was emphasized. So all three resolve the spacing to even.
       // Focus is the exception: it recolors a stripe that stays exactly where it is, so there is
       // no interval involved and nothing for the spacing to obscure.
-      if (emphasis === "anomaly" || emphasis === "scale" || emphasis === "concentration") {
+      if (emphasis === "anomaly" || emphasis === "scale" || emphasis === "concentration" ||
+          emphasis === "isolation") {
         spacing = "even";
       }
       // Scale is filled and framed, and for the same reason: what it grows is a band's width, so
@@ -1681,6 +2170,8 @@ let methods = {
       // it needs are the ones that stay regular: the cluster is one departure however many pieces
       // it arrives in, and the field it departs from is what the floor is protecting.
       let countPool = config.stripeChoices;
+      // Whether the parity rule further down can still add a slot to whatever count is rolled.
+      let parityRoom = (!outline && colorScheme === "binary") ? 1 : 0;
       let renderedFloor = function() {
         if (outline) return range === "touching" ? 5 : 4;
         return colorScheme === "binary" ? 8 : 4;
@@ -1696,12 +2187,38 @@ let methods = {
         let enough = countPool.filter(c => c >= Math.max(renderedFloor(), 2 * scaleF + 1));
         if (enough.length > 0) countPool = enough;
         else emphasis = "none";
+      } else if (emphasis === "isolation") {
+        // Isolation reads no row of that table, because the run it renders is not the count it
+        // rolls: every slot divides, so a pool entry of 5 arrives as nineteen stripes or more. The
+        // rendered floors are all comfortably cleared before the pool is even consulted.
+        //
+        // What it needs from the count instead is at both ends and neither is about ink. Four
+        // slots at the least, because the gap is placed by the same two rules as everything else
+        // here — never an end, never the exact middle — and under four there is no slot left that
+        // satisfies both. At the other end, few enough slots that the division has somewhere to
+        // go: the run comes to (c + 1)·M + 1, so an entry that overruns the stripe ceiling even at
+        // the coarsest division it could take would need a finer field than the eye can separate,
+        // and it is dropped rather than divided into a texture. The slot filled binary may add for
+        // parity below is counted in, since here a slot is worth a whole division of the run and
+        // adding one after the fact would carry a passing entry back over the ceiling.
+        let enough = countPool.filter(c =>
+          c >= 4 && (c + 1 + parityRoom) * ISO_MIN_PIECES + 1 <= ISO_MAX_STRIPES);
+        if (enough.length > 0) countPool = enough;
+        else emphasis = "none";
       }
       let n = R.random_choice(countPool);
-      // How many pieces the concentrated slot is split into. Which slot that is gets rolled
-      // below, after the count is final.
+      // How many pieces a slot is split into. Which slot is singled out gets rolled below, after
+      // the count is final — for concentration it is the one slot that splits, for isolation the
+      // one that does not.
       let subIdx = -1, subM = 0;
       if (emphasis === "concentration") subM = R.random_int(3, 6);
+      else if (emphasis === "isolation") {
+        // The ceiling is spent across every dividing slot here rather than on one, so how fine
+        // the field can go is what the count leaves room for. Six is still the cap where the room
+        // allows it, so a short run divides as finely as a concentrated slot does.
+        subM = R.random_int(ISO_MIN_PIECES,
+          Math.min(6, Math.floor((ISO_MAX_STRIPES - 1) / (n + 1 + parityRoom))));
+      }
 
       // Filled binary wants an odd number of stripes. Its c2 bands are painted in the background
       // color, so what the canvas shows is bars separated by gaps — and strict alternation over an
@@ -1711,18 +2228,27 @@ let methods = {
       // started on, and both readings of that are balanced: bars at both edges, or equal margins
       // at both. The correction adds a stripe rather than dropping one so it can never fall back
       // through a floor the count was chosen to clear.
-      // A concentration's extra pieces are counted in, since it is the final stripe count the
-      // palette alternates over, not the rolled one. Outlined stripes are unaffected — every rule
-      // is a c1 stroke, so there are no background bands to weigh an edge down — and so is
-      // gradient, whose bands each carry their own tone and so all belong to the composition.
-      if (!outline && colorScheme === "binary" && (n + Math.max(subM - 1, 0)) % 2 === 0) n += 1;
+      // The pieces a division adds are counted in, since it is the final stripe count the palette
+      // alternates over, not the rolled one — and the two treatments that divide arrive at that
+      // count differently, one adding its pieces to the run and the other multiplying the run by
+      // them. Outlined stripes are unaffected — every rule is a c1 stroke, so there are no
+      // background bands to weigh an edge down — and so is gradient, whose bands each carry their
+      // own tone and so all belong to the composition.
+      let finalCount = function(slots) {
+        if (emphasis === "isolation") return (slots + 1) * subM + (outline ? 0 : 1);
+        return slots + Math.max(subM - 1, 0);
+      };
+      if (!outline && colorScheme === "binary" && finalCount(n) % 2 === 0) n += 1;
 
-      // Which slot concentrates. The two rules an anomaly is placed by apply here for the same
-      // reasons, read against the slots rather than the rendered run because a slot is what gets
-      // split: never an end slot, whose cluster has the frame on one side instead of a neighbor
-      // and so reads as the field fraying toward that edge, and never the exact middle, where it
-      // reads as a field parted around a dense center — deliberate and symmetric rather than a
-      // deviation. The count floor above guarantees at least one slot survives both.
+      // Which slot is singled out — the one that splits under concentration, the one that does not
+      // under isolation. The two rules an anomaly is placed by apply to either, for the same
+      // reasons, read against the slots rather than the rendered run because a slot is what the
+      // division works on: never an end slot, which has the frame on one side instead of a
+      // neighbor, so a cluster there reads as the field fraying toward that edge and a lone whole
+      // slot there reads as a wide margin; and never the exact middle, where the one reads as a
+      // field parted around a dense center and the other as a field parted around a panel — both
+      // deliberate and symmetric rather than a deviation. The count floors above guarantee at
+      // least one slot survives both.
       if (subM > 0) {
         let slots = [];
         let mid = n % 2 === 1 ? (n - 1) / 2 : -1;
@@ -1735,13 +2261,50 @@ let methods = {
       // distribute() helper for uneven widths within bounded ratios.
       let baseProps = (spacing === "variable" && n >= 2) ? distribute(n) : new Array(n).fill(1 / n);
 
-      // Insert sub-stripes: the densified slot is split into subM equal parts that share the
-      // original slot's width. Even-spacing → all sub-stripes equal; variable-spacing → sub-stripes
-      // inherit a fraction of the parent stripe's (variable) width, preserving the densification.
+      // Insert sub-stripes: a divided slot is split into subM equal parts that share the original
+      // slot's width. Even-spacing → all sub-stripes equal; variable-spacing → sub-stripes inherit
+      // a fraction of the parent stripe's (variable) width, preserving the densification.
+      //
+      // Concentration splits the one slot it singled out and leaves the field alone, so the run
+      // gains subM − 1 stripes.
+      //
+      // Isolation divides every slot, and then clears the one it singled out. Leaving that slot
+      // whole was the first attempt and it does not work: a slot of plain width among divided ones
+      // reads as a place where the field stops, which is to say as a hole, and a hole is an
+      // absence rather than a subject. What makes it isolation is one of the field's own elements
+      // standing in that absence — left behind when the rest of them went, the same argument
+      // shapeGrid's lone form is placed on.
+      //
+      // So the slot is widened to hold a gap on each side of that element, and each gap is one
+      // whole field slot across. That measure is the reason it reads: the emptiness beside the
+      // lone element is exactly as wide as a slot of the field, so the eye has the field's own unit
+      // to judge the distance by and finds a full one of them of nothing. Anything less and the
+      // spacing is merely wider than the interval rather than a break in it.
+      //
+      // What element gets left behind depends on what the channel draws, and the cleared region is
+      // sized to land the right one at its center. Filled draws bands, so the region takes an odd
+      // 2·M + 1 pieces and the middle piece is the band that stays. Outlined draws only the rules
+      // between bands, so a band left in the gap arrives as the two rules bounding it — which is a
+      // pair of lines where the field is made of single ones, and reads as two stripes rather than
+      // the one. There the region takes an even 2·M pieces instead, putting a boundary at the
+      // center rather than a piece, and that single rule is what stays.
       let props = [];
       let stripeOrigin = []; // for each final stripe, which original stripe slot it came from
+      let isoStripe = -1;    // filled: the lone band standing in the gap
+      let isoRule = -1;      // outlined: the lone rule standing in the gap
       for (let i = 0; i < n; i++) {
-        if (i === subIdx) {
+        if (emphasis === "isolation") {
+          let piece = baseProps[i] / subM;
+          let count = i === subIdx ? (outline ? 2 * subM : 2 * subM + 1) : subM;
+          if (i === subIdx) {
+            if (outline) isoRule = props.length + subM;
+            else isoStripe = props.length + subM;
+          }
+          for (let k = 0; k < count; k++) {
+            props.push(piece);
+            stripeOrigin.push(i);
+          }
+        } else if (subM > 0 && i === subIdx) {
           for (let k = 0; k < subM; k++) {
             props.push(baseProps[i] / subM);
             stripeOrigin.push(i);
@@ -1750,6 +2313,13 @@ let methods = {
           props.push(baseProps[i]);
           stripeOrigin.push(i);
         }
+      }
+      // Widening the gap put more width on the run than the slots started with, so the shares are
+      // renormalized before they are laid out — the gap takes its extra out of the field, the way
+      // scale's widened band does, rather than out of the frame.
+      if (emphasis === "isolation") {
+        let total = props.reduce((a, b) => a + b, 0);
+        props = props.map(v => v / total);
       }
       let nFinal = props.length;
 
@@ -1786,6 +2356,16 @@ let methods = {
         for (let i = 0; i < nFinal; i++) drawnMask[i] = R.random_bool(0.5);
         if (!drawnMask.some(x => x)) drawnMask[R.random_int(0, nFinal - 1)] = true;
       }
+      // Isolation's gap is emptied here, through the same mask coverage uses — the pieces are laid
+      // out either side of the lone element so that the field's measure runs through the gap, and
+      // then simply not drawn. Outlined empties the region entirely, since what it leaves behind
+      // is a rule rather than a band; the rule itself is restored below, after the boundary mask
+      // has dropped every other line in the span.
+      if (emphasis === "isolation") {
+        for (let i = 0; i < nFinal; i++) {
+          if (stripeOrigin[i] === subIdx && i !== isoStripe) drawnMask[i] = false;
+        }
+      }
 
       // --- Boundary mask (outlined) ---
       // Which separator lines render. Computed here rather than at draw time so the emphasis
@@ -1803,6 +2383,10 @@ let methods = {
         for (let i = 1; i < nFinal; i++) {
           if (!drawnMask[i - 1] && !drawnMask[i]) drawBoundary[i] = false;
         }
+        // That rule has just cleared every line across isolation's emptied region, the stranded
+        // one included, since no band in there is drawn. It goes back — it is the whole subject of
+        // the composition, and the only line the region is meant to keep.
+        if (isoRule >= 0) drawBoundary[isoRule] = true;
       }
 
       // --- Color palette: binary ---
@@ -1817,6 +2401,13 @@ let methods = {
         let start = R.random_bool(0.5);
         palette = [];
         for (let i = 0; i < nFinal; i++) palette.push((i % 2 === 0) === start ? c1 : c2);
+        // The lone stripe takes c1 wherever the alternation would have handed it c2. A c2 band is
+        // painted in the background color, and a background-colored stripe in the middle of an
+        // empty gap is nothing at all — the treatment would come out as the plain hole it is meant
+        // to be the answer to. This breaks strict alternation at that one index and costs nothing,
+        // since the bands either side of it are not drawn: there is no neighbor for it to merge
+        // into, which is the only thing the alternation is there to prevent.
+        if (isoStripe >= 0) palette[isoStripe] = c1;
       }
 
       // --- Emphasis target ---
@@ -1824,10 +2415,10 @@ let methods = {
       // filled, a surviving boundary line when outlined. Picking a suppressed element would
       // make the emphasis a silent no-op — an anomaly that removes nothing, or a focus that
       // mutes the whole field with no element left at full strength.
-      // Concentration is placed already — its target is a slot, chosen before the split that
-      // created the extra slots this indexing counts — so it sits this out.
+      // The two dividing treatments are placed already — their target is a slot, chosen before the
+      // split that created the extra slots this indexing counts — so both sit this out.
       let ei = -1;
-      if (emphasis !== "none" && emphasis !== "concentration") {
+      if (emphasis !== "none" && emphasis !== "concentration" && emphasis !== "isolation") {
         let candidates = [];
         if (outline) {
           for (let i = 0; i <= nFinal; i++) if (drawBoundary[i]) candidates.push(i);
@@ -1979,6 +2570,8 @@ let methods = {
       print("Coverage:", coverage, coverage !== "all" ? "(" + drawnMask.filter(x => x).length + "/" + nFinal + ")" : "");
       print("Emphasis:", emphasis,
         emphasis === "concentration" ? "at stripe " + subIdx + " (into " + subM + ")"
+        : emphasis === "isolation"
+          ? "at slot " + subIdx + " (field into " + subM + "; gap " + subM + " each side)"
         : ei < 0 ? ""
         : emphasis === "scale" ? "at stripe " + ei + " (" + scaleF + "× width)"
         : "at " + (outline ? "boundary " : "stripe ") + ei);
@@ -2205,6 +2798,11 @@ let methods = {
   //       box itself off center is not on offer; it read as a shape that had drifted rather
   //       than one that had been placed, and the edge classes already say the same thing with
   //       conviction.
+  //       The margin is per side, so it costs the form twice what it reads as, and the pair runs
+  //       the full 1 to 7 the lattice allows — 14 of 16 units down to 2 of 16. That span covers
+  //       two different compositions, a canvas-scale form with a breath around it at the low end
+  //       and a small object in a large field at the high end, and neither is ruled out here;
+  //       a case that wants one or the other pins the subset it wants. See the defaults.
   //
   // There is one degenerate combination, and it resolves inside the construction rather than
   // by rewriting a trait: a regular square whose tilt parameter p is 0 and which meets the
@@ -2222,12 +2820,21 @@ let methods = {
       outline: 0.5,
       regularity: "random",
       fit: "random",
-      // Two units per side is the cap, which on a 16-unit lattice leaves the shape 12 of the 16
-      // it could have. A third unit takes it to 10, and by then the margin has stopped reading
-      // as a breath around a canvas-scale form and started reading as a border with a shape
-      // inside it — which is a different composition, and not the one this method is for.
+      // The margin is per side, so on a 16-unit lattice it costs the form twice what it reads as:
+      // at 1 the form spans 14 of the 16 units, at 4 it spans half the canvas, at 7 an eighth.
+      // Seven is the ceiling the lattice sets rather than a judgment — 8 per side is the whole of
+      // it and leaves a box of nothing.
+      // The full span is open here because the reading changes across it rather than breaking at
+      // some point in it: a narrow margin is a breath around a canvas-scale form, a wide one is a
+      // small object in a large field, and both are compositions worth having. Which is wanted on
+      // a given run is a question for whatever is asking for the composition, so subsets are
+      // pinned per case rather than legislated here.
+      // One consequence to know about: the footprint rolls even-only to hold the centering parity,
+      // so a wide margin leaves little room to vary. At 6 the box is 4 units, which is the least a
+      // quad needs to place a lattice point inside each edge, and at 7 it is 2. Irregular forms
+      // therefore read closer to regular the wider the margin goes.
       insetMinU: 1,
-      insetMaxU: 2
+      insetMaxU: 7
     },
     // Overrides are intentionally blank: every subtopic below draws from `defaults` for now.
     // The keys still register largeShape against each subtopic (coverage audit, the real
@@ -3309,12 +3916,66 @@ let testCases = null;
 
 // Saved scopes — swap one of these back in when the current work is done.
 //
-// shapeGrid read as a concentration: the cluster coverage on its own, with no emphasis, so what
-// every refresh shows is the blob's own shape rather than the blob with something singled out of
-// it. One flat color, so the only thing varying across the field is which cells are in it — a
-// gradient tints by position in the grid, which describes the lattice the cells were placed on
-// rather than the shape they ended up making. And 3 cells on both axes at the least, so the blob
-// always has a field to be compact inside of.
+// largeShape at full random, now that the inset margin runs the lattice's whole 1-to-7 span.
+// let testCases = [
+//   { methods: ["largeShape"], config: {} }
+// ];
+//
+// largeShape's inset fit at the wide end of the margin range, where the form is a small object in
+// a large field rather than a canvas-scale one: 5 leaves it 38% of the canvas, 6 a quarter, 7 an
+// eighth. Reads the small-object half of the range on its own, without the near-full-bleed draws
+// the edge fits and narrow margins otherwise mix in.
+// let testCases = [
+//   { methods: ["largeShape"], config: { fit: "inset", insetMinU: 5, insetMaxU: 7 } }
+// ];
+//
+// shapeProgression held to an inset range, so the outer ring always terminates inside the canvas
+// rather than at or past its edges. Alignment stays open, which is what decides how many edges the
+// inset actually governs — all four under center, two under corner, three under edge.
+// let testCases = [
+//   { methods: ["shapeProgression"], config: { range: "inset" } }
+// ];
+//
+// Stripe's isolation. Slot count and division both left to roll, so refreshing shows it from a
+// coarse field of four to the finest the run allows; fires in every channel the method has,
+// filled and outlined alike.
+// let testCases = [
+//   { methods: ["stripe"], config: { emphasis: "isolation" } }
+// ];
+//
+// stripe at full random.
+// let testCases = [
+//   { methods: ["stripe"], config: {} }
+// ];
+//
+// shapeGrid's isolation. Everything it does not force is left to roll, which for this one is
+// everything else.
+// let testCases = [
+//   { methods: ["shapeGrid"], config: { emphasis: "isolation" } }
+// ];
+//
+// shapeGrid at full random.
+// let testCases = [
+//   { methods: ["shapeGrid"], config: {} }
+// ];
+//
+// grid at full random.
+// let testCases = [
+//   { methods: ["grid"], config: {} }
+// ];
+//
+// shapeGrid's concentration. Span and sparseness both left to roll, so refreshing shows the whole
+// range of density contrast; pin concSparse to read one of them.
+// let testCases = [
+//   { methods: ["shapeGrid"], config: { emphasis: "concentration" } }
+// ];
+//
+// shapeGrid read as a concentration through coverage instead: the cluster coverage on its own,
+// with no emphasis, so every refresh shows the blob's own shape rather than the blob with
+// something singled out of it. One flat color, so the only thing varying across the field is
+// which cells are in it — a gradient tints by position in the grid, which describes the lattice
+// the cells were placed on rather than the shape they ended up making. And 3 cells on both axes
+// at the least, so the blob always has a field to be compact inside of.
 // These four are a candidate definition for the Concentration subtopic rather than anything the
 // method should hardwire, so they live here until that subtopic is wired up.
 // let testCases = [
@@ -3322,11 +3983,6 @@ let testCases = null;
 //     methods: ["shapeGrid"],
 //     config: { coverage: "cluster", emphasis: "none", colorScheme: "single", minAxis: 3 }
 //   }
-// ];
-//
-// shapeGrid at full random.
-// let testCases = [
-//   { methods: ["shapeGrid"], config: {} }
 // ];
 //
 // Stripe's concentration. Fires in every channel the method has, filled and outlined both, since
@@ -3344,11 +4000,6 @@ let testCases = null;
 // method's range it takes off the table when it fires.
 // let testCases = [
 //   { methods: ["stripe"], config: { emphasis: "scale" } }
-// ];
-//
-// grid at full random.
-// let testCases = [
-//   { methods: ["grid"], config: {} }
 // ];
 //
 // shapeGrid's scale outlier, the treatment just finished. Span left random, so refreshing shows
