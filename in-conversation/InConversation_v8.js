@@ -26,7 +26,9 @@ let colors = [["#f21424", "#ffd7d7"], ["#f23f08", "#ffe9ef"], ["#a3131d", "#ed14
 // Each method is a self-contained compositional engine with:
 //   shapes:    which shape primitives it supports
 //   defaults:  knob values when no subtopic constraint overrides them
-//   subtopics: which subtopics use this method, with per-subtopic knob overrides
+//   subtopics: which subtopics use this method, and the knob values each one asks of it. A
+//              subtopic may name a list instead of one set, for a method that has more than one
+//              composition to offer it — see treatmentsFor
 //   plan:      receives (shape, config) with pre-merged config, makes every decision, and returns
 //              { manifest, state } — see below
 //   render:    receives that state and puts the composition on the canvas
@@ -121,16 +123,10 @@ let methods = {
       compression: [1, 2, 3, 4],
       range: "random"
     },
-    // Knob overrides intentionally blank for now — see largeShape's subtopics comment for
-    // why. allowedShapes is kept: that's a shape-compatibility gate, not a style decision
-    // (e.g. a scalene triangle doesn't read as symmetric).
-    subtopics: {
-      "Repetition": {},
-      "Structure": {},
-      "Proportion": { allowedShapes: ["Circle", "Square", "Triangle"] },
-      "Symmetry": { allowedShapes: ["Line", "Circle", "Square"] },
-      "Asymmetry": { allowedShapes: ["Circle", "Square", "Triangle"] }
-    },
+    // Unwired. The method has no emphasis knob and nothing else it says about the Emphasis
+    // subtopics, which is the only topic mapped so far, so it takes no part in the real pipeline
+    // yet. Reachable through test mode meanwhile.
+    subtopics: {},
     plan: function(shape, config) {
       let colorScheme = resolveChoice(config.colorScheme, ["single", "binary", "gradient"]);
       let outline = chance(config.outline);
@@ -456,11 +452,11 @@ let methods = {
       coverage: "random",
       emphasis: "random"
     },
-    // Overrides intentionally blank for now — see largeShape's subtopics comment for why.
+    // Grid is the only method with a hierarchy treatment, so it carries that subtopic alone.
     subtopics: {
-      "Repetition": {},
-      "Structure": {},
-      "Symmetry": {}
+      "Focus": { emphasis: "focus" },
+      "Anomaly": { emphasis: "anomaly" },
+      "Hierarchy": { emphasis: "hierarchy" }
     },
     plan: function(shape, config) {
       let layout = resolveChoice(config.layout, ["single", "linear", "stacked"]);
@@ -1076,13 +1072,25 @@ let methods = {
       minAxis: 1,
       range: "random"
     },
-    // Knob overrides intentionally blank for now — see largeShape's subtopics comment for
-    // why. allowedShapes is kept: that's a shape-compatibility gate, not a style decision
-    // (a scalene triangle doesn't read as symmetric).
+    // Hierarchy has no emphasis of that name here; what says it is the gradient, which orders the
+    // whole field by position so the cells read as ranked rather than as equal members.
+    // Concentration gets two treatments. The emphasis is the direct one — a dense patch in a field
+    // opened up around it — and the cluster coverage is the same subject stated by the field's
+    // extent instead: every shape gathered into one compact blob with nothing singled out, which
+    // needs no emphasis and reads as concentration because there is nothing anywhere else. That
+    // one pins the terms it needs — one flat color, since a gradient would tint by lattice
+    // position and so describe the grid the blob sits on rather than the blob itself, and three
+    // cells on both axes at the least, so there is a field for the blob to be compact inside of.
     subtopics: {
-      "Repetition": {},
-      "Structure": {},
-      "Symmetry": { allowedShapes: ["Circle", "Square"] }
+      "Focus": { emphasis: "focus" },
+      "Anomaly": { emphasis: "anomaly" },
+      "Hierarchy": { colorScheme: "gradient" },
+      "Scale": { emphasis: "scale" },
+      "Concentration": [
+        { emphasis: "concentration" },
+        { coverage: "cluster", emphasis: "none", colorScheme: "single", minAxis: 3 }
+      ],
+      "Isolation": { emphasis: "isolation" }
     },
     plan: function(shape, config) {
       let colorScheme = resolveChoice(config.colorScheme, ["single", "gradient"]);
@@ -2045,15 +2053,15 @@ let methods = {
       stripeChoices: [3, 4, 5, 6, 8, 10, 12]
     },
     // Knob overrides intentionally blank for now — see largeShape's subtopics comment for why.
-    // Structure used to carry allowedShapes: ["Line"] to hold itself to the separator look; now
-    // that Line is the only shape that gate is a no-op, and the look it wanted is an outline
-    // override — which is a knob override, deferred with the rest.
+    // Hierarchy is the gradient here for the same reason it is in shapeGrid: it ranks every band
+    // by its position in the run, which is an order rather than a set of equals.
     subtopics: {
-      "Repetition": {},
-      "Structure": {},
-      "Proportion": {},
-      "Symmetry": {},
-      "Asymmetry": {}
+      "Focus": { emphasis: "focus" },
+      "Anomaly": { emphasis: "anomaly" },
+      "Hierarchy": { colorScheme: "gradient" },
+      "Scale": { emphasis: "scale" },
+      "Concentration": { emphasis: "concentration" },
+      "Isolation": { emphasis: "isolation" }
     },
     plan: function(shape, config) {
       let colorScheme = resolveChoice(config.colorScheme, ["binary", "gradient"]);
@@ -2836,17 +2844,16 @@ let methods = {
       insetMinU: 1,
       insetMaxU: 7
     },
-    // Overrides are intentionally blank: every subtopic below draws from `defaults` for now.
-    // The keys still register largeShape against each subtopic (coverage audit, the real
-    // topic/subtopic draw), but no subtopic-specific constraints have been decided yet —
-    // fill these in deliberately, per subtopic, when ready rather than all at once.
+    // The one method with no emphasis knob, so it answers these two by size alone — which is the
+    // whole of what it has to say, there being exactly one form on the canvas and nothing for it
+    // to be emphasized against. Scale takes the tight end of the margin range and Isolation the
+    // wide end, so the same form reads as filling the canvas in one and as a small object adrift
+    // in it in the other. Both pin the inset fit, since a margin is the thing being set and the
+    // edge-touching classes have none: left free, two draws in five would come out flush to the
+    // canvas and say neither.
     subtopics: {
-      "Proportion": {},
-      "Asymmetry": {},
-      "Scale": {},
-      "Isolation": {},
-      "Focus": {},
-      "Figure/Ground": {}
+      "Scale": { fit: "inset", insetMinU: 1, insetMaxU: 2 },
+      "Isolation": { fit: "inset", insetMinU: 5, insetMaxU: 7 }
     },
     plan: function(shape, config) {
       let outline = chance(config.outline);
@@ -3429,9 +3436,22 @@ class UnsupportedChoice extends Error {
 // because the roll is not the only place an outcome comes from: a method can substitute one
 // variant for another downstream when the composition it rolled cannot host what it picked, and
 // a substitution that lands on the banned value would otherwise go out unchallenged.
+//
+// The parameters below are the exception, and they are listed rather than detected because there
+// is nothing in a value's shape that gives them away. They narrow the rolls a method may take —
+// how wide a margin, how many stripes, how small a grid — and the composition that comes back is
+// described by the knobs those rolls fed, not by the bounds themselves. No manifest reports them,
+// so a demand written against one could never be satisfied by anything. Without the exemption a
+// margin pinned to a single unit would read as the boolean 1, become a demand for a knob that does
+// not exist, and take the method out of the running with a loud failure and a blank canvas.
+const SUBTOPIC_PARAMS = [
+  "allowedShapes", "elementChoices", "stripeChoices", "concSparse", "minAxis",
+  "insetMinU", "insetMaxU"
+];
 function deriveRequirements(overrides) {
   let reqs = {};
   for (let key in (overrides || {})) {
+    if (SUBTOPIC_PARAMS.includes(key)) continue;
     let val = overrides[key];
     if (val === "any") reqs[key] = { on: true };
     else if (typeof val === "string" && val.charAt(0) === "!") reqs[key] = { not: val.slice(1) };
@@ -3840,12 +3860,12 @@ let shapeCaps = {
   Triangle: { gridAllowsOutline: false, gridAllowsZeroMargin: true,  minProgressionElements: 2, minExtendedElements: 2, extendedMaxK: function(nt) { return Math.floor(nt / 2); } }
 };
 
-// Merge method defaults with subtopic overrides into a flat config object.
-function resolveConfig(methodName, subtopic) {
+// Merge a method's defaults with one set of overrides into a flat config object.
+function mergeConfig(methodName, overrides) {
   let method = methods[methodName];
   if (!method) return {};
   let defaults = method.defaults || {};
-  let overrides = (method.subtopics && method.subtopics[subtopic]) || {};
+  overrides = overrides || {};
   let cfg = {};
   for (let key in defaults) {
     cfg[key] = (overrides[key] !== undefined) ? overrides[key] : defaults[key];
@@ -3856,16 +3876,28 @@ function resolveConfig(methodName, subtopic) {
   return cfg;
 }
 
+// The treatments a method offers for a subtopic. A method may have more than one way of saying
+// what a subtopic is about — shapeGrid reads Concentration both as its own emphasis and as a
+// cluster coverage with nothing singled out — and those are different compositions rather than one
+// composition with a knob moved. They are held as a list so both get drawn, instead of the second
+// having to be left out or folded into the first. A single object is the common case and is read
+// as a list of one, so a method that has just the one thing to say says it plainly.
+function treatmentsFor(methodName, subtopic) {
+  let method = methods[methodName];
+  let entry = method && method.subtopics && method.subtopics[subtopic];
+  if (entry === undefined) return [];
+  return Array.isArray(entry) ? entry : [entry];
+}
+
 // Get all methods compatible with a given subtopic + shape combination.
 function getMethodsForSubtopic(subtopic, shape) {
   let result = [];
   for (let name in methods) {
-    let method = methods[name];
-    if (!method.subtopics[subtopic]) continue;
-    if (!method.shapes.includes(shape)) continue;
-    let overrides = method.subtopics[subtopic];
-    if (overrides.allowedShapes && !overrides.allowedShapes.includes(shape)) continue;
-    result.push(name);
+    if (!methods[name].shapes.includes(shape)) continue;
+    let usable = treatmentsFor(name, subtopic).filter(function(o) {
+      return !o.allowedShapes || o.allowedShapes.includes(shape);
+    });
+    if (usable.length > 0) result.push(name);
   }
   return result;
 }
@@ -3878,7 +3910,8 @@ function auditCoverage() {
       let sub = topicArr[i];
       let methodList = [];
       for (let name in methods) {
-        if (methods[name].subtopics[sub]) methodList.push(name);
+        let n = treatmentsFor(name, sub).length;
+        if (n > 0) methodList.push(n > 1 ? name + " ×" + n : name);
       }
       let status = methodList.length === 0 ? " [NONE]" : "";
       print("  " + sub + ": " + methodList.length + " methods" + status +
@@ -3894,13 +3927,13 @@ function auditCoverage() {
 
 // --- TEST MODE ---
 // Set these to test a method directly, bypassing topic/subtopic selection.
-// Leave as null to use the normal pipeline.
-// Methods-first workflow: run across ALL registered methods (ignoring topic/subtopic
-// mapping) so outputs reflect the full range of drawing methods under development.
-// Object.keys(methods) auto-includes any new method as it's added — swap back to null
-// once methods are mapped to subtopics and you want the real pipeline.
-let testMethod = Object.keys(methods);  // array (repeat to weight), string, or null
-let testShape = null;                   // e.g. "Line", "Circle", "Square", "Triangle" (null = random)
+// Leave as null to use the normal pipeline, which is where this now sits: the topic/subtopic draw
+// runs for real, over whichever subtopics are wired at the time.
+// The methods-first workflow is what was here before — Object.keys(methods) to run across every
+// registered method, ignoring the topic/subtopic mapping entirely. Worth swapping back in to see
+// the full range of drawing methods, including any that no subtopic has claimed yet.
+let testMethod = null;  // array (repeat to weight), string, or null
+let testShape = null;   // e.g. "Line", "Circle", "Square", "Triangle" (null = random)
 
 // A test case is one family worth reviewing: which methods to sample from, and knob values layered
 // over whichever method gets picked. One case is drawn per refresh, so a list of them reviews
@@ -4070,22 +4103,62 @@ function setup() {
     topic = "Test";
     sub = "Test";
   } else {
-    t = R.random_int(0, topics.length - 1);
+    // The roll is taken over the subtopics that some method has actually been wired to speak to,
+    // not over the whole table. Most of the table is unbuilt — one topic of the six is mapped as
+    // this is written — and rolling across all of it would spend most refreshes reporting that
+    // nothing can draw the subject, which says nothing that this file's own registry does not
+    // already say more precisely. The pool is read off the registry rather than listed, so wiring
+    // a subtopic is the only thing needed to bring it into rotation, and unwiring one is the only
+    // thing needed to take it back out.
+    // The shape is then rolled from the shapes that subtopic can be drawn with, for the same
+    // reason: the methods carry narrow shape support — stripe draws only Line, shapeGrid every
+    // shape but — and a shape none of a subtopic's methods hold would be a dead draw decided
+    // after the fact. Shape is not something the planner may re-roll, so it has to be picked from
+    // what can honor it.
+    // Requirements are a separate matter and stay strict: a subject with a method that cannot
+    // deliver what the subtopic demands of it still draws nothing and still says why.
+    let wired = [];
+    for (let ti = 0; ti < topics.length; ti++) {
+      for (let si = 1; si < topics[ti].length; si++) {
+        let candShapes = shapes.filter(sh => getMethodsForSubtopic(topics[ti][si], sh).length > 0);
+        if (candShapes.length > 0) wired.push([ti, si, candShapes]);
+      }
+    }
+    // Nothing wired at all is a broken registry rather than a composition to roll, so the old
+    // free roll is left in place to fail loudly rather than quietly drawing from an empty pool.
+    let pick = wired.length > 0
+      ? R.random_choice(wired)
+      : [R.random_int(0, topics.length - 1), 1, shapes];
+    t = pick[0];
     // t = 0; // topic override
     topic = topics[t][0];
-    st = R.random_int(1, topics[t].length - 1);
+    st = pick[1];
     // st = 1; // subtopic override
     sub = topics[t][st];
-    s = R.random_int(0, shapes.length - 1);
-    shape = shapes[s];
+    shape = R.random_choice(pick[2]);
+    s = shapes.indexOf(shape);
 
     // A subtopic's overrides are what it demands of the composition; a method's own defaults are
     // just how it behaves when nothing was asked, so they never constrain anything.
-    reqsFor = function(m) { return deriveRequirements(methods[m].subtopics[sub] || {}); };
-    candidates = getMethodsForSubtopic(sub, shape).filter(m => canAttempt(m, reqsFor(m)));
+    //
+    // Where a method offers the subtopic more than one treatment, which one it is answering with
+    // is settled here rather than at plan time, and settled for every method at once rather than
+    // only the one about to run. The planner can hand the job to a different method partway
+    // through, and it reads that method's demands and its config separately — so the two have to
+    // agree about which treatment is in play, for whichever method ends up drawing.
+    let chosen = {};
+    for (let name in methods) {
+      if (!methods[name].shapes.includes(shape)) continue;
+      let usable = treatmentsFor(name, sub).filter(function(o) {
+        return !o.allowedShapes || o.allowedShapes.includes(shape);
+      });
+      if (usable.length === 0) continue;
+      chosen[name] = usable.length === 1 ? usable[0] : R.random_choice(usable);
+    }
+    reqsFor = function(m) { return deriveRequirements(chosen[m] || {}); };
+    configFor = function(m) { return mergeConfig(m, chosen[m]); };
+    candidates = Object.keys(chosen).filter(m => canAttempt(m, reqsFor(m)));
     comp = candidates.length > 0 ? R.random_choice(candidates) : null;
-
-    configFor = function(m) { return resolveConfig(m, sub); };
     config = comp ? configFor(comp) : {};
   }
 
