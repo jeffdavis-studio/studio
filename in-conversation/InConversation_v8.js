@@ -3954,7 +3954,7 @@ let testShape = null;   // e.g. "Line", "Circle", "Square", "Triangle" (null = r
 // one subtopic instead of every wired one. Which is what it takes to review a subject as the
 // pipeline actually composes it, since a subtopic is answered by several methods in different ways
 // and a testCases entry can only name knobs.
-let testSubtopic = "Isolation";  // subtopic name, or null for every wired subtopic
+let testSubtopic = null;  // subtopic name, or null for every wired subtopic
 
 // A test case is one family worth reviewing: which methods to sample from, and knob values layered
 // over whichever method gets picked. One case is drawn per refresh, so a list of them reviews
