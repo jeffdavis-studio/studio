@@ -123,10 +123,14 @@ let methods = {
       compression: [1, 2, 3, 4],
       range: "random"
     },
-    // Unwired. The method has no emphasis knob and nothing else it says about the Emphasis
-    // subtopics, which is the only topic mapped so far, so it takes no part in the real pipeline
-    // yet. Reachable through test mode meanwhile.
-    subtopics: {},
+    // The method has no emphasis knob, so it answers the Emphasis subtopics only where a plain knob
+    // says the thing: the gradient gives the nested sequence a tone per step, which is hierarchy by
+    // rank the same way it is in shapeGrid and stripe — here read along the nesting rather than
+    // across a field. The rest of Emphasis has no reading here, since a progression is one
+    // continuous run with no element free to stand apart from it.
+    subtopics: {
+      "Hierarchy": { colorScheme: "gradient" }
+    },
     plan: function(shape, config) {
       let colorScheme = resolveChoice(config.colorScheme, ["single", "binary", "gradient"]);
       let outline = chance(config.outline);
@@ -1084,7 +1088,11 @@ let methods = {
     subtopics: {
       "Focus": { emphasis: "focus" },
       "Anomaly": { emphasis: "anomaly" },
-      "Hierarchy": { colorScheme: "gradient" },
+      // Emphasis pinned off, not left to roll. The gradient is what ranks the field here, and any
+      // of the other emphases is a second, louder claim on the same reading — the eye goes to the
+      // outlier, or to the dense patch, and the ranking becomes background to it. Hierarchy is the
+      // one subtopic where this method has to be told to do nothing else.
+      "Hierarchy": { colorScheme: "gradient", emphasis: "none" },
       "Scale": { emphasis: "scale" },
       "Concentration": [
         { emphasis: "concentration" },
@@ -2853,7 +2861,12 @@ let methods = {
     // canvas and say neither.
     subtopics: {
       "Scale": { fit: "inset", insetMinU: 1, insetMaxU: 2 },
-      "Isolation": { fit: "inset", insetMinU: 5, insetMaxU: 7 }
+      // Line sits out this one. A line's isolation would have to be read from its length, and the
+      // margin leaves it 2u to 4u of one — while its weight stays canvas-relative, being a stroke
+      // rather than a footprint — so what lands is a short thick dash, not a slight form alone in a
+      // field. The other three carry a footprint down with them and stay themselves.
+      "Isolation": { fit: "inset", insetMinU: 6, insetMaxU: 7,
+                     allowedShapes: ["Circle", "Square", "Triangle"] }
     },
     plan: function(shape, config) {
       let outline = chance(config.outline);
@@ -3941,7 +3954,7 @@ let testShape = null;   // e.g. "Line", "Circle", "Square", "Triangle" (null = r
 // one subtopic instead of every wired one. Which is what it takes to review a subject as the
 // pipeline actually composes it, since a subtopic is answered by several methods in different ways
 // and a testCases entry can only name knobs.
-let testSubtopic = null;  // subtopic name, or null for every wired subtopic
+let testSubtopic = "Isolation";  // subtopic name, or null for every wired subtopic
 
 // A test case is one family worth reviewing: which methods to sample from, and knob values layered
 // over whichever method gets picked. One case is drawn per refresh, so a list of them reviews
@@ -3957,6 +3970,14 @@ let testCases = null;
 
 // Saved scopes — swap one of these back in when the current work is done.
 //
+// shapeProgression's gradient on its own, the treatment just wired to Hierarchy. Only useful for
+// reading it apart from the subtopic that now carries it — through testSubtopic above it shares the
+// roll with grid's hierarchy emphasis and shapeGrid's and stripe's gradients. Pinning the gradient
+// also settles the outline: an outlined progression is c1 only, so every draw here is filled.
+// let testCases = [
+//   { methods: ["shapeProgression"], config: { colorScheme: "gradient" } }
+// ];
+//
 // Grid's hierarchy on its own. Only useful for reading the emphasis apart from the subtopic that
 // carries it: grid is the one method with an emphasis by this name, and the Hierarchy subtopic also
 // answers through shapeGrid's and stripe's gradients, which this never shows. For the subject as
@@ -3971,11 +3992,11 @@ let testCases = null;
 // ];
 //
 // largeShape's inset fit at the wide end of the margin range, where the form is a small object in
-// a large field rather than a canvas-scale one: 5 leaves it 38% of the canvas, 6 a quarter, 7 an
-// eighth. Reads the small-object half of the range on its own, without the near-full-bleed draws
-// the edge fits and narrow margins otherwise mix in.
+// a large field rather than a canvas-scale one: 6 leaves it a quarter of the canvas, 7 an eighth.
+// Matches what Isolation asks of the method, and reads it without the near-full-bleed draws the
+// edge fits and narrow margins otherwise mix in.
 // let testCases = [
-//   { methods: ["largeShape"], config: { fit: "inset", insetMinU: 5, insetMaxU: 7 } }
+//   { methods: ["largeShape"], config: { fit: "inset", insetMinU: 6, insetMaxU: 7 } }
 // ];
 //
 // shapeProgression held to an inset range, so the outer ring always terminates inside the canvas
@@ -4055,11 +4076,6 @@ let testCases = null;
 // both block sizes; pin scaleSpan to review one of them on its own.
 // let testCases = [
 //   { methods: ["shapeGrid"], config: { emphasis: "scale" } }
-// ];
-//
-// shapeProgression at full random.
-// let testCases = [
-//   { methods: ["shapeProgression"], config: {} }
 // ];
 //
 // largeShape at full random, the method just finished. Worth re-running after any change to
