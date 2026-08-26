@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Intervals — Plotter SVG Generator</title>
+  <!--
+    intervals/svg-generator.html — the per-pen SVG emitter for the plotted
+    Intervals edition. Forked from mechanical-drawings/svg-generator-v6.html.
+
+    It does NOT re-implement the artwork. Intervals_v4.js is loaded as a sibling
+    script and driven directly: set tokenData.hash, call setup(), call
+    coverage(). The weight table this reads is the artwork's own, so the emitter
+    cannot drift from the piece. If Intervals moves to a v5, change the one
+    script tag below and nothing else.
+
+    CARRIED OVER VERBATIM from svg-generator-v6:
+      generateAngledLines (the rectangle/angle/coverage clipper), lineDistance,
+      downloadSVG, the per-pen file model (mm units, 1:1 viewBox, monochrome
+      strokes, zero-stroke sheet rect), buildBatchedSVG's group-with-data-attrs
+      shape, and the materials-table pattern. betterLerp/rgbToLab/labToRgb are
+      not copied in — Intervals_v4.js already defines them globally and they are
+      byte-identical between the two projects.
+
+    DROPPED (Jeff, 2026-08-24):
+      packBatches. There is no sharpening interval with pens; a pen runs
+      continuously for its layer. The per-pen draw-direction toggle goes with
+      it — it existed for pencil-tip loading.
+
+    NOT BUILT HERE (separate Asana tasks, deliberately out of scope):
+      density curve as a function of active family count per bar (1217804067101361),
+      serpentine plot-time ordering (1217804094941252),
+      hatched preview beside the digital render (1217804146785005).
+
+    Every dimension is a control. There are no baked-in millimetres.
+  -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+  <script src="Intervals_v4.js"></script>
+  <style>
+    body {
+      font-family: aktiv-grotesk, -apple-system, sans-serif;
+      margin: 0;
+      padding: 40px 20px;
+      color: #333;
+    }
+    .main-layout {
+      display: inline-flex;
+      gap: 40px;
+      align-items: flex-start;
+    }
+    .center-wrapper {
+      display: flex;
+      justify-content: center;
+    }
+    .preview-column {
+      flex-shrink: 0;
+      max-width: 630px;
+    }
+    .sidebar {
+      width: 460px;
+      flex-shrink: 0;
+    }
+    .section {
+      margin-bottom: 40px;
+    }
+    .section h3 {
+      margin: 0 0 16px 0;
+      font-size: 14px;
+      font-weight: 400;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #333;
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .form-row + .form-row {
+      margin-top: 12px;
+    }
+    .form-row.four {
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+    }
+    .form-row.three {
+      grid-template-columns: 1fr 1fr 1fr;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+    label {
+      margin-bottom: 6px;
+      font-weight: 400;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #666;
+    }
+    input {
+      padding: 12px;
+      font-family: aktiv-grotesk, -apple-system, sans-serif;
+      font-size: 14px;
+      border: 1px solid #333;
+      border-radius: 0;
+      background: white;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    input:focus {
+      outline: none;
+      border-color: #000;
+    }
+    input.hash {
+      font-family: ui-monospace, Menlo, monospace;
+      font-size: 11px;
+    }
+    .buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    button {
+      padding: 14px 16px;
+      font-family: aktiv-grotesk, -apple-system, sans-serif;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      background: white;
+      color: #333;
+      border: 1px solid #333;
+      border-radius: 0;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.15s, color 0.15s;
+    }
+    button:hover {
+      background: #333;
+      color: white;
+    }
+    button.active {
+      background: #333;
+      color: white;
+    }
+    button.full-width {
+      grid-column: 1 / -1;
+    }
+    .color-swatch {
+      width: 16px;
+      height: 16px;
+      border-radius: 0;
+      border: 1px solid rgba(0, 0, 0, 0.3);
+      flex-shrink: 0;
+    }
+    #preview-buttons {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-top: 12px;
+    }
+    #preview-buttons button {
+      padding: 9px 4px;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+    }
+    #render-container canvas {
+      width: 630px !important;
+      height: 630px !important;
+      display: block;
+    }
+    #svg-preview-container {
+      background: #fff;
+      border: 1px solid #ddd;
+    }
+    table.pens {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    table.pens th {
+      text-align: left;
+      font-weight: 400;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-size: 10px;
+      color: #666;
+      border-bottom: 1px solid #333;
+      padding: 0 6px 6px 0;
+    }
+    table.pens td {
+      padding: 6px 6px 6px 0;
+      border-bottom: 1px solid #eee;
+      vertical-align: middle;
+    }
+    table.pens tr.idle {
+      color: #bbb;
+    }
+    table.pens tr.idle .color-swatch {
+      opacity: 0.25;
+    }
+    .readout {
+      font-size: 12px;
+      line-height: 1.7;
+      color: #444;
+    }
+    .readout b {
+      font-weight: 400;
+      color: #000;
+    }
+    .note {
+      font-size: 11px;
+      color: #888;
+      line-height: 1.6;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="center-wrapper">
+    <div class="main-layout">
+      <div class="preview-column">
+        <h3 style="margin: 0 0 16px 0; font-size: 14px; font-weight: 400; text-transform: uppercase; letter-spacing: 1.5px; color: #333;">Preview</h3>
+        <div id="render-container"></div>
+        <div id="svg-preview-container" style="display: none;"></div>
+        <div id="preview-buttons"></div>
+        <div class="note" id="preview-note"></div>
+      </div>
+
+      <div class="sidebar">
+        <div class="section">
+          <h3>Token</h3>
+          <div class="form-group">
+            <label for="tokenHash">Hash</label>
+            <input type="text" class="hash" id="tokenHash" spellcheck="false">
+          </div>
+          <div class="form-row" style="margin-top: 12px;">
+            <div class="form-group">
+              <label for="sOverride">s Override (0 = token)</label>
+              <input type="number" id="sOverride" value="0" step="1" min="0" max="60">
+            </div>
+            <div class="form-group">
+              <label>&nbsp;</label>
+              <button onclick="randomizeToken()">Randomize</button>
+            </div>
+          </div>
+          <div class="readout" id="token-readout" style="margin-top: 14px;"></div>
+        </div>
+
+        <div class="section">
+          <h3>Sheet &amp; Image</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="paperWidth">Paper W (mm)</label>
+              <input type="number" id="paperWidth" value="355.6" step="0.1" min="10">
+            </div>
+            <div class="form-group">
+              <label for="paperHeight">Paper H (mm)</label>
+              <input type="number" id="paperHeight" value="431.8" step="0.1" min="10">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="imgWidth">Image W (mm)</label>
+              <input type="number" id="imgWidth" value="290" step="1" min="10">
+            </div>
+            <div class="form-group">
+              <label for="imgHeight">Image H (mm)</label>
+              <input type="number" id="imgHeight" value="290" step="1" min="10">
+            </div>
+          </div>
+          <div class="note">14&times;17 in pad = 355.6 &times; 431.8 mm. iDraw H drawable area measured at ~297 &times; 406 mm — the image must fit inside that, not just inside the paper.</div>
+        </div>
+
+        <div class="section">
+          <h3>Marks</h3>
+          <div class="form-row three">
+            <div class="form-group">
+              <label for="linePitch">Pitch (mm)</label>
+              <input type="number" id="linePitch" value="0.45" step="0.01" min="0.05">
+            </div>
+            <div class="form-group">
+              <label for="curveExponent">Density Curve</label>
+              <input type="number" id="curveExponent" value="1.0" step="0.1" min="1" max="7">
+            </div>
+            <div class="form-group">
+              <label for="opacityTarget">Opacity Target</label>
+              <input type="number" id="opacityTarget" value="0.90" step="0.01" min="0.1" max="0.99">
+            </div>
+          </div>
+          <div class="note" id="marks-note"></div>
+        </div>
+
+        <div class="section">
+          <h3>Angle Set</h3>
+          <div class="form-row four">
+            <div class="form-group">
+              <label for="angle1">Slot 1</label>
+              <input type="number" id="angle1" value="22.5" step="0.5">
+            </div>
+            <div class="form-group">
+              <label for="angle2">Slot 2</label>
+              <input type="number" id="angle2" value="67.5" step="0.5">
+            </div>
+            <div class="form-group">
+              <label for="angle3">Slot 3</label>
+              <input type="number" id="angle3" value="112.5" step="0.5">
+            </div>
+            <div class="form-group">
+              <label for="angle4">Slot 4</label>
+              <input type="number" id="angle4" value="157.5" step="0.5">
+            </div>
+          </div>
+          <div class="note">Angle is a property of the ramp slot, not the ink. Slots 1&ndash;2 are the ramp's start anchor, 3&ndash;4 its end anchor. Angles are held in paper space and are not rotated with the field.</div>
+        </div>
+
+        <div class="section">
+          <h3>Pens — Sakura Pigma Micron 05</h3>
+          <table class="pens">
+            <thead>
+              <tr><th></th><th>Pen</th><th>Angles</th><th>Length</th><th>Segs</th></tr>
+            </thead>
+            <tbody id="pen-table"></tbody>
+          </table>
+          <div class="note" id="pen-note"></div>
+        </div>
+
+        <div class="section">
+          <h3>Download SVG</h3>
+          <div class="buttons" id="download-buttons"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ============ CONSTANTS ============
+    const PREVIEW_SIZE = 630;
+
+    // The nine Micron 05 colours, in wheel order, mapping 1:1 onto Intervals'
+    // ink1..ink9. HSB is not restated here — it is read off the artwork's own
+    // `inks` array at boot, so the swatches cannot disagree with the piece.
+    // Names are Jeff's, 2026-08-24.
+    const PEN_NAMES = [
+      'Orange', 'Yellow', 'Fresh Green', 'Green', 'Blue',
+      'Royal Blue', 'Purple', 'Rose', 'Red'
+    ];
+
+    // ============ GLOBAL STATE ============
+    let artCanvas = null;
+    let penHex = [];           // filled at boot from the artwork's inks
+    let tok = null;            // { hash, s, r, vtype, bars }
+    let layers = [];           // [{ ink, angle, bars, lineCount, distance, filename }]
+    let previewIndex = 0;      // 0 = digital render, 1..n = layer n-1
+
+    // ============ BOOT ============
+    // Intervals_v4.js seeds itself with a Math.random hash at parse time. This
+    // runs before p5's load handler, so the first render is already ours.
+    tokenData.hash = randomHash();
+
+    function randomHash() {
+      let s = '0x';
+      for (let i = 0; i < 64; i++) {
+        s += '0123456789abcdef'[Math.floor(Math.random() * 16)];
+      }
+      return s;
+    }
+
+    window.addEventListener('load', () => {
+      const wait = setInterval(() => {
+        const c = document.querySelector('canvas');
+        if (!c || typeof window.createCanvas !== 'function') return;
+        clearInterval(wait);
+        boot(c);
+      }, 20);
+    });
+
+    function boot(canvasEl) {
+      artCanvas = canvasEl;
+      document.getElementById('render-container').appendChild(artCanvas);
+
+      // setup() is re-invoked on every token change. Its createCanvas would
+      // otherwise append a fresh canvas each time; the artwork's w/h derive
+      // from window.innerHeight and never change, so returning the existing
+      // one is exact, not an approximation.
+      const realCreateCanvas = window.createCanvas;
+      window.createCanvas = function () { return artCanvas; };
+      window.__realCreateCanvas = realCreateCanvas;
+
+      colorMode(RGB);
+      penHex = inks.map(c => rgbHex(c));
+
+      document.getElementById('tokenHash').value = tokenData.hash;
+      ['paperWidth', 'paperHeight', 'imgWidth', 'imgHeight', 'linePitch',
+       'curveExponent', 'opacityTarget', 'angle1', 'angle2', 'angle3', 'angle4',
+       'sOverride'].forEach(id => {
+        document.getElementById(id).addEventListener('input', rebuild);
+      });
+      document.getElementById('tokenHash').addEventListener('change', () => {
+        setToken(document.getElementById('tokenHash').value.trim());
+      });
+
+      setToken(tokenData.hash);
+    }
+
+    function rgbHex(c) {
+      const v = n => Math.round(n).toString(16).padStart(2, '0');
+      return '#' + v(red(c)) + v(green(c)) + v(blue(c));
+    }
+
+    // ============ TOKEN ============
+    function randomizeToken() {
+      setToken(randomHash());
+    }
+
+    function setToken(hash) {
+      if (!/^0x[0-9a-fA-F]{64}$/.test(hash)) {
+        hash = randomHash();
+      }
+      tokenData.hash = hash;
+      document.getElementById('tokenHash').value = hash;
+      setup();            // re-derives every anchor from the new hash
+      redraw();           // one-shot; the artwork calls noLoop()
+      rebuild();
+    }
+
+    // Reads the artwork after setup() has run. The s override is applied after
+    // setup, never before: s is drawn from the PRNG ahead of every colour
+    // decision, so replacing it afterwards re-samples the ramps at a different
+    // resolution without shifting a single anchor.
+    function readToken() {
+      const sOverride = parseInt(document.getElementById('sOverride').value, 10) || 0;
+      const tokenS = s;
+      if (sOverride > 0 && sOverride !== s) {
+        s = sOverride;
+        redraw();
+      }
+      const t = { hash: tokenData.hash, s: s, tokenS: tokenS, r: r, vtype: vtype, bars: coverage() };
+      return t;
+    }
+
+    // ============ GEOMETRY ============
+    function readGeometry() {
+      const paperW = parseFloat(document.getElementById('paperWidth').value) || 1;
+      const paperH = parseFloat(document.getElementById('paperHeight').value) || 1;
+      const imgW = parseFloat(document.getElementById('imgWidth').value) || 1;
+      const imgH = parseFloat(document.getElementById('imgHeight').value) || 1;
+      return {
+        paperW, paperH, imgW, imgH,
+        imgX: (paperW - imgW) / 2,
+        imgY: (paperH - imgH) / 2
+      };
+    }
+
+    // draw() lays 3s full-height bars edge to edge across the square, then
+    // rotates the whole field by r*90 about the centre. A 90 degree rotation of
+    // a bar keeps it a rectangle — (x, y) maps to (S - y, x) — so the field
+    // stays axis-aligned and no general transform is needed.
+    function barRect(band, step, t, geo) {
+      const t0 = step / t.s + band / (3 * t.s);
+      const frac = 1 / (3 * t.s);
+      if (t.r === 0) {
+        return { x: geo.imgX + t0 * geo.imgW, y: geo.imgY, w: frac * geo.imgW, h: geo.imgH };
+      }
+      return { x: geo.imgX, y: geo.imgY + t0 * geo.imgH, w: geo.imgW, h: frac * geo.imgH };
+    }
+
+    // Same projection generateAngledLines uses internally, pulled out so a
+    // family that would round to zero lines can be dropped before it is
+    // generated. Without this, generateAngledLines' Math.max(1, ...) floor puts
+    // a stray full-length line into every zero-weight slot — and zero-weight
+    // slots are common (a ramp's far anchor contributes nothing at step 0).
+    function perpSpanOf(rect, angleDeg) {
+      const th = angleDeg * Math.PI / 180;
+      const sinA = Math.sin(th);
+      const cosA = Math.cos(th);
+      const d = [
+        [rect.x, rect.y],
+        [rect.x + rect.w, rect.y],
+        [rect.x, rect.y + rect.h],
+        [rect.x + rect.w, rect.y + rect.h]
+      ].map(p => -p[0] * sinA + p[1] * cosA);
+      return Math.max(...d) - Math.min(...d);
+    }
+
+    // ============ DENSITY ============
+    // Four crossing line families composite as 1 - product(1 - c_i), not as a
+    // sum. Splitting a nominal coverage of 1.0 four ways therefore lands at 68%
+    // apparent ink, not 100%. Solving 1 - (1 - m/4)^4 = target gives the global
+    // multiplier that puts a full bar on target: 0.85 -> 1.51x, 0.90 -> 1.75x,
+    // 0.95 -> 2.11x, 0.98 -> 2.50x.
+    //
+    // Four is the STRUCTURAL family count — every bar has exactly four ink slots
+    // by construction — so this is one constant for the sheet. Bars whose active
+    // families are fewer than four will run denser than target. Correcting that
+    // per bar is Asana 1217804067101361 and is deliberately not done here.
+    function opacityMultiplier(target) {
+      const t = Math.min(0.999, Math.max(0, target));
+      return 4 * (1 - Math.pow(1 - t, 0.25));
+    }
+
+    function readMarks() {
+      const pitch = parseFloat(document.getElementById('linePitch').value) || 0.45;
+      const curveExp = parseFloat(document.getElementById('curveExponent').value) || 1;
+      const target = parseFloat(document.getElementById('opacityTarget').value) || 0.9;
+      return { pitch, curveExp, target, mult: opacityMultiplier(target) };
+    }
+
+    function readAngles() {
+      return [1, 2, 3, 4].map(i => parseFloat(document.getElementById('angle' + i).value));
+    }
+
+    // weight is the bar's exact ink fraction, straight out of coverage(). The
+    // curve is the empirical step between a Lab-linear weight and coverage on
+    // paper; 1.0 passes the weight through untouched and is the honest default
+    // until the test plot says otherwise.
+    function inkDensity(weight, marks) {
+      const curved = marks.curveExp === 1 ? weight : 1 - Math.pow(1 - weight, marks.curveExp);
+      return curved * marks.mult;
+    }
+
+    // ============ LAYER BUILD ============
+    // One layer per (pen, angle). A pen that lands in two slots of the same ramp
+    // is genuinely hatched twice at two angles; merging those into one family
+    // would lose the structure the slot encodes.
+    function buildLayers(t, geo, marks, angles) {
+      const byKey = new Map();
+
+      for (const bar of t.bars) {
+        const rect = barRect(bar.band, bar.step, t, geo);
+        for (const e of bar.inks) {
+          const angle = angles[e.slot - 1];
+          const density = inkDensity(e.weight, marks);
+          if (!(density > 0)) continue;
+          if (Math.round(density * perpSpanOf(rect, angle) / marks.pitch) < 1) continue;
+
+          const lines = generateAngledLines(rect.x, rect.y, rect.w, rect.h, density, marks.pitch, angle);
+          if (lines.length === 0) continue;
+
+          const key = e.ink + '@' + angle;
+          if (!byKey.has(key)) {
+            byKey.set(key, { ink: e.ink, angle: angle, slots: new Set(), bars: [] });
+          }
+          const layer = byKey.get(key);
+          layer.slots.add(e.slot);
+          layer.bars.push({
+            band: bar.band, step: bar.step, weight: e.weight, density: density,
+            lines: lines, distance: lines.reduce((sum, l) => sum + lineDistance(l), 0)
+          });
+        }
+      }
+
+      const out = [...byKey.values()];
+      for (const layer of out) {
+        layer.lineCount = layer.bars.reduce((n, b) => n + b.lines.length, 0);
+        layer.distance = layer.bars.reduce((d, b) => d + b.distance, 0);
+        layer.filename = layerFilename(t, layer);
+      }
+      // Plot order: by pen, then by angle. A pen's files run back to back and
+      // the sheet takes one swap per pen, not one per file.
+      out.sort((a, b) => a.ink - b.ink || a.angle - b.angle);
+      return out;
+    }
+
+    function layerFilename(t, layer) {
+      const slug = PEN_NAMES[layer.ink].toLowerCase().replace(/\s+/g, '-');
+      return 'intervals-' + t.hash.slice(2, 10) + '-ink' + (layer.ink + 1) + '-' + slug +
+             '-' + layer.angle + 'deg.svg';
+    }
+
+    // ============ REBUILD ============
+    function rebuild() {
+      tok = readToken();
+      const geo = readGeometry();
+      const marks = readMarks();
+      layers = buildLayers(tok, geo, marks, readAngles());
+
+      renderTokenReadout(marks);
+      renderPenTable();
+      renderButtons();
+      if (previewIndex > layers.length) previewIndex = 0;
+      showPreview(previewIndex);
+    }
+
+    function renderTokenReadout(marks) {
+      const totalLines = layers.reduce((n, l) => n + l.lineCount, 0);
+      const totalDist = layers.reduce((d, l) => d + l.distance, 0);
+      const pens = new Set(layers.map(l => l.ink)).size;
+      const sNote = tok.s !== tok.tokenS ? ' (token ' + tok.tokenS + ', overridden)' : '';
+      document.getElementById('token-readout').innerHTML =
+        's <b>' + tok.s + '</b>' + sNote + ' &middot; ' + tok.bars.length + ' bars &middot; ' +
+        'rotation <b>' + (tok.r * 90) + '&deg;</b> &middot; variant <b>' + tok.vtype + '</b><br>' +
+        '<b>' + pens + '</b> pens, <b>' + layers.length + '</b> layers &middot; ' +
+        '<b>' + (totalDist / 1000).toFixed(1) + ' m</b> drawn in <b>' +
+        totalLines.toLocaleString() + '</b> segments';
+      document.getElementById('marks-note').innerHTML =
+        'Opacity ' + marks.target.toFixed(2) + ' &rarr; coverage &times; <b>' +
+        marks.mult.toFixed(2) + '</b> (four crossing families composite, they do not add). ' +
+        'Curve 1.0 passes the artwork\u2019s exact weights through &mdash; calibrate it on the test plot.';
+    }
+
+    function renderPenTable() {
+      const tbody = document.getElementById('pen-table');
+      tbody.innerHTML = '';
+      for (let i = 0; i < PEN_NAMES.length; i++) {
+        const mine = layers.filter(l => l.ink === i);
+        const tr = document.createElement('tr');
+        if (mine.length === 0) tr.className = 'idle';
+        const dist = mine.reduce((d, l) => d + l.distance, 0);
+        const segs = mine.reduce((n, l) => n + l.lineCount, 0);
+        tr.innerHTML =
+          '<td><div class="color-swatch" style="background:' + penHex[i] + '"></div></td>' +
+          '<td>ink' + (i + 1) + ' ' + PEN_NAMES[i] + '</td>' +
+          '<td>' + (mine.length ? mine.map(l => l.angle + '&deg;').join(', ') : '&mdash;') + '</td>' +
+          '<td>' + (mine.length ? (dist / 1000).toFixed(1) + ' m' : '&mdash;') + '</td>' +
+          '<td>' + (mine.length ? segs.toLocaleString() : '&mdash;') + '</td>';
+        tbody.appendChild(tr);
+      }
+      document.getElementById('pen-note').innerHTML =
+        'A pen listed at two angles carries two line families and gets two files. ' +
+        'They plot back to back without a swap.';
+    }
+
+    function renderButtons() {
+      const prev = document.getElementById('preview-buttons');
+      prev.innerHTML = '';
+      const mk = (label, idx) => {
+        const b = document.createElement('button');
+        b.textContent = label;
+        b.onclick = () => showPreview(idx);
+        if (idx === previewIndex) b.className = 'active';
+        prev.appendChild(b);
+      };
+      mk('Render', 0);
+      layers.forEach((l, i) => mk('ink' + (l.ink + 1) + ' ' + l.angle + '\u00b0', i + 1));
+
+      const dl = document.getElementById('download-buttons');
+      dl.innerHTML = '';
+      layers.forEach((l, i) => {
+        const b = document.createElement('button');
+        b.innerHTML = '<div class="color-swatch" style="background:' + penHex[l.ink] + '"></div>' +
+                      'ink' + (l.ink + 1) + ' &middot; ' + l.angle + '&deg;';
+        b.onclick = () => downloadLayer(i);
+        dl.appendChild(b);
+      });
+      const all = document.createElement('button');
+      all.className = 'full-width';
+      all.textContent = 'Download all ' + layers.length + ' layers';
+      all.onclick = downloadAllLayers;
+      dl.appendChild(all);
+    }
+
+    // ============ PREVIEW ============
+    function showPreview(idx) {
+      previewIndex = idx;
+      const buttons = document.getElementById('preview-buttons').querySelectorAll('button');
+      buttons.forEach((b, i) => b.classList.toggle('active', i === idx));
+
+      const renderEl = document.getElementById('render-container');
+      const svgEl = document.getElementById('svg-preview-container');
+      const note = document.getElementById('preview-note');
+
+      if (idx === 0) {
+        renderEl.style.display = 'block';
+        svgEl.style.display = 'none';
+        note.textContent = 'The artwork as Intervals_v4 draws it, at the token above.';
+        return;
+      }
+
+      const layer = layers[idx - 1];
+      renderEl.style.display = 'none';
+      svgEl.style.display = 'block';
+      svgEl.innerHTML = buildLayerSVG(layer, tok, readGeometry(), readMarks());
+
+      const svg = svgEl.querySelector('svg');
+      const geo = readGeometry();
+      const scale = Math.min(PREVIEW_SIZE / geo.paperW, PREVIEW_SIZE / geo.paperH);
+      svg.removeAttribute('width');
+      svg.removeAttribute('height');
+      svg.style.width = (geo.paperW * scale) + 'px';
+      svg.style.height = (geo.paperH * scale) + 'px';
+      // Display only. The file itself is monochrome at stroke-width 1, per the
+      // plotter file model; on screen that would fill solid and show nothing.
+      const g = svg.querySelector('g');
+      g.setAttribute('stroke', penHex[layer.ink]);
+      g.setAttribute('stroke-width', (readMarks().pitch * 0.7).toFixed(3));
+
+      note.innerHTML = 'ink' + (layer.ink + 1) + ' ' + PEN_NAMES[layer.ink] + ' at ' + layer.angle +
+        '&deg; &mdash; ' + layer.lineCount.toLocaleString() + ' segments, ' +
+        (layer.distance / 1000).toFixed(1) + ' m, across ' + layer.bars.length + ' bars. ' +
+        'Colour and stroke width here are for legibility; the file is black at stroke-width 1.';
+    }
+
+    // ============ SVG GENERATION ============
+    // buildBatchedSVG's shape, with packBatches removed: one <g> per bar rather
+    // than one per sharpening interval, carrying the same kind of data-* the
+    // batch groups carried. The bar grouping is what a plot-time reordering pass
+    // would key off (Asana 1217804094941252) — nothing is ordered here beyond
+    // the order coverage() emits.
+    function buildLayerSVG(layer, t, geo, marks) {
+      const groups = layer.bars.map((bar, i) => {
+        const lineElements = bar.lines
+          .map(l => '      <line x1="' + l.x1.toFixed(6) + '" y1="' + l.y1.toFixed(6) +
+                    '" x2="' + l.x2.toFixed(6) + '" y2="' + l.y2.toFixed(6) + '"/>')
+          .join('\n');
+        return '    <g id="' + i + '-bar-ink' + (layer.ink + 1) + '-b' + bar.band + 's' + bar.step +
+               '" data-band="' + bar.band + '" data-step="' + bar.step +
+               '" data-weight="' + bar.weight.toFixed(6) +
+               '" data-density="' + bar.density.toFixed(6) +
+               '" data-distance="' + Math.round(bar.distance) + '">\n' +
+               lineElements + '\n    </g>';
+      }).join('\n');
+
+      return '<?xml version="1.0" encoding="UTF-8"?>\n' +
+'<svg xmlns="http://www.w3.org/2000/svg"\n' +
+'     width="' + geo.paperW + 'mm"\n' +
+'     height="' + geo.paperH + 'mm"\n' +
+'     viewBox="0 0 ' + geo.paperW + ' ' + geo.paperH + '"\n' +
+'     data-project="intervals"\n' +
+'     data-token="' + t.hash + '"\n' +
+'     data-s="' + t.s + '"\n' +
+'     data-rotation="' + (t.r * 90) + '"\n' +
+'     data-variant="' + t.vtype + '"\n' +
+'     data-ink="ink' + (layer.ink + 1) + '"\n' +
+'     data-pen="' + PEN_NAMES[layer.ink] + '"\n' +
+'     data-angle="' + layer.angle + '"\n' +
+'     data-slots="' + [...layer.slots].sort().join(',') + '"\n' +
+'     data-pitch-mm="' + marks.pitch + '"\n' +
+'     data-curve="' + marks.curveExp + '"\n' +
+'     data-opacity-target="' + marks.target + '"\n' +
+'     data-coverage-multiplier="' + marks.mult.toFixed(6) + '"\n' +
+'     data-image="' + geo.imgX.toFixed(3) + ' ' + geo.imgY.toFixed(3) + ' ' +
+                      geo.imgW + ' ' + geo.imgH + '"\n' +
+'     data-segments="' + layer.lineCount + '"\n' +
+'     data-distance-mm="' + Math.round(layer.distance) + '">\n' +
+'  <rect x="0" y="0" width="' + geo.paperW + '" height="' + geo.paperH + '" fill="none" stroke="none"/>\n' +
+'  <g stroke="black" stroke-width="1" stroke-linecap="butt">\n' +
+groups + '\n' +
+'  </g>\n' +
+'</svg>';
+    }
+
+    function downloadLayer(i) {
+      const layer = layers[i];
+      downloadSVG(layer.filename, buildLayerSVG(layer, tok, readGeometry(), readMarks()));
+    }
+
+    function downloadAllLayers() {
+      const geo = readGeometry();
+      const marks = readMarks();
+      layers.forEach((layer, i) => {
+        setTimeout(() => downloadSVG(layer.filename, buildLayerSVG(layer, tok, geo, marks)), i * 150);
+      });
+    }
+
+    // ============ CARRIED OVER FROM svg-generator-v6 ============
+    function lineDistance(line) {
+      const dx = line.x2 - line.x1;
+      const dy = line.y2 - line.y1;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    function generateAngledLines(cellX, cellY, cellWidth, cellHeight, coverage, lineWidth, angleDeg) {
+      const lines = [];
+      const theta = angleDeg * Math.PI / 180;
+      const sinA = Math.sin(theta);
+      const cosA = Math.cos(theta);
+
+      const corners = [
+        [cellX, cellY],
+        [cellX + cellWidth, cellY],
+        [cellX, cellY + cellHeight],
+        [cellX + cellWidth, cellY + cellHeight]
+      ];
+      const dVals = corners.map(([x, y]) => -x * sinA + y * cosA);
+      const dMin = Math.min(...dVals);
+      const dMax = Math.max(...dVals);
+      const perpSpan = dMax - dMin;
+
+      const numLines = Math.max(1, Math.round(coverage * perpSpan / lineWidth));
+      const spacing = perpSpan / numLines;
+      const firstD = dMin + spacing / 2;
+
+      const xMin = cellX;
+      const xMax = cellX + cellWidth;
+      const yMin = cellY;
+      const yMax = cellY + cellHeight;
+
+      for (let i = 0; i < numLines; i++) {
+        const d = firstD + i * spacing;
+
+        let tMin = -1e9;
+        let tMax = 1e9;
+
+        if (Math.abs(cosA) > 1e-12) {
+          const tLeft  = (xMin + d * sinA) / cosA;
+          const tRight = (xMax + d * sinA) / cosA;
+          const tLo = Math.min(tLeft, tRight);
+          const tHi = Math.max(tLeft, tRight);
+          tMin = Math.max(tMin, tLo);
+          tMax = Math.min(tMax, tHi);
+        }
+
+        if (Math.abs(sinA) > 1e-12) {
+          const tTop    = (yMin - d * cosA) / sinA;
+          const tBottom = (yMax - d * cosA) / sinA;
+          const tLo = Math.min(tTop, tBottom);
+          const tHi = Math.max(tTop, tBottom);
+          tMin = Math.max(tMin, tLo);
+          tMax = Math.min(tMax, tHi);
+        }
+
+        if (tMin >= tMax - 1e-9) continue;
+
+        let x1 = -d * sinA + tMin * cosA;
+        let y1 =  d * cosA + tMin * sinA;
+        let x2 = -d * sinA + tMax * cosA;
+        let y2 =  d * cosA + tMax * sinA;
+
+        if (x1 > x2) {
+          [x1, y1, x2, y2] = [x2, y2, x1, y1];
+        }
+
+        lines.push({ x1, y1, x2, y2 });
+      }
+      return lines;
+    }
+
+    function downloadSVG(filename, content) {
+      const blob = new Blob([content], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>
