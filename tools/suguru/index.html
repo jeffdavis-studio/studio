@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#f7f5f1">
+<title>Satisfying Suguru — prototype</title>
+<style>
+  :root{
+    --ink:#1c1a17; --paper:#f7f5f1; --line:#c9c3b8; --cage:#1c1a17;
+    --given:#1c1a17; --entry:#1f5aa6; --bad:#c0392b; --sel:#ffe9a8;
+    --peer:#f2ede2; --chrome:#6f675c; --cs:32px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    -webkit-text-size-adjust:100%; overscroll-behavior:none;}
+  body{display:flex;flex-direction:column;min-height:100vh;min-height:100dvh;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);}
+
+  header{display:flex;align-items:center;gap:8px;padding:8px 10px 4px;}
+  .navbtn{border:1px solid var(--line);background:#fff;color:var(--ink);
+    border-radius:9px;min-width:38px;height:36px;font-size:17px;line-height:1;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;}
+  .navbtn:active{background:#eee;}
+  .navbtn[disabled]{opacity:.35;}
+  #title{flex:1;min-width:0;text-align:center;}
+  #pname{font-size:15px;font-weight:600;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  #pmeta{font-size:11px;color:var(--chrome);display:block;margin-top:1px;}
+  .chip{display:inline-block;border:1px solid var(--line);border-radius:20px;
+    padding:0 6px;font-size:10px;letter-spacing:.03em;text-transform:uppercase;background:#fff;}
+
+  #board{flex:1;display:flex;align-items:center;justify-content:center;
+    padding:2px 8px 6px;overflow:auto;}
+  #grid{display:grid;background:#fff;border:3px solid var(--cage);}
+  .c{width:var(--cs);height:var(--cs);position:relative;display:flex;
+    align-items:center;justify-content:center;
+    border-top:1px solid var(--line);border-left:1px solid var(--line);
+    font-size:calc(var(--cs) * 0.56);font-variant-numeric:tabular-nums;
+    cursor:pointer;user-select:none;background:#fff;}
+  .c.r0{border-top:none;} .c.c0{border-left:none;}
+  .c.ct{border-top:3px solid var(--cage);} .c.cl{border-left:3px solid var(--cage);}
+  .c.given{font-weight:700;color:var(--given);background:#f0ece4;}
+  .c.fill{color:var(--entry);font-weight:600;}
+  .c.peer{background:var(--peer);}
+  .c.given.peer{background:#e7e1d5;}
+  .c.sel{background:var(--sel) !important;}
+  .c.bad{color:var(--bad) !important;}
+  .c.bad::after{content:"";position:absolute;inset:2px;border:2px solid var(--bad);
+    border-radius:4px;opacity:.55;pointer-events:none;}
+  .notes{position:absolute;inset:1px;display:grid;
+    grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr);
+    font-size:calc(var(--cs) * 0.26);color:var(--chrome);font-weight:600;line-height:1;}
+  .notes span{display:flex;align-items:center;justify-content:center;}
+
+  #pad{padding:4px 8px calc(8px + env(safe-area-inset-bottom));
+    display:flex;flex-direction:column;gap:6px;align-items:center;}
+  #digits{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;}
+  .key{width:52px;height:50px;border:1px solid var(--line);background:#fff;
+    border-radius:11px;font-size:22px;font-weight:600;color:var(--ink);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;}
+  .key:active{background:#eee;}
+  .key[disabled]{opacity:.28;}
+  .key.wide{width:64px;font-size:15px;font-weight:500;}
+  .key.on{background:var(--ink);color:#fff;border-color:var(--ink);}
+  #status{font-size:12px;color:var(--chrome);min-height:16px;text-align:center;}
+  #status.win{color:#1d7a3c;font-weight:700;font-size:15px;}
+
+  #sheet{position:fixed;inset:0;background:rgba(28,26,23,.45);display:none;
+    align-items:flex-end;z-index:20;}
+  #sheet.open{display:flex;}
+  #sheetinner{background:var(--paper);width:100%;max-height:80vh;overflow:auto;
+    border-radius:14px 14px 0 0;padding:12px 12px calc(18px + env(safe-area-inset-bottom));}
+  #sheetinner h2{margin:0 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:.06em;color:var(--chrome);}
+  .row{display:flex;align-items:center;gap:8px;padding:10px 8px;border-bottom:1px solid var(--line);cursor:pointer;}
+  .row:last-child{border-bottom:none;}
+  .row.cur{background:#fff;}
+  .row b{font-size:15px;font-weight:600;flex:1;}
+  .row .done{color:#1d7a3c;font-weight:700;font-size:13px;}
+  .rules{font-size:13px;line-height:1.5;color:#3b352d;}
+  .rules ul{margin:6px 0 0;padding-left:18px;}
+  footer{text-align:center;font-size:10px;color:var(--chrome);padding:0 0 6px;}
+  footer a{color:var(--chrome);}
+  @media (min-width:700px){ .key{width:58px;height:54px;} }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="navbtn" id="prev">‹</div>
+  <div id="title">
+    <span id="pname">—</span>
+    <span id="pmeta"></span>
+  </div>
+  <div class="navbtn" id="next">›</div>
+  <div class="navbtn" id="menu">☰</div>
+</header>
+
+<div id="board"><div id="grid"></div></div>
+
+<div id="pad">
+  <div id="status"></div>
+  <div id="digits"></div>
+  <div id="digits2"></div>
+</div>
+
+<footer>Satisfying Suguru — prototype</footer>
+
+<div id="sheet"><div id="sheetinner">
+  <h2>Puzzles</h2>
+  <div id="list"></div>
+  <h2 style="margin-top:16px">How it works</h2>
+  <div class="rules">
+    Fill every cage (the heavy-outlined blocks) with the digits 1 to N, where N is
+    how many cells the cage has. A 3-cell cage gets 1, 2, 3 — in any order.
+    <ul>
+      <li>No two touching cells may hold the same digit — including diagonally.</li>
+      <li>Every puzzle here has exactly one solution and can be reached by pure logic. No guessing, ever.</li>
+    </ul>
+    Tap a cell, then tap a digit. <b>Notes</b> writes small pencil marks instead.
+    Conflicts light up red as you go. Progress saves on this device.
+  </div>
+  <h2 style="margin-top:16px">Reset</h2>
+  <div class="rules"><span class="key wide" id="resetone" style="display:inline-flex;width:auto;padding:0 14px;height:38px">Clear this puzzle</span></div>
+</div></div>
+
+<script>
+const PUZZLES = [{"id":"w1","name":"Warm-up 1","label":"Easy","rows":6,"cols":6,"givens":16,"cage":[0,1,1,1,2,2,0,0,1,1,2,2,3,0,4,4,2,5,3,6,4,4,7,5,3,6,4,7,7,5,6,6,6,7,7,5],"sizes":[4,5,5,3,5,4,5,5],"puzzle":[3,0,3,0,5,0,1,0,5,1,2,0,0,2,0,0,3,0,0,4,0,0,5,0,0,3,0,0,0,0,5,1,0,3,0,4],"solution":[3,2,3,4,5,1,1,4,5,1,2,4,3,2,3,4,3,1,1,4,1,2,5,2,2,3,5,4,1,3,5,1,2,3,2,4]},{"id":"w2","name":"Warm-up 2","label":"Easy","rows":6,"cols":6,"givens":14,"cage":[0,1,1,2,3,3,0,4,1,2,2,2,0,4,4,2,5,6,0,4,4,5,5,6,7,8,8,8,5,6,7,7,8,8,6,6],"sizes":[4,3,5,2,5,4,5,3,5],"puzzle":[2,0,0,0,0,0,0,0,3,1,0,5,1,0,4,0,0,0,0,0,1,3,0,3,2,5,0,0,0,0,1,0,0,3,0,1],"solution":[2,1,2,4,2,1,3,5,3,1,3,5,1,2,4,2,4,2,4,3,1,3,1,3,2,5,2,4,2,4,1,3,1,3,5,1]},{"id":"w3","name":"Warm-up 3","label":"Easy","rows":6,"cols":6,"givens":15,"cage":[0,0,1,1,2,2,0,0,3,4,4,2,5,0,3,6,4,4,5,3,3,3,7,4,5,8,8,8,7,7,5,5,8,8,7,7],"sizes":[5,2,3,5,5,5,1,5,5],"puzzle":[1,3,1,2,0,3,0,0,0,5,0,0,3,0,0,1,0,1,0,0,0,0,0,0,4,3,4,0,0,0,2,0,0,2,4,0],"solution":[1,3,1,2,1,3,4,5,4,5,4,2,3,2,3,1,3,1,5,1,5,2,5,2,4,3,4,1,3,1,2,1,5,2,4,2]},{"id":"w4","name":"Warm-up 4","label":"Medium","rows":6,"cols":6,"givens":13,"cage":[0,0,1,1,1,2,3,0,4,4,5,5,3,3,4,4,5,5,3,3,6,4,7,5,6,6,6,6,7,7,8,8,8,8,7,7],"sizes":[3,3,1,5,5,5,5,5,4],"puzzle":[1,0,0,0,2,1,0,0,4,0,4,0,0,0,0,2,1,2,5,0,0,0,0,0,0,0,0,0,5,0,0,2,3,0,0,3],"solution":[1,3,1,3,2,1,4,2,4,5,4,5,1,3,1,2,1,2,5,2,5,3,4,3,3,4,1,2,5,2,1,2,3,4,1,3]},{"id":"e1","name":"Easy 1","label":"Easy","rows":9,"cols":7,"givens":23,"cage":[0,1,1,1,2,2,3,0,4,4,5,2,3,3,0,4,4,5,5,3,6,7,4,8,5,5,6,6,7,7,8,9,9,6,6,7,7,8,9,10,10,11,12,12,8,9,10,10,11,12,12,8,9,10,11,11,12,13,13,13,13,11,14],"sizes":[3,3,3,4,5,5,5,5,5,5,5,5,5,4,1],"puzzle":[0,2,0,0,0,0,2,1,0,5,0,2,4,0,2,0,0,0,3,0,0,0,0,4,5,0,0,0,0,0,2,0,0,0,2,1,4,0,0,0,0,3,3,0,3,2,1,0,1,5,0,0,0,0,0,5,0,2,0,0,0,0,0],"solution":[3,2,3,1,3,1,2,1,4,5,4,2,4,3,2,3,2,1,3,1,5,5,1,4,5,2,4,3,2,3,2,1,3,1,2,1,4,5,4,5,4,3,3,2,3,2,1,2,1,5,4,1,5,3,4,5,1,2,3,4,1,2,1]},{"id":"e2","name":"Easy 2","label":"Easy","rows":11,"cols":8,"givens":34,"cage":[0,1,1,1,1,2,2,3,0,4,4,5,1,2,6,3,0,4,4,5,5,6,6,3,7,8,4,5,9,9,6,10,7,8,8,5,9,11,6,10,7,8,8,12,9,11,10,10,13,13,12,12,9,14,10,15,13,13,12,16,14,14,15,15,13,17,12,16,14,18,18,15,17,17,16,16,14,18,18,18,17,17,16,19,19,19,19,19],"sizes":[3,5,3,3,5,5,5,3,5,5,5,2,5,5,5,4,5,5,5,5],"puzzle":[0,0,1,0,4,0,0,0,0,0,4,2,0,2,0,1,0,3,0,0,4,1,0,0,0,4,2,0,0,0,0,5,0,0,3,0,4,1,0,0,0,0,0,5,0,0,0,0,0,4,3,0,1,0,0,0,0,5,0,5,0,4,2,4,2,0,0,0,2,0,1,3,0,3,2,0,1,0,0,2,0,0,0,0,4,0,0,3],"solution":[3,2,1,3,4,1,3,2,1,5,4,2,5,2,5,1,2,3,1,3,4,1,4,3,1,4,2,5,2,5,2,5,3,5,3,1,4,1,3,1,2,1,2,5,3,2,4,2,3,4,3,4,1,5,3,1,1,5,2,5,3,4,2,4,2,4,1,4,2,5,1,3,1,3,2,3,1,3,4,2,2,5,1,5,4,2,1,3]},{"id":"e3","name":"Easy 3","label":"Medium","rows":12,"cols":9,"givens":37,"cage":[0,0,1,1,2,2,3,3,4,0,5,1,6,6,6,3,4,4,5,5,1,6,6,7,7,4,4,5,5,8,9,9,10,10,10,11,12,12,8,8,9,9,10,10,11,13,12,8,14,9,15,15,15,11,13,12,16,14,14,14,15,17,11,13,12,18,18,14,19,15,17,17,13,13,18,18,18,19,17,17,20,21,22,22,22,19,19,23,23,20,21,24,22,22,19,25,23,23,23,24,24,24,24,26,25,25,25,25],"sizes":[3,4,2,3,5,5,5,2,4,5,5,4,5,5,5,5,1,5,5,5,2,2,5,5,5,5,1],"puzzle":[3,0,2,0,2,0,0,0,3,0,0,0,5,0,4,3,5,0,0,1,3,0,0,0,0,1,0,3,0,0,0,0,0,0,0,0,0,0,1,0,3,0,0,0,1,3,2,0,0,1,0,0,0,4,0,0,0,0,4,0,0,0,0,1,0,0,0,1,0,0,0,0,2,0,0,0,2,0,0,4,0,0,0,0,3,0,0,0,5,1,2,0,1,0,0,5,0,3,0,0,3,2,5,0,3,2,0,0],"solution":[3,1,2,1,2,1,2,1,3,2,5,4,5,3,4,3,5,4,4,1,3,1,2,1,2,1,2,3,2,4,5,4,5,3,4,3,1,5,1,2,3,2,1,2,1,3,2,3,5,1,5,4,3,4,5,4,1,2,4,3,2,5,2,1,3,5,3,1,5,1,3,1,2,4,1,4,2,4,2,4,2,1,5,2,3,1,3,1,5,1,2,4,1,4,2,5,4,3,2,1,3,2,5,1,3,2,1,4]},{"id":"m1","name":"Medium 1","label":"Medium","rows":14,"cols":10,"givens":47,"cage":[0,0,1,1,2,2,3,3,3,3,0,0,1,1,1,2,2,4,3,5,6,7,7,7,8,8,9,4,4,5,6,10,7,11,8,8,9,4,5,5,12,10,7,11,13,8,14,4,15,5,12,10,16,11,11,14,14,14,15,15,12,10,16,11,17,17,14,18,18,15,12,19,16,20,21,17,18,18,18,15,12,19,16,20,21,17,22,22,23,23,24,19,16,20,21,22,22,22,23,23,24,19,20,20,21,21,25,25,25,23,24,19,26,26,26,27,27,25,28,28,24,29,29,26,26,27,27,27,28,28,24,29,29,29,30,30,30,30,30,28],"sizes":[4,5,4,5,5,5,2,5,5,2,4,5,5,1,5,5,5,4,5,5,5,5,5,5,5,4,5,5,5,5,5],"puzzle":[0,2,0,3,0,0,1,0,0,2,1,0,0,2,4,3,0,0,0,0,0,0,0,3,1,5,0,0,0,5,0,0,1,0,2,0,0,4,2,0,0,4,0,4,1,0,0,0,0,0,0,1,0,0,2,0,0,2,0,2,0,2,4,0,4,0,0,0,0,0,1,0,0,2,0,0,4,0,0,0,0,0,1,0,0,0,0,0,4,0,0,0,0,0,0,5,4,0,5,3,0,1,0,0,0,0,0,3,0,0,3,0,0,2,0,0,0,2,0,0,1,0,0,0,0,0,1,4,0,4,0,4,3,0,0,0,0,0,0,2],"solution":[4,2,5,3,1,2,1,3,5,2,1,3,1,2,4,3,4,2,4,3,2,5,4,3,1,5,1,3,1,5,1,3,1,5,2,4,2,4,2,4,5,4,2,4,1,3,1,5,3,1,3,1,5,3,2,5,4,2,4,2,4,2,4,1,4,1,3,1,3,1,1,5,3,2,5,2,4,5,2,5,2,4,1,4,1,3,1,3,4,1,5,3,2,3,2,5,4,2,5,3,4,1,5,1,4,3,1,3,4,2,3,2,3,2,5,2,5,2,1,3,1,5,1,4,1,3,1,4,5,4,2,4,3,2,5,4,2,3,1,2]},{"id":"m2","name":"Medium 2","label":"Medium","rows":16,"cols":11,"givens":57,"cage":[0,0,1,1,2,2,3,3,3,4,4,0,0,1,1,5,2,6,3,7,4,4,0,8,8,9,5,2,6,6,7,7,10,11,8,8,5,5,12,6,6,7,7,10,11,8,13,5,12,12,14,14,14,15,10,11,13,13,16,16,12,12,14,14,15,15,11,11,13,13,16,16,17,17,15,15,18,19,19,20,20,16,21,21,17,17,18,18,19,19,22,20,21,21,23,17,24,18,25,26,26,22,20,27,21,23,23,24,24,25,26,26,22,20,27,27,23,23,24,24,25,26,28,22,22,27,27,29,29,30,30,25,28,28,31,32,32,29,29,33,30,30,25,28,34,31,31,32,29,35,33,30,36,37,34,34,31,38,32,32,35,33,33,36,36,34,34,38,38,38,35,35,35,33,36,36],"sizes":[5,4,4,4,4,5,5,5,5,1,3,5,5,5,5,5,5,5,4,4,5,5,5,5,5,5,5,5,4,5,5,4,5,5,5,5,5,1,4],"puzzle":[0,0,0,0,0,0,1,0,0,3,0,1,2,3,4,5,0,0,0,5,0,4,5,0,0,0,0,0,0,2,0,0,3,0,1,0,0,0,0,1,4,0,0,0,4,0,0,1,0,0,0,0,0,0,0,5,2,0,2,5,0,2,0,0,0,1,0,0,1,0,4,0,0,0,0,3,2,0,4,0,2,0,0,4,0,4,1,0,0,0,0,0,0,0,0,2,0,0,5,0,4,0,0,0,0,0,0,0,0,0,5,0,0,0,0,5,0,0,0,0,2,0,0,4,2,4,0,0,3,0,5,0,0,0,3,1,0,0,0,0,0,2,0,3,0,0,4,5,0,0,0,0,4,0,0,0,0,3,2,4,0,5,0,0,3,1,0,0,0,0,0,0,0,0,2,0],"solution":[3,4,1,2,1,3,1,3,2,3,2,1,2,3,4,5,2,5,4,5,1,4,5,4,5,1,3,4,3,2,3,2,3,2,1,2,4,2,5,1,4,1,4,1,4,3,5,1,3,4,3,5,2,5,2,5,2,4,2,5,1,2,4,1,4,1,1,3,1,3,4,3,5,3,2,3,2,2,4,5,2,1,2,4,1,4,1,4,1,3,1,3,5,3,5,2,5,3,5,2,4,5,4,2,1,4,3,4,1,4,5,1,3,1,3,5,2,1,2,3,2,3,2,4,2,4,1,4,3,4,5,1,4,1,3,1,3,2,5,2,1,2,3,3,5,2,4,5,1,3,4,3,4,1,2,4,1,3,2,4,2,5,1,5,3,1,3,2,4,1,5,1,4,3,2,1]},{"id":"m3","name":"Medium 3","label":"Medium","rows":19,"cols":12,"givens":69,"cage":[0,1,1,1,1,2,2,3,3,4,4,5,0,0,0,0,6,2,2,2,3,4,4,4,7,7,8,6,6,6,9,9,3,10,11,11,7,7,8,8,6,12,9,9,3,10,10,11,13,7,14,8,12,12,15,9,16,16,10,17,13,13,14,8,12,12,15,15,18,16,16,17,13,13,14,14,19,19,20,15,18,21,16,17,22,22,23,14,24,19,20,15,21,21,21,17,25,25,23,23,24,24,20,26,26,21,27,17,25,25,23,28,24,24,20,20,26,26,27,27,25,28,28,28,29,29,30,31,31,26,27,27,32,33,34,28,29,29,30,30,31,35,35,35,32,33,34,34,29,36,30,37,31,31,35,35,32,32,34,34,36,36,36,37,37,38,38,39,40,32,41,41,42,36,43,43,37,38,38,39,40,40,41,41,42,42,43,43,37,44,44,39,45,40,40,42,42,46,43,47,47,44,44,48,45,45,49,49,46,46,46,47,47,47,48,48,45,49,49,49,46,50,50,50,50,50,48,48],"sizes":[5,4,5,5,5,1,5,5,5,5,4,3,5,5,5,5,5,5,2,3,5,5,2,4,5,5,5,5,5,5,4,5,5,2,5,5,5,5,4,3,5,4,5,5,4,4,5,5,5,5,5],"puzzle":[0,0,0,2,0,0,2,0,2,1,0,0,0,2,0,3,0,0,4,0,0,0,0,0,4,0,4,0,2,0,0,5,0,2,0,3,0,0,0,0,0,5,0,0,0,3,4,0,3,0,4,0,0,0,0,0,0,5,0,0,0,0,2,1,0,0,5,3,0,0,3,0,0,5,0,0,0,0,0,4,0,5,0,0,2,0,0,0,4,1,0,0,0,0,0,0,4,0,0,0,0,0,0,2,0,0,5,0,0,2,0,4,0,1,0,1,0,3,2,0,0,0,3,0,0,0,3,2,5,0,0,0,0,2,0,0,0,0,0,0,3,0,0,5,5,0,0,0,0,0,2,0,4,0,0,1,4,0,3,1,4,0,0,0,3,0,0,0,0,0,0,0,3,0,0,0,0,0,0,0,0,0,0,0,0,1,3,0,2,3,0,0,0,1,0,0,0,0,0,0,0,0,0,0,2,0,0,3,0,0,5,0,0,0,0,3,0,0,0,4,0,0,0,2,0,3,1,0],"solution":[4,3,4,2,1,3,2,5,2,1,3,1,5,2,1,3,4,5,4,1,3,5,4,2,4,3,4,5,2,3,2,5,4,2,1,3,2,1,2,3,1,5,1,3,1,3,4,2,3,5,4,5,2,3,2,4,2,5,1,5,2,1,2,1,4,1,5,3,1,4,3,2,4,5,3,5,2,3,2,4,2,5,1,4,2,1,4,1,4,1,5,1,3,4,2,3,4,5,3,2,5,2,3,2,5,1,5,1,3,2,1,4,3,1,4,1,4,3,2,3,1,5,3,2,5,2,3,2,5,1,4,1,3,2,4,1,4,1,4,1,3,2,3,5,5,1,5,2,3,5,2,5,4,1,4,1,4,2,3,1,4,1,3,1,3,2,3,2,3,1,4,2,3,2,4,5,4,1,4,1,4,2,3,1,5,1,3,1,2,3,2,3,3,1,5,4,2,4,2,4,5,4,1,4,2,4,2,3,1,3,5,3,1,2,5,3,1,5,1,4,2,4,1,2,5,3,1,2]}];
+
+const $ = (id) => document.getElementById(id);
+const gridEl = $('grid');
+let P = null, idx = 0, sel = -1, notesMode = false;
+let vals = [], notes = [], cells = [], members = [], nbrs = [];
+
+const KEY = (id) => 'suguru.v1.' + id;
+
+function load(i){
+  idx = (i + PUZZLES.length) % PUZZLES.length;
+  P = PUZZLES[idx];
+  const n = P.rows * P.cols;
+
+  // cage members + 8-way neighbours
+  members = [];
+  for (let k = 0; k < P.sizes.length; k++) members.push([]);
+  for (let c = 0; c < n; c++) members[P.cage[c]].push(c);
+  nbrs = [];
+  for (let c = 0; c < n; c++){
+    const r = (c / P.cols) | 0, col = c % P.cols, list = [];
+    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++){
+      if (!dr && !dc) continue;
+      const nr = r + dr, nc = col + dc;
+      if (nr >= 0 && nr < P.rows && nc >= 0 && nc < P.cols) list.push(nr * P.cols + nc);
+    }
+    nbrs.push(list);
+  }
+
+  vals = P.puzzle.slice();
+  notes = []; for (let c = 0; c < n; c++) notes.push([]);
+  try {
+    const raw = localStorage.getItem(KEY(P.id));
+    if (raw){
+      const st = JSON.parse(raw);
+      if (st && st.v && st.v.length === n){
+        for (let c = 0; c < n; c++) if (!P.puzzle[c] && st.v[c]) vals[c] = st.v[c];
+        if (st.n && st.n.length === n) notes = st.n.map(a => Array.isArray(a) ? a : []);
+      }
+    }
+  } catch(e){}
+
+  sel = -1;
+  build();
+  paintHeader();
+  renderAll();
+  buildPad();
+  localStorage.setItem('suguru.v1.last', String(idx));
+}
+
+function save(){
+  try {
+    const user = vals.map((v, c) => P.puzzle[c] ? 0 : v);
+    localStorage.setItem(KEY(P.id), JSON.stringify({ v: user, n: notes }));
+  } catch(e){}
+}
+
+function build(){
+  gridEl.innerHTML = '';
+  gridEl.style.gridTemplateColumns = `repeat(${P.cols}, var(--cs))`;
+  cells = [];
+  const n = P.rows * P.cols;
+  for (let c = 0; c < n; c++){
+    const r = (c / P.cols) | 0, col = c % P.cols;
+    const d = document.createElement('div');
+    d.className = 'c';
+    if (r === 0) d.classList.add('r0');
+    if (col === 0) d.classList.add('c0');
+    if (r > 0 && P.cage[c - P.cols] !== P.cage[c]) d.classList.add('ct');
+    if (col > 0 && P.cage[c - 1] !== P.cage[c]) d.classList.add('cl');
+    d.dataset.i = c;
+    gridEl.appendChild(d);
+    cells.push(d);
+  }
+  fit();
+}
+
+function fit(){
+  const pad = 20;
+  const availW = Math.min(window.innerWidth - pad, 620);
+  // header ~48, keypad ~ (2 rows) 130, footer 18, breathing 16
+  const chrome = 48 + 130 + 18 + 16;
+  const availH = Math.max(200, (window.innerHeight || 700) - chrome);
+  let cs = Math.floor(Math.min(availW / P.cols, availH / P.rows));
+  cs = Math.max(19, Math.min(cs, 52));
+  document.documentElement.style.setProperty('--cs', cs + 'px');
+}
+window.addEventListener('resize', () => { if (P) fit(); });
+window.addEventListener('orientationchange', () => setTimeout(() => { if (P) fit(); }, 200));
+
+function paintHeader(){
+  $('pname').textContent = P.name;
+  const n = P.rows * P.cols;
+  $('pmeta').innerHTML = `<span class="chip">${P.label}</span> ${P.cols}×${P.rows} · ${P.givens}/${n} given`;
+  $('prev').toggleAttribute('disabled', false);
+  $('next').toggleAttribute('disabled', false);
+}
+
+// --- conflicts -------------------------------------------------------------
+function conflicts(){
+  const n = P.rows * P.cols, bad = new Set();
+  for (let c = 0; c < n; c++){
+    const v = vals[c]; if (!v) continue;
+    if (v > P.sizes[P.cage[c]]) bad.add(c);
+    for (const nb of nbrs[c]) if (vals[nb] === v){ bad.add(c); bad.add(nb); }
+    for (const m of members[P.cage[c]]) if (m !== c && vals[m] === v){ bad.add(c); bad.add(m); }
+  }
+  return bad;
+}
+
+function solved(){
+  for (let c = 0; c < vals.length; c++) if (vals[c] !== P.solution[c]) return false;
+  return true;
+}
+
+function renderAll(){
+  const bad = conflicts();
+  const selCage = sel >= 0 ? P.cage[sel] : -2;
+  for (let c = 0; c < cells.length; c++){
+    const d = cells[c], v = vals[c], given = !!P.puzzle[c];
+    d.className = 'c'
+      + ((c / P.cols | 0) === 0 ? ' r0' : '')
+      + (c % P.cols === 0 ? ' c0' : '')
+      + ((c >= P.cols && P.cage[c - P.cols] !== P.cage[c]) ? ' ct' : '')
+      + ((c % P.cols > 0 && P.cage[c - 1] !== P.cage[c]) ? ' cl' : '')
+      + (given ? ' given' : (v ? ' fill' : ''))
+      + (P.cage[c] === selCage ? ' peer' : '')
+      + (c === sel ? ' sel' : '')
+      + (bad.has(c) ? ' bad' : '');
+    if (v){
+      d.textContent = v;
+    } else if (notes[c] && notes[c].length){
+      d.textContent = '';
+      const wrap = document.createElement('div');
+      wrap.className = 'notes';
+      for (let k = 1; k <= 5; k++){
+        const s = document.createElement('span');
+        s.textContent = notes[c].indexOf(k) >= 0 ? k : '';
+        wrap.appendChild(s);
+      }
+      d.appendChild(wrap);
+    } else {
+      d.textContent = '';
+    }
+  }
+  const done = solved();
+  const st = $('status');
+  if (done){ st.textContent = 'Solved. Nice.'; st.className = 'win'; }
+  else {
+    st.className = '';
+    const empty = vals.filter(v => !v).length;
+    st.textContent = bad.size ? `${bad.size} cell${bad.size > 1 ? 's' : ''} conflict` :
+      (empty ? `${empty} to go` : 'grid full — check the red cells');
+  }
+  syncKeys();
+}
+
+// --- input -----------------------------------------------------------------
+gridEl.addEventListener('click', (e) => {
+  const t = e.target.closest('.c'); if (!t) return;
+  const c = +t.dataset.i;
+  if (P.puzzle[c]) { sel = -1; renderAll(); return; }
+  sel = (sel === c) ? -1 : c;
+  renderAll();
+});
+
+function place(d){
+  if (sel < 0 || P.puzzle[sel]) return;
+  if (notesMode){
+    if (vals[sel]) vals[sel] = 0;
+    const a = notes[sel], k = a.indexOf(d);
+    if (k >= 0) a.splice(k, 1); else { a.push(d); a.sort(); }
+  } else {
+    vals[sel] = (vals[sel] === d) ? 0 : d;
+    if (vals[sel]) notes[sel] = [];
+  }
+  save(); renderAll();
+}
+function clearCell(){
+  if (sel < 0 || P.puzzle[sel]) return;
+  vals[sel] = 0; notes[sel] = [];
+  save(); renderAll();
+}
+
+function buildPad(){
+  const row1 = $('digits'), row2 = $('digits2');
+  row1.innerHTML = ''; row2.innerHTML = '';
+  for (let d = 1; d <= 5; d++){
+    const k = document.createElement('div');
+    k.className = 'key'; k.textContent = d; k.dataset.d = d;
+    k.addEventListener('click', () => place(d));
+    row1.appendChild(k);
+  }
+  const clr = document.createElement('div');
+  clr.className = 'key wide'; clr.textContent = 'Clear';
+  clr.addEventListener('click', clearCell);
+  row2.appendChild(clr);
+  const nt = document.createElement('div');
+  nt.className = 'key wide'; nt.id = 'notesbtn'; nt.textContent = 'Notes';
+  nt.addEventListener('click', () => { notesMode = !notesMode; syncKeys(); });
+  row2.appendChild(nt);
+  row2.className = ''; row2.style.display = 'flex'; row2.style.gap = '6px';
+  row2.style.justifyContent = 'center'; row2.style.marginTop = '2px';
+  syncKeys();
+}
+
+function syncKeys(){
+  const size = sel >= 0 ? P.sizes[P.cage[sel]] : 5;
+  document.querySelectorAll('#digits .key').forEach(k => {
+    const d = +k.dataset.d;
+    k.toggleAttribute('disabled', sel < 0 || d > size);
+  });
+  const nb = $('notesbtn');
+  if (nb) nb.classList.toggle('on', notesMode);
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key >= '1' && e.key <= '5') { place(+e.key); e.preventDefault(); }
+  else if (e.key === 'Backspace' || e.key === 'Delete' || e.key === '0') { clearCell(); e.preventDefault(); }
+  else if (e.key === 'n' || e.key === 'N') { notesMode = !notesMode; syncKeys(); }
+  else if (sel >= 0 && e.key.startsWith('Arrow')){
+    const r = (sel / P.cols) | 0, c = sel % P.cols;
+    let nr = r, nc = c;
+    if (e.key === 'ArrowUp') nr--; if (e.key === 'ArrowDown') nr++;
+    if (e.key === 'ArrowLeft') nc--; if (e.key === 'ArrowRight') nc++;
+    if (nr >= 0 && nr < P.rows && nc >= 0 && nc < P.cols){
+      const t = nr * P.cols + nc;
+      if (!P.puzzle[t]) sel = t;
+      renderAll();
+    }
+    e.preventDefault();
+  }
+});
+
+// --- nav + sheet -----------------------------------------------------------
+$('prev').addEventListener('click', () => load(idx - 1));
+$('next').addEventListener('click', () => load(idx + 1));
+$('menu').addEventListener('click', () => { buildList(); $('sheet').classList.add('open'); });
+$('sheet').addEventListener('click', (e) => { if (e.target.id === 'sheet') $('sheet').classList.remove('open'); });
+$('resetone').addEventListener('click', () => {
+  try { localStorage.removeItem(KEY(P.id)); } catch(e){}
+  $('sheet').classList.remove('open');
+  load(idx);
+});
+
+function isDone(p){
+  try {
+    const raw = localStorage.getItem(KEY(p.id));
+    if (!raw) return false;
+    const st = JSON.parse(raw);
+    if (!st || !st.v) return false;
+    for (let c = 0; c < p.solution.length; c++){
+      const v = p.puzzle[c] || st.v[c];
+      if (v !== p.solution[c]) return false;
+    }
+    return true;
+  } catch(e){ return false; }
+}
+
+function buildList(){
+  const l = $('list'); l.innerHTML = '';
+  PUZZLES.forEach((p, i) => {
+    const r = document.createElement('div');
+    r.className = 'row' + (i === idx ? ' cur' : '');
+    r.innerHTML = `<b>${p.name}</b><span class="chip">${p.label}</span>` +
+      `<span style="font-size:12px;color:var(--chrome)">${p.cols}×${p.rows}</span>` +
+      (isDone(p) ? '<span class="done">✓</span>' : '');
+    r.addEventListener('click', () => { $('sheet').classList.remove('open'); load(i); });
+    l.appendChild(r);
+  });
+}
+
+let last = 0;
+try { last = Math.max(0, Math.min(PUZZLES.length - 1, +(localStorage.getItem('suguru.v1.last') || 0))); } catch(e){}
+load(last);
+</script>
+</body>
+</html>
