@@ -31,8 +31,9 @@
   .chip{display:inline-block;border:1px solid var(--line);border-radius:20px;
     padding:0 6px;font-size:10px;letter-spacing:.03em;text-transform:uppercase;background:#fff;}
 
-  #board{flex:1 1 auto;min-height:0;overflow:auto;padding:2px 8px 6px;
+  #board{flex:1 1 auto;min-height:0;overflow:hidden;padding:2px 8px 6px;
     -webkit-overflow-scrolling:touch;}
+  #board.zoomed{overflow:auto;}
   #grid{display:grid;background:#fff;border:3px solid var(--frame);
     margin:0 auto;width:max-content;}
   .c{width:var(--cs);height:var(--cs);position:relative;display:flex;
@@ -249,9 +250,12 @@ function fit(){
   const boxW = (board.clientWidth || window.innerWidth) - PAD_X - FRAME;
   const boxH = (board.clientHeight || 400) - PAD_Y - FRAME;
   const availW = Math.max(120, boxW), availH = Math.max(120, boxH);
+  // the whole puzzle always fits above the pad — no minimum, no default scroll
+  // (Jeff, 8/28). Zoom is the opt-in enlarge mode and is the only thing that scrolls.
   let cs = Math.floor(Math.min(availW / P.cols, availH / P.rows));
-  cs = Math.max(20, Math.min(cs, 54));
+  cs = Math.max(10, Math.min(cs, 54));
   baseCS = cs;
+  board.classList.toggle('zoomed', zoom > 0);
   const z = [1, 1.7, 2.5][zoom] || 1;
   let out = Math.round(cs * z);
   if (zoom > 0) out = Math.max(out, zoom === 1 ? 36 : 50);
