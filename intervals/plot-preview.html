@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Intervals — Plot Preview</title>
+  <!--
+    intervals/plot-preview.html — the paper gate. The hatched preview beside the
+    digital render, for one token, on one screen (Asana 1217804146785005).
+
+    WHAT THIS IS FOR. Nothing goes to paper until the plot has been seen. Left
+    pane is the artwork as Intervals_v4.js draws it. Right pane is every pen
+    stroke the plotter will actually lay down — the same lines svg-generator-v2
+    writes into the per-pen SVGs, drawn in each pen's own colour at its own angle
+    and nib width, composited on paper. If the right pane does not read like the
+    left pane, the plot will not either, and the knobs that fix it are all here.
+
+    WHAT THIS IS NOT. It does not emit files. svg-generator-v2.html is still the
+    emitter, and it is untouched. This page reuses its geometry and density code
+    verbatim (barRect, perpSpanOf, opacityMultiplier, composite, barMultiplier,
+    curveWeight, barDensity, buildLayers, generateAngledLines, lineDistance and
+    the read* helpers) so the two cannot disagree about what will be drawn. The
+    only new code is the compositing canvas, the pane layout, and the match
+    readout below.
+
+    THE PRECEDENT. Mechanical Drawings solved this with preview-v5.js's `hatched`
+    flag: paper background, then each pencil's line family stroked in its own
+    colour over the top, letting overlap do the mixing. Same idea, three
+    differences forced by the pens: the families come from the artwork's own
+    coverage() table rather than a four-corner blend, strokes are opaque at the
+    nib width rather than alpha 128 at a hairline (Micron ink covers; the density
+    maths is area-coverage, so an opaque stroke of exactly one nib width is what
+    makes composite() true on screen), and the layer set is per (pen, angle)
+    rather than per corner.
+
+    THE MATCH READOUT. Under the panes: the mean Lab distance between each bar as
+    drawn digitally and the same bar as sampled off the hatched canvas. It will
+    never be zero — at a 0.90 opacity target a full bar is 10% bare paper by
+    design, so the hatched side runs lighter. The number to watch is the SPREAD
+    and the sign of dL, not dE alone. Raise the opacity target and dL walks
+    toward zero; that is the trade against ink load and plot time.
+
+    TWO MODEL KNOBS, not cosmetics. PENS CROSSING switches the crossing model
+    between opaque (last pen wins — the apparent-coverage model the density solve
+    is actually built on) and multiply (subtractive, what pigment does where two
+    pens land on the same fibre). Neither is a fudge factor: the DIFFERENCE
+    between them is the error the coverage maths does not carry, and it is
+    biggest exactly where the most pens cross. OPTICAL MIX blurs the preview by n
+    millimetres of paper, which is what the eye does at a viewing distance — at 0
+    you are inspecting marks, at 0.5-1 mm you are seeing the picture. Display
+    only; the match figures are always sampled off the raw marks.
+
+    Not baked in anywhere: millimetres, angles, nib width, paper colour. Every
+    one of them is a field.
+  -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+  <script src="Intervals_v4.js"></script>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+    }
+    body {
+      font-family: aktiv-grotesk, -apple-system, sans-serif;
+      color: #333;
+      display: flex;
+      gap: 22px;
+      padding: 16px 18px;
+      box-sizing: border-box;
+    }
+    h3 {
+      margin: 0 0 5px 0;
+      font-size: 11px;
+      font-weight: 400;
+      text-transform: uppercase;
+      letter-spacing: 1.3px;
+      color: #333;
+    }
+    label {
+      display: block;
+      margin-bottom: 2px;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: #777;
+    }
+    input, select {
+      padding: 4px 6px;
+      font-family: aktiv-grotesk, -apple-system, sans-serif;
+      font-size: 12px;
+      border: 1px solid #333;
+      border-radius: 0;
+      background: white;
+      width: 100%;
+      box-sizing: border-box;
+      color: #333;
+    }
+    input:focus, select:focus { outline: none; border-color: #000; }
+    input.hash { font-family: ui-monospace, Menlo, monospace; font-size: 10px; }
+    input[type="checkbox"] { width: auto; }
+
+    /* ---- sidebar ---- */
+    .sidebar {
+      width: 330px;
+      flex: 0 0 330px;
+      height: 100%;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .section { margin-bottom: 10px; }
+    .row { display: grid; gap: 6px; }
+    .row + .row { margin-top: 6px; }
+    .c1 { grid-template-columns: 1fr; }
+    .c2 { grid-template-columns: 1fr 1fr; }
+    .c3 { grid-template-columns: 1fr 1fr 1fr; }
+    .c4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+    .inline {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: #555;
+      margin-top: 6px;
+    }
+    button {
+      padding: 5px 8px;
+      font-family: aktiv-grotesk, -apple-system, sans-serif;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      background: white;
+      color: #333;
+      border: 1px solid #333;
+      border-radius: 0;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    button:hover { background: #333; color: white; }
+    button.off { color: #bbb; border-color: #ddd; }
+    button.off:hover { background: #eee; color: #666; }
+
+    table.pens { width: 100%; border-collapse: collapse; font-size: 10px; }
+    table.pens th {
+      text-align: left; font-weight: 400; text-transform: uppercase;
+      letter-spacing: 0.4px; font-size: 9px; color: #777;
+      border-bottom: 1px solid #333; padding: 0 4px 4px 0;
+    }
+    table.pens td { padding: 1.5px 4px 1.5px 0; border-bottom: 1px solid #eee; }
+    table.pens tr.idle { color: #bbb; }
+    table.pens tr.idle .sw { opacity: 0.2; }
+    .sw { width: 12px; height: 12px; border: 1px solid rgba(0,0,0,0.3); display: block; }
+
+    /* ---- panes ---- */
+    .panes {
+      flex: 1 1 auto;
+      min-width: 0;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+    .pane-row {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      gap: 18px;
+      align-items: flex-start;
+      justify-content: center;
+    }
+    .pane { display: flex; flex-direction: column; align-items: center; }
+    .pane .cap {
+      font-size: 10px; text-transform: uppercase; letter-spacing: 1.2px;
+      color: #333; margin-bottom: 7px; align-self: flex-start;
+    }
+    .stage {
+      background: #fff;
+      display: flex; align-items: center; justify-content: center;
+      outline: 1px solid #e2e2e2;
+    }
+    #render-container canvas, #hatch-canvas { display: block; }
+    .chips {
+      display: flex; flex-wrap: wrap; gap: 5px;
+      margin-top: 8px; max-width: 100%;
+    }
+    .chips button { padding: 4px 6px; font-size: 10px; letter-spacing: 0.3px; display: flex; align-items: center; gap: 5px; }
+    .chips .sw { width: 9px; height: 9px; }
+    .foot {
+      flex: 0 0 auto;
+      margin-top: 10px;
+      border-top: 1px solid #ddd;
+      padding-top: 9px;
+      font-size: 11px;
+      line-height: 1.6;
+      color: #555;
+      display: flex;
+      gap: 26px;
+    }
+    .foot b { font-weight: 400; color: #000; }
+    .foot .col { flex: 1 1 0; min-width: 0; }
+    .note { font-size: 10px; color: #999; line-height: 1.45; margin-top: 5px; }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <div class="section">
+      <h3>Token</h3>
+      <div class="row c1"><div><input type="text" class="hash" id="tokenHash" spellcheck="false"></div></div>
+      <div class="row c2">
+        <div><button id="randomBtn" style="width:100%">Random hash</button></div>
+        <div><label>s override (0 = token)</label><input type="number" id="sOverride" value="0" step="1" min="0" max="60"></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Sheet &amp; Image (mm)</h3>
+      <div class="row c4">
+        <div><label>Paper w</label><input type="number" id="paperWidth" value="355.6" step="0.1" min="10"></div>
+        <div><label>Paper h</label><input type="number" id="paperHeight" value="431.8" step="0.1" min="10"></div>
+        <div><label>Image w</label><input type="number" id="imgWidth" value="290" step="1" min="10"></div>
+        <div><label>Image h</label><input type="number" id="imgHeight" value="290" step="1" min="10"></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Marks</h3>
+      <div class="row c3">
+        <div><label>Pitch mm</label><input type="number" id="linePitch" value="0.45" step="0.01" min="0.05"></div>
+        <div><label>Curve</label><input type="number" id="curveExponent" value="1.0" step="0.1" min="1" max="7"></div>
+        <div><label>Opacity</label><input type="number" id="opacityTarget" value="0.90" step="0.01" min="0.1" max="0.99"></div>
+      </div>
+      <div class="row c2">
+        <div><label>Family trim k=1..4</label><input type="text" id="familyTrim" value="1, 1, 1, 1" spellcheck="false"></div>
+        <div><label>Active weight floor</label><input type="number" id="activeEps" value="0.001" step="0.0005" min="0" max="0.1"></div>
+      </div>
+      <div class="inline"><input type="checkbox" id="familyCompensate" checked><span>Per-bar family compensation</span></div>
+    </div>
+
+    <div class="section">
+      <h3>Angle Set (deg)</h3>
+      <div class="row c4">
+        <div><label>Slot 1</label><input type="number" id="angle1" value="22.5" step="0.5"></div>
+        <div><label>Slot 2</label><input type="number" id="angle2" value="67.5" step="0.5"></div>
+        <div><label>Slot 3</label><input type="number" id="angle3" value="112.5" step="0.5"></div>
+        <div><label>Slot 4</label><input type="number" id="angle4" value="157.5" step="0.5"></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Paper Simulation</h3>
+      <div class="row c3">
+        <div><label>Nib mm</label><input type="number" id="nibWidth" value="0.45" step="0.01" min="0.05"></div>
+        <div><label>Ink alpha</label><input type="number" id="inkAlpha" value="1" step="0.05" min="0.05" max="1"></div>
+        <div><label>Paper</label><input type="color" id="paperColor" value="#ffffff" style="padding:2px;height:26px"></div>
+      </div>
+      <div class="row c2">
+        <div><label>Pens crossing</label>
+          <select id="overlap">
+            <option value="opaque" selected>Opaque — last wins</option>
+            <option value="multiply">Multiply — subtractive</option>
+          </select>
+        </div>
+        <div><label>Optical mix mm (0 = raw)</label><input type="number" id="opticalMix" value="0" step="0.1" min="0" max="8"></div>
+      </div>
+      <div class="row c2">
+        <div><label>Frame</label>
+          <select id="fitMode">
+            <option value="image" selected>Image — matches render</option>
+            <option value="sheet">Whole sheet</option>
+          </select>
+        </div>
+        <div><label>Guides</label>
+          <select id="guides">
+            <option value="off" selected>Off</option>
+            <option value="on">Image box + edge</option>
+          </select>
+        </div>
+      </div>
+      <div class="note">Nib = pitch is what makes coverage 1.0 mean solid. Models argued in the source header.</div>
+    </div>
+
+    <div class="section">
+      <h3>Pens — Sakura Pigma Micron 05</h3>
+      <table class="pens">
+        <thead><tr><th></th><th>Ink</th><th>Angles</th><th>Metres</th><th>Segs</th></tr></thead>
+        <tbody id="pen-table"></tbody>
+      </table>
+      <div class="note" id="pen-note"></div>
+    </div>
+  </div>
+
+  <div class="panes">
+    <div class="pane-row">
+      <div class="pane">
+        <div class="cap">Digital render — Intervals_v4</div>
+        <div class="stage" id="render-container"></div>
+      </div>
+      <div class="pane">
+        <div class="cap">Hatched preview — what the pens draw</div>
+        <div class="stage"><canvas id="hatch-canvas"></canvas></div>
+        <div class="chips" id="layer-chips"></div>
+      </div>
+    </div>
+    <div class="foot">
+      <div class="col" id="token-readout"></div>
+      <div class="col" id="family-readout"></div>
+      <div class="col" id="match-readout"></div>
+    </div>
+  </div>
+
+  <script>
+    // ============ CONSTANTS ============
+    // Backing-store size of the hatched canvas, in px along its long edge. The
+    // pane is CSS-scaled down from this, so the preview stays sharp on a retina
+    // laptop and the match sampling below has enough pixels per bar to average.
+    const HATCH_PX = 1500;
+
+    // The nine Micron 05 colours, in wheel order, mapping 1:1 onto Intervals'
+    // ink1..ink9. Read off the artwork's own `inks` at boot — the swatches here
+    // cannot disagree with the piece. Names are Jeff's, 2026-08-24.
+    const PEN_NAMES = [
+      'Orange', 'Yellow', 'Fresh Green', 'Green', 'Blue',
+      'Royal Blue', 'Purple', 'Rose', 'Red'
+    ];
+
+    // ============ GLOBAL STATE ============
+    let artCanvas = null;
+    let penHex = [];
+    let tok = null;              // { hash, s, tokenS, r, vtype, bars }
+    let layers = [];             // [{ ink, angle, slots, bars, lineCount, distance }]
+    let hidden = new Set();      // layer keys the user has switched off
+    let paneSize = 480;
+    let pending = false;
+
+    // ============ BOOT ============
+    // Intervals_v4.js seeds itself with a Math.random hash at parse time; this
+    // runs before p5's load handler, so the first render is already ours.
+    tokenData.hash = randomHash();
+
+    function randomHash() {
+      let s = '0x';
+      for (let i = 0; i < 64; i++) {
+        s += '0123456789abcdef'[Math.floor(Math.random() * 16)];
+      }
+      return s;
+    }
+
+    window.addEventListener('load', () => {
+      const wait = setInterval(() => {
+        const c = document.querySelector('canvas:not(#hatch-canvas)');
+        if (!c || typeof window.createCanvas !== 'function') return;
+        clearInterval(wait);
+        boot(c);
+      }, 20);
+    });
+
+    function boot(canvasEl) {
+      artCanvas = canvasEl;
+      document.getElementById('render-container').appendChild(artCanvas);
+
+      // setup() is re-invoked on every token change. Its createCanvas would
+      // otherwise append a fresh canvas each time; the artwork's w/h derive from
+      // window.innerHeight and do not change while the page is open, so handing
+      // back the existing canvas is exact, not an approximation.
+      const realCreateCanvas = window.createCanvas;
+      window.createCanvas = function () { return artCanvas; };
+      window.__realCreateCanvas = realCreateCanvas;
+
+      colorMode(RGB);
+      penHex = inks.map(c => rgbHex(c));
+
+      document.getElementById('tokenHash').value = tokenData.hash;
+      ['paperWidth', 'paperHeight', 'imgWidth', 'imgHeight', 'linePitch',
+       'curveExponent', 'opacityTarget', 'angle1', 'angle2', 'angle3', 'angle4',
+       'sOverride', 'familyTrim', 'activeEps', 'nibWidth', 'inkAlpha',
+       'paperColor', 'opticalMix'].forEach(id => {
+        document.getElementById(id).addEventListener('input', schedule);
+      });
+      ['familyCompensate', 'fitMode', 'guides', 'overlap'].forEach(id => {
+        document.getElementById(id).addEventListener('change', schedule);
+      });
+      document.getElementById('randomBtn').addEventListener('click', () => setToken(randomHash()));
+      document.getElementById('tokenHash').addEventListener('change', () => {
+        setToken(document.getElementById('tokenHash').value.trim());
+      });
+      window.addEventListener('resize', () => { sizePanes(); schedule(); });
+
+      sizePanes();
+      setToken(tokenData.hash);
+    }
+
+    function rgbHex(c) {
+      const v = n => Math.round(n).toString(16).padStart(2, '0');
+      return '#' + v(red(c)) + v(green(c)) + v(blue(c));
+    }
+
+    // Continuous, not batched: every field rebuilds, but at most once per frame,
+    // so holding an arrow key on a spinner does not queue thousands of rebuilds.
+    function schedule() {
+      if (pending) return;
+      pending = true;
+      requestAnimationFrame(() => { pending = false; rebuild(); });
+    }
+
+    // ============ LAYOUT ============
+    // One screen, no scroll: the two panes take whatever the viewport leaves
+    // after the sidebar and the readout strip, and they stay square and equal.
+    function sizePanes() {
+      const row = document.querySelector('.pane-row');
+      const availW = row.clientWidth;
+      const availH = row.clientHeight - 24 - 30;   // caption + chip strip
+      paneSize = Math.max(220, Math.min(Math.floor((availW - 18) / 2), Math.floor(availH)));
+      if (artCanvas) {
+        artCanvas.style.width = paneSize + 'px';
+        artCanvas.style.height = paneSize + 'px';
+      }
+    }
+
+    // ============ TOKEN ============
+    function setToken(hash) {
+      if (!/^0x[0-9a-fA-F]{64}$/.test(hash)) hash = randomHash();
+      tokenData.hash = hash;
+      document.getElementById('tokenHash').value = hash;
+      hidden = new Set();
+      setup();            // re-derives every anchor from the new hash
+      redraw();           // one-shot; the artwork calls noLoop()
+      rebuild();
+    }
+
+    // Reads the artwork after setup() has run. The s override is applied after
+    // setup, never before: s is drawn from the PRNG ahead of every colour
+    // decision, so replacing it afterwards re-samples the ramps at a different
+    // resolution without shifting a single anchor.
+    function readToken() {
+      const sOverride = parseInt(document.getElementById('sOverride').value, 10) || 0;
+      const tokenS = s;
+      if (sOverride > 0 && sOverride !== s) {
+        s = sOverride;
+        redraw();
+      }
+      return { hash: tokenData.hash, s: s, tokenS: tokenS, r: r, vtype: vtype, bars: coverage() };
+    }
+
+    // ============ GEOMETRY (from svg-generator-v2.html, verbatim) ============
+    function readGeometry() {
+      const paperW = parseFloat(document.getElementById('paperWidth').value) || 1;
+      const paperH = parseFloat(document.getElementById('paperHeight').value) || 1;
+      const imgW = parseFloat(document.getElementById('imgWidth').value) || 1;
+      const imgH = parseFloat(document.getElementById('imgHeight').value) || 1;
+      return { paperW, paperH, imgW, imgH, imgX: (paperW - imgW) / 2, imgY: (paperH - imgH) / 2 };
+    }
+
+    // draw() lays 3s full-height bars edge to edge across the square, then
+    // rotates the whole field by r*90 about the centre. A 90 degree rotation of a
+    // bar keeps it a rectangle, so the field stays axis-aligned.
+    function barRect(band, step, t, geo) {
+      const t0 = step / t.s + band / (3 * t.s);
+      const frac = 1 / (3 * t.s);
+      if (t.r === 0) {
+        return { x: geo.imgX + t0 * geo.imgW, y: geo.imgY, w: frac * geo.imgW, h: geo.imgH };
+      }
+      return { x: geo.imgX, y: geo.imgY + t0 * geo.imgH, w: geo.imgW, h: frac * geo.imgH };
+    }
+
+    function perpSpanOf(rect, angleDeg) {
+      const th = angleDeg * Math.PI / 180;
+      const sinA = Math.sin(th);
+      const cosA = Math.cos(th);
+      const d = [
+        [rect.x, rect.y],
+        [rect.x + rect.w, rect.y],
+        [rect.x, rect.y + rect.h],
+        [rect.x + rect.w, rect.y + rect.h]
+      ].map(p => -p[0] * sinA + p[1] * cosA);
+      return Math.max(...d) - Math.min(...d);
+    }
+
+    // ============ DENSITY (from svg-generator-v2.html, verbatim) ============
+    // Crossing families composite as 1 - product(1 - c_i), not as a sum, so an
+    // evenly split nominal 1.0 over k families lands at 1 - (1 - 1/k)^k. Each bar
+    // is solved against its own ACTIVE family count so a pure-hue bar does not
+    // print a fifth denser than a four-ink one. Full derivation lives in the
+    // emitter's §DENSITY block; it is not restated here to keep one copy of the
+    // argument, but the code below is the same code.
+    function opacityMultiplier(target) {
+      const t = Math.min(0.999, Math.max(0, target));
+      return 4 * (1 - Math.pow(1 - t, 0.25));
+    }
+
+    const FAMILY_TRIM = [1, 1, 1, 1];
+    const ACTIVE_WEIGHT_EPS = 1e-3;
+
+    function composite(cs) {
+      let clear = 1;
+      for (const c of cs) clear *= 1 - Math.min(1, Math.max(0, c));
+      return 1 - clear;
+    }
+
+    function barMultiplier(weights, mult) {
+      const W = weights.reduce((s, w) => s + w, 0);
+      if (!(W > 0)) return mult;
+      const reference = 1 - Math.pow(Math.max(0, 1 - W * mult / 4), 4);
+      let lo = 0;
+      let hi = 64;
+      for (let i = 0; i < 50; i++) {
+        const mid = (lo + hi) / 2;
+        if (composite(weights.map(w => w * mid)) < reference) lo = mid; else hi = mid;
+      }
+      return (lo + hi) / 2;
+    }
+
+    function readMarks() {
+      const pitch = parseFloat(document.getElementById('linePitch').value) || 0.45;
+      const curveExp = parseFloat(document.getElementById('curveExponent').value) || 1;
+      const target = parseFloat(document.getElementById('opacityTarget').value) || 0.9;
+      const compensate = document.getElementById('familyCompensate').checked;
+      const eps = parseFloat(document.getElementById('activeEps').value);
+      const trim = document.getElementById('familyTrim').value.split(',')
+        .map(v => parseFloat(v.trim()))
+        .map((v, i) => (isFinite(v) && v > 0 ? v : FAMILY_TRIM[i]));
+      return {
+        pitch, curveExp, target, mult: opacityMultiplier(target), compensate,
+        activeEps: isFinite(eps) && eps >= 0 ? eps : ACTIVE_WEIGHT_EPS,
+        trim: [0, 1, 2, 3].map(i => trim[i] !== undefined ? trim[i] : FAMILY_TRIM[i])
+      };
+    }
+
+    function readAngles() {
+      return [1, 2, 3, 4].map(i => parseFloat(document.getElementById('angle' + i).value));
+    }
+
+    // New here, and only here: how the strokes are shown once they exist. None of
+    // it feeds back into the line plan — change any of these and the SVGs the
+    // emitter would write are byte-identical.
+    function readPlot() {
+      const nib = parseFloat(document.getElementById('nibWidth').value);
+      const alpha = parseFloat(document.getElementById('inkAlpha').value);
+      const mix = parseFloat(document.getElementById('opticalMix').value);
+      return {
+        nib: isFinite(nib) && nib > 0 ? nib : 0.45,
+        alpha: isFinite(alpha) && alpha > 0 ? Math.min(1, alpha) : 1,
+        paper: document.getElementById('paperColor').value || '#ffffff',
+        overlap: document.getElementById('overlap').value,
+        mix: isFinite(mix) && mix > 0 ? mix : 0,
+        fit: document.getElementById('fitMode').value,
+        guides: document.getElementById('guides').value === 'on'
+      };
+    }
+
+    function curveWeight(weight, marks) {
+      return marks.curveExp === 1 ? weight : 1 - Math.pow(1 - weight, marks.curveExp);
+    }
+
+    function barDensity(bar, marks) {
+      const active = bar.inks.filter(e => e.weight > marks.activeEps);
+      const k = active.length;
+      const curved = active.map(e => curveWeight(e.weight, marks));
+      const mult = marks.compensate && k > 0
+        ? barMultiplier(curved, marks.mult) * marks.trim[Math.min(k, 4) - 1]
+        : marks.mult;
+      const density = new Map();
+      active.forEach((e, i) => density.set(e, curved[i] * mult));
+      return { families: k, mult: mult, density: density };
+    }
+
+    // ============ LAYER BUILD (from svg-generator-v2.html, verbatim) ============
+    // One layer per (pen, angle) — a pen landing in two slots of the same ramp is
+    // genuinely hatched twice at two angles, and merging them would lose the
+    // structure the slot encodes. This is the plot: what is here is what goes
+    // through the nib.
+    function buildLayers(t, geo, marks, angles) {
+      const byKey = new Map();
+
+      for (const bar of t.bars) {
+        const rect = barRect(bar.band, bar.step, t, geo);
+        const bd = barDensity(bar, marks);
+        for (const e of bar.inks) {
+          const angle = angles[e.slot - 1];
+          const density = bd.density.get(e);
+          if (!(density > 0)) continue;
+          if (Math.round(density * perpSpanOf(rect, angle) / marks.pitch) < 1) continue;
+
+          const lines = generateAngledLines(rect.x, rect.y, rect.w, rect.h, density, marks.pitch, angle);
+          if (lines.length === 0) continue;
+
+          const key = e.ink + '@' + angle;
+          if (!byKey.has(key)) {
+            byKey.set(key, { key: key, ink: e.ink, angle: angle, slots: new Set(), bars: [] });
+          }
+          const layer = byKey.get(key);
+          layer.slots.add(e.slot);
+          layer.bars.push({
+            band: bar.band, step: bar.step, weight: e.weight, density: density,
+            families: bd.families, barMult: bd.mult,
+            lines: lines, distance: lines.reduce((sum, l) => sum + lineDistance(l), 0)
+          });
+        }
+      }
+
+      const out = [...byKey.values()];
+      for (const layer of out) {
+        layer.lineCount = layer.bars.reduce((n, b) => n + b.lines.length, 0);
+        layer.distance = layer.bars.reduce((d, b) => d + b.distance, 0);
+      }
+      // Plot order: by pen, then by angle — a pen's files run back to back.
+      out.sort((a, b) => a.ink - b.ink || a.angle - b.angle);
+      return out;
+    }
+
+    // ============ REBUILD ============
+    function rebuild() {
+      tok = readToken();
+      const geo = readGeometry();
+      const marks = readMarks();
+      layers = buildLayers(tok, geo, marks, readAngles());
+
+      const plot = readPlot();
+      const stats = drawHatched(tok, geo, marks, plot);
+
+      renderTokenReadout(marks);
+      renderFamilyReadout(marks);
+      renderMatchReadout(stats, marks, plot);
+      renderPenTable();
+      renderChips();
+    }
+
+    // ============ THE HATCHED PREVIEW ============
+    // Paper, then every visible layer stroked in its own pen colour at the nib
+    // width, in millimetres, through one transform. Overlap is left to do the
+    // mixing — that is the whole point, and it is why the strokes are opaque by
+    // default: the density solve upstream is an AREA-coverage argument, so a
+    // stroke exactly one nib wide makes composite() true on screen instead of
+    // approximated by an alpha guess.
+    //
+    // One path per layer, stroked once. Within a layer the lines are parallel and
+    // do not overlap, so batching them cannot double-darken anything; across
+    // layers the strokes are separate and composite normally.
+    function drawHatched(t, geo, marks, plot) {
+      const canvas = document.getElementById('hatch-canvas');
+      const vb = plot.fit === 'sheet'
+        ? { x: 0, y: 0, w: geo.paperW, h: geo.paperH }
+        : { x: geo.imgX, y: geo.imgY, w: geo.imgW, h: geo.imgH };
+      const scale = HATCH_PX / Math.max(vb.w, vb.h);
+      const cw = Math.max(1, Math.round(vb.w * scale));
+      const ch = Math.max(1, Math.round(vb.h * scale));
+      canvas.width = cw;
+      canvas.height = ch;
+
+      // The pane is square; a portrait sheet fits to height, the square image
+      // fits either way. Same CSS box as the render when fit is 'image', which is
+      // what makes the two panes comparable at a glance.
+      const css = Math.min(paneSize / vb.w, paneSize / vb.h);
+      canvas.style.width = (vb.w * css) + 'px';
+      canvas.style.height = (vb.h * css) + 'px';
+
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.fillStyle = plot.paper;
+      ctx.fillRect(0, 0, cw, ch);
+      ctx.setTransform(scale, 0, 0, scale, -vb.x * scale, -vb.y * scale);
+      ctx.lineCap = 'butt';
+      ctx.globalCompositeOperation = plot.overlap === 'multiply' ? 'multiply' : 'source-over';
+
+      for (const layer of layers) {
+        if (hidden.has(layer.key)) continue;
+        ctx.strokeStyle = penHex[layer.ink];
+        ctx.globalAlpha = plot.alpha;
+        ctx.lineWidth = plot.nib;
+        ctx.beginPath();
+        for (const bar of layer.bars) {
+          for (const l of bar.lines) {
+            ctx.moveTo(l.x1, l.y1);
+            ctx.lineTo(l.x2, l.y2);
+          }
+        }
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = 'source-over';
+
+      // Sampled off the raw marks, before any optical mix. A mean over a bar is
+      // near enough blur-invariant in the middle of the field, but not at a bar
+      // edge, where a blur pulls the neighbour in — so the honest place to read
+      // is here, not after.
+      const stats = sampleMatch(ctx, t, geo, vb, scale, cw, ch);
+
+      // The eye at a viewing distance does the mixing the marks do not. Paper
+      // first so the blur's edge does not bleed to transparent.
+      if (plot.mix > 0) {
+        const tmp = document.createElement('canvas');
+        tmp.width = cw;
+        tmp.height = ch;
+        tmp.getContext('2d').drawImage(canvas, 0, 0);
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.filter = 'none';
+        ctx.fillStyle = plot.paper;
+        ctx.fillRect(0, 0, cw, ch);
+        ctx.filter = 'blur(' + (plot.mix * scale / 2).toFixed(3) + 'px)';
+        ctx.drawImage(tmp, 0, 0);
+        ctx.filter = 'none';
+      }
+
+      // Guides go on last so the mix cannot soften them — they are not ink.
+      ctx.setTransform(scale, 0, 0, scale, -vb.x * scale, -vb.y * scale);
+      if (plot.guides) {
+        ctx.strokeStyle = '#b9c4d6';
+        ctx.lineWidth = 0.4;
+        ctx.strokeRect(geo.imgX, geo.imgY, geo.imgW, geo.imgH);
+        if (plot.fit === 'sheet') {
+          ctx.strokeStyle = '#d8d8d8';
+          ctx.strokeRect(0.2, 0.2, geo.paperW - 0.4, geo.paperH - 0.4);
+        }
+      }
+
+      return stats;
+    }
+
+    // ============ THE MATCH READOUT ============
+    // Per bar: the colour draw() fills it with, against the mean colour the
+    // hatched canvas actually shows for the same bar. Both go through the
+    // artwork's own rgbToLab, so this is a Lab distance in the same space lgap()
+    // uses to space the anchors.
+    //
+    // dL is signed, hatched minus digital, and it is the number that matters:
+    // at a 0.90 target a full bar is 10% bare paper by construction, so the plot
+    // SHOULD read a little lighter. A large dE with a small dL spread means a hue
+    // problem, which would be real. A large dL with a tight spread is the opacity
+    // target, which is a choice.
+    //
+    // Sampled at a stride, inset from the bar edges so a neighbouring bar's
+    // seam cannot leak in. Guides, if on, are drawn after nothing that matters —
+    // they sit on the image border, outside every inset bar.
+    function sampleMatch(ctx, t, geo, vb, scale, cw, ch) {
+      const anchors = [[c1, c2], [c3, c4], [c5, c6]];
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      let img;
+      try {
+        img = ctx.getImageData(0, 0, cw, ch);
+      } catch (e) {
+        return null;
+      }
+      const px = img.data;
+      const rows = [];
+      let sumE = 0, sumL = 0, maxE = 0, n = 0;
+
+      for (const bar of t.bars) {
+        const rect = barRect(bar.band, bar.step, t, geo);
+        const x0 = (rect.x - vb.x) * scale;
+        const y0 = (rect.y - vb.y) * scale;
+        const x1 = x0 + rect.w * scale;
+        const y1 = y0 + rect.h * scale;
+        const insetX = Math.min(2, (x1 - x0) / 4);
+        const insetY = Math.min(2, (y1 - y0) / 4);
+        const ax = Math.max(0, Math.ceil(x0 + insetX));
+        const ay = Math.max(0, Math.ceil(y0 + insetY));
+        const bx = Math.min(cw, Math.floor(x1 - insetX));
+        const by = Math.min(ch, Math.floor(y1 - insetY));
+        if (bx <= ax || by <= ay) continue;
+
+        const stride = Math.max(1, Math.floor(Math.min(bx - ax, by - ay) / 12));
+        let r = 0, g = 0, b = 0, k = 0;
+        for (let y = ay; y < by; y += stride) {
+          const base = y * cw * 4;
+          for (let x = ax; x < bx; x += stride) {
+            const i = base + x * 4;
+            r += px[i]; g += px[i + 1]; b += px[i + 2];
+            k++;
+          }
+        }
+        if (!k) continue;
+
+        const got = rgbToLab(color(r / k, g / k, b / k));
+        const pair = anchors[bar.band];
+        const want = rgbToLab(betterLerp(pair[0].col, pair[1].col, bar.u));
+        const dL = got[0] - want[0];
+        const da = got[1] - want[1];
+        const db = got[2] - want[2];
+        const dE = Math.sqrt(dL * dL + da * da + db * db);
+        sumE += dE; sumL += dL; n++;
+        if (dE > maxE) maxE = dE;
+        rows.push({ band: bar.band, dE: dE, dL: dL });
+      }
+
+      if (!n) return null;
+      const byBand = [0, 1, 2].map(band => {
+        const set = rows.filter(x => x.band === band);
+        if (!set.length) return null;
+        return set.reduce((s, x) => s + x.dE, 0) / set.length;
+      });
+      return { meanE: sumE / n, meanL: sumL / n, maxE: maxE, bars: n, byBand: byBand };
+    }
+
+    // ============ READOUTS ============
+    function renderTokenReadout(marks) {
+      const totalLines = layers.reduce((n, l) => n + l.lineCount, 0);
+      const totalDist = layers.reduce((d, l) => d + l.distance, 0);
+      const pens = new Set(layers.map(l => l.ink)).size;
+      const sNote = tok.s !== tok.tokenS ? ' (token ' + tok.tokenS + ', overridden)' : '';
+      document.getElementById('token-readout').innerHTML =
+        's <b>' + tok.s + '</b>' + sNote + ' &middot; ' + tok.bars.length + ' bars &middot; ' +
+        'rotation <b>' + (tok.r * 90) + '&deg;</b> &middot; variant <b>' + tok.vtype + '</b><br>' +
+        '<b>' + pens + '</b> pens, <b>' + layers.length + '</b> layers &middot; ' +
+        '<b>' + (totalDist / 1000).toFixed(1) + ' m</b> in <b>' +
+        totalLines.toLocaleString() + '</b> segments<br>' +
+        'Opacity ' + marks.target.toFixed(2) + ' &rarr; four-family reference &times;<b>' +
+        marks.mult.toFixed(2) + '</b>';
+    }
+
+    function renderFamilyReadout(marks) {
+      const buckets = new Map();
+      for (const bar of tok.bars) {
+        const bd = barDensity(bar, marks);
+        if (bd.families === 0) continue;
+        if (!buckets.has(bd.families)) buckets.set(bd.families, { n: 0, lo: Infinity, hi: -Infinity });
+        const b = buckets.get(bd.families);
+        b.n++;
+        b.lo = Math.min(b.lo, bd.mult);
+        b.hi = Math.max(b.hi, bd.mult);
+      }
+      const rows = [...buckets.entries()].sort((a, b) => a[0] - b[0]).map(([k, b]) => {
+        const range = b.hi - b.lo < 5e-4 ? b.lo.toFixed(3) : b.lo.toFixed(3) + '\u2013' + b.hi.toFixed(3);
+        return k + ' fam &middot; <b>' + b.n + '</b> bars &middot; &times;' + range;
+      });
+      document.getElementById('family-readout').innerHTML =
+        (marks.compensate ? '' : '<b>Compensation off</b> &mdash; flat &times;' +
+          marks.mult.toFixed(3) + ', v1 behaviour.<br>') + rows.join('<br>');
+    }
+
+    function renderMatchReadout(stats, marks, plot) {
+      const el = document.getElementById('match-readout');
+      if (!stats) {
+        el.innerHTML = 'Match unavailable &mdash; the canvas could not be read back.';
+        return;
+      }
+      const bands = stats.byBand.map(v => v === null ? '&mdash;' : v.toFixed(1)).join(' / ');
+      el.innerHTML =
+        'Hatched vs digital, <b>' + stats.bars + '</b> bars, ' +
+        (plot.overlap === 'multiply' ? 'crossings multiplied' : 'crossings opaque') + '<br>' +
+        'mean &Delta;E <b>' + stats.meanE.toFixed(1) + '</b> &middot; max <b>' +
+        stats.maxE.toFixed(1) + '</b> &middot; by band ' + bands + '<br>' +
+        'mean &Delta;L <b>' + (stats.meanL >= 0 ? '+' : '') + stats.meanL.toFixed(1) +
+        '</b> &mdash; ' + (stats.meanL > 0
+          ? 'plot reads lighter, as a ' + marks.target.toFixed(2) + ' opacity target intends'
+          : 'plot reads darker than the render');
+    }
+
+    function renderPenTable() {
+      const tbody = document.getElementById('pen-table');
+      tbody.innerHTML = '';
+      for (let i = 0; i < PEN_NAMES.length; i++) {
+        const mine = layers.filter(l => l.ink === i);
+        const tr = document.createElement('tr');
+        if (mine.length === 0) tr.className = 'idle';
+        const dist = mine.reduce((d, l) => d + l.distance, 0);
+        const segs = mine.reduce((n, l) => n + l.lineCount, 0);
+        tr.innerHTML =
+          '<td><span class="sw" style="background:' + penHex[i] + '"></span></td>' +
+          '<td>ink' + (i + 1) + ' ' + PEN_NAMES[i] + '</td>' +
+          '<td>' + (mine.length ? mine.map(l => l.angle + '&deg;').join(', ') : '&mdash;') + '</td>' +
+          '<td>' + (mine.length ? (dist / 1000).toFixed(1) : '&mdash;') + '</td>' +
+          '<td>' + (mine.length ? segs.toLocaleString() : '&mdash;') + '</td>';
+        tbody.appendChild(tr);
+      }
+      const active = new Set(layers.map(l => l.ink)).size;
+      document.getElementById('pen-note').innerHTML =
+        '<b>' + active + ' of 9</b> pens. Two angles on one pen = two files, plotted back to back.';
+    }
+
+    // Every layer is switchable, so a pen can be isolated or pulled to see what it
+    // is carrying. This changes the preview only — the plot is unaffected.
+    function renderChips() {
+      const box = document.getElementById('layer-chips');
+      box.innerHTML = '';
+      const mk = (label, on, fn, hex) => {
+        const b = document.createElement('button');
+        b.innerHTML = (hex ? '<span class="sw" style="background:' + hex + '"></span>' : '') + label;
+        if (!on) b.className = 'off';
+        b.onclick = fn;
+        box.appendChild(b);
+      };
+      layers.forEach(l => {
+        mk('ink' + (l.ink + 1) + ' ' + l.angle + '\u00b0', !hidden.has(l.key), () => {
+          if (hidden.has(l.key)) hidden.delete(l.key); else hidden.add(l.key);
+          schedule();
+        }, penHex[l.ink]);
+      });
+      mk('All', true, () => { hidden = new Set(); schedule(); }, null);
+      mk('Solo off', true, () => { layers.forEach(l => hidden.add(l.key)); schedule(); }, null);
+    }
+
+    // ============ CARRIED OVER FROM svg-generator-v6 / svg-generator-v2 ========
+    function lineDistance(line) {
+      const dx = line.x2 - line.x1;
+      const dy = line.y2 - line.y1;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    function generateAngledLines(cellX, cellY, cellWidth, cellHeight, coverage, lineWidth, angleDeg) {
+      const lines = [];
+      const theta = angleDeg * Math.PI / 180;
+      const sinA = Math.sin(theta);
+      const cosA = Math.cos(theta);
+
+      const corners = [
+        [cellX, cellY],
+        [cellX + cellWidth, cellY],
+        [cellX, cellY + cellHeight],
+        [cellX + cellWidth, cellY + cellHeight]
+      ];
+      const dVals = corners.map(([x, y]) => -x * sinA + y * cosA);
+      const dMin = Math.min(...dVals);
+      const dMax = Math.max(...dVals);
+      const perpSpan = dMax - dMin;
+
+      const numLines = Math.max(1, Math.round(coverage * perpSpan / lineWidth));
+      const spacing = perpSpan / numLines;
+      const firstD = dMin + spacing / 2;
+
+      const xMin = cellX;
+      const xMax = cellX + cellWidth;
+      const yMin = cellY;
+      const yMax = cellY + cellHeight;
+
+      for (let i = 0; i < numLines; i++) {
+        const d = firstD + i * spacing;
+
+        let tMin = -1e9;
+        let tMax = 1e9;
+
+        if (Math.abs(cosA) > 1e-12) {
+          const tLeft  = (xMin + d * sinA) / cosA;
+          const tRight = (xMax + d * sinA) / cosA;
+          tMin = Math.max(tMin, Math.min(tLeft, tRight));
+          tMax = Math.min(tMax, Math.max(tLeft, tRight));
+        }
+
+        if (Math.abs(sinA) > 1e-12) {
+          const tTop    = (yMin - d * cosA) / sinA;
+          const tBottom = (yMax - d * cosA) / sinA;
+          tMin = Math.max(tMin, Math.min(tTop, tBottom));
+          tMax = Math.min(tMax, Math.max(tTop, tBottom));
+        }
+
+        if (tMin >= tMax - 1e-9) continue;
+
+        let x1 = -d * sinA + tMin * cosA;
+        let y1 =  d * cosA + tMin * sinA;
+        let x2 = -d * sinA + tMax * cosA;
+        let y2 =  d * cosA + tMax * sinA;
+
+        if (x1 > x2) {
+          [x1, y1, x2, y2] = [x2, y2, x1, y1];
+        }
+
+        lines.push({ x1, y1, x2, y2 });
+      }
+      return lines;
+    }
+  </script>
+</body>
+</html>
