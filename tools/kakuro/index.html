@@ -53,13 +53,13 @@
   .c.blk{background:var(--blk);border-top-color:var(--blk);border-left-color:var(--blk);}
   /* clue cell: diagonal top-left -> bottom-right, across sum upper right, down sum lower left */
   .c.clue{background:
-    linear-gradient(to bottom right,
+    linear-gradient(to bottom left,
       transparent calc(50% - 0.8px), var(--ink) calc(50% - 0.8px),
       var(--ink) calc(50% + 0.8px), transparent calc(50% + 0.8px)),
     var(--clue);
     border-top-color:var(--ink);border-left-color:var(--ink);}
   .c.clue.lit{background:
-    linear-gradient(to bottom right,
+    linear-gradient(to bottom left,
       transparent calc(50% - 0.8px), var(--ink) calc(50% - 0.8px),
       var(--ink) calc(50% + 0.8px), transparent calc(50% + 0.8px)),
     #d8e4f4;}
