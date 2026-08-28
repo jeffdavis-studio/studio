@@ -16,7 +16,7 @@
   html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
     -webkit-text-size-adjust:100%; overscroll-behavior:none;}
-  body{display:flex;flex-direction:column;height:100vh;height:100dvh;
+  body{display:flex;flex-direction:column;min-height:100vh;min-height:100dvh;
     padding:env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);}
 
   header{display:flex;align-items:center;gap:8px;padding:8px 10px 4px;flex:0 0 auto;}
@@ -31,9 +31,7 @@
   .chip{display:inline-block;border:1px solid var(--line);border-radius:20px;
     padding:0 6px;font-size:10px;letter-spacing:.03em;text-transform:uppercase;background:#fff;}
 
-  #board{flex:1 1 auto;min-height:0;overflow:hidden;padding:2px 8px 6px;
-    -webkit-overflow-scrolling:touch;}
-  #board.zoomed{overflow:auto;}
+  #board{flex:1 1 auto;padding:2px 8px 6px;}
   #grid{display:grid;background:#fff;border:3px solid var(--frame);
     margin:0 auto;width:max-content;}
   .c{width:var(--cs);height:var(--cs);position:relative;display:flex;
@@ -201,7 +199,7 @@ function load(i){
   paintHeader();
   renderAll();
   try { localStorage.setItem('kakuro.v1.last', String(idx)); } catch(e){}
-  $('board').scrollTop = 0;
+  window.scrollTo(0, 0); // the page scrolls now, not the board
 }
 
 function save(){
@@ -243,25 +241,24 @@ function build(){
 
 function fit(){
   const board = $('board');
-  // clientWidth/Height include the board's own padding; the grid also carries a
-  // 3px frame on each side. Both come out before the cell size is derived, or
-  // the grid overflows by a hair and the page grows a scrollbar it doesn't need.
+  // Full-size cells, suguru-style (Jeff, 8/28): WIDTH decides the cell size, the
+  // page grows downward, and the pad sits below the whole puzzle — never pinned
+  // over it. A tall grid means the page scrolls, exactly like the suguru player.
   const PAD_X = 16, PAD_Y = 8, FRAME = 6;
-  const boxW = (board.clientWidth || window.innerWidth) - PAD_X - FRAME;
-  const boxH = (board.clientHeight || 400) - PAD_Y - FRAME;
-  const availW = Math.max(120, boxW), availH = Math.max(120, boxH);
-  // the whole puzzle always fits above the pad — no minimum, no default scroll
-  // (Jeff, 8/28). Zoom is the opt-in enlarge mode and is the only thing that scrolls.
-  let cs = Math.floor(Math.min(availW / P.cols, availH / P.rows));
-  cs = Math.max(10, Math.min(cs, 54));
+  const availW = Math.max(120, Math.min((window.innerWidth || 390), 620) - PAD_X - FRAME);
+  let cs = Math.floor(availW / P.cols);
+  cs = Math.max(19, Math.min(cs, 54));
   baseCS = cs;
-  board.classList.toggle('zoomed', zoom > 0);
   const z = [1, 1.7, 2.5][zoom] || 1;
   let out = Math.round(cs * z);
   if (zoom > 0) out = Math.max(out, zoom === 1 ? 36 : 50);
   out = Math.min(out, 96);
   document.documentElement.style.setProperty('--cs', out + 'px');
-  // centre a grid that fits; a taller one starts at the top and scrolls
+  // centre a short grid in the first viewport; a tall one starts at the top
+  // and the page scrolls. Measured from the viewport, not the board, so the
+  // margin can't feed back into its own measurement.
+  const padH = ($('pad') && $('pad').offsetHeight) || 150;
+  const boxH = (window.innerHeight || 700) - board.offsetTop - padH - PAD_Y - FRAME;
   const slack = boxH - out * P.rows;
   gridEl.style.marginTop = (slack > 0 ? Math.floor(slack / 2) : 0) + 'px';
 }
