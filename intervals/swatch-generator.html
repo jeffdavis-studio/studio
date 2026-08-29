@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Intervals — Nine-Pen Swatch</title>
+  <!--
+    intervals/swatch-generator.html — the nine-pen calibration swatch for the
+    plotted Intervals edition. Asana 1217804067213922.
+
+    WHAT THIS SHEET IS FOR. The artwork's colour model is
+    (1-a)*[(1-t)*ink_i + t*ink_(i+1)] + a*white, so the nine ink hexes in
+    Intervals_v4.js ARE the plot's colour primaries and the paper white is
+    literally one of the colours in the piece. Every plotted token inherits those
+    nine values. Two of them look eyeballed rather than measured — ink4 at hue
+    168 is a blue-green teal, a long way from where a Micron "Green" normally
+    sits, and ink6 at hue 252 is blue-violet, more purple than "Royal Blue"
+    usually reads. This sheet exists so the pens can be measured instead of
+    trusted: plot it, scan it, read nine hexes off the scan, diff against the
+    code.
+
+    IT IS A MEASURING INSTRUMENT, which is why it carries three things a plain
+    grid of colour blocks would not:
+
+      1. FOUR UNPLOTTED PAPER PATCHES at known coordinates, one near each corner
+         of the block field. Without a paper reference the measured hexes
+         inherit the scanner's colour cast and the exercise is worthless; with
+         four of them the scan can also correct illumination falloff across the
+         sheet, which would otherwise bias the nine blocks differently by
+         position. They are marked with corner ticks 3 mm OUTSIDE the patch, so
+         no ink sits inside the sampled area.
+
+      2. FOUR REGISTRATION MARKS at exact stated coordinates — a cross whose
+         intersection IS the coordinate, inside an open square that gives the
+         de-skew four more corners. Every block can then be located
+         mechanically from the scan rather than cropped by eye.
+
+      3. PER-BLOCK LABELS PLOTTED IN THE BLOCK'S OWN PEN. A label drawn in the
+         pen it names makes a mis-swap self-evident: if file 4 is plotted with
+         the wrong pen, the words "INK4 GREEN" come out in the wrong colour and
+         the sheet says so without anyone having to remember.
+
+    THE BLOCKS USE THE ARTWORK'S OWN MECHANICS, not a solid fill. A swatch block
+    is exactly what the emitter draws for a bar carrying four evenly-weighted
+    ink slots at total weight 1.0 — four crossing families at the artwork's own
+    angles, each requesting mult/4, compositing to the opacity target. That is
+    the structural norm of the piece (measured, 80% of bars run four active
+    families) and it is the only honest thing to measure: what we want is the
+    pen's colour AS THE PLOT LAYS IT DOWN, with its own gaps and crossings, not
+    as a marker scribble.
+
+    CARRIED OVER VERBATIM from svg-generator-v3.html: generateAngledLines,
+    lineDistance, opacityMultiplier, the serpentine ordering of orderLayer, the
+    per-pen file model (mm units, 1:1 viewBox, monochrome strokes, zero-stroke
+    sheet rect), downloadSVG, and the materials-table pattern. PEN_NAMES is v3's
+    list; the hexes are NOT restated here — they are read off the artwork's own
+    `inks` array at boot, exactly as v3 does, because this page is the one place
+    where a restated hex would be actively dishonest.
+
+    SCOPE. This is the swatch only. Density ramps, opacity targets and the angle
+    fan are a separate sheet (Asana 1217804174177177) and are deliberately not
+    here — a sheet that measures two things measures neither.
+
+    PAPER. Strathmore Bristol 400 series, plate. Jeff 2026-08-26: 400 now to
+    keep costs down, and a full recalibration on 500 at production time. The
+    measured hexes are paper-specific — the tint `a` is the paper fraction — so
+    the 500 re-measure is expected, not conditional.
+
+    ENVELOPE. Everything is built inside a conservative 270 x 370 mm box centred
+    on the 14x17 in sheet. The iDraw H has since been jogged to 297 x ~416 mm
+    (KB 3.8, pinned 2026-08-26), so this leaves real headroom on purpose: a
+    calibration sheet that fails to plot because it grazed a limit has cost more
+    than the margin it saved. The used extent is measured from the emitted
+    geometry and shown in the readout, not asserted.
+
+    Every dimension is a control. There are no baked-in millimetres.
+  -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+  <script src="Intervals_v4.js"></script>
+  <style>
+    body {
+      font-family: aktiv-grotesk, -apple-system, sans-serif;
+      margin: 0;
+      padding: 40px 20px;
+      color: #333;
+    }
+    .main-layout { display: inline-flex; gap: 40px; align-items: flex-start; }
+    .center-wrapper { display: flex; justify-content: center; }
+    .preview-column { flex-shrink: 0; }
+    .sidebar { width: 460px; flex-shrink: 0; }
+    .section { margin-bottom: 40px; }
+    .section h3 {
+      margin: 0 0 16px 0; font-size: 14px; font-weight: 400;
+      text-transform: uppercase; letter-spacing: 1.5px; color: #333;
+    }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-row + .form-row { margin-top: 12px; }
+    .form-row.three { grid-template-columns: 1fr 1fr 1fr; }
+    .form-row.four { grid-template-columns: 1fr 1fr 1fr 1fr; }
+    .form-group { display: flex; flex-direction: column; }
+    label {
+      margin-bottom: 6px; font-weight: 400; font-size: 12px;
+      text-transform: uppercase; letter-spacing: 0.5px; color: #666;
+    }
+    input {
+      padding: 12px; font-family: aktiv-grotesk, -apple-system, sans-serif;
+      font-size: 14px; border: 1px solid #333; border-radius: 0;
+      background: white; width: 100%; box-sizing: border-box;
+    }
+    input:focus { outline: none; border-color: #000; }
+    .buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    button {
+      padding: 14px 16px; font-family: aktiv-grotesk, -apple-system, sans-serif;
+      font-size: 13px; text-transform: uppercase; letter-spacing: 1px;
+      background: white; color: #333; border: 1px solid #333; border-radius: 0;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      gap: 8px; transition: background 0.15s, color 0.15s;
+    }
+    button:hover { background: #333; color: white; }
+    button.active { background: #333; color: white; }
+    button.full-width { grid-column: 1 / -1; }
+    .color-swatch {
+      width: 16px; height: 16px; border-radius: 0;
+      border: 1px solid rgba(0, 0, 0, 0.3); flex-shrink: 0;
+    }
+    #preview-buttons {
+      display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 12px;
+    }
+    #preview-buttons button { padding: 9px 4px; font-size: 11px; letter-spacing: 0.5px; }
+    #svg-preview-container { background: #fff; border: 1px solid #ddd; }
+    table.pens { width: 100%; border-collapse: collapse; font-size: 12px; }
+    table.pens th {
+      text-align: left; font-weight: 400; text-transform: uppercase;
+      letter-spacing: 0.5px; font-size: 10px; color: #666;
+      border-bottom: 1px solid #333; padding: 0 6px 6px 0;
+    }
+    table.pens td { padding: 6px 6px 6px 0; border-bottom: 1px solid #eee; vertical-align: middle; }
+    table.pens td.mono { font-family: ui-monospace, Menlo, monospace; font-size: 11px; }
+    .readout { font-size: 12px; line-height: 1.7; color: #444; }
+    .readout b { font-weight: 400; color: #000; }
+    .readout .bad { color: #b00; }
+    .note { font-size: 11px; color: #888; line-height: 1.6; margin-top: 10px; }
+    #render-container { display: none; }
+  </style>
+</head>
+<body>
+  <div id="render-container"></div>
+  <div class="center-wrapper">
+    <div class="main-layout">
+      <div class="preview-column">
+        <h3 style="margin: 0 0 16px 0; font-size: 14px; font-weight: 400; text-transform: uppercase; letter-spacing: 1.5px; color: #333;">Preview</h3>
+        <div id="svg-preview-container"></div>
+        <div id="preview-buttons"></div>
+        <div class="note" id="preview-note"></div>
+      </div>
+
+      <div class="sidebar">
+        <div class="section">
+          <h3>Sheet &amp; Envelope</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="paperWidth">Paper W (mm)</label>
+              <input type="number" id="paperWidth" value="355.6" step="0.1" min="10">
+            </div>
+            <div class="form-group">
+              <label for="paperHeight">Paper H (mm)</label>
+              <input type="number" id="paperHeight" value="431.8" step="0.1" min="10">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="envWidth">Envelope W (mm)</label>
+              <input type="number" id="envWidth" value="270" step="1" min="10">
+            </div>
+            <div class="form-group">
+              <label for="envHeight">Envelope H (mm)</label>
+              <input type="number" id="envHeight" value="370" step="1" min="10">
+            </div>
+          </div>
+          <div class="note">14&times;17 in pad = 355.6 &times; 431.8 mm. The envelope is deliberately
+            conservative against the iDraw H's jogged 297 &times; ~416 mm — nothing on this sheet
+            should depend on the machine's last millimetre.</div>
+        </div>
+
+        <div class="section">
+          <h3>Blocks</h3>
+          <div class="form-row three">
+            <div class="form-group">
+              <label for="blockSize">Block (mm)</label>
+              <input type="number" id="blockSize" value="46" step="1" min="25">
+            </div>
+            <div class="form-group">
+              <label for="colGap">Col Gap (mm)</label>
+              <input type="number" id="colGap" value="18" step="1" min="2">
+            </div>
+            <div class="form-group">
+              <label for="rowGap">Row Gap (mm)</label>
+              <input type="number" id="rowGap" value="26" step="1" min="2">
+            </div>
+          </div>
+          <div class="form-row" style="margin-top: 12px;">
+            <div class="form-group">
+              <label for="linePitch">Pitch (mm)</label>
+              <input type="number" id="linePitch" value="0.45" step="0.01" min="0.05">
+            </div>
+            <div class="form-group">
+              <label for="opacityTarget">Opacity Target</label>
+              <input type="number" id="opacityTarget" value="0.98" step="0.01" min="0.1" max="0.99">
+            </div>
+          </div>
+          <div class="form-row" style="margin-top: 12px;">
+            <div class="form-group">
+              <label for="sampleInset">Sample Inset (mm)</label>
+              <input type="number" id="sampleInset" value="8" step="1" min="0">
+            </div>
+            <div class="form-group">
+              <label for="labelHeight">Label Cap (mm)</label>
+              <input type="number" id="labelHeight" value="5" step="0.5" min="2">
+            </div>
+          </div>
+          <div class="note" id="blocks-note"></div>
+        </div>
+
+        <div class="section">
+          <h3>Angle Set</h3>
+          <div class="form-row four">
+            <div class="form-group"><label for="angle1">Slot 1</label>
+              <input type="number" id="angle1" value="22.5" step="0.5"></div>
+            <div class="form-group"><label for="angle2">Slot 2</label>
+              <input type="number" id="angle2" value="67.5" step="0.5"></div>
+            <div class="form-group"><label for="angle3">Slot 3</label>
+              <input type="number" id="angle3" value="112.5" step="0.5"></div>
+            <div class="form-group"><label for="angle4">Slot 4</label>
+              <input type="number" id="angle4" value="157.5" step="0.5"></div>
+          </div>
+          <div class="note">The artwork's own four angles, unchanged. A block is all four,
+            crossing — the same geometry a four-family bar gets in the piece.</div>
+        </div>
+
+        <div class="section">
+          <h3>Instrument</h3>
+          <div class="form-row three">
+            <div class="form-group">
+              <label for="regWidth">Reg W (mm)</label>
+              <input type="number" id="regWidth" value="210" step="1" min="50">
+            </div>
+            <div class="form-group">
+              <label for="regHeight">Reg H (mm)</label>
+              <input type="number" id="regHeight" value="310" step="1" min="50">
+            </div>
+            <div class="form-group">
+              <label for="patchSize">Patch (mm)</label>
+              <input type="number" id="patchSize" value="20" step="1" min="8">
+            </div>
+          </div>
+          <div class="note" id="instrument-note"></div>
+        </div>
+
+        <div class="section">
+          <h3>Plot Time</h3>
+          <div class="form-row three">
+            <div class="form-group">
+              <label for="drawSpeed">Draw (mm/s)</label>
+              <input type="number" id="drawSpeed" value="40" step="1" min="1">
+            </div>
+            <div class="form-group">
+              <label for="travelSpeed">Travel (mm/s)</label>
+              <input type="number" id="travelSpeed" value="100" step="1" min="1">
+            </div>
+            <div class="form-group">
+              <label for="liftTime">Lift (s)</label>
+              <input type="number" id="liftTime" value="0.28" step="0.01" min="0">
+            </div>
+          </div>
+          <div class="readout" id="time-readout" style="margin-top: 14px;"></div>
+          <div class="note">An estimate with its assumptions on the surface, not a measurement.
+            40 mm/s is the figure the rest of this project is costed on; the lift cost is the
+            one that dominates here and is the first thing to correct once the machine has
+            actually run a sheet.</div>
+        </div>
+
+        <div class="section">
+          <h3>Pens — Sakura Pigma Micron 05</h3>
+          <table class="pens">
+            <thead>
+              <tr><th></th><th>Pen</th><th>Code hex</th><th>Length</th><th>Segs</th><th>Pen-up</th></tr>
+            </thead>
+            <tbody id="pen-table"></tbody>
+          </table>
+          <div class="note" id="pen-note"></div>
+        </div>
+
+        <div class="section">
+          <h3>Sheet Check</h3>
+          <div class="readout" id="bounds-readout"></div>
+        </div>
+
+        <div class="section">
+          <h3>Download SVG</h3>
+          <div class="buttons" id="download-buttons"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { textPolylines, textWidth, polylinesToSegments } from './swatch-font.mjs';
+
+    // ============ CONSTANTS ============
+    const PREVIEW_SIZE = 700;
+
+    // Baselines of the three label lines, as offsets below the block's bottom
+    // edge. A constant because the layout has to know how far the label band
+    // reaches: the first draft placed the bottom paper patches off the
+    // registration rectangle instead, and the ink7 and ink9 labels ran straight
+    // through them — 43 segments inside the patches that are supposed to be
+    // bare paper, which would have quietly poisoned the white balance.
+    const LABEL_BASELINES = [7, 13, 19];
+    const LABEL_BAND = LABEL_BASELINES[2] + 3;   // + descend/clearance
+
+    // v3's list, Jeff's names, 2026-08-24. The hexes are read off the artwork.
+    const PEN_NAMES = [
+      'Orange', 'Yellow', 'Fresh Green', 'Green', 'Blue',
+      'Royal Blue', 'Purple', 'Rose', 'Red'
+    ];
+
+    // ============ GLOBAL STATE ============
+    let penHex = [];
+    let files = [];            // [{ ink, name, groups, segments, distance, penUp, filename }]
+    let previewIndex = 0;      // 0 = whole sheet in pen colours, 1..9 = one pen
+    let sheetBounds = null;
+
+    // ============ BOOT ============
+    // Intervals_v4.js runs the artwork on load. We want none of the render — only
+    // its `inks` array — so the canvas is parked in a hidden container. Reading
+    // the hexes rather than restating them is the whole point: this page's job is
+    // to test those nine values, and a copy of them here could silently drift
+    // from the piece it is supposed to be testing.
+    // `inks` is a top-level `let` in a classic script, so it lives in the global
+    // lexical environment and is NOT a property of `window` — the wait tests the
+    // bare identifier. `typeof` on a name that was never declared is safe, so a
+    // failed script load shows up as the timeout below rather than a throw.
+    window.addEventListener('load', () => {
+      const t0 = performance.now();
+      const wait = setInterval(() => {
+        const c = document.querySelector('canvas');
+        const ready = typeof inks !== 'undefined' && inks && inks.length === 9;
+        if (!c || !ready) {
+          if (performance.now() - t0 > 10000) {
+            clearInterval(wait);
+            window.swatchBootError =
+              'Intervals_v4.js did not expose nine inks within 10s' +
+              ' (canvas=' + !!c + ', inks=' + (typeof inks) + ')';
+            document.getElementById('bounds-readout').textContent = window.swatchBootError;
+          }
+          return;
+        }
+        clearInterval(wait);
+        boot(c);
+      }, 20);
+    });
+
+    function boot(canvasEl) {
+      document.getElementById('render-container').appendChild(canvasEl);
+      colorMode(RGB);
+      penHex = inks.map(c => rgbHex(c));
+
+      ['paperWidth', 'paperHeight', 'envWidth', 'envHeight', 'blockSize', 'colGap',
+       'rowGap', 'linePitch', 'opacityTarget', 'sampleInset', 'labelHeight',
+       'angle1', 'angle2', 'angle3', 'angle4', 'regWidth', 'regHeight', 'patchSize',
+       'drawSpeed', 'travelSpeed', 'liftTime'].forEach(id => {
+        document.getElementById(id).addEventListener('input', rebuild);
+      });
+      rebuild();
+    }
+
+    function rgbHex(c) {
+      const v = n => Math.round(n).toString(16).padStart(2, '0');
+      return '#' + v(red(c)) + v(green(c)) + v(blue(c));
+    }
+
+    // ============ READERS ============
+    function readGeometry() {
+      const paperW = parseFloat(document.getElementById('paperWidth').value) || 1;
+      const paperH = parseFloat(document.getElementById('paperHeight').value) || 1;
+      const envW = parseFloat(document.getElementById('envWidth').value) || 1;
+      const envH = parseFloat(document.getElementById('envHeight').value) || 1;
+      const block = parseFloat(document.getElementById('blockSize').value) || 1;
+      const colGap = parseFloat(document.getElementById('colGap').value) || 1;
+      const rowGap = parseFloat(document.getElementById('rowGap').value) || 1;
+      const regW = parseFloat(document.getElementById('regWidth').value) || 1;
+      const regH = parseFloat(document.getElementById('regHeight').value) || 1;
+      const patch = parseFloat(document.getElementById('patchSize').value) || 1;
+
+      const gridW = block * 3 + colGap * 2;
+      const gridH = block * 3 + rowGap * 2;
+      const gridX = (paperW - gridW) / 2;
+      const regX = (paperW - regW) / 2;
+      const regY = (paperH - regH) / 2;
+
+      // Vertical stack inside the registration rectangle, top down. The grid is
+      // placed from the top of the rectangle by a fixed lead so the two paper
+      // patch rows and the two text lines each have a stated home; nothing here
+      // is centred by eye.
+      const titleY1 = regY + 10;          // baseline, cap 5
+      const titleY2 = regY + 18;          // baseline, cap 3.2
+      const patchTopY = regY + 26;
+      const gridY = patchTopY + patch + 14;
+      const gridBottom = gridY + gridH;
+      // Below the bottom row's labels, not off the registration rectangle: the
+      // patches must sit clear of every glyph, or the paper reference is not a
+      // paper reference.
+      const patchBottomY = gridBottom + LABEL_BAND + 8;
+      const footerY = regY + regH - 2;
+
+      return {
+        paperW, paperH, envW, envH, block, colGap, rowGap, regW, regH, patch,
+        gridW, gridH, gridX, gridY, gridBottom,
+        regX, regY, regX2: regX + regW, regY2: regY + regH,
+        envX: (paperW - envW) / 2, envY: (paperH - envH) / 2,
+        titleY1, titleY2, patchTopY, patchBottomY, footerY,
+        colX: [0, 1, 2].map(i => gridX + i * (block + colGap)),
+        rowY: [0, 1, 2].map(i => gridY + i * (block + rowGap))
+      };
+    }
+
+    function readMarks() {
+      const pitch = parseFloat(document.getElementById('linePitch').value) || 0.45;
+      const target = parseFloat(document.getElementById('opacityTarget').value) || 0.98;
+      const inset = parseFloat(document.getElementById('sampleInset').value);
+      const labelH = parseFloat(document.getElementById('labelHeight').value) || 5;
+      return {
+        pitch, target,
+        mult: opacityMultiplier(target),
+        family: opacityMultiplier(target) / 4,
+        inset: isFinite(inset) && inset >= 0 ? inset : 8,
+        labelH
+      };
+    }
+
+    function readAngles() {
+      return [1, 2, 3, 4].map(i => parseFloat(document.getElementById('angle' + i).value));
+    }
+
+    function readTiming() {
+      return {
+        draw: parseFloat(document.getElementById('drawSpeed').value) || 40,
+        travel: parseFloat(document.getElementById('travelSpeed').value) || 100,
+        lift: parseFloat(document.getElementById('liftTime').value) || 0
+      };
+    }
+
+    // ============ DENSITY — carried over from svg-generator-v3 ============
+    // Solving 1 - (1 - m/4)^4 = target for m. A block requests m/4 per family, so
+    // its four crossing families composite to exactly the target: 0.98 -> 2.496,
+    // 0.624 each. That is the artwork's four-family full-weight bar, which is the
+    // densest thing the piece asks a single pen for, and therefore the closest
+    // this plot ever gets to the pure ink the code's hex claims to be.
+    function opacityMultiplier(target) {
+      const t = Math.min(0.999, Math.max(0, target));
+      return 4 * (1 - Math.pow(1 - t, 0.25));
+    }
+
+    // ============ INSTRUMENT GEOMETRY ============
+    // A registration mark: a cross whose intersection IS the stated coordinate,
+    // inside an open square that gives the de-skew four more corners to bite on.
+    function registrationMark(cx, cy) {
+      const arm = 8;
+      const half = 12;
+      return [
+        [[cx - arm, cy], [cx + arm, cy]],
+        [[cx, cy - arm], [cx, cy + arm]],
+        [[cx - half, cy - half], [cx + half, cy - half], [cx + half, cy + half],
+         [cx - half, cy + half], [cx - half, cy - half]]
+      ];
+    }
+
+    // Corner ticks for a paper patch, drawn OUTSIDE it. Ink inside the sampled
+    // area would defeat the patch, so the ticks stand off by `gap` and the scan
+    // samples further in again.
+    function patchTicks(x, y, size) {
+      const gap = 3;
+      const arm = 5;
+      const x0 = x - gap, y0 = y - gap, x1 = x + size + gap, y1 = y + size + gap;
+      return [
+        [[x0 + arm, y0], [x0, y0], [x0, y0 + arm]],
+        [[x1 - arm, y0], [x1, y0], [x1, y0 + arm]],
+        [[x1 - arm, y1], [x1, y1], [x1, y1 - arm]],
+        [[x0 + arm, y1], [x0, y1], [x0, y1 - arm]]
+      ];
+    }
+
+    // The four paper patches, top-left corners. Placed over the outer block
+    // columns, above and below the grid — spread far enough apart that a plane
+    // fitted through them describes the scanner's falloff across the whole field.
+    function patchOrigins(geo) {
+      const cx = [geo.colX[0] + geo.block / 2, geo.colX[2] + geo.block / 2];
+      return [
+        { id: 'TL', x: cx[0] - geo.patch / 2, y: geo.patchTopY },
+        { id: 'TR', x: cx[1] - geo.patch / 2, y: geo.patchTopY },
+        { id: 'BL', x: cx[0] - geo.patch / 2, y: geo.patchBottomY },
+        { id: 'BR', x: cx[1] - geo.patch / 2, y: geo.patchBottomY }
+      ];
+    }
+
+    function registrationPoints(geo) {
+      return [
+        { id: 'TL', x: geo.regX, y: geo.regY },
+        { id: 'TR', x: geo.regX2, y: geo.regY },
+        { id: 'BL', x: geo.regX, y: geo.regY2 },
+        { id: 'BR', x: geo.regX2, y: geo.regY2 }
+      ];
+    }
+
+    function blockOrigin(geo, i) {
+      return { x: geo.colX[i % 3], y: geo.rowY[Math.floor(i / 3)] };
+    }
+
+    // ============ BUILD ============
+    function buildFiles(geo, marks, angles) {
+      const out = [];
+      for (let i = 0; i < 9; i++) {
+        const groups = [];
+        // ink1 carries the sheet furniture, so the frame is on the paper after
+        // the FIRST pen rather than the ninth. If the sheet is mispositioned or
+        // the envelope is wrong, that shows up one pen in, before eight more
+        // swaps have been spent on it.
+        if (i === 0) {
+          const reg = [];
+          for (const p of registrationPoints(geo)) reg.push(...registrationMark(p.x, p.y));
+          groups.push({ role: 'registration', angle: null,
+                        lines: polylinesToSegments(reg) });
+
+          const ticks = [];
+          for (const p of patchOrigins(geo)) ticks.push(...patchTicks(p.x, p.y, geo.patch));
+          groups.push({ role: 'patch-ticks', angle: null,
+                        lines: polylinesToSegments(ticks) });
+
+          groups.push({ role: 'title', angle: null,
+                        lines: polylinesToSegments([
+                          ...centredText('NINE-PEN SWATCH', geo, geo.titleY1, 5),
+                          ...centredText('INTERVALS \u00b7 BRISTOL 400 PLATE', geo, geo.titleY2, 3.2)
+                        ]) });
+          groups.push({ role: 'footer', angle: null,
+                        lines: polylinesToSegments(
+                          centredText('MICRON 05 \u00b7 ' + marks.pitch + ' MM \u00b7 TARGET ' +
+                                      marks.target.toFixed(2), geo, geo.footerY, 3)) });
+        }
+
+        const o = blockOrigin(geo, i);
+        for (const angle of angles) {
+          const lines = generateAngledLines(o.x, o.y, geo.block, geo.block,
+                                            marks.family, marks.pitch, angle);
+          groups.push({ role: 'block', angle: angle, lines: lines });
+        }
+
+        groups.push({ role: 'label', angle: null,
+                      lines: polylinesToSegments(blockLabel(geo, marks, i, o)) });
+
+        const file = {
+          ink: i, name: PEN_NAMES[i], groups: groups,
+          filename: 'intervals-swatch-ink' + (i + 1) + '-' +
+                    PEN_NAMES[i].toLowerCase().replace(/\s+/g, '-') + '.svg'
+        };
+        // Serpentine, carried over from v3: each group's stack is entered from
+        // whichever end is nearer the pen, and each line is drawn from whichever
+        // of its ends is nearer. The pen position carries across groups, so the
+        // pen-up figure is the file's, not a per-group fiction.
+        file.penUpNaive = orderFile(file, false);
+        file.penUp = orderFile(file, true);
+        file.segments = groups.reduce((n, g) => n + g.lines.length, 0);
+        file.distance = groups.reduce((d, g) =>
+          d + g.lines.reduce((s, l) => s + lineDistance(l), 0), 0);
+        for (const g of groups) {
+          g.segments = g.lines.length;
+          g.distance = g.lines.reduce((s, l) => s + lineDistance(l), 0);
+        }
+        out.push(file);
+      }
+      return out;
+    }
+
+    function centredText(str, geo, baselineY, cap) {
+      const w = textWidth(str, cap);
+      return textPolylines(str, (geo.paperW - w) / 2, baselineY, cap);
+    }
+
+    // Three lines under every block: the pen number big, the pen name, and the
+    // hex the code currently claims. Putting the claim on the sheet means the
+    // scan and the thing it is testing are in the same photograph.
+    function blockLabel(geo, marks, i, o) {
+      const y = o.y + geo.block;
+      const nameCap = Math.min(marks.labelH * 0.8,
+        geo.block / (('Fresh Green'.length) * 5.6 / 6));
+      return [
+        ...textPolylines('INK' + (i + 1), o.x, y + LABEL_BASELINES[0], marks.labelH),
+        ...textPolylines(PEN_NAMES[i].toUpperCase(), o.x, y + LABEL_BASELINES[1], nameCap),
+        ...textPolylines(penHex[i].toUpperCase(), o.x, y + LABEL_BASELINES[2], 3)
+      ];
+    }
+
+    // ============ PLOT ORDER — carried over from svg-generator-v3 ============
+    function hop(ax, ay, bx, by) { return Math.hypot(bx - ax, by - ay); }
+
+    function entryCost(l, px, py) {
+      return Math.min(hop(px, py, l.x1, l.y1), hop(px, py, l.x2, l.y2));
+    }
+
+    function orderFile(file, serpentine) {
+      let px = null, py = null, penUp = 0;
+      for (const group of file.groups) {
+        const n = group.lines.length;
+        let dir = 1;
+        if (serpentine && px !== null && n > 0) {
+          dir = entryCost(group.lines[0], px, py) <=
+                entryCost(group.lines[n - 1], px, py) ? 1 : -1;
+        }
+        const out = [];
+        for (let k = 0; k < n; k++) {
+          const l = group.lines[dir > 0 ? k : n - 1 - k];
+          const flip = serpentine && px !== null &&
+            hop(px, py, l.x2, l.y2) < hop(px, py, l.x1, l.y1);
+          const s = flip ? { x1: l.x2, y1: l.y2, x2: l.x1, y2: l.y1 }
+                         : { x1: l.x1, y1: l.y1, x2: l.x2, y2: l.y2 };
+          if (px !== null) penUp += hop(px, py, s.x1, s.y1);
+          out.push(s);
+          px = s.x2; py = s.y2;
+        }
+        group.lines = out;
+      }
+      return penUp;
+    }
+
+    // ============ SVG ============
+    function buildFileSVG(file, geo, marks) {
+      const groups = file.groups.map((g, i) =>
+        '    <g id="' + i + '-' + g.role + '-ink' + (file.ink + 1) +
+        (g.angle === null ? '' : '-a' + g.angle) +
+        '" data-role="' + g.role + '"' +
+        (g.angle === null ? '' : ' data-angle="' + g.angle + '"') +
+        ' data-segments="' + g.lines.length +
+        '" data-drawn-mm="' + g.distance.toFixed(3) + '">\n' +
+        g.lines.map(l => '      <line x1="' + l.x1.toFixed(6) + '" y1="' + l.y1.toFixed(6) +
+          '" x2="' + l.x2.toFixed(6) + '" y2="' + l.y2.toFixed(6) + '"/>').join('\n') +
+        '\n    </g>').join('\n');
+
+      const o = blockOrigin(geo, file.ink);
+      return '<?xml version="1.0" encoding="UTF-8"?>\n' +
+'<svg xmlns="http://www.w3.org/2000/svg"\n' +
+'     width="' + geo.paperW + 'mm"\n' +
+'     height="' + geo.paperH + 'mm"\n' +
+'     viewBox="0 0 ' + geo.paperW + ' ' + geo.paperH + '"\n' +
+'     data-project="intervals"\n' +
+'     data-sheet="nine-pen-swatch"\n' +
+'     data-paper="strathmore-bristol-400-plate"\n' +
+'     data-ink="ink' + (file.ink + 1) + '"\n' +
+'     data-pen="' + file.name + '"\n' +
+'     data-code-hex="' + penHex[file.ink] + '"\n' +
+'     data-plot-order-index="' + (file.ink + 1) + ' of 9"\n' +
+'     data-block="' + o.x.toFixed(3) + ' ' + o.y.toFixed(3) + ' ' +
+                      geo.block + ' ' + geo.block + '"\n' +
+'     data-sample-region="' + (o.x + marks.inset).toFixed(3) + ' ' +
+                              (o.y + marks.inset).toFixed(3) + ' ' +
+                              (geo.block - 2 * marks.inset).toFixed(3) + ' ' +
+                              (geo.block - 2 * marks.inset).toFixed(3) + '"\n' +
+'     data-registration="' + registrationPoints(geo)
+                              .map(p => p.id + ':' + p.x.toFixed(3) + ',' + p.y.toFixed(3))
+                              .join(' ') + '"\n' +
+'     data-paper-patches="' + patchOrigins(geo)
+                              .map(p => p.id + ':' + p.x.toFixed(3) + ',' + p.y.toFixed(3))
+                              .join(' ') + '"\n' +
+'     data-patch-size-mm="' + geo.patch + '"\n' +
+'     data-envelope="' + geo.envX.toFixed(3) + ' ' + geo.envY.toFixed(3) + ' ' +
+                         geo.envW + ' ' + geo.envH + '"\n' +
+'     data-angles="' + readAngles().join(',') + '"\n' +
+'     data-pitch-mm="' + marks.pitch + '"\n' +
+'     data-opacity-target="' + marks.target + '"\n' +
+'     data-family-coverage="' + marks.family.toFixed(6) + '"\n' +
+'     data-segments="' + file.segments + '"\n' +
+'     data-distance-mm="' + Math.round(file.distance) + '"\n' +
+'     data-pen-up-mm="' + file.penUp.toFixed(3) + '"\n' +
+'     data-pen-up-naive-mm="' + file.penUpNaive.toFixed(3) + '">\n' +
+'  <rect x="0" y="0" width="' + geo.paperW + '" height="' + geo.paperH + '" fill="none" stroke="none"/>\n' +
+'  <g stroke="black" stroke-width="1" stroke-linecap="butt">\n' +
+groups + '\n' +
+'  </g>\n' +
+'</svg>';
+    }
+
+    // ============ REBUILD ============
+    function rebuild() {
+      const geo = readGeometry();
+      const marks = readMarks();
+      files = buildFiles(geo, marks, readAngles());
+      sheetBounds = boundsOf(files);
+      renderNotes(geo, marks);
+      renderTime();
+      renderPenTable(marks);
+      renderBounds(geo);
+      renderButtons();
+      showPreview(previewIndex);
+    }
+
+    function boundsOf(fs) {
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      for (const f of fs) for (const g of f.groups) for (const l of g.lines) {
+        x0 = Math.min(x0, l.x1, l.x2); x1 = Math.max(x1, l.x1, l.x2);
+        y0 = Math.min(y0, l.y1, l.y2); y1 = Math.max(y1, l.y1, l.y2);
+      }
+      return { x0, y0, x1, y1, w: x1 - x0, h: y1 - y0 };
+    }
+
+    function renderNotes(geo, marks) {
+      const interior = geo.block - 2 * marks.inset;
+      document.getElementById('blocks-note').innerHTML =
+        'Target ' + marks.target.toFixed(2) + ' &rarr; &times;<b>' + marks.mult.toFixed(3) +
+        '</b> over four crossing families, <b>' + marks.family.toFixed(4) +
+        '</b> coverage each. Block ' + geo.block + ' mm, sampled interior <b>' +
+        interior.toFixed(0) + ' &times; ' + interior.toFixed(0) + ' mm</b> after a ' +
+        marks.inset + ' mm edge exclusion.';
+      const reg = registrationPoints(geo);
+      document.getElementById('instrument-note').innerHTML =
+        'Registration crosses at <b>' + reg.map(p => '(' + p.x.toFixed(1) + ', ' +
+          p.y.toFixed(1) + ')').join(', ') + '</b> mm from the sheet\u2019s top-left. ' +
+        'Four ' + geo.patch + ' mm paper patches, ticked 3 mm clear so no ink touches ' +
+        'what the scan samples.';
+    }
+
+    function renderTime() {
+      const t = readTiming();
+      const drawn = files.reduce((d, f) => d + f.distance, 0);
+      const up = files.reduce((d, f) => d + f.penUp, 0);
+      const segs = files.reduce((n, f) => n + f.segments, 0);
+      const sec = drawn / t.draw + up / t.travel + segs * t.lift;
+      const fmt = s => Math.floor(s / 60) + ' min ' + Math.round(s % 60) + ' s';
+      document.getElementById('time-readout').innerHTML =
+        '<b>' + (drawn / 1000).toFixed(1) + ' m</b> drawn in <b>' + segs.toLocaleString() +
+        '</b> segments, <b>' + (up / 1000).toFixed(1) + ' m</b> in the air<br>' +
+        'Drawing ' + fmt(drawn / t.draw) + ' &middot; travel ' + fmt(up / t.travel) +
+        ' &middot; ' + segs.toLocaleString() + ' lifts ' + fmt(segs * t.lift) + '<br>' +
+        '<b>' + fmt(sec) + '</b> of machine time, plus nine pen swaps';
+    }
+
+    function renderPenTable(marks) {
+      const tbody = document.getElementById('pen-table');
+      tbody.innerHTML = '';
+      for (const f of files) {
+        const tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td><div class="color-swatch" style="background:' + penHex[f.ink] + '"></div></td>' +
+          '<td>ink' + (f.ink + 1) + ' ' + f.name + '</td>' +
+          '<td class="mono">' + penHex[f.ink] + '</td>' +
+          '<td>' + (f.distance / 1000).toFixed(2) + ' m</td>' +
+          '<td>' + f.segments.toLocaleString() + '</td>' +
+          '<td>' + (f.penUp / 1000).toFixed(2) + ' m</td>';
+        tbody.appendChild(tr);
+      }
+      document.getElementById('pen-note').innerHTML =
+        'Code hex is read off Intervals_v4.js at boot, not restated here \u2014 it is the ' +
+        'claim this sheet exists to test. Swap order is the wheel order, ink1 first: ' +
+        PEN_NAMES.map((n, i) => (i + 1) + ' ' + n).join(', ') + '. ' +
+        'ink1\u2019s file also carries the registration marks, patch ticks and titles.';
+    }
+
+    function renderBounds(geo) {
+      const b = sheetBounds;
+      const inside = b.x0 >= geo.envX - 1e-6 && b.y0 >= geo.envY - 1e-6 &&
+                     b.x1 <= geo.envX + geo.envW + 1e-6 && b.y1 <= geo.envY + geo.envH + 1e-6;
+      const slack = [
+        b.x0 - geo.envX, geo.envX + geo.envW - b.x1,
+        b.y0 - geo.envY, geo.envY + geo.envH - b.y1
+      ];
+      document.getElementById('bounds-readout').innerHTML =
+        'Ink extent <b>' + b.w.toFixed(1) + ' &times; ' + b.h.toFixed(1) + ' mm</b> at (' +
+        b.x0.toFixed(1) + ', ' + b.y0.toFixed(1) + ') \u2013 (' + b.x1.toFixed(1) + ', ' +
+        b.y1.toFixed(1) + ')<br>' +
+        'Envelope ' + geo.envW + ' &times; ' + geo.envH + ' mm &mdash; ' +
+        (inside ? 'inside, margin <b>' + Math.min(...slack).toFixed(1) + ' mm</b> at the tightest edge'
+                : '<span class="bad">OUTSIDE THE ENVELOPE</span>') + '<br>' +
+        'Paper ' + geo.paperW + ' &times; ' + geo.paperH + ' mm &mdash; ' +
+        'margin ' + Math.min(b.x0, geo.paperW - b.x1).toFixed(1) + ' mm across, ' +
+        Math.min(b.y0, geo.paperH - b.y1).toFixed(1) + ' mm down';
+    }
+
+    function renderButtons() {
+      const prev = document.getElementById('preview-buttons');
+      prev.innerHTML = '';
+      const mk = (label, idx) => {
+        const b = document.createElement('button');
+        b.textContent = label;
+        b.onclick = () => showPreview(idx);
+        if (idx === previewIndex) b.className = 'active';
+        prev.appendChild(b);
+      };
+      mk('Sheet', 0);
+      files.forEach((f, i) => mk('ink' + (f.ink + 1), i + 1));
+
+      const dl = document.getElementById('download-buttons');
+      dl.innerHTML = '';
+      files.forEach((f, i) => {
+        const b = document.createElement('button');
+        b.innerHTML = '<div class="color-swatch" style="background:' + penHex[f.ink] + '"></div>' +
+                      'ink' + (f.ink + 1) + ' &middot; ' + f.name;
+        b.onclick = () => downloadFile(i);
+        dl.appendChild(b);
+      });
+      const all = document.createElement('button');
+      all.className = 'full-width';
+      all.textContent = 'Download all 9 pen files';
+      all.onclick = downloadAll;
+      dl.appendChild(all);
+    }
+
+    // ============ PREVIEW ============
+    // Index 0 composites every pen in its own colour at the real nib width — the
+    // only view that answers "what will be on the paper". The per-pen views are
+    // the files themselves.
+    function showPreview(idx) {
+      previewIndex = idx;
+      document.getElementById('preview-buttons').querySelectorAll('button')
+        .forEach((b, i) => b.classList.toggle('active', i === idx));
+
+      const geo = readGeometry();
+      const marks = readMarks();
+      const scale = Math.min(PREVIEW_SIZE / geo.paperW, PREVIEW_SIZE / geo.paperH);
+      const shown = idx === 0 ? files : [files[idx - 1]];
+
+      const body = shown.map(f => '<g stroke="' + penHex[f.ink] + '" stroke-width="' +
+        (marks.pitch * 0.9).toFixed(3) + '" stroke-linecap="butt">' +
+        f.groups.map(g => g.lines.map(l =>
+          '<line x1="' + l.x1.toFixed(4) + '" y1="' + l.y1.toFixed(4) +
+          '" x2="' + l.x2.toFixed(4) + '" y2="' + l.y2.toFixed(4) + '"/>').join('')).join('') +
+        '</g>').join('');
+
+      document.getElementById('svg-preview-container').innerHTML =
+        '<svg id="sheet-preview" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' +
+        geo.paperW + ' ' + geo.paperH + '" style="width:' + (geo.paperW * scale) +
+        'px;height:' + (geo.paperH * scale) + 'px;display:block;background:#fbfaf6">' +
+        body + '</svg>';
+
+      const note = document.getElementById('preview-note');
+      if (idx === 0) {
+        note.innerHTML = 'All nine files composited in the code\u2019s pen colours at the ' +
+          'nib\u2019s own width, on a Bristol-ish ground. The files themselves are black at ' +
+          'stroke-width 1 \u2014 colour here is the preview\u2019s, not the file\u2019s.';
+      } else {
+        const f = files[idx - 1];
+        note.innerHTML = 'ink' + (f.ink + 1) + ' ' + f.name + ' \u2014 ' +
+          f.segments.toLocaleString() + ' segments, ' + (f.distance / 1000).toFixed(2) +
+          ' m drawn, ' + (f.penUp / 1000).toFixed(2) + ' m pen-up (was ' +
+          (f.penUpNaive / 1000).toFixed(2) + ' m unordered).';
+      }
+    }
+
+    function downloadFile(i) {
+      downloadSVG(files[i].filename, buildFileSVG(files[i], readGeometry(), readMarks()));
+    }
+
+    function downloadAll() {
+      const geo = readGeometry();
+      const marks = readMarks();
+      files.forEach((f, i) =>
+        setTimeout(() => downloadSVG(f.filename, buildFileSVG(f, geo, marks)), i * 150));
+    }
+
+    // ============ CARRIED OVER FROM svg-generator-v3 ============
+    function lineDistance(line) {
+      const dx = line.x2 - line.x1;
+      const dy = line.y2 - line.y1;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    function generateAngledLines(cellX, cellY, cellWidth, cellHeight, coverage, lineWidth, angleDeg) {
+      const lines = [];
+      const theta = angleDeg * Math.PI / 180;
+      const sinA = Math.sin(theta);
+      const cosA = Math.cos(theta);
+
+      const corners = [
+        [cellX, cellY],
+        [cellX + cellWidth, cellY],
+        [cellX, cellY + cellHeight],
+        [cellX + cellWidth, cellY + cellHeight]
+      ];
+      const dVals = corners.map(([x, y]) => -x * sinA + y * cosA);
+      const dMin = Math.min(...dVals);
+      const dMax = Math.max(...dVals);
+      const perpSpan = dMax - dMin;
+
+      const numLines = Math.max(1, Math.round(coverage * perpSpan / lineWidth));
+      const spacing = perpSpan / numLines;
+      const firstD = dMin + spacing / 2;
+
+      const xMin = cellX;
+      const xMax = cellX + cellWidth;
+      const yMin = cellY;
+      const yMax = cellY + cellHeight;
+
+      for (let i = 0; i < numLines; i++) {
+        const d = firstD + i * spacing;
+
+        let tMin = -1e9;
+        let tMax = 1e9;
+
+        if (Math.abs(cosA) > 1e-12) {
+          const tLeft  = (xMin + d * sinA) / cosA;
+          const tRight = (xMax + d * sinA) / cosA;
+          tMin = Math.max(tMin, Math.min(tLeft, tRight));
+          tMax = Math.min(tMax, Math.max(tLeft, tRight));
+        }
+
+        if (Math.abs(sinA) > 1e-12) {
+          const tTop    = (yMin - d * cosA) / sinA;
+          const tBottom = (yMax - d * cosA) / sinA;
+          tMin = Math.max(tMin, Math.min(tTop, tBottom));
+          tMax = Math.min(tMax, Math.max(tTop, tBottom));
+        }
+
+        if (tMin >= tMax - 1e-9) continue;
+
+        let x1 = -d * sinA + tMin * cosA;
+        let y1 =  d * cosA + tMin * sinA;
+        let x2 = -d * sinA + tMax * cosA;
+        let y2 =  d * cosA + tMax * sinA;
+
+        if (x1 > x2) [x1, y1, x2, y2] = [x2, y2, x1, y1];
+
+        lines.push({ x1, y1, x2, y2 });
+      }
+      return lines;
+    }
+
+    function downloadSVG(filename, content) {
+      const blob = new Blob([content], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // The check harness drives this page rather than re-deriving its geometry,
+    // so the surface it needs is explicit.
+    // Pure functions can be copied onto window; the mutable state cannot — an
+    // Object.assign of a getter copies its *value at assign time*, which here is
+    // an empty array. The three live views are defineProperty accessors.
+    Object.assign(window, {
+      PEN_NAMES, readGeometry, readMarks, readAngles, readTiming,
+      registrationPoints, patchOrigins, blockOrigin, buildFileSVG, boundsOf,
+      showPreview
+    });
+    Object.defineProperty(window, 'swatchFiles', { get: () => files });
+    Object.defineProperty(window, 'swatchPenHex', { get: () => penHex });
+    Object.defineProperty(window, 'swatchBounds', { get: () => sheetBounds });
+  </script>
+</body>
+</html>
