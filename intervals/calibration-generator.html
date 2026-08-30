@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Intervals — Density / Opacity / Angle Calibration</title>
+  <!--
+    intervals/calibration-generator.html — the density / opacity / angle
+    calibration sheet for the plotted Intervals edition. Asana 1217804174177177.
+
+    WHAT THIS SHEET IS FOR. Three things about the plotted edition cannot be
+    settled by reasoning. They need ink on paper.
+
+      1. THE DENSITY CURVE. betterLerp interpolates in Lab, and Lab-linear is
+         not coverage-linear on paper. The per-bar ink weights are exact
+         arithmetic; the mapping from weight to drawn density is not, and it is
+         a property of nib, ink and surface. Mechanical Drawings hit the same
+         gap and closed it with one empirical exponent (curveExponent 1.4).
+         Row band 1 prints an eleven-step ramp per pen at RAW coverage — no
+         curve applied, because this sheet is the INPUT to a curve, not an
+         output of one. Read reflectance per step off a scan, plot it against
+         the requested weight, fit.
+
+      2. THE OPACITY TARGET. Four crossing families requested at a nominal
+         total of 1.0 composite to 1 - (1-0.25)^4 = 68% apparent, so a
+         "solid" bar leaves a third of the sheet showing. Reaching a real
+         target costs line length: 85% = 1.51x, 90% = 1.75x, 95% = 2.11x,
+         98% = 2.50x. Band 2 prints all five side by side, twice — once in the
+         darkest pen on the wheel and once in the median pen. This is a
+         LOOKING question, not a metric one: does a four-family Micron field
+         read as opaque at 90%, or is the last five points worth an extra hour
+         and ~6,000 more lifts on a nib that has to survive a whole layer?
+         Darkest first because residual paper shows hardest against a dark
+         ink; median second because the eye's verdict is contrast-dependent
+         and one colour is not a sample.
+
+      3. THE ANGLE FAN — FOR INFORMATION ONLY. The set is Jeff's call and he
+         has taken Mechanical Drawings' 22.5/67.5/112.5/157.5. Four angles is
+         the constraint; 45-degree spacing is not. Band 3 prints four candidate
+         fans in the corner, each drawn on REAL BAR GEOMETRY (four 7 mm bars,
+         not one square) because the segment saving lives entirely in the bar's
+         aspect ratio — on a square all four fans cost the same and the trade
+         would be invisible. Each fan carries its own measured segment count.
+         Nothing here is a recommendation to change the set.
+
+      4. CARRIED: THE BAR-EDGE TEST. Adjacent bars in different pens with hatch
+         running to the boundary will bleed into each other. The proposed fix
+         is to inset each bar's fill by half a line width and let the paper hold
+         the interval. Band 4 prints the same eight-bar strip twice, butted and
+         inset, in the two most contrasting pens on the sheet so a bleed is
+         unmissable.
+
+    THREE PENS, NOT NINE. The task says one small sheet, a few pens, and it is
+    right: nine ramps would be nine swaps and hours of plotting for questions
+    that do not need nine answers. The three are chosen from the artwork's own
+    hexes by CIE L* — the lightest, the median and the darkest ink on the wheel
+    — because lightness is what governs how a density step reads against paper
+    and how a residual gap reads against ink. If the curve is the same in all
+    three, one exponent serves the wheel; if it is not, we know that too, and
+    we know it from the extremes rather than from three neighbours.
+
+    THE INSTRUMENT FRAME IS LIFTED WHOLE from swatch-generator.html (962b6d4):
+    registration crosses whose intersection IS the stated coordinate, four
+    unplotted paper patches ticked 3 mm clear so no ink sits in the sampled
+    area, and the single-stroke plotter font in swatch-font.mjs. Every label
+    is plotted in the pen it names, so a mis-swap says so on the sheet without
+    anyone having to remember. generateAngledLines, lineDistance,
+    opacityMultiplier, the serpentine ordering and the per-pen file model come
+    over verbatim from svg-generator-v3.html.
+
+    THE SHEET STATES ITS OWN PREDICTED TIME, per pen and in total, in its own
+    ink. Nobody has timed a real pen lift on the iDraw H — 0.28 s is an
+    assumption, and it is about a third of every estimate this project makes.
+    The printed figure is a fixed point: it is recomputed after the label that
+    carries it has been added. Time the real passes against it and the assumed
+    number becomes a measured one, which then multiplies across an edition.
+
+    PAPER. Strathmore Bristol 400 series, plate. Jeff 2026-08-26: 400 now to
+    keep costs down, 500 at production time. All three answers are
+    paper-specific — the tint `a` IS the paper fraction, and surface tooth
+    changes how much ink a given pitch lays down — so a full re-measure on 500
+    is EXPECTED, not conditional.
+
+    ENVELOPE. Everything is built inside a conservative 270 x 370 mm box centred
+    on the 14 x 17 in sheet, against a machine jogged to 297 x ~416 mm. A
+    calibration sheet that fails by grazing a limit costs more than the margin
+    it saves. The used extent is measured from the emitted geometry, not
+    asserted.
+
+    Every dimension is a control. There are no baked-in millimetres.
+  -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+  <script src="Intervals_v4.js"></script>
+  <style>
+    body {
+      font-family: aktiv-grotesk, -apple-system, sans-serif;
+      margin: 0; padding: 40px 20px; color: #333;
+    }
+    .main-layout { display: inline-flex; gap: 40px; align-items: flex-start; }
+    .center-wrapper { display: flex; justify-content: center; }
+    .preview-column { flex-shrink: 0; }
+    .sidebar { width: 460px; flex-shrink: 0; }
+    .section { margin-bottom: 34px; }
+    .section h3 {
+      margin: 0 0 14px 0; font-size: 14px; font-weight: 400;
+      text-transform: uppercase; letter-spacing: 1.5px; color: #333;
+    }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-row + .form-row { margin-top: 12px; }
+    .form-row.three { grid-template-columns: 1fr 1fr 1fr; }
+    .form-row.four { grid-template-columns: 1fr 1fr 1fr 1fr; }
+    .form-group { display: flex; flex-direction: column; }
+    label {
+      margin-bottom: 6px; font-weight: 400; font-size: 12px;
+      text-transform: uppercase; letter-spacing: 0.5px; color: #666;
+    }
+    input {
+      padding: 10px; font-family: aktiv-grotesk, -apple-system, sans-serif;
+      font-size: 14px; border: 1px solid #333; border-radius: 0;
+      background: white; width: 100%; box-sizing: border-box;
+    }
+    input:focus { outline: none; border-color: #000; }
+    .buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    button {
+      padding: 13px 14px; font-family: aktiv-grotesk, -apple-system, sans-serif;
+      font-size: 13px; text-transform: uppercase; letter-spacing: 1px;
+      background: white; color: #333; border: 1px solid #333; border-radius: 0;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      gap: 8px; transition: background 0.15s, color 0.15s;
+    }
+    button:hover { background: #333; color: white; }
+    button.active { background: #333; color: white; }
+    button.full-width { grid-column: 1 / -1; }
+    .color-swatch {
+      width: 16px; height: 16px; border: 1px solid rgba(0,0,0,0.3); flex-shrink: 0;
+    }
+    #preview-buttons { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
+    #preview-buttons button { padding: 9px 4px; font-size: 11px; letter-spacing: 0.5px; }
+    #svg-preview-container { background: #fff; border: 1px solid #ddd; }
+    table.pens { width: 100%; border-collapse: collapse; font-size: 12px; }
+    table.pens th {
+      text-align: left; font-weight: 400; text-transform: uppercase;
+      letter-spacing: 0.5px; font-size: 10px; color: #666;
+      border-bottom: 1px solid #333; padding: 0 6px 6px 0;
+    }
+    table.pens td { padding: 6px 6px 6px 0; border-bottom: 1px solid #eee; vertical-align: middle; }
+    table.pens td.mono { font-family: ui-monospace, Menlo, monospace; font-size: 11px; }
+    .readout { font-size: 12px; line-height: 1.7; color: #444; }
+    .readout b { font-weight: 400; color: #000; }
+    .readout .bad { color: #b00; }
+    .note { font-size: 11px; color: #888; line-height: 1.6; margin-top: 10px; }
+    #render-container { display: none; }
+  </style>
+</head>
+<body>
+  <div id="render-container"></div>
+  <div class="center-wrapper">
+    <div class="main-layout">
+      <div class="preview-column">
+        <h3 style="margin:0 0 16px 0;font-size:14px;font-weight:400;text-transform:uppercase;letter-spacing:1.5px;color:#333;">Preview</h3>
+        <div id="svg-preview-container"></div>
+        <div id="preview-buttons"></div>
+        <div class="note" id="preview-note"></div>
+      </div>
+
+      <div class="sidebar">
+        <div class="section">
+          <h3>Sheet &amp; Envelope</h3>
+          <div class="form-row">
+            <div class="form-group"><label for="paperWidth">Paper W (mm)</label>
+              <input type="number" id="paperWidth" value="355.6" step="0.1" min="10"></div>
+            <div class="form-group"><label for="paperHeight">Paper H (mm)</label>
+              <input type="number" id="paperHeight" value="431.8" step="0.1" min="10"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label for="envWidth">Envelope W (mm)</label>
+              <input type="number" id="envWidth" value="270" step="1" min="10"></div>
+            <div class="form-group"><label for="envHeight">Envelope H (mm)</label>
+              <input type="number" id="envHeight" value="370" step="1" min="10"></div>
+          </div>
+          <div class="note">14&times;17 in pad = 355.6 &times; 431.8 mm. The envelope is deliberately
+            conservative against the iDraw H's jogged 297 &times; ~416 mm.</div>
+        </div>
+
+        <div class="section">
+          <h3>1 &middot; Density Ramp</h3>
+          <div class="form-row three">
+            <div class="form-group"><label for="rampStep">Step (mm)</label>
+              <input type="number" id="rampStep" value="17" step="0.5" min="6"></div>
+            <div class="form-group"><label for="rampGap">Gap (mm)</label>
+              <input type="number" id="rampGap" value="3" step="0.5" min="0.5"></div>
+            <div class="form-group"><label for="rampAngle">Angle (deg)</label>
+              <input type="number" id="rampAngle" value="22.5" step="0.5"></div>
+          </div>
+          <div class="form-row" style="margin-top:12px;">
+            <div class="form-group" style="grid-column:1/-1;"><label for="rampWeights">Weights</label>
+              <input type="text" id="rampWeights" value="0.05,0.1,0.15,0.2,0.3,0.4,0.5,0.6,0.7,0.85,1"></div>
+          </div>
+          <div class="note" id="ramp-note"></div>
+        </div>
+
+        <div class="section">
+          <h3>2 &middot; Opacity Blocks</h3>
+          <div class="form-row three">
+            <div class="form-group"><label for="opaBlock">Block (mm)</label>
+              <input type="number" id="opaBlock" value="30" step="1" min="12"></div>
+            <div class="form-group"><label for="opaGap">Gap (mm)</label>
+              <input type="number" id="opaGap" value="7" step="0.5" min="1"></div>
+            <div class="form-group"><label for="opaInset">Sample Inset</label>
+              <input type="number" id="opaInset" value="5" step="0.5" min="0"></div>
+          </div>
+          <div class="form-row" style="margin-top:12px;">
+            <div class="form-group" style="grid-column:1/-1;"><label for="opaTargets">Targets</label>
+              <input type="text" id="opaTargets" value="0.68,0.85,0.90,0.95,0.98"></div>
+          </div>
+          <div class="note" id="opa-note"></div>
+        </div>
+
+        <div class="section">
+          <h3>3 &middot; Angle Fan (information only)</h3>
+          <div class="form-row three">
+            <div class="form-group"><label for="fanBarW">Bar W (mm)</label>
+              <input type="number" id="fanBarW" value="7" step="0.5" min="2"></div>
+            <div class="form-group"><label for="fanBars">Bars</label>
+              <input type="number" id="fanBars" value="4" step="1" min="1"></div>
+            <div class="form-group"><label for="fanHeight">Height (mm)</label>
+              <input type="number" id="fanHeight" value="30" step="1" min="10"></div>
+          </div>
+          <div class="form-row four" style="margin-top:12px;">
+            <div class="form-group"><label for="fanA">Fan A</label>
+              <input type="text" id="fanA" value="22.5,67.5,112.5,157.5"></div>
+            <div class="form-group"><label for="fanB">Fan B</label>
+              <input type="text" id="fanB" value="55,72.5,107.5,125"></div>
+            <div class="form-group"><label for="fanC">Fan C</label>
+              <input type="text" id="fanC" value="60,75,105,120"></div>
+            <div class="form-group"><label for="fanD">Fan D</label>
+              <input type="text" id="fanD" value="70,80,100,110"></div>
+          </div>
+          <div class="note" id="fan-note"></div>
+        </div>
+
+        <div class="section">
+          <h3>4 &middot; Bar-Edge Test</h3>
+          <div class="form-row four">
+            <div class="form-group"><label for="edgeBars">Bars</label>
+              <input type="number" id="edgeBars" value="8" step="1" min="2"></div>
+            <div class="form-group"><label for="edgeBarW">Bar W</label>
+              <input type="number" id="edgeBarW" value="7" step="0.5" min="2"></div>
+            <div class="form-group"><label for="edgeHeight">Height</label>
+              <input type="number" id="edgeHeight" value="26" step="1" min="10"></div>
+            <div class="form-group"><label for="edgeCoverage">Coverage</label>
+              <input type="number" id="edgeCoverage" value="0.6" step="0.05" min="0.05" max="1"></div>
+          </div>
+          <div class="note" id="edge-note"></div>
+        </div>
+
+        <div class="section">
+          <h3>Instrument &amp; Marks</h3>
+          <div class="form-row four">
+            <div class="form-group"><label for="linePitch">Pitch</label>
+              <input type="number" id="linePitch" value="0.45" step="0.01" min="0.05"></div>
+            <div class="form-group"><label for="patchSize">Patch</label>
+              <input type="number" id="patchSize" value="20" step="1" min="8"></div>
+            <div class="form-group"><label for="regArm">Reg Arm</label>
+              <input type="number" id="regArm" value="5" step="0.5" min="2"></div>
+            <div class="form-group"><label for="regHalf">Reg Half</label>
+              <input type="number" id="regHalf" value="7" step="0.5" min="3"></div>
+          </div>
+          <div class="form-row" style="margin-top:12px;">
+            <div class="form-group"><label for="regMargin">Reg Margin (mm)</label>
+              <input type="number" id="regMargin" value="4" step="0.5" min="0"></div>
+            <div class="form-group"><label for="penCount">Pens</label>
+              <input type="number" id="penCount" value="3" step="1" min="2" max="9"></div>
+          </div>
+          <div class="note" id="instrument-note"></div>
+        </div>
+
+        <div class="section">
+          <h3>Plot Time</h3>
+          <div class="form-row three">
+            <div class="form-group"><label for="drawSpeed">Draw (mm/s)</label>
+              <input type="number" id="drawSpeed" value="40" step="1" min="1"></div>
+            <div class="form-group"><label for="travelSpeed">Travel (mm/s)</label>
+              <input type="number" id="travelSpeed" value="100" step="1" min="1"></div>
+            <div class="form-group"><label for="liftTime">Lift (s)</label>
+              <input type="number" id="liftTime" value="0.28" step="0.01" min="0"></div>
+          </div>
+          <div class="readout" id="time-readout" style="margin-top:14px;"></div>
+          <div class="note">The lift figure is the assumption this sheet exists to correct.
+            It is printed on the sheet, per pen, so the real passes can be timed against it.</div>
+        </div>
+
+        <div class="section">
+          <h3>Pens — chosen by L*</h3>
+          <table class="pens">
+            <thead><tr><th></th><th>Pen</th><th>Hex</th><th>L*</th><th>Length</th><th>Segs</th></tr></thead>
+            <tbody id="pen-table"></tbody>
+          </table>
+          <div class="note" id="pen-note"></div>
+        </div>
+
+        <div class="section">
+          <h3>Sheet Check</h3>
+          <div class="readout" id="bounds-readout"></div>
+        </div>
+
+        <div class="section">
+          <h3>Download SVG</h3>
+          <div class="buttons" id="download-buttons"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { textPolylines, textWidth, polylinesToSegments } from './swatch-font.mjs';
+
+    const PREVIEW_SIZE = 700;
+
+    // v3's list, Jeff's names, 2026-08-24. Hexes are read off the artwork.
+    const PEN_NAMES = [
+      'Orange', 'Yellow', 'Fresh Green', 'Green', 'Blue',
+      'Royal Blue', 'Purple', 'Rose', 'Red'
+    ];
+
+    // Cap heights, one place. Baselines below are the vertical layout itself.
+    const CAP = {
+      title: 5, subtitle: 3, pass: 2.8, header: 3.4, rowName: 2.8,
+      stepBig: 3.6, stepSmall: 2.2, small: 2.2, footer: 2.6
+    };
+
+    // The vertical stack, as offsets from the content top. Written out rather
+    // than accumulated so the whole layout is readable in one place and a
+    // collision is arithmetic rather than a surprise on paper.
+    const Y = {
+      title: 0, subtitle: 7,
+      patchTop: 13,                   // 20 mm patch -> 13..33, ticks 10..36
+      pass: [19.5, 24.5, 29.5, 34.5, 39.5, 44.5, 49.5, 54.5, 59.5],
+      s1Header: 41,                   // clears the patch ticks at 36
+      rampRow: [47, 72, 97],          // pen-name baseline; blocks start +2
+      rampWeightLabel: 121,           // blocks end 116
+      s2Header: 131,
+      opaRow: [137, 187],             // pen-name baseline; blocks start +2
+      opaStepLabel: [176, 226],       // big number; the multiplier sits +4.4
+      s34Header: 238,                 // clears row 2's multiplier at 230.4
+      fanTop: 246,                    // fan bars start; 30 mm tall -> 276
+      fanLabel: [281, 286, 290.5],    // letter, angles (two lines), segments
+      edgeLabel: [244, 288],          // strip captions above each strip
+      edgeTop: [246, 290],            // 26 mm strips -> 272 and 316
+      edgeCaption: [277, 321],
+      patchBottom: 300,               // 20 mm patch -> 300..320, ticks 297..323
+      footer: 331
+    };
+
+    let penHex = [], penL = [], pens = [];
+    let files = [];
+    let previewIndex = 0;
+    let sheetBounds = null;
+    let timing = null;
+
+    // ============ BOOT ============
+    // Intervals_v4.js runs the artwork on load; we want only its `inks`. Same
+    // wait as the swatch: `inks` is a top-level `let` in a classic script, so
+    // it is not a property of window and the bare identifier has to be tested.
+    window.addEventListener('load', () => {
+      const t0 = performance.now();
+      const wait = setInterval(() => {
+        const c = document.querySelector('canvas');
+        const ready = typeof inks !== 'undefined' && inks && inks.length === 9;
+        if (!c || !ready) {
+          if (performance.now() - t0 > 10000) {
+            clearInterval(wait);
+            window.calBootError = 'Intervals_v4.js did not expose nine inks within 10s' +
+              ' (canvas=' + !!c + ', inks=' + (typeof inks) + ')';
+            document.getElementById('bounds-readout').textContent = window.calBootError;
+          }
+          return;
+        }
+        clearInterval(wait);
+        boot(c);
+      }, 20);
+    });
+
+    function boot(canvasEl) {
+      document.getElementById('render-container').appendChild(canvasEl);
+      colorMode(RGB);
+      penHex = inks.map(c => rgbHex(c));
+      penL = penHex.map(labL);
+
+      ['paperWidth','paperHeight','envWidth','envHeight','rampStep','rampGap','rampAngle',
+       'rampWeights','opaBlock','opaGap','opaInset','opaTargets','fanBarW','fanBars',
+       'fanHeight','fanA','fanB','fanC','fanD','edgeBars','edgeBarW','edgeHeight',
+       'edgeCoverage','linePitch','patchSize','regArm','regHalf','regMargin','penCount',
+       'drawSpeed','travelSpeed','liftTime'].forEach(id => {
+        document.getElementById(id).addEventListener('input', rebuild);
+      });
+      rebuild();
+    }
+
+    function rgbHex(c) {
+      const v = n => Math.round(n).toString(16).padStart(2, '0');
+      return '#' + v(red(c)) + v(green(c)) + v(blue(c));
+    }
+
+    // CIE L* only. The pen choice is a lightness argument, so this is the whole
+    // colour-science surface the sheet needs — no round trip, no gamut.
+    function labL(hex) {
+      const ch = i => parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16) / 255;
+      const lin = u => u <= 0.04045 ? u / 12.92 : Math.pow((u + 0.055) / 1.055, 2.4);
+      const yy = 0.2126 * lin(ch(0)) + 0.7152 * lin(ch(1)) + 0.0722 * lin(ch(2));
+      return yy > 0.008856 ? 116 * Math.cbrt(yy) - 16 : 903.3 * yy;
+    }
+
+    // Lightest, median, darkest by L*, generalised to n pens: n evenly spaced
+    // ranks through the wheel sorted by lightness, DARKEST FIRST because that
+    // is the plot order — the furniture rides in the first pen, and furniture
+    // in the lightest ink would be furniture nobody can register against.
+    function choosePens(n) {
+      const rank = penHex.map((h, i) => i).sort((a, b) => penL[a] - penL[b]);
+      const picks = [];
+      for (let k = 0; k < n; k++) {
+        picks.push(rank[Math.round(k * (rank.length - 1) / (n - 1))]);
+      }
+      const uniq = [...new Set(picks)];
+      return uniq.map((ink, order) => ({
+        ink, order, total: uniq.length, name: PEN_NAMES[ink], hex: penHex[ink], L: penL[ink]
+      }));
+    }
+
+    // ============ READERS ============
+    const num = (id, dflt) => {
+      const v = parseFloat(document.getElementById(id).value);
+      return isFinite(v) ? v : dflt;
+    };
+    const list = (id, dflt) => {
+      const v = document.getElementById(id).value.split(',')
+        .map(s => parseFloat(s.trim())).filter(x => isFinite(x));
+      return v.length ? v : dflt;
+    };
+
+    function readMarks() {
+      return {
+        pitch: num('linePitch', 0.45),
+        rampAngle: num('rampAngle', 22.5),
+        rampWeights: list('rampWeights', [0.25, 0.5, 1]),
+        opaTargets: list('opaTargets', [0.68, 0.9]),
+        opaInset: num('opaInset', 5),
+        edgeCoverage: num('edgeCoverage', 0.6),
+        fans: [
+          { letter: 'A', angles: list('fanA', [22.5, 67.5, 112.5, 157.5]) },
+          { letter: 'B', angles: list('fanB', [55, 72.5, 107.5, 125]) },
+          { letter: 'C', angles: list('fanC', [60, 75, 105, 120]) },
+          { letter: 'D', angles: list('fanD', [70, 80, 100, 110]) }
+        ]
+      };
+    }
+
+    function readTiming() {
+      return { draw: num('drawSpeed', 40), travel: num('travelSpeed', 100), lift: num('liftTime', 0.28) };
+    }
+
+    // ============ LAYOUT ============
+    // Everything geometric in one function. Widths are derived from the widest
+    // band so the content is a single column; the registration rectangle is
+    // then fitted AROUND the measured content rather than guessed at.
+    function readGeometry() {
+      const paperW = num('paperWidth', 355.6), paperH = num('paperHeight', 431.8);
+      const envW = num('envWidth', 270), envH = num('envHeight', 370);
+      const marks = readMarks();
+
+      const rampStep = num('rampStep', 17), rampGap = num('rampGap', 3);
+      const opaBlock = num('opaBlock', 30), opaGap = num('opaGap', 7);
+      const fanBarW = num('fanBarW', 7), fanBars = Math.max(1, Math.round(num('fanBars', 4)));
+      const fanH = num('fanHeight', 30);
+      const edgeBars = Math.max(2, Math.round(num('edgeBars', 8)));
+      const edgeBarW = num('edgeBarW', 7), edgeH = num('edgeHeight', 26);
+      const patch = num('patchSize', 20);
+      const regArm = num('regArm', 5), regHalf = num('regHalf', 7);
+      const regMargin = num('regMargin', 4);
+
+      const nRamp = marks.rampWeights.length;
+      const nOpa = marks.opaTargets.length;
+      const rampW = nRamp * rampStep + (nRamp - 1) * rampGap;
+      const opaW = nOpa * opaBlock + (nOpa - 1) * opaGap;
+      const fanBlockW = fanBars * fanBarW;
+      const fanGap = 6;
+      const fanW = marks.fans.length * fanBlockW + (marks.fans.length - 1) * fanGap;
+      const edgeW = edgeBars * edgeBarW;
+      const bandGap = 16;
+
+      const contentW = Math.max(rampW, opaW, fanW + bandGap + edgeW);
+      const contentX = (paperW - contentW) / 2;
+      // What gets centred is the whole INKED extent, not the text stack. The
+      // registration crosses overhang the stack — up by the title's cap height
+      // plus the margin plus half a corner square, down by the margin plus the
+      // same — and centring the stack alone put the top corner squares 0.3 mm
+      // outside the envelope. Measured, not guessed: this is the failure the
+      // check harness caught on the first run.
+      const overTop = CAP.title + regMargin + regHalf;
+      const overBot = regMargin + regHalf;
+      const stackH = Y.footer + CAP.footer;
+      const inkH = overTop + Y.footer + overBot;
+      const contentTop = (paperH - inkH) / 2 + overTop;
+      const T = contentTop;
+
+      const rampX = contentX + (contentW - rampW) / 2;
+      const opaX = contentX + (contentW - opaW) / 2;
+      const fanX = contentX;
+      const edgeX = contentX + fanW + bandGap;
+
+      const ramp = {
+        x: rampX, step: rampStep, gap: rampGap, w: rampW,
+        rows: Y.rampRow.map((yy, r) => ({
+          nameY: T + yy, y: T + yy + 2,
+          blocks: marks.rampWeights.map((wgt, i) => ({
+            x: rampX + i * (rampStep + rampGap), y: T + yy + 2,
+            w: rampStep, h: rampStep, weight: wgt
+          }))
+        })),
+        weightLabelY: T + Y.rampWeightLabel
+      };
+
+      const opa = {
+        x: opaX, block: opaBlock, gap: opaGap, w: opaW,
+        rows: Y.opaRow.map((yy, r) => ({
+          nameY: T + yy, y: T + yy + 2, stepLabelY: T + Y.opaStepLabel[r],
+          blocks: marks.opaTargets.map((t, i) => ({
+            x: opaX + i * (opaBlock + opaGap), y: T + yy + 2,
+            w: opaBlock, h: opaBlock, target: t
+          }))
+        }))
+      };
+
+      const fan = {
+        x: fanX, y: T + Y.fanTop, blockW: fanBlockW, barW: fanBarW, bars: fanBars, h: fanH,
+        labelY: Y.fanLabel.map(v => T + v),
+        blocks: marks.fans.map((f, i) => ({
+          x: fanX + i * (fanBlockW + fanGap), y: T + Y.fanTop,
+          w: fanBlockW, h: fanH, letter: f.letter, angles: f.angles
+        }))
+      };
+
+      const edge = {
+        x: edgeX, bars: edgeBars, barW: edgeBarW, h: edgeH, w: edgeW,
+        strips: [0, 1].map(i => ({
+          labelY: T + Y.edgeLabel[i], y: T + Y.edgeTop[i],
+          captionY: T + Y.edgeCaption[i],
+          inset: i === 0 ? 0 : marks.pitch / 2
+        }))
+      };
+
+      // Paper patches. Two above the ramps on the outer edges of the content
+      // column, two in the gap the fan band leaves under itself. All four sit
+      // where no glyph and no hatch can reach them — the swatch's first draft
+      // ran labels straight through its patches, which would have poisoned the
+      // white balance, so their clearance is asserted, never assumed.
+      const patches = [
+        { id: 'TL', x: contentX + 6, y: T + Y.patchTop },
+        { id: 'TR', x: contentX + contentW - 6 - patch, y: T + Y.patchTop },
+        { id: 'BL', x: contentX + 8, y: T + Y.patchBottom },
+        { id: 'BR', x: contentX + fanW - 8 - patch, y: T + Y.patchBottom }
+      ];
+
+      const geo = {
+        paperW, paperH, envW, envH,
+        envX: (paperW - envW) / 2, envY: (paperH - envH) / 2,
+        contentX, contentW, contentTop: T, stackH, inkH,
+        titleY: T + Y.title, subtitleY: T + Y.subtitle,
+        passY: Y.pass.map(v => T + v),
+        s1HeaderY: T + Y.s1Header, s2HeaderY: T + Y.s2Header, s34HeaderY: T + Y.s34Header,
+        footerY: T + Y.footer,
+        ramp, opa, fan, edge, patches, patch,
+        regArm, regHalf, regMargin, bandGap, fanGap
+      };
+
+      // The registration rectangle is fitted to the content, not chosen: it is
+      // the content column padded by regMargin, which keeps the crosses out of
+      // the way of every band while still bounding everything a de-skew needs.
+      const rx0 = contentX - regMargin, rx1 = contentX + contentW + regMargin;
+      const ry0 = T - CAP.title - regMargin, ry1 = T + Y.footer + regMargin;
+      geo.reg = [
+        { id: 'TL', x: rx0, y: ry0 }, { id: 'TR', x: rx1, y: ry0 },
+        { id: 'BL', x: rx0, y: ry1 }, { id: 'BR', x: rx1, y: ry1 }
+      ];
+      geo.regW = rx1 - rx0; geo.regH = ry1 - ry0;
+      return geo;
+    }
+
+    // ============ DENSITY — carried over from svg-generator-v3 ============
+    // Solving 1 - (1 - m/4)^4 = target for m. Four crossing families each
+    // requesting m/4 composite to exactly the target.
+    function opacityMultiplier(target) {
+      const t = Math.min(0.999, Math.max(0, target));
+      return 4 * (1 - Math.pow(1 - t, 0.25));
+    }
+
+    // ============ INSTRUMENT GEOMETRY ============
+    function registrationMark(cx, cy, arm, half) {
+      return [
+        [[cx - arm, cy], [cx + arm, cy]],
+        [[cx, cy - arm], [cx, cy + arm]],
+        [[cx - half, cy - half], [cx + half, cy - half], [cx + half, cy + half],
+         [cx - half, cy + half], [cx - half, cy - half]]
+      ];
+    }
+
+    function patchTicks(x, y, size) {
+      const gap = 3, arm = 5;
+      const x0 = x - gap, y0 = y - gap, x1 = x + size + gap, y1 = y + size + gap;
+      return [
+        [[x0 + arm, y0], [x0, y0], [x0, y0 + arm]],
+        [[x1 - arm, y0], [x1, y0], [x1, y0 + arm]],
+        [[x1 - arm, y1], [x1, y1], [x1, y1 - arm]],
+        [[x0 + arm, y1], [x0, y1], [x0, y1 - arm]]
+      ];
+    }
+
+    // ============ BUILD ============
+    function centredText(str, geo, baselineY, cap) {
+      return textPolylines(str, geo.contentX + (geo.contentW - textWidth(str, cap)) / 2, baselineY, cap);
+    }
+    function centredOn(str, cx, baselineY, cap) {
+      return textPolylines(str, cx - textWidth(str, cap) / 2, baselineY, cap);
+    }
+    const seg = polys => polylinesToSegments(polys);
+
+    // Two passes. The first builds everything except the per-pen time lines;
+    // the second adds them once the times are known. The printed figure is then
+    // re-derived from the file that carries it, so it describes the sheet that
+    // is actually plotted rather than a slightly smaller one.
+    function buildFiles(geo, marks, passLines) {
+      const pens = choosePens(Math.max(2, Math.round(num('penCount', 3))));
+      const out = pens.map(p => ({ ...p, groups: [] }));
+      const fileFor = ink => out.find(f => f.ink === ink);
+      const first = out[0];
+      const pitch = marks.pitch;
+
+      // ---- furniture, all of it in the first pen plotted
+      const regPolys = [];
+      for (const p of geo.reg) regPolys.push(...registrationMark(p.x, p.y, geo.regArm, geo.regHalf));
+      first.groups.push({ role: 'registration', angle: null, lines: seg(regPolys) });
+
+      const tickPolys = [];
+      for (const p of geo.patches) tickPolys.push(...patchTicks(p.x, p.y, geo.patch));
+      first.groups.push({ role: 'patch-ticks', angle: null, lines: seg(tickPolys) });
+
+      first.groups.push({ role: 'title', angle: null, lines: seg([
+        ...centredText('DENSITY / OPACITY / ANGLE', geo, geo.titleY, CAP.title),
+        ...centredText('INTERVALS \u00b7 BRISTOL 400 PLATE \u00b7 MICRON 05 \u00b7 ' +
+                       pitch + ' MM PITCH', geo, geo.subtitleY, CAP.subtitle)
+      ]) });
+
+      first.groups.push({ role: 'section-headers', angle: null, lines: seg([
+        ...textPolylines('1  DENSITY RAMP \u00b7 RAW COVERAGE \u00b7 ONE FAMILY AT ' +
+          marks.rampAngle + ' DEG', geo.contentX, geo.s1HeaderY, CAP.header),
+        ...textPolylines('2  OPACITY \u00b7 FOUR CROSSING FAMILIES \u00b7 APPARENT PCT',
+          geo.contentX, geo.s2HeaderY, CAP.header),
+        // Sections 3 and 4 share a band, so each header is placed over the
+        // column it names rather than run together as one string — the first
+        // proof had "4 BAR EDGE" sitting 50 mm to the left of the bar edge.
+        ...textPolylines('3  ANGLE FANS (INFO ONLY)', geo.fan.x, geo.s34HeaderY, CAP.header),
+        ...textPolylines('4  BAR EDGE', geo.edge.x, geo.s34HeaderY, CAP.header)
+      ]) });
+
+      // ---- 1. density ramps, one row per pen, raw coverage, no curve
+      geo.ramp.rows.forEach((row, r) => {
+        const pen = pens[r % pens.length];
+        const f = fileFor(pen.ink);
+        f.groups.push({ role: 'ramp-label', angle: null, lines: seg(
+          textPolylines('INK' + (pen.ink + 1) + ' ' + pen.name.toUpperCase() +
+                        ' L' + Math.round(pen.L), geo.ramp.x, row.nameY, CAP.rowName)) });
+        for (const b of row.blocks) {
+          f.groups.push({
+            role: 'ramp', angle: marks.rampAngle, weight: b.weight,
+            lines: generateAngledLines(b.x, b.y, b.w, b.h, b.weight, pitch, marks.rampAngle)
+          });
+        }
+      });
+      // The weight scale is shared furniture, so it rides with the frame.
+      first.groups.push({ role: 'ramp-scale', angle: null, lines: seg(
+        geo.ramp.rows[0].blocks.flatMap(b =>
+          centredOn(b.weight.toFixed(2), b.x + b.w / 2, geo.ramp.weightLabelY, CAP.stepSmall))
+      ) });
+
+      // ---- 2. opacity blocks: darkest pen, then the median pen
+      geo.opa.rows.forEach((row, r) => {
+        // Row 0 is the darkest pen (the worst case for a residual gap reading
+        // as a gap), row 1 the median pen (the typical case). pens is sorted
+        // darkest-first, so the row index IS the pen index.
+        const pen = pens[Math.min(r, pens.length - 1)];
+        const f = fileFor(pen.ink);
+        f.groups.push({ role: 'opa-label', angle: null, lines: seg(
+          textPolylines('INK' + (pen.ink + 1) + ' ' + pen.name.toUpperCase() +
+                        ' L' + Math.round(pen.L), geo.opa.x, row.nameY, CAP.rowName)) });
+        const labels = [];
+        for (const b of row.blocks) {
+          const mult = opacityMultiplier(b.target);
+          const family = mult / 4;
+          for (const a of marks.fans[0].angles) {
+            f.groups.push({
+              role: 'opacity', angle: a, target: b.target, family,
+              lines: generateAngledLines(b.x, b.y, b.w, b.h, family, pitch, a)
+            });
+          }
+          labels.push(...centredOn(String(Math.round(b.target * 100)),
+                                   b.x + b.w / 2, row.stepLabelY, CAP.stepBig));
+          labels.push(...centredOn(mult.toFixed(2) + 'X',
+                                   b.x + b.w / 2, row.stepLabelY + 4.4, CAP.stepSmall));
+        }
+        f.groups.push({ role: 'opa-scale', angle: null, lines: seg(labels) });
+      });
+
+      // ---- 3. angle fans, on real bar geometry, in the first pen
+      const fanCounts = [];
+      for (const blk of geo.fan.blocks) {
+        let n = 0;
+        for (let k = 0; k < geo.fan.bars; k++) {
+          const bx = blk.x + k * geo.fan.barW;
+          for (const a of blk.angles) {
+            const lines = generateAngledLines(bx, blk.y, geo.fan.barW, blk.h, 0.25, pitch, a);
+            n += lines.length;
+            first.groups.push({ role: 'fan', angle: a, fan: blk.letter, lines });
+          }
+        }
+        fanCounts.push(n);
+      }
+      const fanBase = fanCounts[0] || 1;
+      first.groups.push({ role: 'fan-scale', angle: null, lines: seg(
+        geo.fan.blocks.flatMap((blk, i) => [
+          ...centredOn(blk.letter, blk.x + blk.w / 2, geo.fan.labelY[0], CAP.stepBig),
+          ...centredOn(blk.angles.slice(0, 2).join(' '), blk.x + blk.w / 2, geo.fan.labelY[1], CAP.small),
+          ...centredOn(blk.angles.slice(2).join(' '), blk.x + blk.w / 2, geo.fan.labelY[1] + 3, CAP.small),
+          ...centredOn(fanCounts[i] + ' SEG ' + (fanCounts[i] / fanBase).toFixed(2) + 'X',
+                       blk.x + blk.w / 2, geo.fan.labelY[2] + 3, CAP.small)
+        ])) });
+
+      // ---- 4. bar-edge strips: alternating pens, alternating slot angles.
+      // The two DARKEST pens, not the extremes: the question is whether a
+      // butted seam shows as a line, and a yellow-against-white bar cannot
+      // answer it — the first proof had this test running on Yellow and the
+      // seam was simply invisible, which is not the same as absent.
+      const penEven = pens[0];
+      const penOdd = pens[Math.min(1, pens.length - 1)];
+      const angEven = marks.fans[0].angles[0];
+      const angOdd = marks.fans[0].angles[2];
+      geo.edge.strips.forEach((strip, si) => {
+        for (let k = 0; k < geo.edge.bars; k++) {
+          const pen = k % 2 === 0 ? penEven : penOdd;
+          const a = k % 2 === 0 ? angEven : angOdd;
+          const bx = geo.edge.x + k * geo.edge.barW + strip.inset;
+          const bw = geo.edge.barW - 2 * strip.inset;
+          fileFor(pen.ink).groups.push({
+            role: 'edge', angle: a, strip: si, inset: strip.inset,
+            lines: generateAngledLines(bx, strip.y, bw, geo.edge.h,
+                                       marks.edgeCoverage, pitch, a)
+          });
+        }
+        // The caption names the resulting PAPER INTERVAL, not just the inset:
+        // the interval is what the eye is being asked to judge, and it is twice
+        // the inset because both neighbours pull back.
+        first.groups.push({ role: 'edge-label', angle: null, lines: seg([
+          ...textPolylines(si === 0 ? 'BUTTED \u00b7 NO GAP'
+                                    : 'INSET \u00b7 ' + (2 * strip.inset).toFixed(2) + ' MM GAP',
+                           geo.edge.x, strip.labelY, CAP.rowName),
+          ...textPolylines(si === 0 ? 'FILL RUNS TO THE EDGE'
+                                    : 'ONE NIB WIDTH OF PAPER',
+                           geo.edge.x, strip.captionY, CAP.small)
+        ]) });
+      });
+
+      // ---- per-pen predicted time, printed in that pen's own ink
+      if (passLines) {
+        out.forEach((f, i) => {
+          f.groups.push({ role: 'pass-line', angle: null, lines: seg(
+            centredText(passLines[i], geo, geo.passY[i], CAP.pass)) });
+        });
+        first.groups.push({ role: 'footer', angle: null, lines: seg(
+          centredText(passLines[passLines.length - 1], geo, geo.footerY, CAP.footer)) });
+      }
+
+      // ---- totals and serpentine ordering, exactly as the swatch does it
+      for (const f of out) {
+        f.filename = 'intervals-calibration-' + (f.order + 1) + '-ink' + (f.ink + 1) + '-' +
+                     f.name.toLowerCase().replace(/\s+/g, '-') + '.svg';
+        f.penUpNaive = orderFile(f, false);
+        f.penUp = orderFile(f, true);
+        f.segments = f.groups.reduce((n, g) => n + g.lines.length, 0);
+        f.distance = f.groups.reduce((d, g) => d + g.lines.reduce((s, l) => s + lineDistance(l), 0), 0);
+        for (const g of f.groups) {
+          g.segments = g.lines.length;
+          g.distance = g.lines.reduce((s, l) => s + lineDistance(l), 0);
+        }
+      }
+      return out;
+    }
+
+    function fileSeconds(f, t) {
+      return f.distance / t.draw + f.penUp / t.travel + f.segments * t.lift;
+    }
+    // Rounded to ten seconds, deliberately. The prediction rests on an ASSUMED
+    // 0.28 s pen lift that nobody has measured on this machine, so printing it
+    // to the second would claim a precision the number does not have. It also
+    // makes the fixed point below stable: a label that grows by a glyph shifts
+    // the estimate by about a second, which no longer moves the printed text.
+    function fmtTime(s) {
+      const r = Math.round(s / 10) * 10;
+      return Math.floor(r / 60) + ' MIN ' + String(r % 60).padStart(2, '0') + ' S';
+    }
+
+    // Fixed point: the printed time has to describe the file that prints it.
+    // Adding the label adds segments, which adds time, which can change the
+    // label — so it is iterated until the text stops moving. If it never stops
+    // the readout says so rather than the sheet lying quietly about itself.
+    function buildWithTimes(geo, marks, t) {
+      let f = buildFiles(geo, marks, null);
+      let labels = null, settled = false, rounds = 0;
+      for (let i = 0; i < 8; i++) {
+        rounds = i + 1;
+        const next = f.map((x, k) =>
+          (k + 1) + ' ' + x.name.toUpperCase() + ' \u00b7 PREDICTED ' + fmtTime(fileSeconds(x, t)));
+        const total = f.reduce((s, x) => s + fileSeconds(x, t), 0);
+        next.push('PREDICTED TOTAL ' + fmtTime(total) + ' \u00b7 ' + f.length +
+                  ' PENS \u00b7 TIME THE REAL PASSES AGAINST THIS');
+        if (labels && next.every((s, k) => s === labels[k])) { settled = true; break; }
+        labels = next;
+        f = buildFiles(geo, marks, labels);
+      }
+      return { files: f, labels, settled, rounds };
+    }
+
+    // ============ PLOT ORDER — carried over from svg-generator-v3 ============
+    function hop(ax, ay, bx, by) { return Math.hypot(bx - ax, by - ay); }
+    function entryCost(l, px, py) {
+      return Math.min(hop(px, py, l.x1, l.y1), hop(px, py, l.x2, l.y2));
+    }
+    function orderFile(file, serpentine) {
+      let px = null, py = null, penUp = 0;
+      for (const group of file.groups) {
+        const n = group.lines.length;
+        let dir = 1;
+        if (serpentine && px !== null && n > 0) {
+          dir = entryCost(group.lines[0], px, py) <= entryCost(group.lines[n - 1], px, py) ? 1 : -1;
+        }
+        const out = [];
+        for (let k = 0; k < n; k++) {
+          const l = group.lines[dir > 0 ? k : n - 1 - k];
+          const flip = serpentine && px !== null &&
+            hop(px, py, l.x2, l.y2) < hop(px, py, l.x1, l.y1);
+          const s = flip ? { x1: l.x2, y1: l.y2, x2: l.x1, y2: l.y1 }
+                         : { x1: l.x1, y1: l.y1, x2: l.x2, y2: l.y2 };
+          if (px !== null) penUp += hop(px, py, s.x1, s.y1);
+          out.push(s);
+          px = s.x2; py = s.y2;
+        }
+        group.lines = out;
+      }
+      return penUp;
+    }
+
+    // ============ SVG ============
+    function buildFileSVG(file, geo, marks) {
+      const t = readTiming();
+      const groups = file.groups.map((g, i) =>
+        '    <g id="' + i + '-' + g.role + '-ink' + (file.ink + 1) +
+        (g.angle === null || g.angle === undefined ? '' : '-a' + g.angle) +
+        '" data-role="' + g.role + '"' +
+        (g.angle === null || g.angle === undefined ? '' : ' data-angle="' + g.angle + '"') +
+        (g.weight === undefined ? '' : ' data-weight="' + g.weight + '"') +
+        (g.target === undefined ? '' : ' data-target="' + g.target + '"') +
+        (g.family === undefined ? '' : ' data-family="' + g.family.toFixed(6) + '"') +
+        (g.fan === undefined ? '' : ' data-fan="' + g.fan + '"') +
+        (g.strip === undefined ? '' : ' data-strip="' + g.strip + '" data-inset="' + g.inset + '"') +
+        ' data-segments="' + g.lines.length +
+        '" data-drawn-mm="' + g.distance.toFixed(3) + '">\n' +
+        g.lines.map(l => '      <line x1="' + l.x1.toFixed(6) + '" y1="' + l.y1.toFixed(6) +
+          '" x2="' + l.x2.toFixed(6) + '" y2="' + l.y2.toFixed(6) + '"/>').join('\n') +
+        '\n    </g>').join('\n');
+
+      return '<?xml version="1.0" encoding="UTF-8"?>\n' +
+'<svg xmlns="http://www.w3.org/2000/svg"\n' +
+'     width="' + geo.paperW + 'mm"\n' +
+'     height="' + geo.paperH + 'mm"\n' +
+'     viewBox="0 0 ' + geo.paperW + ' ' + geo.paperH + '"\n' +
+'     data-project="intervals"\n' +
+'     data-sheet="density-opacity-angle-calibration"\n' +
+'     data-paper="strathmore-bristol-400-plate"\n' +
+'     data-ink="ink' + (file.ink + 1) + '"\n' +
+'     data-pen="' + file.name + '"\n' +
+'     data-code-hex="' + file.hex + '"\n' +
+'     data-lab-l="' + file.L.toFixed(2) + '"\n' +
+'     data-plot-order-index="' + (file.order + 1) + ' of ' + file.total + '"\n' +
+'     data-registration="' + geo.reg.map(p => p.id + ':' + p.x.toFixed(3) + ',' + p.y.toFixed(3)).join(' ') + '"\n' +
+'     data-paper-patches="' + geo.patches.map(p => p.id + ':' + p.x.toFixed(3) + ',' + p.y.toFixed(3)).join(' ') + '"\n' +
+'     data-patch-size-mm="' + geo.patch + '"\n' +
+'     data-envelope="' + geo.envX.toFixed(3) + ' ' + geo.envY.toFixed(3) + ' ' + geo.envW + ' ' + geo.envH + '"\n' +
+'     data-ramp-angle="' + marks.rampAngle + '"\n' +
+'     data-ramp-weights="' + marks.rampWeights.join(',') + '"\n' +
+'     data-opacity-targets="' + marks.opaTargets.join(',') + '"\n' +
+'     data-fans="' + marks.fans.map(f => f.letter + ':' + f.angles.join('/')).join(' ') + '"\n' +
+'     data-edge-coverage="' + marks.edgeCoverage + '"\n' +
+'     data-edge-inset-mm="' + (marks.pitch / 2) + '"\n' +
+'     data-pitch-mm="' + marks.pitch + '"\n' +
+'     data-segments="' + file.segments + '"\n' +
+'     data-distance-mm="' + Math.round(file.distance) + '"\n' +
+'     data-pen-up-mm="' + file.penUp.toFixed(3) + '"\n' +
+'     data-pen-up-naive-mm="' + file.penUpNaive.toFixed(3) + '"\n' +
+'     data-predicted-seconds="' + fileSeconds(file, t).toFixed(1) + '"\n' +
+'     data-assumed-lift-s="' + t.lift + '">\n' +
+'  <rect x="0" y="0" width="' + geo.paperW + '" height="' + geo.paperH + '" fill="none" stroke="none"/>\n' +
+'  <g stroke="black" stroke-width="1" stroke-linecap="butt">\n' +
+groups + '\n' +
+'  </g>\n' +
+'</svg>';
+    }
+
+    // ============ REBUILD ============
+    function rebuild() {
+      const geo = readGeometry();
+      const marks = readMarks();
+      const t = readTiming();
+      const built = buildWithTimes(geo, marks, t);
+      files = built.files;
+      timing = { ...built, t };
+      pens = files.map(f => ({ ink: f.ink, name: f.name, hex: f.hex, L: f.L }));
+      sheetBounds = boundsOf(files);
+      renderNotes(geo, marks);
+      renderTime(geo);
+      renderPenTable();
+      renderBounds(geo);
+      renderButtons();
+      showPreview(previewIndex);
+    }
+
+    function boundsOf(fs) {
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      for (const f of fs) for (const g of f.groups) for (const l of g.lines) {
+        x0 = Math.min(x0, l.x1, l.x2); x1 = Math.max(x1, l.x1, l.x2);
+        y0 = Math.min(y0, l.y1, l.y2); y1 = Math.max(y1, l.y1, l.y2);
+      }
+      return { x0, y0, x1, y1, w: x1 - x0, h: y1 - y0 };
+    }
+
+    function renderNotes(geo, marks) {
+      const g = id => document.getElementById(id);
+      const counts = geo.ramp.rows[0].blocks.map(b => {
+        const n = generateAngledLines(b.x, b.y, b.w, b.h, b.weight, marks.pitch, marks.rampAngle).length;
+        return b.weight.toFixed(2) + '\u2192' + n;
+      });
+      g('ramp-note').innerHTML = marks.rampWeights.length + ' steps, ' + geo.ramp.step +
+        ' mm square, <b>raw coverage &mdash; no curve applied</b>. Lines per step: ' +
+        counts.join(', ') + '. The low steps are coarse because a ' + geo.ramp.step +
+        ' mm square only holds so many lines; that quantisation is real in the artwork too.';
+      g('opa-note').innerHTML = marks.opaTargets.map(t =>
+        Math.round(t * 100) + '% &rarr; &times;<b>' + opacityMultiplier(t).toFixed(2) + '</b> (' +
+        (opacityMultiplier(t) / 4).toFixed(3) + ' per family)').join(' &middot; ') +
+        '. Two rows: darkest pen, then the median pen.';
+      const fanSegs = {};
+      for (const f of files) for (const gr of f.groups) {
+        if (gr.role === 'fan') fanSegs[gr.fan] = (fanSegs[gr.fan] || 0) + gr.lines.length;
+      }
+      const base = fanSegs['A'] || 1;
+      g('fan-note').innerHTML = 'Measured on this sheet\u2019s own bar geometry (' +
+        geo.fan.bars + ' &times; ' + geo.fan.barW + ' mm bars, ' + geo.fan.h + ' mm tall): ' +
+        Object.keys(fanSegs).map(k => k + ' <b>' + fanSegs[k] + '</b> seg (' +
+          (fanSegs[k] / base).toFixed(2) + '\u00d7)').join(', ') +
+        '. On a square all four fans cost the same &mdash; the saving lives in the bar aspect.';
+      g('edge-note').innerHTML = geo.edge.bars + ' bars of ' + geo.edge.barW + ' mm, alternating ' +
+        'pens and slot angles, coverage ' + marks.edgeCoverage + '. Inset strip pulls each fill in <b>' +
+        (marks.pitch / 2) + ' mm</b> a side, so the paper interval between neighbours is <b>' +
+        marks.pitch + ' mm</b> &mdash; one nib width.';
+      g('instrument-note').innerHTML = 'Registration crosses at <b>' +
+        geo.reg.map(p => '(' + p.x.toFixed(1) + ', ' + p.y.toFixed(1) + ')').join(', ') +
+        '</b> mm from the sheet\u2019s top-left, a fitted ' + geo.regW.toFixed(1) + ' &times; ' +
+        geo.regH.toFixed(1) + ' mm rectangle. Four ' + geo.patch +
+        ' mm paper patches, ticked 3 mm clear.';
+    }
+
+    function renderTime(geo) {
+      const t = timing.t;
+      const drawn = files.reduce((d, f) => d + f.distance, 0);
+      const up = files.reduce((d, f) => d + f.penUp, 0);
+      const segs = files.reduce((n, f) => n + f.segments, 0);
+      const sec = drawn / t.draw + up / t.travel + segs * t.lift;
+      document.getElementById('time-readout').innerHTML =
+        '<b>' + (drawn / 1000).toFixed(1) + ' m</b> drawn in <b>' + segs.toLocaleString() +
+        '</b> segments, <b>' + (up / 1000).toFixed(1) + ' m</b> in the air<br>' +
+        'Drawing ' + fmtTime(drawn / t.draw).toLowerCase() + ' &middot; travel ' +
+        fmtTime(up / t.travel).toLowerCase() + ' &middot; ' + segs.toLocaleString() + ' lifts ' +
+        fmtTime(segs * t.lift).toLowerCase() + '<br><b>' + fmtTime(sec) +
+        '</b> of machine time, plus ' + files.length + ' pen swaps<br>' +
+        'Printed on the sheet, fixed point ' +
+        (timing.settled ? 'settled in ' + timing.rounds + ' round(s)'
+                        : '<span class="bad">DID NOT SETTLE</span>');
+    }
+
+    function renderPenTable() {
+      const tbody = document.getElementById('pen-table');
+      tbody.innerHTML = '';
+      for (const f of files) {
+        const tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td><div class="color-swatch" style="background:' + f.hex + '"></div></td>' +
+          '<td>' + (f.order + 1) + ' ink' + (f.ink + 1) + ' ' + f.name + '</td>' +
+          '<td class="mono">' + f.hex + '</td>' +
+          '<td>' + f.L.toFixed(0) + '</td>' +
+          '<td>' + (f.distance / 1000).toFixed(2) + ' m</td>' +
+          '<td>' + f.segments.toLocaleString() + '</td>';
+        tbody.appendChild(tr);
+      }
+      const all = penHex.map((h, i) => 'ink' + (i + 1) + ' ' + Math.round(penL[i])).join(', ');
+      document.getElementById('pen-note').innerHTML =
+        'Chosen by CIE L* off the artwork\u2019s own hexes, darkest first because the first ' +
+        'pen carries the frame: ' + files.map(f => f.name).join(' \u2192 ') +
+        '. Whole wheel, L*: ' + all + '.';
+    }
+
+    function renderBounds(geo) {
+      const b = sheetBounds;
+      const inside = b.x0 >= geo.envX - 1e-6 && b.y0 >= geo.envY - 1e-6 &&
+                     b.x1 <= geo.envX + geo.envW + 1e-6 && b.y1 <= geo.envY + geo.envH + 1e-6;
+      const slack = [b.x0 - geo.envX, geo.envX + geo.envW - b.x1,
+                     b.y0 - geo.envY, geo.envY + geo.envH - b.y1];
+      document.getElementById('bounds-readout').innerHTML =
+        'Ink extent <b>' + b.w.toFixed(1) + ' &times; ' + b.h.toFixed(1) + ' mm</b> at (' +
+        b.x0.toFixed(1) + ', ' + b.y0.toFixed(1) + ') \u2013 (' + b.x1.toFixed(1) + ', ' +
+        b.y1.toFixed(1) + ')<br>Envelope ' + geo.envW + ' &times; ' + geo.envH + ' mm &mdash; ' +
+        (inside ? 'inside, margin <b>' + Math.min(...slack).toFixed(1) + ' mm</b> at the tightest edge'
+                : '<span class="bad">OUTSIDE THE ENVELOPE</span>') +
+        '<br>Paper ' + geo.paperW + ' &times; ' + geo.paperH + ' mm &mdash; margin ' +
+        Math.min(b.x0, geo.paperW - b.x1).toFixed(1) + ' mm across, ' +
+        Math.min(b.y0, geo.paperH - b.y1).toFixed(1) + ' mm down';
+    }
+
+    function renderButtons() {
+      const prev = document.getElementById('preview-buttons');
+      prev.innerHTML = '';
+      const mk = (label, idx) => {
+        const b = document.createElement('button');
+        b.textContent = label;
+        b.onclick = () => showPreview(idx);
+        if (idx === previewIndex) b.className = 'active';
+        prev.appendChild(b);
+      };
+      mk('Sheet', 0);
+      files.forEach((f, i) => mk((i + 1) + ' ' + f.name, i + 1));
+
+      const dl = document.getElementById('download-buttons');
+      dl.innerHTML = '';
+      files.forEach((f, i) => {
+        const b = document.createElement('button');
+        b.innerHTML = '<div class="color-swatch" style="background:' + f.hex + '"></div>' +
+                      (f.order + 1) + ' &middot; ' + f.name;
+        b.onclick = () => downloadFile(i);
+        dl.appendChild(b);
+      });
+      const all = document.createElement('button');
+      all.className = 'full-width';
+      all.textContent = 'Download all ' + files.length + ' pen files';
+      all.onclick = downloadAll;
+      dl.appendChild(all);
+    }
+
+    function showPreview(idx) {
+      previewIndex = idx;
+      document.getElementById('preview-buttons').querySelectorAll('button')
+        .forEach((b, i) => b.classList.toggle('active', i === idx));
+      const geo = readGeometry();
+      const marks = readMarks();
+      const scale = Math.min(PREVIEW_SIZE / geo.paperW, PREVIEW_SIZE / geo.paperH);
+      const shown = idx === 0 ? files : [files[idx - 1]];
+      const body = shown.map(f => '<g stroke="' + f.hex + '" stroke-width="' +
+        (marks.pitch * 0.9).toFixed(3) + '" stroke-linecap="butt">' +
+        f.groups.map(g => g.lines.map(l =>
+          '<line x1="' + l.x1.toFixed(4) + '" y1="' + l.y1.toFixed(4) +
+          '" x2="' + l.x2.toFixed(4) + '" y2="' + l.y2.toFixed(4) + '"/>').join('')).join('') +
+        '</g>').join('');
+      document.getElementById('svg-preview-container').innerHTML =
+        '<svg id="sheet-preview" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' +
+        geo.paperW + ' ' + geo.paperH + '" style="width:' + (geo.paperW * scale) +
+        'px;height:' + (geo.paperH * scale) + 'px;display:block;background:#fbfaf6">' + body + '</svg>';
+      const note = document.getElementById('preview-note');
+      if (idx === 0) {
+        note.innerHTML = 'All ' + files.length + ' files composited in the code\u2019s pen colours ' +
+          'at the nib\u2019s own width, on a Bristol-ish ground. The files themselves are black at ' +
+          'stroke-width 1 \u2014 colour here is the preview\u2019s, not the file\u2019s.';
+      } else {
+        const f = files[idx - 1];
+        note.innerHTML = (f.order + 1) + ' ink' + (f.ink + 1) + ' ' + f.name + ' \u2014 ' +
+          f.segments.toLocaleString() + ' segments, ' + (f.distance / 1000).toFixed(2) +
+          ' m drawn, ' + (f.penUp / 1000).toFixed(2) + ' m pen-up (was ' +
+          (f.penUpNaive / 1000).toFixed(2) + ' m unordered).';
+      }
+    }
+
+    function downloadFile(i) {
+      downloadSVG(files[i].filename, buildFileSVG(files[i], readGeometry(), readMarks()));
+    }
+    function downloadAll() {
+      const geo = readGeometry(), marks = readMarks();
+      files.forEach((f, i) => setTimeout(() => downloadSVG(f.filename, buildFileSVG(f, geo, marks)), i * 150));
+    }
+
+    // ============ CARRIED OVER FROM svg-generator-v3 ============
+    function lineDistance(line) {
+      const dx = line.x2 - line.x1, dy = line.y2 - line.y1;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    function generateAngledLines(cellX, cellY, cellWidth, cellHeight, coverage, lineWidth, angleDeg) {
+      const lines = [];
+      const theta = angleDeg * Math.PI / 180;
+      const sinA = Math.sin(theta), cosA = Math.cos(theta);
+      const corners = [
+        [cellX, cellY], [cellX + cellWidth, cellY],
+        [cellX, cellY + cellHeight], [cellX + cellWidth, cellY + cellHeight]
+      ];
+      const dVals = corners.map(([x, y]) => -x * sinA + y * cosA);
+      const dMin = Math.min(...dVals), dMax = Math.max(...dVals);
+      const perpSpan = dMax - dMin;
+      const numLines = Math.max(1, Math.round(coverage * perpSpan / lineWidth));
+      const spacing = perpSpan / numLines;
+      const firstD = dMin + spacing / 2;
+      const xMin = cellX, xMax = cellX + cellWidth;
+      const yMin = cellY, yMax = cellY + cellHeight;
+
+      for (let i = 0; i < numLines; i++) {
+        const d = firstD + i * spacing;
+        let tMin = -1e9, tMax = 1e9;
+        if (Math.abs(cosA) > 1e-12) {
+          const tLeft = (xMin + d * sinA) / cosA, tRight = (xMax + d * sinA) / cosA;
+          tMin = Math.max(tMin, Math.min(tLeft, tRight));
+          tMax = Math.min(tMax, Math.max(tLeft, tRight));
+        }
+        if (Math.abs(sinA) > 1e-12) {
+          const tTop = (yMin - d * cosA) / sinA, tBottom = (yMax - d * cosA) / sinA;
+          tMin = Math.max(tMin, Math.min(tTop, tBottom));
+          tMax = Math.min(tMax, Math.max(tTop, tBottom));
+        }
+        if (tMin >= tMax - 1e-9) continue;
+        let x1 = -d * sinA + tMin * cosA, y1 = d * cosA + tMin * sinA;
+        let x2 = -d * sinA + tMax * cosA, y2 = d * cosA + tMax * sinA;
+        if (x1 > x2) [x1, y1, x2, y2] = [x2, y2, x1, y1];
+        lines.push({ x1, y1, x2, y2 });
+      }
+      return lines;
+    }
+
+    function downloadSVG(filename, content) {
+      const blob = new Blob([content], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // Surface for the check harness — pure functions copied, live state via
+    // accessors (an Object.assign of `files` would copy the empty array).
+    Object.assign(window, {
+      PEN_NAMES, readGeometry, readMarks, readTiming, buildFileSVG, boundsOf,
+      showPreview, opacityMultiplier, labL, generateAngledLines
+    });
+    Object.defineProperty(window, 'calFiles', { get: () => files });
+    Object.defineProperty(window, 'calPens', { get: () => pens });
+    Object.defineProperty(window, 'calPenHex', { get: () => penHex });
+    Object.defineProperty(window, 'calPenL', { get: () => penL });
+    Object.defineProperty(window, 'calBounds', { get: () => sheetBounds });
+    Object.defineProperty(window, 'calTiming', { get: () => ({
+      settled: timing && timing.settled, rounds: timing && timing.rounds,
+      labels: timing && timing.labels
+    }) });
+  </script>
+</body>
+</html>
