@@ -261,15 +261,15 @@
           <div class="form-row three">
             <div class="form-group">
               <label for="drawSpeed">Draw (mm/s)</label>
-              <input type="number" id="drawSpeed" value="40" step="1" min="1">
+              <input type="number" id="drawSpeed" value="66.7" step="0.1" min="1">
             </div>
             <div class="form-group">
               <label for="travelSpeed">Travel (mm/s)</label>
-              <input type="number" id="travelSpeed" value="100" step="1" min="1">
+              <input type="number" id="travelSpeed" value="133.3" step="0.1" min="1">
             </div>
             <div class="form-group">
-              <label for="liftTime">Lift (s)</label>
-              <input type="number" id="liftTime" value="0.28" step="0.01" min="0">
+              <label for="liftTime">Overhead (s/seg)</label>
+              <input type="number" id="liftTime" value="0.13" step="0.01" min="0">
             </div>
           </div>
           <div class="readout" id="time-readout" style="margin-top: 14px;"></div>
@@ -444,8 +444,13 @@
 
     function readTiming() {
       return {
-        draw: parseFloat(document.getElementById('drawSpeed').value) || 40,
-        travel: parseFloat(document.getElementById('travelSpeed').value) || 100,
+        // Locked iDraw H profile, measured off Jeff's 2026-09-02 plot of the
+        // calibration sheet: 4000 mm/min drawing, 8000 mm/min pen-up, and 0.13 s
+        // per SEGMENT of pen-lift and acceleration overhead — 32 min real against
+        // a 60-min prediction built on 40/100/0.28. The swatch sheet's own
+        // printed figure is from before that measurement and is not re-emitted.
+        draw: parseFloat(document.getElementById('drawSpeed').value) || 66.7,
+        travel: parseFloat(document.getElementById('travelSpeed').value) || 133.3,
         lift: parseFloat(document.getElementById('liftTime').value) || 0
       };
     }
@@ -732,12 +737,19 @@ groups + '\n' +
       const up = files.reduce((d, f) => d + f.penUp, 0);
       const segs = files.reduce((n, f) => n + f.segments, 0);
       const sec = drawn / t.draw + up / t.travel + segs * t.lift;
-      const fmt = s => Math.floor(s / 60) + ' min ' + Math.round(s % 60) + ' s';
+      // Round the whole figure first, then split it. Rounding the seconds after
+      // taking the modulus prints "36 min 60 s" whenever the total lands just
+      // under a minute boundary — which the measured machine profile promptly
+      // did on this sheet.
+      const fmt = v => {
+        const s = Math.round(v);
+        return Math.floor(s / 60) + ' min ' + String(s % 60).padStart(2, '0') + ' s';
+      };
       document.getElementById('time-readout').innerHTML =
         '<b>' + (drawn / 1000).toFixed(1) + ' m</b> drawn in <b>' + segs.toLocaleString() +
         '</b> segments, <b>' + (up / 1000).toFixed(1) + ' m</b> in the air<br>' +
         'Drawing ' + fmt(drawn / t.draw) + ' &middot; travel ' + fmt(up / t.travel) +
-        ' &middot; ' + segs.toLocaleString() + ' lifts ' + fmt(segs * t.lift) + '<br>' +
+        ' &middot; ' + segs.toLocaleString() + ' segs \u00d7 overhead ' + fmt(segs * t.lift) + '<br>' +
         '<b>' + fmt(sec) + '</b> of machine time, plus nine pen swaps';
     }
 

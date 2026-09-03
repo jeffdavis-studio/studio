@@ -6,7 +6,7 @@
 // are about the two ways it could lie.
 //
 // 1. IT COULD PREVIEW SOMETHING THE PLOTTER WON'T DRAW. Guarded by loading
-//    plot-preview.html and svg-generator-v2.html side by side at the same hash
+//    plot-preview.html and svg-generator-v4.html side by side at the same hash
 //    and the same defaults, and requiring their layer sets to be identical —
 //    same (pen, angle) pairs, same slots, same segment counts, same distances to
 //    the micrometre. The preview shares the emitter's code by copy, and this is
@@ -18,6 +18,14 @@
 //    which is the null hypothesis "the hatching is in the wrong place". A
 //    threshold on dE alone would not catch a transposed or mirrored field; this
 //    does, because a rotation or a band swap destroys the pairing.
+//
+// RE-POINTED TO V4, 2026-09-03. This check was written against svg-generator-v2
+// and moved with the page when Jeff's calibration decisions landed. The identity
+// it asserts is only worth anything against the emitter that will actually write
+// the files, and since v4 that emitter clips every bar's hatch back from its
+// shared edges by a stated paper gap, the layer distances differ from v2's. A
+// preview-v2 checked against v2 would have passed while describing a plot nobody
+// was going to make.
 //
 // Plus the cheap invariants: no console errors, determinism at a hash, the
 // optical mix changing display but never the match figures, multiply never
@@ -40,7 +48,7 @@ const HASHES = [
 
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript' };
 const PAGE = 'plot-preview.html';
-const EMITTER = 'svg-generator-v2.html';
+const EMITTER = 'svg-generator-v4.html';
 
 let failures = 0;
 function check(ok, label) {
@@ -179,7 +187,7 @@ for (const hash of hashes) {
 
   // 1. the preview previews the plot
   check(layerSig(mine) === layerSig(theirs),
-    'layer set matches svg-generator-v2 exactly');
+    'layer set matches svg-generator-v4 exactly');
   if (layerSig(mine) !== layerSig(theirs)) {
     console.log('      preview : ' + layerSig(mine));
     console.log('      emitter : ' + layerSig(theirs));

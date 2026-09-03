@@ -359,7 +359,12 @@ async function main() {
                 (f.penUpNaive / 1000).toFixed(2).padStart(9) + ' m');
   }
   const sec = tDrawn / t.draw + tUp / t.travel + tSegs * t.lift;
-  const fmt = s => Math.floor(s / 60) + ' min ' + Math.round(s % 60) + ' s';
+  // Round the total, then split it — not the other way round, which prints
+  // "36 min 60 s" at a total just under the minute. Same fix as the page.
+  const fmt = v => {
+    const s = Math.round(v);
+    return Math.floor(s / 60) + ' min ' + String(s % 60).padStart(2, '0') + ' s';
+  };
   console.log('  ' + '-'.repeat(52));
   console.log('  TOTAL           ' + (tDrawn / 1000).toFixed(2).padStart(7) + ' m' +
               String(tSegs).padStart(9) + (tUp / 1000).toFixed(2).padStart(9) + ' m' +
@@ -367,7 +372,7 @@ async function main() {
   console.log(`  serpentine saves ${(100 * (1 - tUp / tNaive)).toFixed(1)}% of pen-up travel`);
   console.log(`  at ${t.draw} mm/s drawing, ${t.travel} mm/s travel, ${t.lift} s per lift:`);
   console.log(`    drawing ${fmt(tDrawn / t.draw)} + travel ${fmt(tUp / t.travel)} + ` +
-              `${tSegs} lifts ${fmt(tSegs * t.lift)}`);
+              `${tSegs} segs \u00d7 overhead ${fmt(tSegs * t.lift)}`);
   console.log(`    = ${fmt(sec)} of machine time, plus nine pen swaps`);
 
   // ---- renders to look at

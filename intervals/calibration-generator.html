@@ -69,11 +69,23 @@
     over verbatim from svg-generator-v3.html.
 
     THE SHEET STATES ITS OWN PREDICTED TIME, per pen and in total, in its own
-    ink. Nobody has timed a real pen lift on the iDraw H — 0.28 s is an
-    assumption, and it is about a third of every estimate this project makes.
-    The printed figure is a fixed point: it is recomputed after the label that
-    carries it has been added. Time the real passes against it and the assumed
-    number becomes a measured one, which then multiplies across an edition.
+    ink. The printed figure is a fixed point: it is recomputed after the label
+    that carries it has been added.
+
+    THE MACHINE PROFILE IS MEASURED, since 2026-09-03. Jeff plotted this sheet
+    on 2026-09-02 at the locked profile — 4000 mm/min drawing, 8000 mm/min
+    pen-up, Standard acceleration — in 32 minutes against the 60-minute
+    prediction printed on it in its own ink. The prediction had assumed 40 mm/s
+    drawing, 100 mm/s travel and 0.28 s per pen lift, none of which anyone had
+    ever timed. From the real run: 61.01 m drawn, 15.68 m pen-up, 6,833
+    segments; pure motion at the locked speeds is 915 s + 118 s = 1,033 s of the
+    measured 1,920 s, leaving 887 s over 6,833 segments = 0.13 s each. So the
+    defaults here are now 66.7 mm/s, 133.3 mm/s and 0.13 s per SEGMENT of lift
+    and acceleration overhead — per segment, not per lift, because Intervals'
+    short hatch strokes are accel-limited and that cost is folded in.
+
+    THE PLOTTED SHEET IS NOT RE-EMITTED. It exists on paper with its 60-minute
+    figure printed on it, and that figure is the measurement's own record.
 
     PAPER. Strathmore Bristol 400 series, plate. Jeff 2026-08-26: 400 now to
     keep costs down, 500 at production time. All three answers are
@@ -279,11 +291,11 @@
           <h3>Plot Time</h3>
           <div class="form-row three">
             <div class="form-group"><label for="drawSpeed">Draw (mm/s)</label>
-              <input type="number" id="drawSpeed" value="40" step="1" min="1"></div>
+              <input type="number" id="drawSpeed" value="66.7" step="0.1" min="1"></div>
             <div class="form-group"><label for="travelSpeed">Travel (mm/s)</label>
-              <input type="number" id="travelSpeed" value="100" step="1" min="1"></div>
-            <div class="form-group"><label for="liftTime">Lift (s)</label>
-              <input type="number" id="liftTime" value="0.28" step="0.01" min="0"></div>
+              <input type="number" id="travelSpeed" value="133.3" step="0.1" min="1"></div>
+            <div class="form-group"><label for="liftTime">Overhead (s/seg)</label>
+              <input type="number" id="liftTime" value="0.13" step="0.01" min="0"></div>
           </div>
           <div class="readout" id="time-readout" style="margin-top:14px;"></div>
           <div class="note">The lift figure is the assumption this sheet exists to correct.
@@ -456,7 +468,10 @@
     }
 
     function readTiming() {
-      return { draw: num('drawSpeed', 40), travel: num('travelSpeed', 100), lift: num('liftTime', 0.28) };
+      // The locked iDraw H profile, measured off the 2026-09-02 plot of this very
+      // sheet: 4000 mm/min drawing, 8000 mm/min pen-up, and 0.13 s per SEGMENT of
+      // pen-lift plus acceleration overhead. See the header for the arithmetic.
+      return { draw: num('drawSpeed', 66.7), travel: num('travelSpeed', 133.3), lift: num('liftTime', 0.13) };
     }
 
     // ============ LAYOUT ============
@@ -797,11 +812,11 @@
     function fileSeconds(f, t) {
       return f.distance / t.draw + f.penUp / t.travel + f.segments * t.lift;
     }
-    // Rounded to ten seconds, deliberately. The prediction rests on an ASSUMED
-    // 0.28 s pen lift that nobody has measured on this machine, so printing it
-    // to the second would claim a precision the number does not have. It also
-    // makes the fixed point below stable: a label that grows by a glyph shifts
-    // the estimate by about a second, which no longer moves the printed text.
+    // Rounded to ten seconds, deliberately. The per-segment overhead is fitted
+    // from one real plot, so printing to the second would claim a precision one
+    // run cannot support. It also makes the fixed point below stable: a label
+    // that grows by a glyph shifts the estimate by about a second, which no
+    // longer moves the printed text.
     function fmtTime(s) {
       const r = Math.round(s / 10) * 10;
       return Math.floor(r / 60) + ' MIN ' + String(r % 60).padStart(2, '0') + ' S';
@@ -905,7 +920,7 @@
 '     data-pen-up-mm="' + file.penUp.toFixed(3) + '"\n' +
 '     data-pen-up-naive-mm="' + file.penUpNaive.toFixed(3) + '"\n' +
 '     data-predicted-seconds="' + fileSeconds(file, t).toFixed(1) + '"\n' +
-'     data-assumed-lift-s="' + t.lift + '">\n' +
+'     data-segment-overhead-s="' + t.lift + '">\n' +
 '  <rect x="0" y="0" width="' + geo.paperW + '" height="' + geo.paperH + '" fill="none" stroke="none"/>\n' +
 '  <g stroke="black" stroke-width="1" stroke-linecap="butt">\n' +
 groups + '\n' +

@@ -10,18 +10,31 @@
 
     WHAT THIS IS FOR. Nothing goes to paper until the plot has been seen. Left
     pane is the artwork as Intervals_v4.js draws it. Right pane is every pen
-    stroke the plotter will actually lay down — the same lines svg-generator-v2
+    stroke the plotter will actually lay down — the same lines svg-generator-v4
     writes into the per-pen SVGs, drawn in each pen's own colour at its own angle
     and nib width, composited on paper. If the right pane does not read like the
     left pane, the plot will not either, and the knobs that fix it are all here.
 
-    WHAT THIS IS NOT. It does not emit files. svg-generator-v2.html is still the
-    emitter, and it is untouched. This page reuses its geometry and density code
-    verbatim (barRect, perpSpanOf, opacityMultiplier, composite, barMultiplier,
-    curveWeight, barDensity, buildLayers, generateAngledLines, lineDistance and
-    the read* helpers) so the two cannot disagree about what will be drawn. The
-    only new code is the compositing canvas, the pane layout, and the match
-    readout below.
+    WHAT THIS IS NOT. It does not emit files. svg-generator-v4.html is the
+    emitter, and it is untouched by this page. This page reuses its geometry and
+    density code verbatim (barRect, perpSpanOf, clipRect, opacityMultiplier,
+    composite, barMultiplier, curveWeight, barDensity, buildLayers,
+    generateAngledLines, lineDistance and the read* helpers) so the two cannot
+    disagree about what will be drawn. The only new code is the compositing
+    canvas, the pane layout, and the match readout below.
+
+    TRACKED TO V4, 2026-09-03 (Asana 1218157822866103). The page was built
+    against svg-generator-v2 and moved to v4 the day Jeff's calibration decisions
+    landed, because a gate that previews the previous emitter is a gate that
+    lies. What came across: the fixed 1.4 density curve, the 0.95 opacity target,
+    and §BAR EDGE — the paperGapMm parameter and the clipRect that realises it.
+    The 0.25 mm paper gap is the whole reason this page had to move: it is a
+    quarter-millimetre decision about where ink stops, and it is exactly the kind
+    of thing you can only judge by looking at it. plot-preview-check.mjs asserts
+    the layer set against svg-generator-v4.html, so the copy cannot drift.
+    Deliberately NOT copied across: v3's serpentine plot ordering (this page does
+    not care what order the pen visits the marks in) and v4's machine-time
+    estimator (the emitter states that, and it needs the ordered pen-up figure).
 
     THE PRECEDENT. Mechanical Drawings solved this with preview-v5.js's `hatched`
     flag: paper background, then each pencil's line family stroked in its own
@@ -225,12 +238,14 @@
       <h3>Marks</h3>
       <div class="row c3">
         <div><label>Pitch mm</label><input type="number" id="linePitch" value="0.45" step="0.01" min="0.05"></div>
-        <div><label>Curve</label><input type="number" id="curveExponent" value="1.0" step="0.1" min="1" max="7"></div>
-        <div><label>Opacity</label><input type="number" id="opacityTarget" value="0.90" step="0.01" min="0.1" max="0.99"></div>
+        <div><label>Curve</label><input type="number" id="curveExponent" value="1.4" step="0.1" min="1" max="7"></div>
+        <div><label>Opacity</label><input type="number" id="opacityTarget" value="0.95" step="0.01" min="0.1" max="0.99"></div>
       </div>
-      <div class="row c2">
-        <div><label>Family trim k=1..4</label><input type="text" id="familyTrim" value="1, 1, 1, 1" spellcheck="false"></div>
-        <div><label>Active weight floor</label><input type="number" id="activeEps" value="0.001" step="0.0005" min="0" max="0.1"></div>
+      <div class="row c4">
+        <div><label>Gap mm</label><input type="number" id="paperGap" value="0.25" step="0.05" min="-2" max="5"></div>
+        <div><label>Outer mm</label><input type="number" id="outerInset" value="0.225" step="0.025" min="0"></div>
+        <div><label>Trim k=1..4</label><input type="text" id="familyTrim" value="1, 1, 1, 1" spellcheck="false"></div>
+        <div><label>Weight floor</label><input type="number" id="activeEps" value="0.001" step="0.0005" min="0" max="0.1"></div>
       </div>
       <div class="inline"><input type="checkbox" id="familyCompensate" checked><span>Per-bar family compensation</span></div>
     </div>
@@ -275,7 +290,7 @@
           </select>
         </div>
       </div>
-      <div class="note">Nib = pitch is what makes coverage 1.0 mean solid. Models argued in the source header.</div>
+      <div class="note">Nib = pitch makes coverage 1.0 solid, and it sets the bar-edge clip: the seam on screen is the seam on paper. Models in the header.</div>
     </div>
 
     <div class="section">
@@ -371,7 +386,7 @@
       document.getElementById('tokenHash').value = tokenData.hash;
       ['paperWidth', 'paperHeight', 'imgWidth', 'imgHeight', 'linePitch',
        'curveExponent', 'opacityTarget', 'angle1', 'angle2', 'angle3', 'angle4',
-       'sOverride', 'familyTrim', 'activeEps', 'nibWidth', 'inkAlpha',
+       'sOverride', 'familyTrim', 'activeEps', 'paperGap', 'outerInset', 'nibWidth', 'inkAlpha',
        'paperColor', 'opticalMix'].forEach(id => {
         document.getElementById(id).addEventListener('input', schedule);
       });
@@ -489,16 +504,47 @@
     const FAMILY_TRIM = [1, 1, 1, 1];
     const ACTIVE_WEIGHT_EPS = 1e-3;
 
+    // Jeff's calibration read, 2026-09-03 — carried from svg-generator-v4.html.
+    // The empirical density fit is abandoned for Mechanical Drawings' fixed
+    // exponent; the opacity target moves 0.90 -> 0.95; the bar edge becomes a
+    // stated paper gap. All three stay controls.
+    const CURVE_EXPONENT = 1.4;
+    const OPACITY_TARGET = 0.95;
+    const NIB_MM = 0.45;
+    const PAPER_GAP_MM = 0.25;
+
     function composite(cs) {
       let clear = 1;
       for (const c of cs) clear *= 1 - Math.min(1, Math.max(0, c));
       return 1 - clear;
     }
 
-    function barMultiplier(weights, mult) {
+    // WHERE THE CURVE GOES, and why v4 moved it. v3 applied curveWeight to each
+    // ink's weight and then summed the curved weights into the reference. With
+    // the curve at 1.0 that is a no-op and it never showed. At 1.4 it does two
+    // wrong things at once. The curve is concave, so it raises every weight; the
+    // curved total of a four-ink bar at full ink comes out near 1.33, and
+    // reference(1.33) is 0.99 coverage. A full bar would print at 99% on the very
+    // sheet where Jeff picked 95% because 98% "almost over-darkens". Splitting
+    // the same total across more pens would also darken it, which is exactly the
+    // artefact §DENSITY's compensation exists to remove.
+    //
+    // So in v4 the curve is a TONE MAP on the bar's own ink fraction, applied
+    // once, at the bar, which is where Mechanical Drawings applies it — to a
+    // cell's darkness value, not to each pencil's share of it. The per-ink split
+    // stays the artwork's raw proportions, because that is the colour mix and it
+    // is not the curve's to touch. Both of Jeff's numbers then hold exactly: a
+    // full bar lands on the opacity target at every family count, and the
+    // exponent shapes everything between paper and full. At 1.0 the tone map is
+    // the identity and v4 is v3 to the bit.
+    function curveTone(W, curveExp) {
+      return curveExp === 1 ? W : 1 - Math.pow(Math.max(0, 1 - W), curveExp);
+    }
+
+    function barMultiplier(weights, mult, curveExp) {
       const W = weights.reduce((s, w) => s + w, 0);
       if (!(W > 0)) return mult;
-      const reference = 1 - Math.pow(Math.max(0, 1 - W * mult / 4), 4);
+      const reference = 1 - Math.pow(Math.max(0, 1 - curveTone(W, curveExp) * mult / 4), 4);
       let lo = 0;
       let hi = 64;
       for (let i = 0; i < 50; i++) {
@@ -510,18 +556,53 @@
 
     function readMarks() {
       const pitch = parseFloat(document.getElementById('linePitch').value) || 0.45;
-      const curveExp = parseFloat(document.getElementById('curveExponent').value) || 1;
-      const target = parseFloat(document.getElementById('opacityTarget').value) || 0.9;
+      const curveExp = parseFloat(document.getElementById('curveExponent').value) || CURVE_EXPONENT;
+      const target = parseFloat(document.getElementById('opacityTarget').value) || OPACITY_TARGET;
       const compensate = document.getElementById('familyCompensate').checked;
       const eps = parseFloat(document.getElementById('activeEps').value);
       const trim = document.getElementById('familyTrim').value.split(',')
         .map(v => parseFloat(v.trim()))
         .map((v, i) => (isFinite(v) && v > 0 ? v : FAMILY_TRIM[i]));
+      // isFinite, not `|| default` — a paper gap of 0 is a legal setting and a
+      // negative one is how v3's butted geometry is written in these units.
+      const nibV = parseFloat(document.getElementById('nibWidth').value);
+      const gapV = parseFloat(document.getElementById('paperGap').value);
+      const outV = parseFloat(document.getElementById('outerInset').value);
+      const nib = isFinite(nibV) && nibV > 0 ? nibV : NIB_MM;
       return {
         pitch, curveExp, target, mult: opacityMultiplier(target), compensate,
         activeEps: isFinite(eps) && eps >= 0 ? eps : ACTIVE_WEIGHT_EPS,
-        trim: [0, 1, 2, 3].map(i => trim[i] !== undefined ? trim[i] : FAMILY_TRIM[i])
+        trim: [0, 1, 2, 3].map(i => trim[i] !== undefined ? trim[i] : FAMILY_TRIM[i]),
+        nib: nib,
+        paperGap: isFinite(gapV) ? gapV : PAPER_GAP_MM,
+        outerInset: isFinite(outV) && outV >= 0 ? outV : nib / 2
       };
+    }
+
+    // ============ BAR EDGE (from svg-generator-v4.html, verbatim) ============
+    // The pen lays a capsule — the Minkowski sum of the segment with a disc of
+    // radius nib/2 — so a line's ink reaches nib/2 past its centre in every
+    // direction. Clip the hatch at nib/2 + paperGapMm/2 inside the boundary a bar
+    // shares with its neighbour and the ink stops paperGapMm/2 short of it; the
+    // neighbour does the same; the bare paper between the two ink edges is
+    // paperGapMm whatever the pitch, angle or density. At the image's outer edge
+    // the inset is outerInsetMm, default nib/2 — the same rule with a gap of
+    // zero, so the outermost ink edge lands on the image boundary. The line grid
+    // is still solved on the bar's full rectangle; only the drawn extent is
+    // clipped. Full argument in svg-generator-v4.html §BAR EDGE.
+    //
+    // This is the one place the preview's nib is load-bearing rather than
+    // cosmetic: the seam you see here is the seam the plotter will leave.
+    function clipRect(rect, bar, t, marks) {
+      const idx = bar.step * 3 + bar.band;
+      const shared = marks.paperGap / 2 + marks.nib / 2;
+      const lo = idx === 0 ? marks.outerInset : shared;
+      const hi = idx === 3 * t.s - 1 ? marks.outerInset : shared;
+      const e = marks.outerInset;
+      const r = t.r === 0
+        ? { x: rect.x + lo, y: rect.y + e, w: rect.w - lo - hi, h: rect.h - 2 * e }
+        : { x: rect.x + e, y: rect.y + lo, w: rect.w - 2 * e, h: rect.h - lo - hi };
+      return (r.w > 1e-9 && r.h > 1e-9) ? r : null;
     }
 
     function readAngles() {
@@ -530,7 +611,10 @@
 
     // New here, and only here: how the strokes are shown once they exist. None of
     // it feeds back into the line plan — change any of these and the SVGs the
-    // emitter would write are byte-identical.
+    // emitter would write are byte-identical. ONE EXCEPTION since v4: the nib is
+    // read by readMarks() as well, because §BAR EDGE's clip is measured in nibs.
+    // Widen the nib here and the bars really do get clipped harder, on screen and
+    // on paper both. That is the point — it is the same physical quantity.
     function readPlot() {
       const nib = parseFloat(document.getElementById('nibWidth').value);
       const alpha = parseFloat(document.getElementById('inkAlpha').value);
@@ -546,6 +630,9 @@
       };
     }
 
+    // Kept for one reader: the artwork's per-ink weight, curved, is what a
+    // single-ink bar's coverage works out to. Nothing in the build calls it —
+    // curveTone() above is where the curve lives now.
     function curveWeight(weight, marks) {
       return marks.curveExp === 1 ? weight : 1 - Math.pow(1 - weight, marks.curveExp);
     }
@@ -553,12 +640,15 @@
     function barDensity(bar, marks) {
       const active = bar.inks.filter(e => e.weight > marks.activeEps);
       const k = active.length;
-      const curved = active.map(e => curveWeight(e.weight, marks));
+      const raw = active.map(e => e.weight);
+      // Compensation off is the v1 diagnostic — a flat sheet multiplier, and the
+      // tone curve bypassed with it, so the readout has something to compare
+      // against that is genuinely what v1 did.
       const mult = marks.compensate && k > 0
-        ? barMultiplier(curved, marks.mult) * marks.trim[Math.min(k, 4) - 1]
+        ? barMultiplier(raw, marks.mult, marks.curveExp) * marks.trim[Math.min(k, 4) - 1]
         : marks.mult;
       const density = new Map();
-      active.forEach((e, i) => density.set(e, curved[i] * mult));
+      active.forEach((e, i) => density.set(e, raw[i] * mult));
       return { families: k, mult: mult, density: density };
     }
 
@@ -572,6 +662,8 @@
 
       for (const bar of t.bars) {
         const rect = barRect(bar.band, bar.step, t, geo);
+        const clip = clipRect(rect, bar, t, marks);
+        if (!clip) continue;
         const bd = barDensity(bar, marks);
         for (const e of bar.inks) {
           const angle = angles[e.slot - 1];
@@ -579,7 +671,7 @@
           if (!(density > 0)) continue;
           if (Math.round(density * perpSpanOf(rect, angle) / marks.pitch) < 1) continue;
 
-          const lines = generateAngledLines(rect.x, rect.y, rect.w, rect.h, density, marks.pitch, angle);
+          const lines = generateAngledLines(rect.x, rect.y, rect.w, rect.h, density, marks.pitch, angle, clip);
           if (lines.length === 0) continue;
 
           const key = e.ink + '@' + angle;
@@ -894,7 +986,9 @@
       return Math.sqrt(dx * dx + dy * dy);
     }
 
-    function generateAngledLines(cellX, cellY, cellWidth, cellHeight, coverage, lineWidth, angleDeg) {
+    // The optional `clip` rectangle is v4's: the line grid is solved on the cell,
+    // `clip` only bounds how far along each line the pen draws.
+    function generateAngledLines(cellX, cellY, cellWidth, cellHeight, coverage, lineWidth, angleDeg, clip) {
       const lines = [];
       const theta = angleDeg * Math.PI / 180;
       const sinA = Math.sin(theta);
@@ -915,10 +1009,10 @@
       const spacing = perpSpan / numLines;
       const firstD = dMin + spacing / 2;
 
-      const xMin = cellX;
-      const xMax = cellX + cellWidth;
-      const yMin = cellY;
-      const yMax = cellY + cellHeight;
+      const xMin = clip ? clip.x : cellX;
+      const xMax = clip ? clip.x + clip.w : cellX + cellWidth;
+      const yMin = clip ? clip.y : cellY;
+      const yMax = clip ? clip.y + clip.h : cellY + cellHeight;
 
       for (let i = 0; i < numLines; i++) {
         const d = firstD + i * spacing;

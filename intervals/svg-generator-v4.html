@@ -1,0 +1,1642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Intervals — Plotter SVG Generator</title>
+  <!--
+    intervals/svg-generator-v4.html — the per-pen SVG emitter for the plotted
+    Intervals edition. Supersedes intervals/svg-generator-v3.html, which stays
+    as it is. Forked originally from mechanical-drawings/svg-generator-v6.html.
+
+    WHAT V4 CHANGES (Asana 1218157822866103): the four calibration decisions
+    Jeff read off the plotted calibration sheet on 2026-09-03, and nothing else.
+    The plot-order work of v3 is untouched; §PLOT ORDER and §MERGE below are v3's
+    text, kept because they are still what the code does.
+
+    1. DENSITY CURVE, default 1.4. The empirical fit is abandoned. Jeff, by voice
+       standing at the sheet: "I would rather just do coverage density in a
+       straightforward way, like Mechanical Drawings." Mechanical Drawings uses a
+       fixed curveExponent of 1.4, so that is the default here — no ramp fitted
+       from paper. The control stays, because it is MD's tunable too, but it is
+       no longer a placeholder waiting on a measurement. The per-family composite
+       and v2's per-bar solve are untouched: they are geometry, not calibration.
+
+    2. OPACITY TARGET, default 0.95, was 0.90. Jeff on the plotted blocks: 98
+       "starts to feel like there's overlapping going on, it almost
+       over-darkens"; 95 "feels about as solid as you can get without too much
+       overlap." Nothing in the maths changes — 0.95 solves to a x2.11 reference
+       against 0.90's x1.75, so the sheet costs about 20% more ink and time. That
+       is why §MACHINE TIME is now printed before a plot rather than after one.
+
+    3. BAR EDGE becomes a parameter, paperGapMm, default 0.25. See §BAR EDGE.
+       v3 butted the bars — line centres on the shared boundary — and on paper
+       that reads as a stroke drawn around each bar, because the two nibs overlap
+       across the seam. Half a nib of inset was closer but left a visible white
+       channel. Jeff wants the paper interval between two bars' INK EDGES to be a
+       stated number he can nudge, and 0.25 mm is where he wants to start. It is
+       held loosely and it is a control, not a constant.
+
+    4. ANGLE SET unchanged: 22.5 / 67.5 / 112.5 / 157.5. Jeff on the fans, "A
+       creates rosettes and stars, the others look more like screens... I'd zero
+       in on A, same logic as Mechanical Drawings." No fan-candidate UI ever
+       reached this emitter — that lived only in calibration-generator.html — and
+       none is added here.
+
+    THE V3 EQUALITY. Set curve 1.0, opacity target 0.90, paper gap -nib and outer
+    inset 0, and v4 emits v3's files to the micrometre. That is not a coincidence
+    to be trusted; svg-generator-v4-check.mjs asserts it against v3 loaded side
+    by side in the same browser. A paper gap of -nib is v3's geometry stated in
+    v4's units: with the clip inset at zero the outermost line centres sit on the
+    shared boundary, so the two bars' ink OVERLAPS by one nib width, which is a
+    paper gap of minus one nib. The parameter is continuous through it.
+
+    WHY IT IS WORTH A VERSION. With no sharpening interval a layer is a pure
+    travel problem: draw length is set by coverage, and geometry cannot move it,
+    so the whole plot-time variable is segment count and pen-up travel. Measured
+    at 280 mm square, s = 14, over the three check hashes: 14,316–23,671
+    segments carrying 153–246 m of ink against 216–317 m of pen-up travel. The
+    pen was spending more of the clock in the air than on the paper — 53%, 56%
+    and 59% of total travel, against the 27–43% the task was costed on. v3 takes
+    pen-up to 42–45 m, a cut of 80–86%.
+
+    TWO DECISIONS DO ALL OF IT, both taken greedily against the pen's current
+    position: which end of a bar's line stack to enter, and which end of each
+    line to start from. Splitting them, per-line direction alone takes 216 m to
+    82 m, and carrying the serpentine across the bar boundary takes 82 m to
+    43 m. Neither half is optional.
+
+    Mechanical Drawings could not do this — a pencil tip had to be loaded in one
+    direction — but that constraint left with packBatches and the per-pen
+    draw-direction toggle on 2026-08-24.
+
+    THE THIRD LEVER NEEDED NO CODE. Walking the field once per angle rather than
+    jumping between bars is already what happens: coverage() emits bars in
+    step-major order and barRect puts bar (band, step) at step/s + band/(3s), so
+    emission order is left to right across the sheet. Measured, a greedy
+    nearest-bar pass reproduces that order and on one layer came out 0.11 m
+    worse. So there is no reordering pass. The check asserts the field order
+    instead, which is the thing that would actually break.
+
+    THE FOURTH LEVER IS NOT THERE AT ALL. Merging collinear segments across bars
+    is real arithmetic that this geometry does not offer — see §MERGE for the
+    measurement. The knob exists, off, with the available count live in the
+    readout so the number is visible without turning it on.
+
+    It does NOT re-implement the artwork. Intervals_v4.js is loaded as a sibling
+    script and driven directly: set tokenData.hash, call setup(), call
+    coverage(). The weight table this reads is the artwork's own, so the emitter
+    cannot drift from the piece. If Intervals moves to a v5, change the one
+    script tag below and nothing else.
+
+    CARRIED OVER VERBATIM from v2, and from svg-generator-v6 before it:
+      the whole of §DENSITY, generateAngledLines (the rectangle/angle/coverage
+      clipper), lineDistance, downloadSVG, the per-pen file model (mm units, 1:1
+      viewBox, monochrome strokes, zero-stroke sheet rect), the
+      group-with-data-attrs shape, and the materials-table pattern.
+      betterLerp/rgbToLab/labToRgb are not copied in — Intervals_v4.js already
+      defines them globally.
+
+    Every dimension is a control. There are no baked-in millimetres — including,
+    now, the machine profile the time estimate is built on.
+  -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+  <script src="Intervals_v4.js"></script>
+  <style>
+    body {
+      font-family: aktiv-grotesk, -apple-system, sans-serif;
+      margin: 0;
+      padding: 40px 20px;
+      color: #333;
+    }
+    .main-layout {
+      display: inline-flex;
+      gap: 40px;
+      align-items: flex-start;
+    }
+    .center-wrapper {
+      display: flex;
+      justify-content: center;
+    }
+    .preview-column {
+      flex-shrink: 0;
+      max-width: 630px;
+    }
+    .sidebar {
+      width: 460px;
+      flex-shrink: 0;
+    }
+    .section {
+      margin-bottom: 40px;
+    }
+    .section h3 {
+      margin: 0 0 16px 0;
+      font-size: 14px;
+      font-weight: 400;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #333;
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .form-row + .form-row {
+      margin-top: 12px;
+    }
+    .form-row.four {
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+    }
+    .form-row.three {
+      grid-template-columns: 1fr 1fr 1fr;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+    label {
+      margin-bottom: 6px;
+      font-weight: 400;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #666;
+    }
+    input {
+      padding: 12px;
+      font-family: aktiv-grotesk, -apple-system, sans-serif;
+      font-size: 14px;
+      border: 1px solid #333;
+      border-radius: 0;
+      background: white;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    input:focus {
+      outline: none;
+      border-color: #000;
+    }
+    input.hash {
+      font-family: ui-monospace, Menlo, monospace;
+      font-size: 11px;
+    }
+    .buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    button {
+      padding: 14px 16px;
+      font-family: aktiv-grotesk, -apple-system, sans-serif;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      background: white;
+      color: #333;
+      border: 1px solid #333;
+      border-radius: 0;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.15s, color 0.15s;
+    }
+    button:hover {
+      background: #333;
+      color: white;
+    }
+    button.active {
+      background: #333;
+      color: white;
+    }
+    button.full-width {
+      grid-column: 1 / -1;
+    }
+    .color-swatch {
+      width: 16px;
+      height: 16px;
+      border-radius: 0;
+      border: 1px solid rgba(0, 0, 0, 0.3);
+      flex-shrink: 0;
+    }
+    #preview-buttons {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-top: 12px;
+    }
+    #preview-buttons button {
+      padding: 9px 4px;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+    }
+    #render-container canvas {
+      width: 630px !important;
+      height: 630px !important;
+      display: block;
+    }
+    #svg-preview-container {
+      background: #fff;
+      border: 1px solid #ddd;
+    }
+    table.pens {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    table.pens th {
+      text-align: left;
+      font-weight: 400;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-size: 10px;
+      color: #666;
+      border-bottom: 1px solid #333;
+      padding: 0 6px 6px 0;
+    }
+    table.pens td {
+      padding: 6px 6px 6px 0;
+      border-bottom: 1px solid #eee;
+      vertical-align: middle;
+    }
+    table.pens tr.idle {
+      color: #bbb;
+    }
+    table.pens tr.idle .color-swatch {
+      opacity: 0.25;
+    }
+    .readout {
+      font-size: 12px;
+      line-height: 1.7;
+      color: #444;
+    }
+    .readout b {
+      font-weight: 400;
+      color: #000;
+    }
+    .note {
+      font-size: 11px;
+      color: #888;
+      line-height: 1.6;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="center-wrapper">
+    <div class="main-layout">
+      <div class="preview-column">
+        <h3 style="margin: 0 0 16px 0; font-size: 14px; font-weight: 400; text-transform: uppercase; letter-spacing: 1.5px; color: #333;">Preview</h3>
+        <div id="render-container"></div>
+        <div id="svg-preview-container" style="display: none;"></div>
+        <div id="preview-buttons"></div>
+        <div class="note" id="preview-note"></div>
+      </div>
+
+      <div class="sidebar">
+        <div class="section">
+          <h3>Token</h3>
+          <div class="form-group">
+            <label for="tokenHash">Hash</label>
+            <input type="text" class="hash" id="tokenHash" spellcheck="false">
+          </div>
+          <div class="form-row" style="margin-top: 12px;">
+            <div class="form-group">
+              <label for="sOverride">s Override (0 = token)</label>
+              <input type="number" id="sOverride" value="0" step="1" min="0" max="60">
+            </div>
+            <div class="form-group">
+              <label>&nbsp;</label>
+              <button onclick="randomizeToken()">Randomize</button>
+            </div>
+          </div>
+          <div class="readout" id="token-readout" style="margin-top: 14px;"></div>
+        </div>
+
+        <div class="section">
+          <h3>Sheet &amp; Image</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="paperWidth">Paper W (mm)</label>
+              <input type="number" id="paperWidth" value="355.6" step="0.1" min="10">
+            </div>
+            <div class="form-group">
+              <label for="paperHeight">Paper H (mm)</label>
+              <input type="number" id="paperHeight" value="431.8" step="0.1" min="10">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="imgWidth">Image W (mm)</label>
+              <input type="number" id="imgWidth" value="290" step="1" min="10">
+            </div>
+            <div class="form-group">
+              <label for="imgHeight">Image H (mm)</label>
+              <input type="number" id="imgHeight" value="290" step="1" min="10">
+            </div>
+          </div>
+          <div class="note">14&times;17 in pad = 355.6 &times; 431.8 mm. iDraw H drawable area measured at ~297 &times; 406 mm — the image must fit inside that, not just inside the paper.</div>
+        </div>
+
+        <div class="section">
+          <h3>Marks</h3>
+          <div class="form-row three">
+            <div class="form-group">
+              <label for="linePitch">Pitch (mm)</label>
+              <input type="number" id="linePitch" value="0.45" step="0.01" min="0.05">
+            </div>
+            <div class="form-group">
+              <label for="curveExponent">Density Curve</label>
+              <input type="number" id="curveExponent" value="1.4" step="0.1" min="1" max="7">
+            </div>
+            <div class="form-group">
+              <label for="opacityTarget">Opacity Target</label>
+              <input type="number" id="opacityTarget" value="0.95" step="0.01" min="0.1" max="0.99">
+            </div>
+          </div>
+          <div class="form-row" style="margin-top: 12px;">
+            <div class="form-group">
+              <label for="familyTrim">Family Trim k=1..4</label>
+              <input type="text" id="familyTrim" value="1, 1, 1, 1" spellcheck="false">
+            </div>
+            <div class="form-group">
+              <label for="activeEps">Active Weight Floor</label>
+              <input type="number" id="activeEps" value="0.001" step="0.0005" min="0" max="0.1">
+            </div>
+          </div>
+          <div class="form-row" style="margin-top: 12px;">
+            <div class="form-group" style="flex-direction: row; align-items: center; gap: 8px;">
+              <input type="checkbox" id="familyCompensate" checked style="width: auto;">
+              <label for="familyCompensate" style="margin: 0;">Family-count compensation</label>
+            </div>
+          </div>
+          <div class="note" id="marks-note"></div>
+          <div class="readout" id="family-readout" style="margin-top: 14px;"></div>
+        </div>
+
+        <div class="section">
+          <h3>Bar Edge</h3>
+          <div class="form-row three">
+            <div class="form-group">
+              <label for="nibWidth">Nib (mm)</label>
+              <input type="number" id="nibWidth" value="0.45" step="0.01" min="0.01">
+            </div>
+            <div class="form-group">
+              <label for="paperGap">Paper Gap (mm)</label>
+              <input type="number" id="paperGap" value="0.25" step="0.05" min="-2" max="5">
+            </div>
+            <div class="form-group">
+              <label for="outerInset">Outer Inset (mm)</label>
+              <input type="number" id="outerInset" value="0.225" step="0.025" min="0">
+            </div>
+          </div>
+          <div class="note" id="edge-note"></div>
+        </div>
+
+        <div class="section">
+          <h3>Machine — iDraw H, locked profile</h3>
+          <div class="form-row three">
+            <div class="form-group">
+              <label for="drawSpeed">Draw (mm/s)</label>
+              <input type="number" id="drawSpeed" value="66.7" step="0.1" min="1">
+            </div>
+            <div class="form-group">
+              <label for="travelSpeed">Pen-up (mm/s)</label>
+              <input type="number" id="travelSpeed" value="133.3" step="0.1" min="1">
+            </div>
+            <div class="form-group">
+              <label for="segOverhead">Overhead (s/seg)</label>
+              <input type="number" id="segOverhead" value="0.13" step="0.01" min="0">
+            </div>
+          </div>
+          <div class="note" id="machine-note"></div>
+          <div class="readout" id="time-readout" style="margin-top: 14px;"></div>
+        </div>
+
+        <div class="section">
+          <h3>Plot Order</h3>
+          <div class="form-row">
+            <div class="form-group" style="flex-direction: row; align-items: center; gap: 8px;">
+              <input type="checkbox" id="serpentine" checked style="width: auto;">
+              <label for="serpentine" style="margin: 0;">Serpentine</label>
+            </div>
+            <div class="form-group" style="flex-direction: row; align-items: center; gap: 8px;">
+              <input type="checkbox" id="mergeCollinear" style="width: auto;">
+              <label for="mergeCollinear" style="margin: 0;">Merge collinear</label>
+            </div>
+          </div>
+          <div class="form-row" style="margin-top: 12px;">
+            <div class="form-group">
+              <label for="mergeTol">Merge Tolerance (mm)</label>
+              <input type="number" id="mergeTol" value="0.001" step="0.001" min="0" max="1">
+            </div>
+            <div class="form-group">
+              <label>&nbsp;</label>
+              <button onclick="toggleSerpentine()" id="serpentine-button"></button>
+            </div>
+          </div>
+          <div class="note" id="plot-note"></div>
+          <div class="readout" id="plot-readout" style="margin-top: 14px;"></div>
+        </div>
+
+        <div class="section">
+          <h3>Angle Set</h3>
+          <div class="form-row four">
+            <div class="form-group">
+              <label for="angle1">Slot 1</label>
+              <input type="number" id="angle1" value="22.5" step="0.5">
+            </div>
+            <div class="form-group">
+              <label for="angle2">Slot 2</label>
+              <input type="number" id="angle2" value="67.5" step="0.5">
+            </div>
+            <div class="form-group">
+              <label for="angle3">Slot 3</label>
+              <input type="number" id="angle3" value="112.5" step="0.5">
+            </div>
+            <div class="form-group">
+              <label for="angle4">Slot 4</label>
+              <input type="number" id="angle4" value="157.5" step="0.5">
+            </div>
+          </div>
+          <div class="note">Angle is a property of the ramp slot, not the ink. Slots 1&ndash;2 are the ramp's start anchor, 3&ndash;4 its end anchor. Angles are held in paper space and are not rotated with the field.</div>
+        </div>
+
+        <div class="section">
+          <h3>Pens — Sakura Pigma Micron 05</h3>
+          <table class="pens">
+            <thead>
+              <tr><th></th><th>Pen</th><th>Angles</th><th>Length</th><th>Segs</th><th>Pen-up</th><th>Time</th></tr>
+            </thead>
+            <tbody id="pen-table"></tbody>
+          </table>
+          <div class="note" id="pen-note"></div>
+        </div>
+
+        <div class="section">
+          <h3>Download SVG</h3>
+          <div class="buttons" id="download-buttons"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ============ CONSTANTS ============
+    const PREVIEW_SIZE = 630;
+
+    // The nine Micron 05 colours, in wheel order, mapping 1:1 onto Intervals'
+    // ink1..ink9. HSB is not restated here — it is read off the artwork's own
+    // `inks` array at boot, so the swatches cannot disagree with the piece.
+    // Names are Jeff's, 2026-08-24.
+    const PEN_NAMES = [
+      'Orange', 'Yellow', 'Fresh Green', 'Green', 'Blue',
+      'Royal Blue', 'Purple', 'Rose', 'Red'
+    ];
+
+    // ============ GLOBAL STATE ============
+    let artCanvas = null;
+    let penHex = [];           // filled at boot from the artwork's inks
+    let tok = null;            // { hash, s, r, vtype, bars }
+    let layers = [];           // [{ ink, angle, bars, lineCount, distance, penUp, filename }]
+    let previewIndex = 0;      // 0 = digital render, 1..n = layer n-1
+
+    // ============ BOOT ============
+    // Intervals_v4.js seeds itself with a Math.random hash at parse time. This
+    // runs before p5's load handler, so the first render is already ours.
+    tokenData.hash = randomHash();
+
+    function randomHash() {
+      let s = '0x';
+      for (let i = 0; i < 64; i++) {
+        s += '0123456789abcdef'[Math.floor(Math.random() * 16)];
+      }
+      return s;
+    }
+
+    window.addEventListener('load', () => {
+      const wait = setInterval(() => {
+        const c = document.querySelector('canvas');
+        if (!c || typeof window.createCanvas !== 'function') return;
+        clearInterval(wait);
+        boot(c);
+      }, 20);
+    });
+
+    function boot(canvasEl) {
+      artCanvas = canvasEl;
+      document.getElementById('render-container').appendChild(artCanvas);
+
+      // setup() is re-invoked on every token change. Its createCanvas would
+      // otherwise append a fresh canvas each time; the artwork's w/h derive
+      // from window.innerHeight and never change, so returning the existing
+      // one is exact, not an approximation.
+      const realCreateCanvas = window.createCanvas;
+      window.createCanvas = function () { return artCanvas; };
+      window.__realCreateCanvas = realCreateCanvas;
+
+      colorMode(RGB);
+      penHex = inks.map(c => rgbHex(c));
+
+      document.getElementById('tokenHash').value = tokenData.hash;
+      ['paperWidth', 'paperHeight', 'imgWidth', 'imgHeight', 'linePitch',
+       'curveExponent', 'opacityTarget', 'angle1', 'angle2', 'angle3', 'angle4',
+       'sOverride', 'familyTrim', 'activeEps', 'mergeTol',
+       'nibWidth', 'paperGap', 'outerInset',
+       'drawSpeed', 'travelSpeed', 'segOverhead'].forEach(id => {
+        document.getElementById(id).addEventListener('input', rebuild);
+      });
+      ['familyCompensate', 'serpentine', 'mergeCollinear'].forEach(id => {
+        document.getElementById(id).addEventListener('change', rebuild);
+      });
+      document.getElementById('tokenHash').addEventListener('change', () => {
+        setToken(document.getElementById('tokenHash').value.trim());
+      });
+
+      setToken(tokenData.hash);
+    }
+
+    function rgbHex(c) {
+      const v = n => Math.round(n).toString(16).padStart(2, '0');
+      return '#' + v(red(c)) + v(green(c)) + v(blue(c));
+    }
+
+    // ============ TOKEN ============
+    function randomizeToken() {
+      setToken(randomHash());
+    }
+
+    function setToken(hash) {
+      if (!/^0x[0-9a-fA-F]{64}$/.test(hash)) {
+        hash = randomHash();
+      }
+      tokenData.hash = hash;
+      document.getElementById('tokenHash').value = hash;
+      setup();            // re-derives every anchor from the new hash
+      redraw();           // one-shot; the artwork calls noLoop()
+      rebuild();
+    }
+
+    // Reads the artwork after setup() has run. The s override is applied after
+    // setup, never before: s is drawn from the PRNG ahead of every colour
+    // decision, so replacing it afterwards re-samples the ramps at a different
+    // resolution without shifting a single anchor.
+    function readToken() {
+      const sOverride = parseInt(document.getElementById('sOverride').value, 10) || 0;
+      const tokenS = s;
+      if (sOverride > 0 && sOverride !== s) {
+        s = sOverride;
+        redraw();
+      }
+      const t = { hash: tokenData.hash, s: s, tokenS: tokenS, r: r, vtype: vtype, bars: coverage() };
+      return t;
+    }
+
+    // ============ GEOMETRY ============
+    function readGeometry() {
+      const paperW = parseFloat(document.getElementById('paperWidth').value) || 1;
+      const paperH = parseFloat(document.getElementById('paperHeight').value) || 1;
+      const imgW = parseFloat(document.getElementById('imgWidth').value) || 1;
+      const imgH = parseFloat(document.getElementById('imgHeight').value) || 1;
+      return {
+        paperW, paperH, imgW, imgH,
+        imgX: (paperW - imgW) / 2,
+        imgY: (paperH - imgH) / 2
+      };
+    }
+
+    // draw() lays 3s full-height bars edge to edge across the square, then
+    // rotates the whole field by r*90 about the centre. A 90 degree rotation of
+    // a bar keeps it a rectangle — (x, y) maps to (S - y, x) — so the field
+    // stays axis-aligned and no general transform is needed.
+    function barRect(band, step, t, geo) {
+      const t0 = step / t.s + band / (3 * t.s);
+      const frac = 1 / (3 * t.s);
+      if (t.r === 0) {
+        return { x: geo.imgX + t0 * geo.imgW, y: geo.imgY, w: frac * geo.imgW, h: geo.imgH };
+      }
+      return { x: geo.imgX, y: geo.imgY + t0 * geo.imgH, w: geo.imgW, h: frac * geo.imgH };
+    }
+
+    // Same projection generateAngledLines uses internally, pulled out so a
+    // family that would round to zero lines can be dropped before it is
+    // generated. Without this, generateAngledLines' Math.max(1, ...) floor puts
+    // a stray full-length line into every zero-weight slot — and zero-weight
+    // slots are common (a ramp's far anchor contributes nothing at step 0).
+    function perpSpanOf(rect, angleDeg) {
+      const th = angleDeg * Math.PI / 180;
+      const sinA = Math.sin(th);
+      const cosA = Math.cos(th);
+      const d = [
+        [rect.x, rect.y],
+        [rect.x + rect.w, rect.y],
+        [rect.x, rect.y + rect.h],
+        [rect.x + rect.w, rect.y + rect.h]
+      ].map(p => -p[0] * sinA + p[1] * cosA);
+      return Math.max(...d) - Math.min(...d);
+    }
+
+    // ============ DENSITY ============
+    // Crossing line families composite as 1 - product(1 - c_i), not as a sum.
+    // Splitting a nominal coverage of 1.0 evenly over k families lands at:
+    //
+    //   k = 1  ->  1.0000     k = 3  ->  0.7037
+    //   k = 2  ->  0.7500     k = 4  ->  0.6836
+    //
+    // which is the measured 100 / 75 / 70 / 68. Those four numbers are not an
+    // empirical property of ink on Bristol — they are exactly 1 - (1 - 1/k)^k,
+    // the arithmetic of the composite. So the compensation has a closed form and
+    // needs no lookup table.
+    //
+    // FOUR is the structural family count: every bar carries exactly four ink
+    // slots by construction. v1 took that as licence to use one constant for the
+    // whole sheet. It is not, because a slot can carry zero weight — a ramp's far
+    // anchor contributes nothing at step 0, and a pen sitting at t = 0 or t = 1
+    // empties its partner. Measured over 400 tokens, the ACTIVE count runs k = 4
+    // on 80% of bars, k = 2 on 13%, k = 3 on 6%, k = 1 on 0.4%. Under v1's flat
+    // multiplier those buckets printed at 1.44 / 1.30 / 1.27 / 1.20 times their
+    // intended ink fraction — pure-hue bars a fifth denser than mixed ones,
+    // which is the artefact this section exists to remove.
+    //
+    // THE REFERENCE. Four families evenly split at the sheet multiplier is what
+    // every other number in this project was costed against, so it is what the
+    // other family counts are matched TO, rather than being re-based to something
+    // new. A bar carrying total ink W should print
+    //
+    //   reference(W) = 1 - (1 - W * mult / 4)^4
+    //
+    // whatever k it happens to have. At W = 1 that is the opacity target exactly,
+    // so a full bar still lands on target at every k, and k = 4 is untouched.
+
+    // Solving 1 - (1 - m/4)^4 = target for m: 0.85 -> 1.51x, 0.90 -> 1.75x,
+    // 0.95 -> 2.11x, 0.98 -> 2.50x. This is the sheet constant, unchanged from
+    // v1 — it now sets the reference rather than being applied directly.
+    function opacityMultiplier(target) {
+      const t = Math.min(0.999, Math.max(0, target));
+      return 4 * (1 - Math.pow(1 - t, 0.25));
+    }
+
+    // THE COMPENSATION KNOBS. Both live here, next to the maths, not buried in
+    // the build.
+    //
+    // FAMILY_TRIM is a per-k multiplicative trim on the solved multiplier,
+    // indexed k = 1..4. Identity by default: the closed form above is exact
+    // arithmetic, so there is nothing to fit until ink on paper says otherwise.
+    // The calibration sheet (Asana 1217804174177177) is what moves these — print
+    // a pure-hue bar beside a four-ink bar at the same nominal weight, and if the
+    // pure one still reads heavy, drop FAMILY_TRIM[0]. Overridable in the UI.
+    const FAMILY_TRIM = [1, 1, 1, 1];
+
+    // A slot counts as active above this weight. Measured: the count of k = 4
+    // bars is flat across eps from 1e-9 to 1e-3 (13,289 -> 13,264 bars, 0.2%),
+    // then moves hard by 5e-3 (down to 12,540). 1e-3 is the top of that plateau,
+    // and it is also about where the geometry drops a family anyway — at the
+    // default 290 mm image and 0.45 mm pitch a weight below ~5e-4 rounds to zero
+    // lines. Below the plateau you are counting float dust as a pen.
+    const ACTIVE_WEIGHT_EPS = 1e-3;
+
+    // Jeff, 2026-09-03, reading the plotted calibration sheet: the empirical
+    // density fit is abandoned in favour of Mechanical Drawings' fixed exponent,
+    // and the opacity target moves from 0.90 to 0.95. Both stay controls.
+    const CURVE_EXPONENT = 1.4;
+    const OPACITY_TARGET = 0.95;
+
+    // Sakura Pigma Micron 05. Pitch and nib are the same 0.45 mm today, and they
+    // are still two different quantities: pitch is the line spacing that makes a
+    // solid fill, nib is the physical width of the ink a line lays down. §BAR
+    // EDGE needs the nib, not the pitch.
+    const NIB_MM = 0.45;
+    const PAPER_GAP_MM = 0.25;
+
+    // Apparent coverage of a set of per-family requested coverages.
+    function composite(cs) {
+      let clear = 1;
+      for (const c of cs) clear *= 1 - Math.min(1, Math.max(0, c));
+      return 1 - clear;
+    }
+
+    // The per-bar multiplier: the scalar m with composite(w_i * m) = reference(W).
+    // Monotone increasing in m, so bisection is exact and cannot get stuck. A
+    // closed form exists only for an evenly split bar; real bars are not evenly
+    // split (uneven weights composite HIGHER than even ones at the same total),
+    // and fitting the even-split form to them overshoots — measured, it left the
+    // spread across k WORSE than v1's. Fifty bisection steps on at most four
+    // terms is nothing, and it is right for every weight distribution.
+    //
+    // Measured over 17,301 bars: m lands in [0.905, 1.750], never above the
+    // sheet constant, and hits its reference to within 1e-6 on every bar with no
+    // family clamping.
+    // WHERE THE CURVE GOES, and why v4 moved it. v3 applied curveWeight to each
+    // ink's weight and then summed the curved weights into the reference. With
+    // the curve at 1.0 that is a no-op and it never showed. At 1.4 it does two
+    // wrong things at once. The curve is concave, so it raises every weight; the
+    // curved total of a four-ink bar at full ink comes out near 1.33, and
+    // reference(1.33) is 0.99 coverage. A full bar would print at 99% on the very
+    // sheet where Jeff picked 95% because 98% "almost over-darkens". Splitting
+    // the same total across more pens would also darken it, which is exactly the
+    // artefact §DENSITY's compensation exists to remove.
+    //
+    // So in v4 the curve is a TONE MAP on the bar's own ink fraction, applied
+    // once, at the bar, which is where Mechanical Drawings applies it — to a
+    // cell's darkness value, not to each pencil's share of it. The per-ink split
+    // stays the artwork's raw proportions, because that is the colour mix and it
+    // is not the curve's to touch. Both of Jeff's numbers then hold exactly: a
+    // full bar lands on the opacity target at every family count, and the
+    // exponent shapes everything between paper and full. At 1.0 the tone map is
+    // the identity and v4 is v3 to the bit.
+    function curveTone(W, curveExp) {
+      return curveExp === 1 ? W : 1 - Math.pow(Math.max(0, 1 - W), curveExp);
+    }
+
+    function barMultiplier(weights, mult, curveExp) {
+      const W = weights.reduce((s, w) => s + w, 0);
+      if (!(W > 0)) return mult;
+      const reference = 1 - Math.pow(Math.max(0, 1 - curveTone(W, curveExp) * mult / 4), 4);
+      let lo = 0;
+      let hi = 64;
+      for (let i = 0; i < 50; i++) {
+        const mid = (lo + hi) / 2;
+        if (composite(weights.map(w => w * mid)) < reference) lo = mid; else hi = mid;
+      }
+      return (lo + hi) / 2;
+    }
+
+    function readMarks() {
+      const pitch = parseFloat(document.getElementById('linePitch').value) || 0.45;
+      const curveExp = parseFloat(document.getElementById('curveExponent').value) || CURVE_EXPONENT;
+      const target = parseFloat(document.getElementById('opacityTarget').value) || OPACITY_TARGET;
+      const compensate = document.getElementById('familyCompensate').checked;
+      const eps = parseFloat(document.getElementById('activeEps').value);
+      const trim = document.getElementById('familyTrim').value.split(',')
+        .map(v => parseFloat(v.trim()))
+        .map((v, i) => (isFinite(v) && v > 0 ? v : FAMILY_TRIM[i]));
+      // isFinite, not `|| default` — a paper gap of 0 is a legal setting (ink
+      // edges butted, no overlap) and a negative one is how v3's geometry is
+      // written in these units. `|| 0.25` would silently rewrite both.
+      const nibV = parseFloat(document.getElementById('nibWidth').value);
+      const gapV = parseFloat(document.getElementById('paperGap').value);
+      const outV = parseFloat(document.getElementById('outerInset').value);
+      const nib = isFinite(nibV) && nibV > 0 ? nibV : NIB_MM;
+      return {
+        pitch, curveExp, target, mult: opacityMultiplier(target),
+        compensate,
+        activeEps: isFinite(eps) && eps >= 0 ? eps : ACTIVE_WEIGHT_EPS,
+        trim: [0, 1, 2, 3].map(i => trim[i] !== undefined ? trim[i] : FAMILY_TRIM[i]),
+        nib: nib,
+        paperGap: isFinite(gapV) ? gapV : PAPER_GAP_MM,
+        outerInset: isFinite(outV) && outV >= 0 ? outV : nib / 2
+      };
+    }
+
+    // ============ BAR EDGE ============
+    // New in v4 (Asana 1218157822866103). v3 drew every bar's hatch clipped to
+    // the bar's own rectangle, so the outermost line CENTRES sat on the boundary
+    // the bar shares with its neighbour. On paper each of those lines is a nib
+    // wide, so half a nib of each bar's edge ink lands in the neighbour — the two
+    // overlap by a full nib across every seam and the seam prints darker than
+    // either bar. Jeff, reading the calibration sheet's bar-edge block: butted
+    // "reads like a stroke around each bar"; inset by half a line width was
+    // closer but left a touch of white. He wants the white channel to be a
+    // number, starting at 0.25 mm and re-judged on the first full sheet.
+    //
+    // THE RULE. The pen lays a capsule: the Minkowski sum of the drawn segment
+    // with a disc of radius nib/2. So a line's ink reaches nib/2 beyond its
+    // centre line in EVERY direction, including past its endpoints, whatever the
+    // hatch angle. Put the clip boundary at nib/2 + paperGapMm/2 inside the
+    // shared edge and the ink stops exactly paperGapMm/2 short of it; the
+    // neighbour does the same from its side; the bare paper between the two ink
+    // edges is paperGapMm. That holds for any pitch, any nib, any hatch angle and
+    // any solved density, which is what the parameter has to mean to be worth
+    // nudging. (An SVG butt cap would reach only (nib/2)|sin| past an endpoint —
+    // but the plotter's nib is round, not a butt cap, and the paper is what is
+    // being measured.)
+    //
+    // AT THE IMAGE'S OUTER EDGE the neighbour is the paper, and I inset by
+    // outerInsetMm, default nib/2 — the same rule with a gap of zero, so the
+    // outermost ink edge lands exactly on the image boundary and no ink falls
+    // outside the stated square. Measured, v3 never actually bled: line centres
+    // sit spacing/2 inside the rect and spacing >= pitch >= nib at any coverage
+    // at or below 1, so the ink edge was already inside. This makes it a
+    // guarantee independent of density instead of a consequence of it, and it
+    // costs at most 0.225 mm off each side of a 290 mm image. It is a control,
+    // so set it to 0 to get v3's behaviour back.
+    //
+    // THE STACK IS NOT REGENERATED, IT IS CLIPPED. The line grid — how many
+    // lines, at what spacing, at what phase — is still solved on the bar's full
+    // rectangle, and only the drawn extent is clipped. So ink per unit area is
+    // unchanged, the interior lines are bit-for-bit what v3 drew, and nudging the
+    // gap moves the seams without re-soaking the whole bar.
+    function clipRect(rect, bar, t, marks) {
+      // Bars tile in one direction only: full-height columns at r = 0, full-width
+      // rows at r = 90. The two edges across that direction are shared with a
+      // neighbour, except at the two ends of the field; the other two are the
+      // image's outer edge.
+      const idx = bar.step * 3 + bar.band;
+      const shared = marks.paperGap / 2 + marks.nib / 2;
+      const lo = idx === 0 ? marks.outerInset : shared;
+      const hi = idx === 3 * t.s - 1 ? marks.outerInset : shared;
+      const e = marks.outerInset;
+      const r = t.r === 0
+        ? { x: rect.x + lo, y: rect.y + e, w: rect.w - lo - hi, h: rect.h - 2 * e }
+        : { x: rect.x + e, y: rect.y + lo, w: rect.w - 2 * e, h: rect.h - lo - hi };
+      // A gap wide enough to eat a bar draws nothing rather than drawing rubbish.
+      return (r.w > 1e-9 && r.h > 1e-9) ? r : null;
+    }
+
+    function readAngles() {
+      return [1, 2, 3, 4].map(i => parseFloat(document.getElementById('angle' + i).value));
+    }
+
+    // weight is the bar's exact ink fraction, straight out of coverage(). The
+    // curve is the step between a Lab-linear weight and coverage on paper.
+    //
+    // v3 defaulted this to 1.0 — pass the weight through untouched — and waited
+    // on the calibration sheet's density ramps to fit an exponent from ink on
+    // Bristol. Jeff abandoned that fit on 2026-09-03, standing at the plotted
+    // sheet: "I would rather just do coverage density in a straightforward way,
+    // like Mechanical Drawings." So the default is Mechanical Drawings' constant,
+    // 1.4, and the ramp row on the calibration sheet goes unused. The control
+    // stays — 1.4 is MD's tunable, not a law — but it is now a chosen value
+    // rather than a placeholder.
+    //
+    // It is a property of pen and paper, not of how many pens share the bar, so
+    // it stays global and is applied first — the compensation then solves against
+    // what the pen will actually lay down.
+    // Kept for one reader: the artwork's per-ink weight, curved, is what a
+    // single-ink bar's coverage works out to. Nothing in the build calls it —
+    // curveTone() above is where the curve lives now.
+    function curveWeight(weight, marks) {
+      return marks.curveExp === 1 ? weight : 1 - Math.pow(1 - weight, marks.curveExp);
+    }
+
+    // Everything a bar's density needs, resolved once for the whole bar rather
+    // than per ink: which slots are live, how many, and the multiplier that puts
+    // their composite on the reference. Activity is tested on the artwork's own
+    // weight, before the curve — the curve is monotone through zero, so it moves
+    // nothing across the threshold, and the raw weight is the stabler number.
+    function barDensity(bar, marks) {
+      const active = bar.inks.filter(e => e.weight > marks.activeEps);
+      const k = active.length;
+      const raw = active.map(e => e.weight);
+      // Compensation off is the v1 diagnostic — a flat sheet multiplier, and the
+      // tone curve bypassed with it, so the readout has something to compare
+      // against that is genuinely what v1 did.
+      const mult = marks.compensate && k > 0
+        ? barMultiplier(raw, marks.mult, marks.curveExp) * marks.trim[Math.min(k, 4) - 1]
+        : marks.mult;
+      const density = new Map();
+      active.forEach((e, i) => density.set(e, raw[i] * mult));
+      return { families: k, mult: mult, density: density };
+    }
+
+    // ============ PLOT ORDER ============
+    // Everything from here to §LAYER BUILD is new in v3. It moves no ink: every
+    // function below either reorders segments, reverses one, or joins two that
+    // were already the same drawn line. The drawn set is invariant and the check
+    // proves it against v2.
+
+    const MERGE_TOL_MM = 0.001;
+
+    function readPlot() {
+      const tol = parseFloat(document.getElementById('mergeTol').value);
+      return {
+        serpentine: document.getElementById('serpentine').checked,
+        merge: document.getElementById('mergeCollinear').checked,
+        tol: isFinite(tol) && tol >= 0 ? tol : MERGE_TOL_MM
+      };
+    }
+
+    function hop(ax, ay, bx, by) {
+      return Math.hypot(bx - ax, by - ay);
+    }
+
+    // The cheaper of a segment's two ends, seen from where the pen is now. This
+    // is the whole of the serpentine decision: there is no reason to prefer one
+    // end over the other, so take the near one.
+    function entryCost(l, px, py) {
+      return Math.min(hop(px, py, l.x1, l.y1), hop(px, py, l.x2, l.y2));
+    }
+
+    // Walk a layer and set the pen path: for each bar, which end of its line
+    // stack to enter, then for each line which end to start from. Returns the
+    // total pen-up travel, and writes the ordered, directed lines back onto the
+    // bars so the SVG's document order IS the plot order.
+    //
+    // Called twice per layer per rebuild: once with serpentine off, which
+    // reproduces v2's path exactly (bar order as emitted, every line drawn
+    // x1 -> x2) and is the baseline every reduction below is measured against;
+    // then once with it on. Recomputing the baseline every time rather than
+    // caching it is what lets the readout state a reduction instead of a claim.
+    //
+    // The lead-in from the plotter's home position is not counted. It is one hop,
+    // it is the same for every ordering, and it is not this pass's to spend.
+    //
+    // Bars are walked in the order buildLayers holds them, which is coverage()'s
+    // step-major order — left to right across the sheet. That is the field walk
+    // the task asked for; see the header. A greedy nearest-bar pass over the same
+    // set was measured and reproduced this order, so it is not here.
+    function orderLayer(layer, serpentine) {
+      let px = null;
+      let py = null;
+      let penUp = 0;
+      for (const bar of layer.bars) {
+        const n = bar.lines.length;
+        let dir = 1;
+        if (serpentine && px !== null && n > 0) {
+          dir = entryCost(bar.lines[0], px, py) <= entryCost(bar.lines[n - 1], px, py) ? 1 : -1;
+        }
+        const out = [];
+        let barUp = 0;
+        for (let k = 0; k < n; k++) {
+          const l = bar.lines[dir > 0 ? k : n - 1 - k];
+          const flip = serpentine && px !== null &&
+            hop(px, py, l.x2, l.y2) < hop(px, py, l.x1, l.y1);
+          const o = flip ? { x1: l.x2, y1: l.y2, x2: l.x1, y2: l.y1 }
+                         : { x1: l.x1, y1: l.y1, x2: l.x2, y2: l.y2 };
+          if (px !== null) {
+            const d = hop(px, py, o.x1, o.y1);
+            penUp += d;
+            if (k > 0) barUp += d;
+          }
+          out.push(o);
+          px = o.x2;
+          py = o.y2;
+        }
+        bar.lines = out;
+        bar.penUp = barUp;
+        bar.entry = dir > 0 ? 'low' : 'high';
+      }
+      return penUp;
+    }
+
+    // ============ MERGE ============
+    // Two segments at the same angle are one drawn line if their perpendicular
+    // offsets agree and an end of one lands on an end of the other. Joining them
+    // is a single stroke instead of two with a lift between, so it is free plot
+    // time. Bars tile edge to edge, so the candidates are pairs meeting on a
+    // shared bar boundary.
+    //
+    // MEASURED, and the reason this is off by default: the geometry does not
+    // offer it. A bar's line grid is dMin + spacing/2 + i*spacing, where dMin
+    // comes from the bar's own offset across the sheet and spacing from the bar's
+    // own solved density. Neighbouring bars share neither, so their grids sit out
+    // of phase by an arbitrary fraction of a pitch and the lines pass each other
+    // rather than meeting. Over the three check hashes at 280 mm / s = 14 the
+    // merge count at 0.001 mm is 19, 0 and 1 against 19,320 / 23,671 / 14,316
+    // segments — float coincidence, not structure. Opening the tolerance to
+    // 0.1 mm, a fifth of the pen's own width and well past what should be allowed
+    // to move ink, still only reaches 2%.
+    //
+    // So the knob is here, measured, with its available count live in the
+    // readout whether it is on or not — rather than switched on to do nothing.
+    //
+    // Tolerance is in millimetres and applies to both tests, the perpendicular
+    // offset and the end-to-end gap. 0.001 mm is a tenth of the plotter's own
+    // resolution: at that setting a merge cannot move ink anywhere the machine
+    // could place it differently.
+    function collinearRuns(layer, tol) {
+      const th = layer.angle * Math.PI / 180;
+      const sinA = Math.sin(th);
+      const cosA = Math.cos(th);
+      const items = [];
+      layer.bars.forEach((bar, bi) => {
+        for (const l of bar.lines) {
+          const t1 = l.x1 * cosA + l.y1 * sinA;
+          const t2 = l.x2 * cosA + l.y2 * sinA;
+          const asc = t1 <= t2;
+          items.push({
+            bi: bi, src: l,
+            d: -l.x1 * sinA + l.y1 * cosA,
+            lo: asc ? { x: l.x1, y: l.y1, t: t1 } : { x: l.x2, y: l.y2, t: t2 },
+            hi: asc ? { x: l.x2, y: l.y2, t: t2 } : { x: l.x1, y: l.y1, t: t1 }
+          });
+        }
+      });
+      items.sort((a, b) => a.d - b.d || a.lo.t - b.lo.t);
+
+      const runs = [];
+      let run = [items[0]];
+      for (let i = 1; i < items.length; i++) {
+        const prev = run[run.length - 1];
+        if (Math.abs(items[i].d - prev.d) <= tol && Math.abs(items[i].lo.t - prev.hi.t) <= tol) {
+          run.push(items[i]);
+        } else {
+          if (run.length > 1) runs.push(run);
+          run = [items[i]];
+        }
+      }
+      if (run.length > 1) runs.push(run);
+      return { items: items, runs: runs };
+    }
+
+    // Apply the runs: each becomes one segment, owned by the bar its first piece
+    // came from. Nothing else is touched — an unmerged segment goes back exactly
+    // as generateAngledLines emitted it, endpoints and all, so with merging off
+    // the baseline path is bit-for-bit v2's. Returns the number of segments the
+    // merge removed. A bar emptied by giving all its lines away is dropped; the
+    // ink is not lost, it is in the neighbour's group.
+    function applyMerge(layer, found) {
+      const merged = found.runs.reduce((n, r) => n + r.length - 1, 0);
+      if (merged === 0) return 0;
+      const inRun = new Set();
+      for (const run of found.runs) for (const it of run) inRun.add(it);
+      const kept = layer.bars.map(() => []);
+      for (const it of found.items) {
+        if (!inRun.has(it)) kept[it.bi].push(it.src);
+      }
+      for (const run of found.runs) {
+        const a = run[0];
+        const b = run[run.length - 1];
+        kept[a.bi].push({ x1: a.lo.x, y1: a.lo.y, x2: b.hi.x, y2: b.hi.y });
+      }
+      layer.bars.forEach((bar, bi) => {
+        // Back into perpendicular order, which is the order a stack is walked.
+        const th = layer.angle * Math.PI / 180;
+        const sinA = Math.sin(th);
+        const cosA = Math.cos(th);
+        bar.lines = kept[bi].sort((p, q) =>
+          (-p.x1 * sinA + p.y1 * cosA) - (-q.x1 * sinA + q.y1 * cosA));
+      });
+      layer.bars = layer.bars.filter(bar => bar.lines.length > 0);
+      return merged;
+    }
+
+    // ============ LAYER BUILD ============
+    // One layer per (pen, angle). A pen that lands in two slots of the same ramp
+    // is genuinely hatched twice at two angles; merging those into one family
+    // would lose the structure the slot encodes.
+    function buildLayers(t, geo, marks, angles, plot) {
+      const byKey = new Map();
+
+      for (const bar of t.bars) {
+        const rect = barRect(bar.band, bar.step, t, geo);
+        const clip = clipRect(rect, bar, t, marks);
+        if (!clip) continue;
+        const bd = barDensity(bar, marks);
+        for (const e of bar.inks) {
+          const angle = angles[e.slot - 1];
+          const density = bd.density.get(e);
+          if (!(density > 0)) continue;
+          // The pitch floor is tested on the full rect, because that is the
+          // rectangle the line grid is solved on. Clipping can still leave the
+          // bar with nothing, which the next line catches.
+          if (Math.round(density * perpSpanOf(rect, angle) / marks.pitch) < 1) continue;
+
+          const lines = generateAngledLines(rect.x, rect.y, rect.w, rect.h, density, marks.pitch, angle, clip);
+          if (lines.length === 0) continue;
+
+          const key = e.ink + '@' + angle;
+          if (!byKey.has(key)) {
+            byKey.set(key, { ink: e.ink, angle: angle, slots: new Set(), bars: [] });
+          }
+          const layer = byKey.get(key);
+          layer.slots.add(e.slot);
+          layer.bars.push({
+            band: bar.band, step: bar.step, weight: e.weight, density: density,
+            families: bd.families, barMult: bd.mult, clip: clip,
+            lines: lines, distance: lines.reduce((sum, l) => sum + lineDistance(l), 0)
+          });
+        }
+      }
+
+      const out = [...byKey.values()];
+      for (const layer of out) {
+        layer.segmentsRaw = layer.bars.reduce((n, b) => n + b.lines.length, 0);
+        layer.distance = layer.bars.reduce((d, b) => d + b.distance, 0);
+
+        // Merge first, order second: a merged segment is a different segment and
+        // has to be routed as one.
+        const found = collinearRuns(layer, plot.tol);
+        layer.mergeAvailable = found.runs.reduce((n, r) => n + r.length - 1, 0);
+        layer.merged = plot.merge ? applyMerge(layer, found) : 0;
+
+        layer.lineCount = layer.bars.reduce((n, b) => n + b.lines.length, 0);
+        for (const bar of layer.bars) {
+          bar.drawn = bar.lines.reduce((sum, l) => sum + lineDistance(l), 0);
+        }
+        // What is actually in the file, as against layer.distance's nominal. The
+        // two differ only where a collinear merge moved a segment between groups,
+        // and the time estimate wants the drawn figure.
+        layer.drawn = layer.bars.reduce((d, b) => d + b.drawn, 0);
+
+        layer.penUpNaive = orderLayer(layer, false);
+        for (const bar of layer.bars) bar.penUpNaive = bar.penUp;
+        layer.penUp = plot.serpentine ? orderLayer(layer, true) : layer.penUpNaive;
+
+        layer.filename = layerFilename(t, layer);
+      }
+      // Plot order: by pen, then by angle. A pen's files run back to back and
+      // the sheet takes one swap per pen, not one per file.
+      out.sort((a, b) => a.ink - b.ink || a.angle - b.angle);
+      return out;
+    }
+
+    function layerFilename(t, layer) {
+      const slug = PEN_NAMES[layer.ink].toLowerCase().replace(/\s+/g, '-');
+      return 'intervals-' + t.hash.slice(2, 10) + '-ink' + (layer.ink + 1) + '-' + slug +
+             '-' + layer.angle + 'deg.svg';
+    }
+
+    // ============ MACHINE TIME ============
+    // New in v4. Every plot-time estimate this lane has printed — the swatch
+    // sheet's 66 min, the calibration sheet's 60 min — assumed 40 mm/s drawing,
+    // 100 mm/s travel and 0.28 s per pen lift, and nobody had ever timed the
+    // machine. Jeff plotted the calibration sheet on 2026-09-02 at the locked
+    // profile and it came in at 32 min against that 60-minute prediction.
+    //
+    // THE DERIVATION, from that one real run. The sheet is 61.01 m drawn,
+    // 15.68 m pen-up, 6,833 segments. The locked profile is 4000 mm/min drawing
+    // = 66.7 mm/s and 8000 mm/min pen-up = 133.3 mm/s, Standard acceleration.
+    // Pure motion is therefore 61010/66.7 = 915 s plus 15680/133.3 = 118 s, so
+    // 1,033 s of the measured 1,920 s. The remaining 887 s over 6,833 segments is
+    // 0.13 s each.
+    //
+    // That 0.13 s is per SEGMENT, not per lift, and the distinction is the point.
+    // It is everything the pure-motion model does not carry: the pen-down and
+    // pen-up servo moves, and the acceleration cost of a short segment that never
+    // reaches the commanded speed. Intervals' hatch segments are short — a bar is
+    // a few millimetres wide — so most of them are accel-limited, and folding
+    // that into a per-segment constant fitted on real short segments is honest
+    // where a pure lift constant would not be. It will run pessimistic on a sheet
+    // of long strokes and it should be re-fitted if the profile changes.
+    //
+    // NOT COUNTED: pen swaps, the lead-in from home, and the operator. A nine-pen
+    // sheet is several minutes of hands either way and that is not the machine's
+    // time to predict.
+    const DRAW_MM_S = 66.7;        // 4000 mm/min, the locked profile
+    const TRAVEL_MM_S = 133.3;     // 8000 mm/min pen-up
+    const SEG_OVERHEAD_S = 0.13;   // measured 2026-09-02, see above
+
+    function readMachine() {
+      const d = parseFloat(document.getElementById('drawSpeed').value);
+      const t = parseFloat(document.getElementById('travelSpeed').value);
+      const o = parseFloat(document.getElementById('segOverhead').value);
+      return {
+        draw: isFinite(d) && d > 0 ? d : DRAW_MM_S,
+        travel: isFinite(t) && t > 0 ? t : TRAVEL_MM_S,
+        overhead: isFinite(o) && o >= 0 ? o : SEG_OVERHEAD_S
+      };
+    }
+
+    function layerSeconds(layer, mach) {
+      return layer.drawn / mach.draw + layer.penUp / mach.travel + layer.lineCount * mach.overhead;
+    }
+
+    // Rounded to the minute above an hour and to ten seconds below it. The
+    // overhead constant comes from one plot; printing seconds off a four-hour
+    // estimate would claim a precision one run cannot support.
+    function fmtTime(sec) {
+      if (!isFinite(sec) || sec <= 0) return '0 s';
+      if (sec < 3600) {
+        const r = Math.round(sec / 10) * 10;
+        return Math.floor(r / 60) + ' m ' + String(r % 60).padStart(2, '0') + ' s';
+      }
+      const r = Math.round(sec / 60);
+      return Math.floor(r / 60) + ' h ' + String(r % 60).padStart(2, '0') + ' m';
+    }
+
+    // ============ REBUILD ============
+    function rebuild() {
+      tok = readToken();
+      const geo = readGeometry();
+      const marks = readMarks();
+      const plot = readPlot();
+      layers = buildLayers(tok, geo, marks, readAngles(), plot);
+
+      renderTokenReadout(marks);
+      renderEdgeNote(marks);
+      renderPlotReadout(plot);
+      renderTimeReadout(readMachine());
+      renderPenTable(readMachine());
+      renderButtons();
+      if (previewIndex > layers.length) previewIndex = 0;
+      showPreview(previewIndex);
+    }
+
+    function toggleSerpentine() {
+      const box = document.getElementById('serpentine');
+      box.checked = !box.checked;
+      rebuild();
+    }
+
+    function renderTokenReadout(marks) {
+      const totalLines = layers.reduce((n, l) => n + l.lineCount, 0);
+      const totalDist = layers.reduce((d, l) => d + l.distance, 0);
+      const totalUp = layers.reduce((d, l) => d + l.penUp, 0);
+      const pens = new Set(layers.map(l => l.ink)).size;
+      const sNote = tok.s !== tok.tokenS ? ' (token ' + tok.tokenS + ', overridden)' : '';
+      document.getElementById('token-readout').innerHTML =
+        's <b>' + tok.s + '</b>' + sNote + ' &middot; ' + tok.bars.length + ' bars &middot; ' +
+        'rotation <b>' + (tok.r * 90) + '&deg;</b> &middot; variant <b>' + tok.vtype + '</b><br>' +
+        '<b>' + pens + '</b> pens, <b>' + layers.length + '</b> layers &middot; ' +
+        '<b>' + (totalDist / 1000).toFixed(1) + ' m</b> drawn in <b>' +
+        totalLines.toLocaleString() + '</b> segments, <b>' +
+        (totalUp / 1000).toFixed(1) + ' m</b> in the air';
+      document.getElementById('marks-note').innerHTML =
+        'Opacity ' + marks.target.toFixed(2) + ' &rarr; four-family reference &times; <b>' +
+        marks.mult.toFixed(2) + '</b> (crossing families composite, they do not add). ' +
+        'Curve <b>' + marks.curveExp + '</b> maps weight to coverage as 1 &minus; (1 &minus; w)^' +
+        marks.curveExp + '. The empirical fit was abandoned by Jeff on 2026-09-03 &mdash; ' +
+        '&ldquo;I would rather just do coverage density in a straightforward way, like Mechanical ' +
+        'Drawings&rdquo; &mdash; so 1.4 is Mechanical Drawings\u2019 constant, not a fitted number.';
+      renderFamilyReadout(marks);
+    }
+
+    // The one number this version exists for, stated as a reduction against the
+    // path v2 would have plotted rather than as a bare figure. Both halves are
+    // recomputed on every rebuild from the same geometry, so the comparison is
+    // never against a remembered baseline.
+    function renderPlotReadout(plot) {
+      const drawn = layers.reduce((d, l) => d + l.distance, 0);
+      const up = layers.reduce((d, l) => d + l.penUp, 0);
+      const naive = layers.reduce((d, l) => d + l.penUpNaive, 0);
+      const segs = layers.reduce((n, l) => n + l.lineCount, 0);
+      const raw = layers.reduce((n, l) => n + l.segmentsRaw, 0);
+      const merged = layers.reduce((n, l) => n + l.merged, 0);
+      const avail = layers.reduce((n, l) => n + l.mergeAvailable, 0);
+      const cut = naive > 0 ? 100 * (1 - up / naive) : 0;
+
+      document.getElementById('serpentine-button').textContent =
+        plot.serpentine ? 'Serpentine on' : 'Serpentine off';
+      document.getElementById('serpentine-button').className = plot.serpentine ? 'active' : '';
+
+      document.getElementById('plot-readout').innerHTML =
+        'Pen-up <b>' + (up / 1000).toFixed(1) + ' m</b> against <b>' + (naive / 1000).toFixed(1) +
+        ' m</b> unordered &mdash; <b>' + cut.toFixed(1) + '%</b> cut<br>' +
+        'Travel is <b>' + (100 * up / (up + drawn)).toFixed(1) + '%</b> pen-up, was <b>' +
+        (100 * naive / (naive + drawn)).toFixed(1) + '%</b><br>' +
+        'Collinear merges available at ' + plot.tol + ' mm: <b>' + avail.toLocaleString() +
+        '</b> of ' + raw.toLocaleString() + ' segments' +
+        (merged ? ' &mdash; <b>' + merged.toLocaleString() + '</b> applied, ' +
+          segs.toLocaleString() + ' emitted' : '');
+
+      document.getElementById('plot-note').innerHTML =
+        'Serpentine picks the near end of the next line, and the near end of the next bar\u2019s ' +
+        'stack. The drawn set does not change &mdash; only which end the pen starts from. ' +
+        'Merging is off because the geometry does not offer it: neighbouring bars solve ' +
+        'different densities, so their line grids sit out of phase and never meet.';
+    }
+
+    // The bar-edge arithmetic, stated in the numbers this token actually gets,
+    // so the setting is legible without doing the sum in your head.
+    function renderEdgeNote(marks) {
+      const shared = marks.paperGap / 2 + marks.nib / 2;
+      const barW = tok ? (Math.min(readGeometry().imgW, readGeometry().imgH) / (3 * tok.s)) : 0;
+      document.getElementById('edge-note').innerHTML =
+        'Clip inset <b>' + shared.toFixed(3) + ' mm</b> per side on a shared edge ' +
+        '(gap/2 + nib/2), <b>' + marks.outerInset.toFixed(3) + ' mm</b> at the image edge. ' +
+        'The nib is round, so ink reaches nib/2 past a line in every direction: the bare paper ' +
+        'between two bars\u2019 ink edges comes out at <b>' + marks.paperGap.toFixed(2) +
+        ' mm</b> whatever the pitch, angle or density. ' +
+        'A bar is ' + barW.toFixed(2) + ' mm wide at this token, so the seams cost ' +
+        (100 * 2 * shared / Math.max(1e-9, barW)).toFixed(1) + '% of its inked width. ' +
+        'Set the gap to \u2212' + marks.nib + ' and the outer inset to 0 for v3\u2019s butted bars.';
+    }
+
+    // The number Jeff asked to see before a plot rather than after one, since the
+    // 0.95 target costs about 20% more of it than 0.90 did.
+    function renderTimeReadout(mach) {
+      const drawn = layers.reduce((d, l) => d + l.drawn, 0);
+      const up = layers.reduce((d, l) => d + l.penUp, 0);
+      const segs = layers.reduce((k, l) => k + l.lineCount, 0);
+      const tDraw = drawn / mach.draw;
+      const tUp = up / mach.travel;
+      const tOver = segs * mach.overhead;
+      const total = tDraw + tUp + tOver;
+      const pens = new Set(layers.map(l => l.ink)).size;
+      const geo = readGeometry();
+      document.getElementById('time-readout').innerHTML =
+        '<b>' + fmtTime(total) + '</b> at ' + geo.imgW + '\u00d7' + geo.imgH + ' mm, ' +
+        pens + ' pens, ' + layers.length + ' files<br>' +
+        'drawing ' + fmtTime(tDraw) + ' &middot; in the air ' + fmtTime(tUp) +
+        ' &middot; per-segment overhead ' + fmtTime(tOver) +
+        ' (<b>' + (100 * tOver / Math.max(1e-9, total)).toFixed(0) + '%</b>)';
+      document.getElementById('machine-note').innerHTML =
+        'Measured, not assumed. Jeff plotted the calibration sheet 2026-09-02 in <b>32 min</b> ' +
+        'against a 60-min prediction: 61.01 m drawn, 15.68 m pen-up, 6,833 segments at ' +
+        '4000/8000 mm/min. Pure motion accounts for 1,033 s of the 1,920 s; the remaining ' +
+        '887 s over 6,833 segments is <b>0.13 s per segment</b> of pen-lift and acceleration ' +
+        'overhead. Pen swaps, the lead-in from home and the operator are not counted.';
+    }
+
+    // What the compensation actually did to this token: how the bars fall by
+    // active family count, and the multiplier each bucket ended up carrying. If
+    // this reads 4 everywhere the token has nothing to compensate; the buckets
+    // that matter are 1 and 2.
+    function renderFamilyReadout(marks) {
+      const buckets = new Map();
+      for (const bar of tok.bars) {
+        const bd = barDensity(bar, marks);
+        if (bd.families === 0) continue;
+        if (!buckets.has(bd.families)) buckets.set(bd.families, { n: 0, lo: Infinity, hi: -Infinity });
+        const b = buckets.get(bd.families);
+        b.n++;
+        b.lo = Math.min(b.lo, bd.mult);
+        b.hi = Math.max(b.hi, bd.mult);
+      }
+      const rows = [...buckets.entries()].sort((a, b) => a[0] - b[0]).map(([k, b]) => {
+        const range = b.hi - b.lo < 5e-4 ? b.lo.toFixed(3) : b.lo.toFixed(3) + '\u2013' + b.hi.toFixed(3);
+        return k + ' fam &middot; <b>' + b.n + '</b> bars &middot; &times;' + range;
+      });
+      document.getElementById('family-readout').innerHTML =
+        (marks.compensate ? '' : '<b>Compensation off</b> &mdash; flat &times;' + marks.mult.toFixed(3) +
+          ', v1 behaviour. ') + rows.join('<br>');
+    }
+
+    function renderPenTable(mach) {
+      const tbody = document.getElementById('pen-table');
+      tbody.innerHTML = '';
+      for (let i = 0; i < PEN_NAMES.length; i++) {
+        const mine = layers.filter(l => l.ink === i);
+        const tr = document.createElement('tr');
+        if (mine.length === 0) tr.className = 'idle';
+        const dist = mine.reduce((d, l) => d + l.distance, 0);
+        const segs = mine.reduce((n, l) => n + l.lineCount, 0);
+        const up = mine.reduce((d, l) => d + l.penUp, 0);
+        const secs = mine.reduce((t, l) => t + layerSeconds(l, mach), 0);
+        tr.innerHTML =
+          '<td><div class="color-swatch" style="background:' + penHex[i] + '"></div></td>' +
+          '<td>ink' + (i + 1) + ' ' + PEN_NAMES[i] + '</td>' +
+          '<td>' + (mine.length ? mine.map(l => l.angle + '&deg;').join(', ') : '&mdash;') + '</td>' +
+          '<td>' + (mine.length ? (dist / 1000).toFixed(1) + ' m' : '&mdash;') + '</td>' +
+          '<td>' + (mine.length ? segs.toLocaleString() : '&mdash;') + '</td>' +
+          '<td>' + (mine.length ? (up / 1000).toFixed(1) + ' m' : '&mdash;') + '</td>' +
+          '<td>' + (mine.length ? fmtTime(secs) : '&mdash;') + '</td>';
+        tbody.appendChild(tr);
+      }
+      document.getElementById('pen-note').innerHTML =
+        'A pen listed at two angles carries two line families and gets two files. ' +
+        'They plot back to back without a swap. Pen-up is travel with the nib off the paper, ' +
+        'in the order the file is written. Time is the machine at the locked profile &mdash; ' +
+        'no pen swap, no lead-in, no operator.';
+    }
+
+    function renderButtons() {
+      const prev = document.getElementById('preview-buttons');
+      prev.innerHTML = '';
+      const mk = (label, idx) => {
+        const b = document.createElement('button');
+        b.textContent = label;
+        b.onclick = () => showPreview(idx);
+        if (idx === previewIndex) b.className = 'active';
+        prev.appendChild(b);
+      };
+      mk('Render', 0);
+      layers.forEach((l, i) => mk('ink' + (l.ink + 1) + ' ' + l.angle + '\u00b0', i + 1));
+
+      const dl = document.getElementById('download-buttons');
+      dl.innerHTML = '';
+      layers.forEach((l, i) => {
+        const b = document.createElement('button');
+        b.innerHTML = '<div class="color-swatch" style="background:' + penHex[l.ink] + '"></div>' +
+                      'ink' + (l.ink + 1) + ' &middot; ' + l.angle + '&deg;';
+        b.onclick = () => downloadLayer(i);
+        dl.appendChild(b);
+      });
+      const all = document.createElement('button');
+      all.className = 'full-width';
+      all.textContent = 'Download all ' + layers.length + ' layers';
+      all.onclick = downloadAllLayers;
+      dl.appendChild(all);
+    }
+
+    // ============ PREVIEW ============
+    function showPreview(idx) {
+      previewIndex = idx;
+      const buttons = document.getElementById('preview-buttons').querySelectorAll('button');
+      buttons.forEach((b, i) => b.classList.toggle('active', i === idx));
+
+      const renderEl = document.getElementById('render-container');
+      const svgEl = document.getElementById('svg-preview-container');
+      const note = document.getElementById('preview-note');
+
+      if (idx === 0) {
+        renderEl.style.display = 'block';
+        svgEl.style.display = 'none';
+        note.textContent = 'The artwork as Intervals_v4 draws it, at the token above.';
+        return;
+      }
+
+      const layer = layers[idx - 1];
+      renderEl.style.display = 'none';
+      svgEl.style.display = 'block';
+      svgEl.innerHTML = buildLayerSVG(layer, tok, readGeometry(), readMarks(), readPlot(), readMachine());
+
+      const svg = svgEl.querySelector('svg');
+      const geo = readGeometry();
+      const scale = Math.min(PREVIEW_SIZE / geo.paperW, PREVIEW_SIZE / geo.paperH);
+      svg.removeAttribute('width');
+      svg.removeAttribute('height');
+      svg.style.width = (geo.paperW * scale) + 'px';
+      svg.style.height = (geo.paperH * scale) + 'px';
+      // Display only. The file itself is monochrome at stroke-width 1, per the
+      // plotter file model; on screen that would fill solid and show nothing.
+      const g = svg.querySelector('g');
+      g.setAttribute('stroke', penHex[layer.ink]);
+      // v4 draws the on-screen preview at the NIB width, not v3's 0.7 x pitch.
+      // The paper gap is a statement about where the ink edge lands, and at a
+      // thinner-than-real stroke the seam would read wider on screen than it will
+      // on paper. Still display only: the file is black at stroke-width 1.
+      g.setAttribute('stroke-width', readMarks().nib.toFixed(3));
+
+      note.innerHTML = 'ink' + (layer.ink + 1) + ' ' + PEN_NAMES[layer.ink] + ' at ' + layer.angle +
+        '&deg; &mdash; ' + layer.lineCount.toLocaleString() + ' segments, ' +
+        (layer.distance / 1000).toFixed(1) + ' m, across ' + layer.bars.length + ' bars, ' +
+        (layer.penUp / 1000).toFixed(1) + ' m pen-up (was ' +
+        (layer.penUpNaive / 1000).toFixed(1) + ' m). ' +
+        'Colour and stroke width here are for legibility; the file is black at stroke-width 1.';
+    }
+
+    // ============ SVG GENERATION ============
+    // One <g> per bar, in plot order, carrying the same data-* the batch groups
+    // of svg-generator-v6 carried. Document order is now load-bearing: it is the
+    // order the plotter draws, and the direction each <line> is written in is the
+    // direction the pen travels. A reader that sorts the lines undoes v3.
+    //
+    // data-distance stays the bar's NOMINAL ink — the length generateAngledLines
+    // produced for it, traceable to coverage(). data-drawn-mm is what is actually
+    // in the group. They differ only where a collinear merge moved a segment into
+    // a neighbour's group, and they sum to the same layer total either way.
+    function buildLayerSVG(layer, t, geo, marks, plot, mach) {
+      const groups = layer.bars.map((bar, i) => {
+        const lineElements = bar.lines
+          .map(l => '      <line x1="' + l.x1.toFixed(6) + '" y1="' + l.y1.toFixed(6) +
+                    '" x2="' + l.x2.toFixed(6) + '" y2="' + l.y2.toFixed(6) + '"/>')
+          .join('\n');
+        return '    <g id="' + i + '-bar-ink' + (layer.ink + 1) + '-b' + bar.band + 's' + bar.step +
+               '" data-band="' + bar.band + '" data-step="' + bar.step +
+               '" data-weight="' + bar.weight.toFixed(6) +
+               '" data-density="' + bar.density.toFixed(6) +
+               '" data-families="' + bar.families +
+               '" data-bar-multiplier="' + bar.barMult.toFixed(6) +
+               '" data-distance="' + Math.round(bar.distance) +
+               '" data-drawn-mm="' + bar.drawn.toFixed(3) +
+               '" data-pen-up-mm="' + bar.penUp.toFixed(3) +
+               '" data-pen-up-naive-mm="' + bar.penUpNaive.toFixed(3) +
+               '" data-entry="' + bar.entry +
+               // Six decimals, the same as the lines. At four the rounding of the
+               // clip alone puts an endpoint up to 5e-5 mm outside the rectangle
+               // it was clipped to, and the check that endpoints stay inside
+               // their own clip then fails on arithmetic rather than on ink.
+               '" data-clip="' + bar.clip.x.toFixed(6) + ' ' + bar.clip.y.toFixed(6) + ' ' +
+                                 bar.clip.w.toFixed(6) + ' ' + bar.clip.h.toFixed(6) + '">\n' +
+               lineElements + '\n    </g>';
+      }).join('\n');
+
+      return '<?xml version="1.0" encoding="UTF-8"?>\n' +
+'<svg xmlns="http://www.w3.org/2000/svg"\n' +
+'     width="' + geo.paperW + 'mm"\n' +
+'     height="' + geo.paperH + 'mm"\n' +
+'     viewBox="0 0 ' + geo.paperW + ' ' + geo.paperH + '"\n' +
+'     data-project="intervals"\n' +
+'     data-token="' + t.hash + '"\n' +
+'     data-s="' + t.s + '"\n' +
+'     data-rotation="' + (t.r * 90) + '"\n' +
+'     data-variant="' + t.vtype + '"\n' +
+'     data-ink="ink' + (layer.ink + 1) + '"\n' +
+'     data-pen="' + PEN_NAMES[layer.ink] + '"\n' +
+'     data-angle="' + layer.angle + '"\n' +
+'     data-slots="' + [...layer.slots].sort().join(',') + '"\n' +
+'     data-pitch-mm="' + marks.pitch + '"\n' +
+'     data-nib-mm="' + marks.nib + '"\n' +
+'     data-paper-gap-mm="' + marks.paperGap + '"\n' +
+'     data-outer-inset-mm="' + marks.outerInset + '"\n' +
+'     data-curve="' + marks.curveExp + '"\n' +
+'     data-opacity-target="' + marks.target + '"\n' +
+'     data-coverage-multiplier="' + marks.mult.toFixed(6) + '"\n' +
+'     data-family-compensation="' + (marks.compensate ? 'on' : 'off') + '"\n' +
+'     data-family-trim="' + marks.trim.join(',') + '"\n' +
+'     data-active-weight-floor="' + marks.activeEps + '"\n' +
+'     data-image="' + geo.imgX.toFixed(3) + ' ' + geo.imgY.toFixed(3) + ' ' +
+                      geo.imgW + ' ' + geo.imgH + '"\n' +
+'     data-plot-order="' + (plot.serpentine ? 'serpentine' : 'emitted') + '"\n' +
+'     data-collinear-merge="' + (plot.merge ? 'on' : 'off') + '"\n' +
+'     data-merge-tolerance-mm="' + plot.tol + '"\n' +
+'     data-merges-available="' + layer.mergeAvailable + '"\n' +
+'     data-merged-segments="' + layer.merged + '"\n' +
+'     data-segments-before-merge="' + layer.segmentsRaw + '"\n' +
+'     data-segments="' + layer.lineCount + '"\n' +
+'     data-distance-mm="' + Math.round(layer.distance) + '"\n' +
+'     data-pen-up-mm="' + layer.penUp.toFixed(3) + '"\n' +
+'     data-pen-up-naive-mm="' + layer.penUpNaive.toFixed(3) + '"\n' +
+'     data-drawn-mm="' + layer.drawn.toFixed(3) + '"\n' +
+'     data-draw-speed-mm-s="' + mach.draw + '"\n' +
+'     data-travel-speed-mm-s="' + mach.travel + '"\n' +
+'     data-segment-overhead-s="' + mach.overhead + '"\n' +
+'     data-plot-seconds="' + layerSeconds(layer, mach).toFixed(1) + '">\n' +
+'  <rect x="0" y="0" width="' + geo.paperW + '" height="' + geo.paperH + '" fill="none" stroke="none"/>\n' +
+'  <g stroke="black" stroke-width="1" stroke-linecap="butt">\n' +
+groups + '\n' +
+'  </g>\n' +
+'</svg>';
+    }
+
+    function downloadLayer(i) {
+      const layer = layers[i];
+      downloadSVG(layer.filename,
+        buildLayerSVG(layer, tok, readGeometry(), readMarks(), readPlot(), readMachine()));
+    }
+
+    function downloadAllLayers() {
+      const geo = readGeometry();
+      const marks = readMarks();
+      const plot = readPlot();
+      const mach = readMachine();
+      layers.forEach((layer, i) => {
+        setTimeout(() => downloadSVG(layer.filename, buildLayerSVG(layer, tok, geo, marks, plot, mach)), i * 150);
+      });
+    }
+
+    // ============ CARRIED OVER FROM svg-generator-v6 ============
+    function lineDistance(line) {
+      const dx = line.x2 - line.x1;
+      const dy = line.y2 - line.y1;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    // v4 adds the optional `clip` rectangle. The line grid — count, spacing and
+    // phase — is still solved on the cell, so nothing about the density changes;
+    // `clip` only bounds how far along each line the pen actually draws. Omit it
+    // and this is v3's function to the bit.
+    function generateAngledLines(cellX, cellY, cellWidth, cellHeight, coverage, lineWidth, angleDeg, clip) {
+      const lines = [];
+      const theta = angleDeg * Math.PI / 180;
+      const sinA = Math.sin(theta);
+      const cosA = Math.cos(theta);
+
+      const corners = [
+        [cellX, cellY],
+        [cellX + cellWidth, cellY],
+        [cellX, cellY + cellHeight],
+        [cellX + cellWidth, cellY + cellHeight]
+      ];
+      const dVals = corners.map(([x, y]) => -x * sinA + y * cosA);
+      const dMin = Math.min(...dVals);
+      const dMax = Math.max(...dVals);
+      const perpSpan = dMax - dMin;
+
+      const numLines = Math.max(1, Math.round(coverage * perpSpan / lineWidth));
+      const spacing = perpSpan / numLines;
+      const firstD = dMin + spacing / 2;
+
+      const xMin = clip ? clip.x : cellX;
+      const xMax = clip ? clip.x + clip.w : cellX + cellWidth;
+      const yMin = clip ? clip.y : cellY;
+      const yMax = clip ? clip.y + clip.h : cellY + cellHeight;
+
+      for (let i = 0; i < numLines; i++) {
+        const d = firstD + i * spacing;
+
+        let tMin = -1e9;
+        let tMax = 1e9;
+
+        if (Math.abs(cosA) > 1e-12) {
+          const tLeft  = (xMin + d * sinA) / cosA;
+          const tRight = (xMax + d * sinA) / cosA;
+          const tLo = Math.min(tLeft, tRight);
+          const tHi = Math.max(tLeft, tRight);
+          tMin = Math.max(tMin, tLo);
+          tMax = Math.min(tMax, tHi);
+        }
+
+        if (Math.abs(sinA) > 1e-12) {
+          const tTop    = (yMin - d * cosA) / sinA;
+          const tBottom = (yMax - d * cosA) / sinA;
+          const tLo = Math.min(tTop, tBottom);
+          const tHi = Math.max(tTop, tBottom);
+          tMin = Math.max(tMin, tLo);
+          tMax = Math.min(tMax, tHi);
+        }
+
+        if (tMin >= tMax - 1e-9) continue;
+
+        let x1 = -d * sinA + tMin * cosA;
+        let y1 =  d * cosA + tMin * sinA;
+        let x2 = -d * sinA + tMax * cosA;
+        let y2 =  d * cosA + tMax * sinA;
+
+        if (x1 > x2) {
+          [x1, y1, x2, y2] = [x2, y2, x1, y1];
+        }
+
+        lines.push({ x1, y1, x2, y2 });
+      }
+      return lines;
+    }
+
+    function downloadSVG(filename, content) {
+      const blob = new Blob([content], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>
