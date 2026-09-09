@@ -6,8 +6,16 @@
 // belongs to two pens, so a wrong slot assignment, a duplicated family or a
 // missing half is invisible in any single file and only shows up when the nine
 // are read together. Those cross-file checks are the reason this script exists —
-// plus the quadrant, which is a promise to Jeff that the rest of the sheet stays
-// free for his other tests.
+// plus the footprint, which is a promise to Jeff that the rest of the sheet
+// stays free for his other tests.
+//
+// 2026-09-09: every count in here is now DERIVED FROM PAIRS. The chart went from
+// nine blocks to twelve (three off-wheel mixes in a fourth row) and pens 5-8 stopped
+// appearing in exactly two blocks each. A harness that hard-codes "nine" and "two"
+// passes the old sheet and says nothing useful about the new one, so the shapes it
+// asserts are read off the page's own PAIRS: twelve pairs, of which the first nine
+// are the wheel's adjacent edges and the last three are exactly [4,6], [4,7], [5,7];
+// per-pen block and label counts equal that pen's membership in PAIRS.
 //
 //   node intervals/mix-generator-check.mjs [outDir]
 //
@@ -101,7 +109,7 @@ async function main() {
   await page.goto(`http://127.0.0.1:${port}/mix-generator.html`, { waitUntil: 'load' });
   await page.waitForFunction(
     () => (window.mixFiles && window.mixFiles.length === 9) || window.mixBootError,
-    null, { timeout: 30000 });
+    null, { timeout: 30000 });   // nine PENS; the block count is read off PAIRS below
 
   const bootError = await page.evaluate(() => window.mixBootError || null);
   if (bootError) {
@@ -122,13 +130,16 @@ async function main() {
       angles: window.readAngles(),
       timing: window.readTiming(),
       pairs: window.PAIRS,
+      wheelPairs: window.WHEEL_PAIRS,
+      offWheelPairs: window.OFF_WHEEL_PAIRS,
+      cols: window.COLS, rows: window.ROWS,
       penHex: window.mixPenHex.slice(),
       mixHex: window.mixMixHex.slice(),
       label: window.labelMetrics(geo, marks),
       bounds: window.mixBounds,
       reg: window.registrationPoints(geo),
       patches: window.patchOrigins(geo),
-      blocks: [0,1,2,3,4,5,6,7,8].map(i => window.blockOrigin(geo, i)),
+      blocks: window.PAIRS.map((_, i) => window.blockOrigin(geo, i)),
       files: window.mixFiles.map(f => ({
         ink: f.ink, name: f.name, filename: f.filename, blocks: f.blocks,
         segments: f.segments, distance: f.distance, penUp: f.penUp,
@@ -141,23 +152,53 @@ async function main() {
 
   const { geo, marks } = state;
   const PAIRS = state.pairs;
+  const NB = PAIRS.length;                       // blocks, read off the page
+  const NW = state.wheelPairs.length;            // how many of them are wheel edges
+  const COLS = state.cols, ROWS = state.rows;
+  // How many blocks each pen is in — the number every per-pen assertion below is
+  // measured against, derived rather than assumed.
+  const MEMBER = Array.from({ length: 9 }, (_, i) =>
+    PAIRS.filter(([a, b]) => a === i || b === i).length);
 
-  console.log('\nWHEEL — read off the artwork, not restated');
+  console.log('\nPAIRS — read off the artwork, not restated');
   PAIRS.forEach(([a, b], j) => console.log(
-    '  block ' + (j + 1) + '  ' + (a + 1) + '+' + (b + 1) + '  ' +
+    '  block ' + String(j + 1).padStart(2) + '  ' + (a + 1) + '+' + (b + 1) + '  ' +
+    (j < NW ? 'wheel-edge' : 'off-wheel ') + '  ' +
     state.penHex[a] + ' + ' + state.penHex[b] + '  ->  Lab midpoint ' + state.mixHex[j] +
     '   ' + state.files[a].name + ' + ' + state.files[b].name));
-  check(PAIRS.length === 9, 'nine pairs');
-  check(PAIRS[8][0] === 8 && PAIRS[8][1] === 0, 'the wheel closes: block 9 is 9+1');
-  check(PAIRS.every(([a, b]) => b === (a + 1) % 9), 'every pair is an adjacent edge of the wheel');
+  check(NB === 12, `twelve pairs (${NB})`);
+  check(NB === COLS * ROWS, `${COLS} x ${ROWS} fills the grid exactly (${NB} blocks)`);
+  check(NW === 9, `the first ${NW} pairs are the wheel`);
+  check(state.wheelPairs.every(([a, b], k) => a === k && b === (k + 1) % 9),
+        'the wheel block k is pen k + pen k+1, in order');
+  check(state.wheelPairs[NW - 1][0] === 8 && state.wheelPairs[NW - 1][1] === 0,
+        'the wheel closes: block 9 is 9+1');
+  check(PAIRS.slice(0, NW).every(([a, b]) => b === (a + 1) % 9),
+        'every wheel pair is an adjacent edge');
+  const extras = PAIRS.slice(NW);
+  check(JSON.stringify(extras) === JSON.stringify([[4, 6], [4, 7], [5, 7]]),
+        'the three extras are exactly [4,6], [4,7], [5,7] — ' +
+        extras.map(([a, b]) => (a + 1) + '+' + (b + 1)).join(', '));
+  check(extras.every(([a, b]) => b !== (a + 1) % 9 && a !== (b + 1) % 9),
+        'none of the three extras is a wheel edge');
+  check(extras.every(([a, b]) => a < b),
+        'the lower-numbered pen leads every extra block');
+  check(new Set(PAIRS.map(([a, b]) => a + ',' + b)).size === NB, 'no duplicate pair');
+  console.log('  pen membership  ' + MEMBER.map((n, i) => 'ink' + (i + 1) + ':' + n).join('  '));
+  check(MEMBER.reduce((s, n) => s + n, 0) === 2 * NB,
+        `pen memberships sum to 2 x ${NB} (${MEMBER.reduce((s, n) => s + n, 0)})`);
 
   console.log('\nLAYOUT');
   console.log('  usable box   ' + (geo.ux1 - geo.ux0).toFixed(1) + ' x ' +
               (geo.uy1 - geo.uy0).toFixed(1) + ' mm at (' + geo.ux0.toFixed(1) + ', ' +
               geo.uy0.toFixed(1) + ')');
   console.log('  reg rect     ' + geo.regW.toFixed(1) + ' x ' + geo.regH.toFixed(1) + ' mm');
+  console.log('  content box  ' + (geo.ux1 - geo.ux0).toFixed(1) + ' x ' +
+              (geo.cy1 - geo.uy0).toFixed(1) + ' mm, bottom edge y=' + geo.cy1.toFixed(1) +
+              ' mm, ' + (geo.paperH - geo.cy1).toFixed(1) + ' mm of paper free below it');
   console.log('  block        ' + geo.block + ' mm, col gap ' + geo.colGap +
-              ', row gap ' + geo.rowGap + ', pitch ' + state.label.pitch.toFixed(1) + ' mm');
+              ', row gap ' + geo.rowGap + ', pitch ' + state.label.pitch.toFixed(1) +
+              ' mm, ' + COLS + ' x ' + ROWS + ' blocks');
   console.log('  label caps   id ' + state.label.idCap.toFixed(2) + ', name ' +
               state.label.nameCap.toFixed(2) + ', hex ' + state.label.hexCap.toFixed(2) +
               ' mm; band ' + state.label.band.toFixed(1) + ' mm');
@@ -189,7 +230,7 @@ async function main() {
 
   // ---- per-file structure
   console.log('\nFILES');
-  const blockFamilies = Array.from({ length: 9 }, () => []);   // [{ink, part, angle, n}]
+  const blockFamilies = Array.from({ length: NB }, () => []);  // [{ink, part, angle, n}]
   const perPenBounds = [];
   for (let i = 0; i < 9; i++) {
     const svg = emitted[i].svg;
@@ -218,15 +259,16 @@ async function main() {
     }
     check(dupes === 0, `${tag} no duplicate segments (${dupes})`);
 
-    // this pen is in exactly two blocks, one as first pen and one as second
+    // this pen is in as many blocks as PAIRS says, two families in each
     const blockGroups = gs.filter(g => g.role === 'block');
-    check(blockGroups.length === 4, `${tag} four families total (${blockGroups.length})`);
+    check(blockGroups.length === 2 * MEMBER[i],
+          `${tag} ${2 * MEMBER[i]} families total (${blockGroups.length})`);
     const myBlocks = [...new Set(blockGroups.map(g => g.block))].sort((a, b) => a - b);
-    check(myBlocks.length === 2, `${tag} appears in exactly two blocks (${myBlocks.map(b => b + 1).join(', ')})`);
-    const expectFirst = i;                       // pen i leads block i
-    const expectSecond = (i + 8) % 9;            // and follows in block i-1
-    check(myBlocks.includes(expectFirst) && myBlocks.includes(expectSecond),
-          `${tag} leads block ${expectFirst + 1} and follows in block ${expectSecond + 1}`);
+    check(myBlocks.length === MEMBER[i],
+          `${tag} appears in ${MEMBER[i]} blocks (${myBlocks.map(b => b + 1).join(', ')})`);
+    const expect = PAIRS.map((_, j) => j).filter(j => PAIRS[j][0] === i || PAIRS[j][1] === i);
+    check(JSON.stringify(myBlocks) === JSON.stringify(expect),
+          `${tag} is in exactly the blocks PAIRS gives it (${expect.map(b => b + 1).join(', ')})`);
 
     for (const g of blockGroups) {
       const [pa, pb] = PAIRS[g.block];
@@ -256,7 +298,9 @@ async function main() {
 
     // labels: one group per block this pen is in
     const labels = gs.filter(g => g.role === 'label');
-    check(labels.length === 2, `${tag} two label groups (${labels.length})`);
+    check(labels.length === MEMBER[i], `${tag} ${MEMBER[i]} label groups (${labels.length})`);
+    check(JSON.stringify([...new Set(labels.map(g => g.block))].sort((a, b) => a - b)) ===
+          JSON.stringify(expect), `${tag} one label group per block it is in`);
     for (const lg of labels) {
       const o = state.blocks[lg.block];
       const ly = lg.lines.flatMap(l => [l.y1, l.y2]);
@@ -289,10 +333,10 @@ async function main() {
 
   // ---- the nine blocks, read across all nine files at once
   console.log('\nBLOCKS — the cross-file view');
-  for (let j = 0; j < 9; j++) {
+  for (let j = 0; j < NB; j++) {
     const fam = blockFamilies[j];
     const [pa, pb] = PAIRS[j];
-    const tag = `block ${j + 1} (${pa + 1}+${pb + 1})`;
+    const tag = `block ${j + 1} (${pa + 1}+${pb + 1}${j < NW ? '' : ', off-wheel'})`;
     check(fam.length === 4, `${tag} exactly four families (${fam.length})`);
     const byPen = {};
     for (const f of fam) byPen[f.ink] = (byPen[f.ink] || 0) + 1;
@@ -316,31 +360,39 @@ async function main() {
     }
   }
 
-  // every pen in exactly two blocks, and every block covered
+  // every pen in exactly as many blocks as PAIRS gives it, and every block covered
   const penBlockCount = Array(9).fill(0);
   blockFamilies.forEach(fam => {
     for (const p of new Set(fam.map(f => f.ink))) penBlockCount[p]++;
   });
-  check(penBlockCount.every(n => n === 2),
-        'every pen appears in exactly two blocks: ' + penBlockCount.join(', '));
+  check(penBlockCount.join(',') === MEMBER.join(','),
+        'every pen appears in exactly its PAIRS membership of blocks: ' +
+        penBlockCount.join(', ') + ' vs ' + MEMBER.join(', '));
 
   console.log('\nSHEET');
   let overlaps = 0;
-  for (let a = 0; a < 9; a++) for (let b = a + 1; b < 9; b++) {
+  for (let a = 0; a < NB; a++) for (let b = a + 1; b < NB; b++) {
     const A = state.blocks[a], B = state.blocks[b];
     if (A.x < B.x + geo.block && B.x < A.x + geo.block &&
         A.y < B.y + geo.block && B.y < A.y + geo.block) overlaps++;
   }
   check(overlaps === 0, `no two blocks overlap (${overlaps})`);
 
-  // grid order is the swatch's row-major
+  // grid order is the swatch's row-major, now COLS x ROWS
   let rowMajor = true;
-  for (let j = 0; j < 9; j++) {
+  for (let j = 0; j < NB; j++) {
     const o = state.blocks[j];
-    if (!near(o.x, geo.colX[j % 3], 1e-6) || !near(o.y, geo.rowY[Math.floor(j / 3)], 1e-6))
-      rowMajor = false;
+    if (!near(o.x, geo.colX[j % COLS], 1e-6) ||
+        !near(o.y, geo.rowY[Math.floor(j / COLS)], 1e-6)) rowMajor = false;
   }
-  check(rowMajor, 'blocks run in the swatch’s row-major 3x3 order');
+  check(rowMajor, `blocks run in the swatch’s row-major ${COLS}x${ROWS} order`);
+  // rows 1-3 are the wheel, unmoved from the 9/08 sheet's own grid positions
+  check(PAIRS.slice(0, NW).every((_, j) =>
+          near(state.blocks[j].x, geo.colX[j % COLS], 1e-6) &&
+          near(state.blocks[j].y, geo.rowY[Math.floor(j / COLS)], 1e-6)),
+        'rows 1-3 hold the nine wheel edges in their original order and position');
+  check(state.blocks.slice(NW).every(o => near(o.y, geo.rowY[ROWS - 1], 1e-6)),
+        'row 4 holds the three off-wheel mixes, left to right');
 
   // ---- registration marks
   const ink1 = emitted[0].svg;
@@ -355,9 +407,11 @@ async function main() {
   for (const p of claimed) {
     const match = state.reg.find(r => r.id === p.id);
     if (!match || !near(match.x, p.x, 1e-3) || !near(match.y, p.y, 1e-3)) continue;
-    const h = regGroup.lines.find(l => near(l.y1, p.y, 1e-6) && near(l.y2, p.y, 1e-6) &&
+    // p.x/p.y come off data-registration at three decimals; the segments are
+    // written at six. Match at the attribute's own precision, not tighter than it.
+    const h = regGroup.lines.find(l => near(l.y1, p.y, 1e-3) && near(l.y2, p.y, 1e-3) &&
                                        Math.min(l.x1, l.x2) < p.x && Math.max(l.x1, l.x2) > p.x);
-    const v = regGroup.lines.find(l => near(l.x1, p.x, 1e-6) && near(l.x2, p.x, 1e-6) &&
+    const v = regGroup.lines.find(l => near(l.x1, p.x, 1e-3) && near(l.x2, p.x, 1e-3) &&
                                        Math.min(l.y1, l.y2) < p.y && Math.max(l.y1, l.y2) > p.y);
     if (h && v) regHits++;
   }
@@ -369,12 +423,15 @@ async function main() {
   check(near(claimed[0].y, claimed[1].y, 1e-6) && near(claimed[2].y, claimed[3].y, 1e-6) &&
         near(claimed[0].x, claimed[2].x, 1e-6) && near(claimed[1].x, claimed[3].x, 1e-6),
         'registration rectangle is square to the sheet');
-  // the crosses mark the quadrant's own corners, held back by the stated inset
-  check(near(claimed[0].x, geo.ux0 + geo.regInset, 1e-6) &&
-        near(claimed[0].y, geo.uy0 + geo.regInset, 1e-6) &&
-        near(claimed[3].x, geo.ux1 - geo.regInset, 1e-6) &&
-        near(claimed[3].y, geo.uy1 - geo.regInset, 1e-6),
-        'crosses sit at the usable box’s corners, inset by ' + geo.regInset + ' mm');
+  // the crosses mark the CONTENT rectangle's own corners, held back by the stated
+  // inset. Left/right/top come from the usable box; the bottom is the content's,
+  // because a rectangle drawn to the bottom of the left half would fence off a
+  // strip of paper this sheet does not use.
+  check(near(claimed[0].x, geo.ux0 + geo.regInset, 1e-3) &&
+        near(claimed[0].y, geo.uy0 + geo.regInset, 1e-3) &&
+        near(claimed[3].x, geo.ux1 - geo.regInset, 1e-3) &&
+        near(claimed[3].y, geo.cy1 - geo.regInset, 1e-3),
+        'crosses sit at the content rectangle’s corners, inset by ' + geo.regInset + ' mm');
 
   // ---- paper patches carry no ink at all
   const patches = attr(ink1, 'data-paper-patches').split(' ').map(s => {
@@ -412,8 +469,9 @@ async function main() {
   }
   check(onMark === 0, `nothing else is drawn inside a registration mark's box (${onMark} hits)`);
 
-  // ---- THE QUADRANT. The promise this sheet makes to the rest of the page.
-  console.log('\nQUADRANT');
+  // ---- THE FOOTPRINT. The promise this sheet makes to the rest of the page:
+  // the whole right half, and the strip under the chart, stay free.
+  console.log('\nFOOTPRINT — LEFT HALF');
   console.log('  pen              x-min    x-max    y-min    y-max     segs      drawn');
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
   for (const b of perPenBounds) {
@@ -423,28 +481,39 @@ async function main() {
       String(b.segs).padStart(9) + (b.drawn / 1000).toFixed(2).padStart(9) + ' m');
     x0 = Math.min(x0, b.x0); x1 = Math.max(x1, b.x1);
     y0 = Math.min(y0, b.y0); y1 = Math.max(y1, b.y1);
-    check(b.x1 <= geo.quadX1 + 1e-6 && b.y1 <= geo.quadY1 + 1e-6,
-          `ink${b.ink + 1} inside the upper-left quadrant`);
+    check(b.x1 <= geo.halfX1 + 1e-6, `ink${b.ink + 1} inside the left half`);
     check(b.x0 >= geo.envX - 1e-6 && b.y0 >= geo.envY - 1e-6 &&
           b.x1 <= geo.envX + geo.envW + 1e-6 && b.y1 <= geo.envY + geo.envH + 1e-6,
           `ink${b.ink + 1} inside the ${geo.envW} x ${geo.envH} mm envelope`);
     check(b.x0 >= geo.ux0 - 1e-6 && b.x1 <= geo.ux1 + 1e-6 &&
-          b.y0 >= geo.uy0 - 1e-6 && b.y1 <= geo.uy1 + 1e-6,
-          `ink${b.ink + 1} inside the usable box (quadrant less ${geo.quadMargin} mm)`);
+          b.y0 >= geo.uy0 - 1e-6 && b.y1 <= geo.cy1 + 1e-6,
+          `ink${b.ink + 1} inside the content rectangle (left half less ${geo.quadMargin} mm ` +
+          `across, content-hugging down)`);
   }
   console.log('  ' + '-'.repeat(68));
   console.log('  ALL            ' + x0.toFixed(1).padStart(7) + x1.toFixed(1).padStart(9) +
               y0.toFixed(1).padStart(9) + y1.toFixed(1).padStart(9));
   console.log(`  ink extent ${(x1 - x0).toFixed(1)} x ${(y1 - y0).toFixed(1)} mm`);
-  console.log(`  clear of the quadrant edges by ${(geo.quadX1 - x1).toFixed(1)} mm across, ` +
-              `${(geo.quadY1 - y1).toFixed(1)} mm down`);
-  check(geo.quadX1 - x1 >= geo.quadMargin - 1e-6 && geo.quadY1 - y1 >= geo.quadMargin - 1e-6,
-        `${geo.quadMargin} mm clear of the quadrant's inner edges`);
+  console.log(`  clear of the half's inner edge by ${(geo.halfX1 - x1).toFixed(1)} mm`);
+  console.log(`  content rectangle bottom y=${geo.cy1.toFixed(1)} mm; ` +
+              `${(geo.paperH - geo.cy1).toFixed(1)} mm of paper free below it, ` +
+              `${(geo.paperW - geo.halfX1).toFixed(1)} mm free to the right`);
+  check(geo.halfX1 - x1 >= geo.quadMargin - 1e-6,
+        `${geo.quadMargin} mm clear of the half's inner edge`);
+  check(geo.cy1 <= geo.uy1 + 1e-6,
+        `content rectangle ends inside the usable box (${geo.cy1.toFixed(1)} <= ${geo.uy1.toFixed(1)})`);
+  // THE HUG. The rectangle must follow the content, not the box: fill the left
+  // half and the lower-left strip is fenced off for nothing.
+  check(geo.cy1 - y1 >= 0 && geo.cy1 - y1 <= geo.regInset + 1e-6,
+        `the rectangle hugs the ink — ${(geo.cy1 - y1).toFixed(1)} mm between the ` +
+        `lowest ink and the content edge`);
+  check(geo.paperH - geo.cy1 >= 150,
+        `the lower-left strip stays free: ${(geo.paperH - geo.cy1).toFixed(1)} mm deep (>= 150)`);
   check(x0 > 0 && y0 > 0 && x1 < geo.paperW && y1 < geo.paperH, 'all ink on the paper');
 
   // ---- labels: adjacent labels do not collide, outer labels stay inside
   console.log('\nLABELS');
-  const labelBoxes = Array.from({ length: 9 }, () => null);
+  const labelBoxes = Array.from({ length: NB }, () => null);
   for (let i = 0; i < 9; i++) {
     for (const g of groups(emitted[i].svg).filter(g => g.role === 'label')) {
       const xs = g.lines.flatMap(l => [l.x1, l.x2]);
@@ -457,27 +526,47 @@ async function main() {
       } : box;
     }
   }
-  check(labelBoxes.every(b => b !== null), 'every block has a label');
+  check(labelBoxes.every(b => b !== null), `all ${NB} blocks have a label`);
   let collisions = 0;
-  for (let r = 0; r < 3; r++) for (let c = 0; c < 2; c++) {
-    const A = labelBoxes[r * 3 + c], B = labelBoxes[r * 3 + c + 1];
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS - 1; c++) {
+    const A = labelBoxes[r * COLS + c], B = labelBoxes[r * COLS + c + 1];
     if (A.x1 >= B.x0 - 1e-9) collisions++;
   }
   check(collisions === 0, `no two labels in a row touch (${collisions})`);
+  // labels must not run into the row below, and the outer columns must stay inside
+  let rowBleed = 0, sideBleed = 0;
+  for (let j = 0; j < NB; j++) {
+    const o = state.blocks[j], b = labelBoxes[j];
+    if (Math.floor(j / COLS) < ROWS - 1 && b.y1 >= o.y + geo.block + geo.rowGap - 1e-9) rowBleed++;
+    if (b.x0 < geo.ux0 - 1e-9 || b.x1 > geo.ux1 + 1e-9) sideBleed++;
+  }
+  check(rowBleed === 0, `no label band runs into the row below it (${rowBleed})`);
+  check(sideBleed === 0, `no outer label leaves the usable width (${sideBleed})`);
   const widest = Math.max(...labelBoxes.map(b => b.x1 - b.x0));
   console.log(`  widest label ${widest.toFixed(1)} mm against a ${state.label.pitch.toFixed(1)} mm column pitch`);
   console.log(`  name cap ${state.label.nameCap.toFixed(2)} mm, hex cap ${state.label.hexCap.toFixed(2)} mm`);
   check(state.label.nameCap >= 1.8, `name cap ${state.label.nameCap.toFixed(2)} mm is plottable at a 0.45 mm nib`);
+  // ONE CAP FOR THE WHOLE CHART. The type is fitted across all twelve labels, so
+  // the widest label in row 4 is set at the same size as the widest in row 1 —
+  // a chart whose last row is a size of its own reads as two charts.
+  const nameH = j => {
+    const b = labelBoxes[j];
+    return b.y1 - b.y0;
+  };
+  const heights = labelBoxes.map((_, j) => nameH(j));
+  check(Math.max(...heights) - Math.min(...heights) <= 0.02,
+        `all ${NB} label blocks are the same height to 0.02 mm ` +
+        `(${Math.min(...heights).toFixed(3)}–${Math.max(...heights).toFixed(3)} mm)`);
 
   // both pens contribute to every label — the mis-swap tell
   let split = 0;
-  for (let j = 0; j < 9; j++) {
+  for (let j = 0; j < NB; j++) {
     const [pa, pb] = PAIRS[j];
     const a = groups(emitted[pa].svg).some(g => g.role === 'label' && g.block === j);
     const b = groups(emitted[pb].svg).some(g => g.role === 'label' && g.block === j);
     if (a && b) split++;
   }
-  check(split === 9, `every label is cut between its two pens (${split}/9)`);
+  check(split === NB, `every label is cut between its two pens (${split}/${NB})`);
 
   // ---- coverage arithmetic
   console.log('\nDENSITY');
@@ -529,7 +618,7 @@ async function main() {
                 String(all.length).padStart(9) +
                 (f.penUp / 1000).toFixed(2).padStart(9) + ' m' +
                 (f.penUpNaive / 1000).toFixed(2).padStart(9) + ' m' +
-                ('  ' + f.blocks.map(j => j + 1).join(',')).padStart(9));
+                ('  ' + f.blocks.map(j => j + 1).join(',')).padStart(12));
   }
   const sec = tDrawn / t.draw + tUp / t.travel + tSegs * t.lift;
   const fmt = v => {
@@ -568,19 +657,19 @@ async function main() {
     path: path.join(OUT, 'proof-sheet.png'), scale: 'css' });
   console.log('  proof-sheet.png (whole 14x17 sheet, 2100 px wide)');
 
-  // the quadrant on its own, at the size a human can actually judge
+  // the chart on its own, at the size a human can actually judge
   await page.evaluate(() => {
     const geo = window.readGeometry();
     const svg = document.getElementById('sheet-preview');
     svg.setAttribute('viewBox', (geo.ux0 - 6) + ' ' + (geo.uy0 - 6) + ' ' +
-                                 (geo.ux1 - geo.ux0 + 12) + ' ' + (geo.uy1 - geo.uy0 + 12));
+                                 (geo.ux1 - geo.ux0 + 12) + ' ' + (geo.cy1 - geo.uy0 + 12));
     svg.style.width = '1800px';
-    svg.style.height = (1800 * (geo.uy1 - geo.uy0 + 12) / (geo.ux1 - geo.ux0 + 12)) + 'px';
+    svg.style.height = (1800 * (geo.cy1 - geo.uy0 + 12) / (geo.ux1 - geo.ux0 + 12)) + 'px';
   });
   await page.waitForTimeout(200);
   await (await page.$('#sheet-preview')).screenshot({
-    path: path.join(OUT, 'proof-quadrant.png'), scale: 'css' });
-  console.log('  proof-quadrant.png (the chart itself, 1800 px wide)');
+    path: path.join(OUT, 'proof-chart.png'), scale: 'css' });
+  console.log('  proof-chart.png (the chart itself, 1800 px wide)');
 
   for (let i = 1; i <= 9; i++) {
     await page.evaluate(() => {
@@ -593,15 +682,15 @@ async function main() {
       const geo = window.readGeometry();
       const svg = document.getElementById('sheet-preview');
       svg.setAttribute('viewBox', (geo.ux0 - 6) + ' ' + (geo.uy0 - 6) + ' ' +
-                                   (geo.ux1 - geo.ux0 + 12) + ' ' + (geo.uy1 - geo.uy0 + 12));
+                                   (geo.ux1 - geo.ux0 + 12) + ' ' + (geo.cy1 - geo.uy0 + 12));
       svg.style.width = '1100px';
-      svg.style.height = (1100 * (geo.uy1 - geo.uy0 + 12) / (geo.ux1 - geo.ux0 + 12)) + 'px';
+      svg.style.height = (1100 * (geo.cy1 - geo.uy0 + 12) / (geo.ux1 - geo.ux0 + 12)) + 'px';
     });
     await page.waitForTimeout(80);
     await (await page.$('#sheet-preview')).screenshot({
       path: path.join(OUT, `proof-ink${i}.png`), scale: 'css' });
   }
-  console.log('  proof-ink1..9.png (per pen, quadrant crop)');
+  console.log('  proof-ink1..9.png (per pen, chart crop)');
 
   // a 4x crop of one block: two pens, four families, the split label
   await page.evaluate(() => window.showPreview(0));
