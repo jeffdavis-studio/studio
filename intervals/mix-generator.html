@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Intervals — Neighbour Midpoints</title>
+  <!--
+    intervals/mix-generator.html — the neighbour-midpoint chart for the plotted
+    Intervals edition. Asana 1218303698506881. Forked from
+    swatch-generator.html: same page skeleton, same per-pen file model, same
+    plot-order and density code, same instrument furniture.
+
+    WHAT THIS SHEET IS FOR. The nine-pen swatch measures the nine primaries. This
+    one measures what happens BETWEEN two of them. The artwork's colour model
+    lerps an anchor's two inks in Lab — betterLerp — and then lays that lerp down
+    as two hatch families per anchor, not as a mixed ink. So the piece's real
+    intermediate hues are optical, made by two pens crossing on paper, and
+    nothing so far has checked that the optical result lands where the Lab
+    prediction says it does. Jeff, 9/08: "just the intermediate hues between the
+    neighboring ink hues. So 9 new colors total."
+
+    NINE BLOCKS, one per edge of the wheel: 1+2, 2+3, ... 8+9, and 9+1, because
+    the wheel closes — Red runs back to Orange. Block k is the artwork's own
+    covBar at u = 0.5 with t = 0 and tint = 0 at both anchors: pen k takes the
+    start anchor's slots 1 and 2 (22.5 deg, 67.5 deg), pen k+1 takes the end
+    anchor's slots 3 and 4 (112.5 deg, 157.5 deg), and EVERY family requests m/4
+    exactly as a swatch block does. A mix block therefore composites to the same
+    0.95 as a pure swatch block, with half the ink from each pen — same total
+    density, half the hue from each side. Put the two sheets side by side and the
+    only variable between them is which pens drew which slots.
+
+    THE DENSITY CURVE DOES NOT ENTER. curveExponent is a tone map on a bar's own
+    ink fraction W (svg-generator-v4 §WHERE THE CURVE GOES). Every block here is
+    full ink, W = 1, and curveTone(1, e) = 1 for any e. 1.4 is printed on the
+    sheet for provenance, not because it moves a line.
+
+    LABELS ARE SPLIT BETWEEN THE TWO PENS. The swatch draws each label in the pen
+    it names so a mis-swap is self-evident. A mix block has two pens, so the
+    label is cut down the "+": "ORANGE +" and the first hex come out of pen k,
+    "YELLOW" and the second hex out of pen k+1. If two files are plotted with the
+    pens crossed, the label says so in colour before anyone measures anything.
+
+    UPPER-LEFT QUADRANT, because Jeff asked for it: "Let's do upper left quadrant
+    of a sheet so I can run other tests on the same page if needed." Everything —
+    blocks, labels, patches, ticks, titles, footer — is inside x < 177.8 and
+    y < 215.9 (half of the 14x17 sheet) AND inside the swatch's conservative
+    270 x 370 mm envelope, less a 6 mm clear margin on the quadrant's inner
+    edges so a second test cannot touch this one.
+
+    WHY THE BLOCKS ARE 28 MM AND NOT 30-SOMETHING. The binding constraint is not
+    the block, it is the label under it. A name line runs to 20 characters
+    ("YELLOW + FRESH GREEN"). Centre the labels, require that adjacent labels do
+    not collide (pitch >= labelWidth + clearance) and that the outer labels stay
+    inside the usable box (2 * pitch + labelWidth <= usable width), and the label
+    width is capped at ~41.7 mm on a 129 mm usable width. That fixes the name cap
+    near 2.1 mm and the column pitch at 42 mm, and the block is what is left.
+    Vertically the same layout has about 8 mm spare — height is not what is
+    binding. Every one of those numbers is a control and the readout reports the
+    fit rather than asserting it.
+
+    TWO PAPER PATCHES, not the swatch's four, and they live in the title band
+    rather than a band of their own — the quadrant cannot afford a band that
+    carries nothing else. Two is enough to correct a scanner cast over a field
+    this small; four exist on the swatch to fit a falloff plane across a full
+    sheet. Ticks stay 3 mm outside, so no ink touches what the scan samples.
+
+    SAMPLE INSET AND LABEL CAP ARE NOT THE SWATCH'S. The swatch's 8 mm inset is
+    an absolute number tuned to a 46 mm block; at 28 mm it would leave a 12 mm
+    sample window. It is scaled with the block instead. Said plainly because the
+    brief asked for the swatch's numbers and this is a deliberate departure.
+
+    CARRIED OVER VERBATIM from swatch-generator.html: generateAngledLines,
+    lineDistance, opacityMultiplier, orderFile's serpentine, the per-pen file
+    model (mm units, 1:1 viewBox, monochrome strokes, zero-stroke sheet rect),
+    registrationMark, patchTicks, downloadSVG and the readouts. The hexes are NOT
+    restated — they are read off Intervals_v4.js at boot, and so is the Lab
+    midpoint each block is predicted to land on, via the artwork's own
+    betterLerp. A restated hex here would be a lie about the thing being tested.
+
+    PAPER. Strathmore Bristol 400 series, plate — the swatch's paper, so the two
+    scans are comparable.
+  -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+  <script src="Intervals_v4.js"></script>
+  <style>
+    body {
+      font-family: aktiv-grotesk, -apple-system, sans-serif;
+      margin: 0;
+      padding: 40px 20px;
+      color: #333;
+    }
+    .main-layout { display: inline-flex; gap: 40px; align-items: flex-start; }
+    .center-wrapper { display: flex; justify-content: center; }
+    .preview-column { flex-shrink: 0; }
+    .sidebar { width: 460px; flex-shrink: 0; }
+    .section { margin-bottom: 40px; }
+    .section h3 {
+      margin: 0 0 16px 0; font-size: 14px; font-weight: 400;
+      text-transform: uppercase; letter-spacing: 1.5px; color: #333;
+    }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-row + .form-row { margin-top: 12px; }
+    .form-row.three { grid-template-columns: 1fr 1fr 1fr; }
+    .form-row.four { grid-template-columns: 1fr 1fr 1fr 1fr; }
+    .form-group { display: flex; flex-direction: column; }
+    label {
+      margin-bottom: 6px; font-weight: 400; font-size: 12px;
+      text-transform: uppercase; letter-spacing: 0.5px; color: #666;
+    }
+    input {
+      padding: 12px; font-family: aktiv-grotesk, -apple-system, sans-serif;
+      font-size: 14px; border: 1px solid #333; border-radius: 0;
+      background: white; width: 100%; box-sizing: border-box;
+    }
+    input:focus { outline: none; border-color: #000; }
+    .buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    button {
+      padding: 14px 16px; font-family: aktiv-grotesk, -apple-system, sans-serif;
+      font-size: 13px; text-transform: uppercase; letter-spacing: 1px;
+      background: white; color: #333; border: 1px solid #333; border-radius: 0;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      gap: 8px; transition: background 0.15s, color 0.15s;
+    }
+    button:hover { background: #333; color: white; }
+    button.active { background: #333; color: white; }
+    button.full-width { grid-column: 1 / -1; }
+    .color-swatch {
+      width: 16px; height: 16px; border-radius: 0;
+      border: 1px solid rgba(0, 0, 0, 0.3); flex-shrink: 0;
+    }
+    .pair-swatch {
+      display: inline-flex; width: 34px; height: 16px;
+      border: 1px solid rgba(0, 0, 0, 0.3); vertical-align: middle;
+    }
+    .pair-swatch span { display: block; width: 50%; height: 100%; }
+    #preview-buttons {
+      display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 12px;
+    }
+    #preview-buttons button { padding: 9px 4px; font-size: 11px; letter-spacing: 0.5px; }
+    #svg-preview-container { background: #fff; border: 1px solid #ddd; }
+    table.pens { width: 100%; border-collapse: collapse; font-size: 12px; }
+    table.pens th {
+      text-align: left; font-weight: 400; text-transform: uppercase;
+      letter-spacing: 0.5px; font-size: 10px; color: #666;
+      border-bottom: 1px solid #333; padding: 0 6px 6px 0;
+    }
+    table.pens td { padding: 6px 6px 6px 0; border-bottom: 1px solid #eee; vertical-align: middle; }
+    table.pens td.mono { font-family: ui-monospace, Menlo, monospace; font-size: 11px; }
+    .readout { font-size: 12px; line-height: 1.7; color: #444; }
+    .readout b { font-weight: 400; color: #000; }
+    .readout .bad { color: #b00; }
+    .note { font-size: 11px; color: #888; line-height: 1.6; margin-top: 10px; }
+    #render-container { display: none; }
+  </style>
+</head>
+<body>
+  <div id="render-container"></div>
+  <div class="center-wrapper">
+    <div class="main-layout">
+      <div class="preview-column">
+        <h3 style="margin: 0 0 16px 0; font-size: 14px; font-weight: 400; text-transform: uppercase; letter-spacing: 1.5px; color: #333;">Preview</h3>
+        <div id="svg-preview-container"></div>
+        <div id="preview-buttons"></div>
+        <div class="note" id="preview-note"></div>
+      </div>
+
+      <div class="sidebar">
+        <div class="section">
+          <h3>Sheet, Envelope &amp; Quadrant</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="paperWidth">Paper W (mm)</label>
+              <input type="number" id="paperWidth" value="355.6" step="0.1" min="10">
+            </div>
+            <div class="form-group">
+              <label for="paperHeight">Paper H (mm)</label>
+              <input type="number" id="paperHeight" value="431.8" step="0.1" min="10">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="envWidth">Envelope W (mm)</label>
+              <input type="number" id="envWidth" value="270" step="1" min="10">
+            </div>
+            <div class="form-group">
+              <label for="envHeight">Envelope H (mm)</label>
+              <input type="number" id="envHeight" value="370" step="1" min="10">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="quadMargin">Quadrant Clear (mm)</label>
+              <input type="number" id="quadMargin" value="6" step="0.5" min="0">
+            </div>
+            <div class="form-group">
+              <label for="regInset">Reg Inset (mm)</label>
+              <input type="number" id="regInset" value="7" step="0.5" min="0">
+            </div>
+          </div>
+          <div class="note" id="quadrant-note"></div>
+        </div>
+
+        <div class="section">
+          <h3>Blocks</h3>
+          <div class="form-row three">
+            <div class="form-group">
+              <label for="blockSize">Block (mm)</label>
+              <input type="number" id="blockSize" value="28" step="0.5" min="10">
+            </div>
+            <div class="form-group">
+              <label for="colGap">Col Gap (mm)</label>
+              <input type="number" id="colGap" value="14" step="0.5" min="2">
+            </div>
+            <div class="form-group">
+              <label for="rowGap">Row Gap (mm)</label>
+              <input type="number" id="rowGap" value="17.5" step="0.5" min="2">
+            </div>
+          </div>
+          <div class="form-row" style="margin-top: 12px;">
+            <div class="form-group">
+              <label for="linePitch">Pitch (mm)</label>
+              <input type="number" id="linePitch" value="0.45" step="0.01" min="0.05">
+            </div>
+            <div class="form-group">
+              <label for="opacityTarget">Opacity Target</label>
+              <input type="number" id="opacityTarget" value="0.95" step="0.01" min="0.1" max="0.99">
+            </div>
+          </div>
+          <div class="form-row" style="margin-top: 12px;">
+            <div class="form-group">
+              <label for="sampleInset">Sample Inset (mm)</label>
+              <input type="number" id="sampleInset" value="4.5" step="0.5" min="0">
+            </div>
+            <div class="form-group">
+              <label for="labelHeight">Label Cap (mm)</label>
+              <input type="number" id="labelHeight" value="4.2" step="0.1" min="2">
+            </div>
+          </div>
+          <div class="form-row" style="margin-top: 12px;">
+            <div class="form-group">
+              <label for="curveExponent">Density Curve</label>
+              <input type="number" id="curveExponent" value="1.4" step="0.1" min="1" max="7">
+            </div>
+            <div class="form-group">
+              <label for="labelClear">Label Clear (mm)</label>
+              <input type="number" id="labelClear" value="2" step="0.5" min="0">
+            </div>
+          </div>
+          <div class="note" id="blocks-note"></div>
+        </div>
+
+        <div class="section">
+          <h3>Angle Set</h3>
+          <div class="form-row four">
+            <div class="form-group"><label for="angle1">Slot 1</label>
+              <input type="number" id="angle1" value="22.5" step="0.5"></div>
+            <div class="form-group"><label for="angle2">Slot 2</label>
+              <input type="number" id="angle2" value="67.5" step="0.5"></div>
+            <div class="form-group"><label for="angle3">Slot 3</label>
+              <input type="number" id="angle3" value="112.5" step="0.5"></div>
+            <div class="form-group"><label for="angle4">Slot 4</label>
+              <input type="number" id="angle4" value="157.5" step="0.5"></div>
+          </div>
+          <div class="note">The artwork's four angles, unchanged. Slots 1 and 2 belong to the
+            block's first pen, 3 and 4 to its second — the ramp's own start/end anchor split,
+            not a new convention.</div>
+        </div>
+
+        <div class="section">
+          <h3>Instrument</h3>
+          <div class="form-row three">
+            <div class="form-group">
+              <label for="patchSize">Patch (mm)</label>
+              <input type="number" id="patchSize" value="11" step="0.5" min="4">
+            </div>
+            <div class="form-group">
+              <label for="regArm">Reg Arm (mm)</label>
+              <input type="number" id="regArm" value="4.5" step="0.5" min="1">
+            </div>
+            <div class="form-group">
+              <label for="regHalf">Reg Box (mm)</label>
+              <input type="number" id="regHalf" value="6" step="0.5" min="1">
+            </div>
+          </div>
+          <div class="note" id="instrument-note"></div>
+        </div>
+
+        <div class="section">
+          <h3>Plot Time</h3>
+          <div class="form-row three">
+            <div class="form-group">
+              <label for="drawSpeed">Draw (mm/s)</label>
+              <input type="number" id="drawSpeed" value="66.7" step="0.1" min="1">
+            </div>
+            <div class="form-group">
+              <label for="travelSpeed">Travel (mm/s)</label>
+              <input type="number" id="travelSpeed" value="133.3" step="0.1" min="1">
+            </div>
+            <div class="form-group">
+              <label for="liftTime">Overhead (s/seg)</label>
+              <input type="number" id="liftTime" value="0.13" step="0.01" min="0">
+            </div>
+          </div>
+          <div class="readout" id="time-readout" style="margin-top: 14px;"></div>
+          <div class="note">The locked iDraw H profile — 4000 mm/min drawing, 8000 mm/min
+            pen-up, 0.13 s per segment — measured off Jeff's 2026-09-02 plot, not assumed.</div>
+        </div>
+
+        <div class="section">
+          <h3>The Nine Midpoints</h3>
+          <table class="pens">
+            <thead>
+              <tr><th></th><th>Block</th><th>Pens</th><th>Lab midpoint</th></tr>
+            </thead>
+            <tbody id="mix-table"></tbody>
+          </table>
+          <div class="note" id="mix-note"></div>
+        </div>
+
+        <div class="section">
+          <h3>Pens — Sakura Pigma Micron 05</h3>
+          <table class="pens">
+            <thead>
+              <tr><th></th><th>Pen</th><th>Blocks</th><th>Length</th><th>Segs</th><th>Pen-up</th></tr>
+            </thead>
+            <tbody id="pen-table"></tbody>
+          </table>
+          <div class="note" id="pen-note"></div>
+        </div>
+
+        <div class="section">
+          <h3>Sheet Check</h3>
+          <div class="readout" id="bounds-readout"></div>
+        </div>
+
+        <div class="section">
+          <h3>Download SVG</h3>
+          <div class="buttons" id="download-buttons"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { textPolylines, textWidth, polylinesToSegments } from './swatch-font.mjs';
+
+    // ============ CONSTANTS ============
+    const PREVIEW_SIZE = 700;
+
+    // v3's list, Jeff's names, 2026-08-24. The hexes are read off the artwork.
+    const PEN_NAMES = [
+      'Orange', 'Yellow', 'Fresh Green', 'Green', 'Blue',
+      'Royal Blue', 'Purple', 'Rose', 'Red'
+    ];
+
+    // The nine edges of the wheel, in the swatch's own row-major grid order.
+    // The last one closes the wheel: pen 9 back to pen 1.
+    const PAIRS = [0, 1, 2, 3, 4, 5, 6, 7, 8].map(k => [k, (k + 1) % 9]);
+
+    // ============ GLOBAL STATE ============
+    let penHex = [];
+    let mixHex = [];           // the artwork's own Lab midpoint per pair
+    let files = [];
+    let previewIndex = 0;
+    let sheetBounds = null;
+
+    // ============ BOOT ============
+    // Identical to the swatch's: Intervals_v4.js runs the artwork on load, we
+    // want none of the render and only its `inks`, so the canvas is parked in a
+    // hidden container. `inks` is a top-level `let` in a classic script, so it
+    // is not a property of window — the wait tests the bare identifier.
+    window.addEventListener('load', () => {
+      const t0 = performance.now();
+      const wait = setInterval(() => {
+        const c = document.querySelector('canvas');
+        const ready = typeof inks !== 'undefined' && inks && inks.length === 9 &&
+                      typeof betterLerp === 'function';
+        if (!c || !ready) {
+          if (performance.now() - t0 > 10000) {
+            clearInterval(wait);
+            window.mixBootError =
+              'Intervals_v4.js did not expose nine inks and betterLerp within 10s' +
+              ' (canvas=' + !!c + ', inks=' + (typeof inks) + ')';
+            document.getElementById('bounds-readout').textContent = window.mixBootError;
+          }
+          return;
+        }
+        clearInterval(wait);
+        boot(c);
+      }, 20);
+    });
+
+    function boot(canvasEl) {
+      document.getElementById('render-container').appendChild(canvasEl);
+      colorMode(RGB);
+      penHex = inks.map(c => rgbHex(c));
+      // The prediction this sheet exists to test, taken from the artwork rather
+      // than recomputed here: the piece's own Lab lerp at t = 0.5.
+      mixHex = PAIRS.map(([a, b]) => rgbHex(betterLerp(inks[a], inks[b], 0.5)));
+
+      ['paperWidth', 'paperHeight', 'envWidth', 'envHeight', 'quadMargin', 'regInset',
+       'blockSize', 'colGap', 'rowGap', 'linePitch', 'opacityTarget', 'sampleInset',
+       'labelHeight', 'curveExponent', 'labelClear', 'angle1', 'angle2', 'angle3',
+       'angle4', 'patchSize', 'regArm', 'regHalf',
+       'drawSpeed', 'travelSpeed', 'liftTime'].forEach(id => {
+        document.getElementById(id).addEventListener('input', rebuild);
+      });
+      rebuild();
+    }
+
+    function rgbHex(c) {
+      const v = n => Math.round(n).toString(16).padStart(2, '0');
+      return '#' + v(red(c)) + v(green(c)) + v(blue(c));
+    }
+
+    // ============ READERS ============
+    function readGeometry() {
+      const num = (id, dflt) => {
+        const v = parseFloat(document.getElementById(id).value);
+        return isFinite(v) ? v : dflt;
+      };
+      const paperW = num('paperWidth', 355.6);
+      const paperH = num('paperHeight', 431.8);
+      const envW = num('envWidth', 270);
+      const envH = num('envHeight', 370);
+      const quadMargin = num('quadMargin', 6);
+      const regInset = num('regInset', 7);
+      const block = num('blockSize', 28);
+      const colGap = num('colGap', 14);
+      const rowGap = num('rowGap', 17.5);
+      const patch = num('patchSize', 11);
+      const regArm = num('regArm', 4.5);
+      const regHalf = num('regHalf', 6);
+
+      const envX = (paperW - envW) / 2, envY = (paperH - envH) / 2;
+
+      // THE USABLE BOX. The upper-left quadrant of the paper intersected with the
+      // plot envelope, less the clear margin on the quadrant's own inner edges.
+      // The envelope's top-left corner is inside the quadrant, so the box starts
+      // there; the right and bottom are the quadrant's, held back by quadMargin
+      // so a second test on this sheet cannot touch this one.
+      const ux0 = envX, uy0 = envY;
+      const ux1 = Math.min(paperW / 2 - quadMargin, envX + envW);
+      const uy1 = Math.min(paperH / 2 - quadMargin, envY + envH);
+
+      // The registration rectangle sits inside the usable box by regInset, which
+      // has to clear the marks themselves — a cross at a corner reaches regHalf
+      // outward, and a mark hanging outside the box would be the one thing on
+      // the sheet that broke the rule the sheet is built around.
+      const regX = ux0 + regInset, regY = uy0 + regInset;
+      const regW = (ux1 - ux0) - 2 * regInset;
+      const regH = (uy1 - uy0) - 2 * regInset;
+
+      const gridW = block * 3 + colGap * 2;
+      const gridH = block * 3 + rowGap * 2;
+      const gridX = regX + (regW - gridW) / 2;
+
+      // Vertical stack inside the registration rectangle, top down. The title
+      // band and the paper-patch band are the SAME band — the quadrant cannot
+      // carry a band that holds nothing but two squares of bare paper.
+      const patchInset = regHalf + 5;     // clear of the corner marks
+      const patchY = regY + 3;
+      const titleY1 = regY + 6;
+      const titleY2 = regY + 11;
+      const subY = regY + 21;
+      const gridY = regY + 25;
+      const gridBottom = gridY + gridH;
+      const footerY = regY + regH - 2;
+
+      return {
+        paperW, paperH, envW, envH, quadMargin, regInset,
+        block, colGap, rowGap, patch, regArm, regHalf, patchInset,
+        gridW, gridH, gridX, gridY, gridBottom,
+        regX, regY, regW, regH, regX2: regX + regW, regY2: regY + regH,
+        envX, envY, ux0, uy0, ux1, uy1,
+        quadX1: paperW / 2, quadY1: paperH / 2,
+        titleY1, titleY2, subY, patchY, footerY,
+        colX: [0, 1, 2].map(i => gridX + i * (block + colGap)),
+        rowY: [0, 1, 2].map(i => gridY + i * (block + rowGap))
+      };
+    }
+
+    function readMarks() {
+      const pitch = parseFloat(document.getElementById('linePitch').value) || 0.45;
+      const target = parseFloat(document.getElementById('opacityTarget').value) || 0.95;
+      const inset = parseFloat(document.getElementById('sampleInset').value);
+      const labelH = parseFloat(document.getElementById('labelHeight').value) || 4.2;
+      const curve = parseFloat(document.getElementById('curveExponent').value) || 1.4;
+      const clear = parseFloat(document.getElementById('labelClear').value);
+      return {
+        pitch, target, curve,
+        mult: opacityMultiplier(target),
+        family: opacityMultiplier(target) / 4,
+        inset: isFinite(inset) && inset >= 0 ? inset : 4.5,
+        labelH,
+        clear: isFinite(clear) && clear >= 0 ? clear : 2
+      };
+    }
+
+    function readAngles() {
+      return [1, 2, 3, 4].map(i => parseFloat(document.getElementById('angle' + i).value));
+    }
+
+    function readTiming() {
+      return {
+        draw: parseFloat(document.getElementById('drawSpeed').value) || 66.7,
+        travel: parseFloat(document.getElementById('travelSpeed').value) || 133.3,
+        lift: parseFloat(document.getElementById('liftTime').value) || 0
+      };
+    }
+
+    // ============ DENSITY — carried over from the swatch ============
+    // Solving 1 - (1 - m/4)^4 = target for m. Every family requests m/4, so a
+    // block's four crossing families composite to exactly the target: 0.95 ->
+    // x2.109, 0.527 each. Two of those four families are one pen's and two are
+    // the other's, which is the whole idea of this sheet.
+    function opacityMultiplier(target) {
+      const t = Math.min(0.999, Math.max(0, target));
+      return 4 * (1 - Math.pow(1 - t, 0.25));
+    }
+
+    // ============ LABEL METRICS ============
+    // The label is what sets the layout, so its type is fitted to the column
+    // pitch rather than asserted. One cap for all nine labels — a chart whose
+    // rows are set in different sizes reads as nine charts.
+    function labelMetrics(geo, marks) {
+      const pitch = geo.block + geo.colGap;
+      const budget = Math.max(4, pitch - marks.clear);
+      const nameStrings = PAIRS.map(([a, b]) =>
+        PEN_NAMES[a].toUpperCase() + ' + ' + PEN_NAMES[b].toUpperCase());
+      const hexStrings = PAIRS.map(([a, b]) =>
+        penHex[a].toUpperCase() + ' + ' + penHex[b].toUpperCase());
+      const fit = (strs, ceiling) => {
+        const longest = strs.reduce((m, s) => Math.max(m, s.length), 1);
+        return Math.min(ceiling, budget / (longest * (5.6 / 6)));
+      };
+      const nameCap = fit(nameStrings, 3.0);
+      const hexCap = Math.min(nameCap, fit(hexStrings, 2.0));
+      const idCap = marks.labelH;
+      const b1 = idCap + 0.8;
+      const b2 = b1 + nameCap + 2.2;
+      const b3 = b2 + hexCap + 1.6;
+      return {
+        pitch, budget, idCap, nameCap, hexCap,
+        baselines: [b1, b2, b3],
+        band: b3 + 1.5,
+        nameStrings, hexStrings,
+        widest: Math.max(...nameStrings.map(s => textWidth(s, nameCap)),
+                         ...hexStrings.map(s => textWidth(s, hexCap)))
+      };
+    }
+
+    // ============ INSTRUMENT GEOMETRY ============
+    function registrationMark(cx, cy, arm, half) {
+      return [
+        [[cx - arm, cy], [cx + arm, cy]],
+        [[cx, cy - arm], [cx, cy + arm]],
+        [[cx - half, cy - half], [cx + half, cy - half], [cx + half, cy + half],
+         [cx - half, cy + half], [cx - half, cy - half]]
+      ];
+    }
+
+    function patchTicks(x, y, size) {
+      const gap = 3;
+      const arm = 4;
+      const x0 = x - gap, y0 = y - gap, x1 = x + size + gap, y1 = y + size + gap;
+      return [
+        [[x0 + arm, y0], [x0, y0], [x0, y0 + arm]],
+        [[x1 - arm, y0], [x1, y0], [x1, y0 + arm]],
+        [[x1 - arm, y1], [x1, y1], [x1, y1 - arm]],
+        [[x0 + arm, y1], [x0, y1], [x0, y1 - arm]]
+      ];
+    }
+
+    // Two patches, left and right of the title, inside the title band.
+    function patchOrigins(geo) {
+      return [
+        { id: 'TL', x: geo.regX + geo.patchInset, y: geo.patchY },
+        { id: 'TR', x: geo.regX2 - geo.patchInset - geo.patch, y: geo.patchY }
+      ];
+    }
+
+    function registrationPoints(geo) {
+      return [
+        { id: 'TL', x: geo.regX, y: geo.regY },
+        { id: 'TR', x: geo.regX2, y: geo.regY },
+        { id: 'BL', x: geo.regX, y: geo.regY2 },
+        { id: 'BR', x: geo.regX2, y: geo.regY2 }
+      ];
+    }
+
+    function blockOrigin(geo, i) {
+      return { x: geo.colX[i % 3], y: geo.rowY[Math.floor(i / 3)] };
+    }
+
+    // The horizontal room the titles have between the two paper patches.
+    function titleZone(geo) {
+      const p = patchOrigins(geo);
+      const left = p[0].x + geo.patch + 3 + 2;
+      const right = p[1].x - 3 - 2;
+      return { left, right, width: Math.max(10, right - left), cx: (left + right) / 2 };
+    }
+
+    function fitCentred(str, cx, width, ceiling, baselineY) {
+      const cap = Math.min(ceiling, width / (str.length * (5.6 / 6)));
+      return textPolylines(str, cx - textWidth(str, cap) / 2, baselineY, cap);
+    }
+
+    // ============ BUILD ============
+    function buildFiles(geo, marks, angles) {
+      const lm = labelMetrics(geo, marks);
+      const out = [];
+      for (let i = 0; i < 9; i++) {
+        const groups = [];
+
+        // ink1 carries the sheet furniture, so the frame is on the paper after
+        // the FIRST pen rather than the ninth: a mispositioned sheet shows up one
+        // pen in, not after eight more swaps have been spent on it.
+        if (i === 0) {
+          const reg = [];
+          for (const p of registrationPoints(geo))
+            reg.push(...registrationMark(p.x, p.y, geo.regArm, geo.regHalf));
+          groups.push({ role: 'registration', angle: null, block: null, part: null,
+                        lines: polylinesToSegments(reg) });
+
+          const ticks = [];
+          for (const p of patchOrigins(geo)) ticks.push(...patchTicks(p.x, p.y, geo.patch));
+          groups.push({ role: 'patch-ticks', angle: null, block: null, part: null,
+                        lines: polylinesToSegments(ticks) });
+
+          const tz = titleZone(geo);
+          groups.push({ role: 'title', angle: null, block: null, part: null,
+                        lines: polylinesToSegments([
+                          ...fitCentred('NEIGHBOUR MIDPOINTS', tz.cx, tz.width, 4.0, geo.titleY1),
+                          ...fitCentred('INTERVALS · BRISTOL 400 PLATE', tz.cx, tz.width,
+                                        2.6, geo.titleY2)
+                        ]) });
+          groups.push({ role: 'subtitle', angle: null, block: null, part: null,
+                        lines: polylinesToSegments(
+                          fitCentred('PITCH ' + marks.pitch + ' MM · TARGET ' +
+                                     marks.target.toFixed(2) + ' · CURVE ' +
+                                     marks.curve.toFixed(1) + ' · ' + SHEET_DATE,
+                                     geo.regX + geo.regW / 2, geo.regW - 4, 2.2, geo.subY)) });
+          // The footer runs along the bottom edge of the registration rectangle,
+          // which is exactly where the two bottom crosses live. Fitted to the
+          // full rectangle width it ran MICRON through the BL mark and QUADRANT
+          // through the BR one. Caught by looking at the proof rather than by any
+          // assertion, so the check now asserts it too.
+          groups.push({ role: 'footer', angle: null, block: null, part: null,
+                        lines: polylinesToSegments(
+                          fitCentred('MICRON 05 · STRATHMORE BRISTOL 400 PLATE · ' +
+                                     'UPPER-LEFT QUADRANT',
+                                     geo.regX + geo.regW / 2,
+                                     geo.regW - 2 * (geo.regHalf + 4), 2.2,
+                                     geo.footerY)) });
+        }
+
+        // The blocks this pen is in, in grid order. Pen i is the FIRST pen of
+        // block i (slots 1-2) and the SECOND pen of block i-1 (slots 3-4), so
+        // every pen appears in exactly two blocks and always with the same angle
+        // pair for the role it is playing.
+        for (let j = 0; j < 9; j++) {
+          const [pa, pb] = PAIRS[j];
+          let part = null, pairAngles = null;
+          if (pa === i) { part = 'first'; pairAngles = [angles[0], angles[1]]; }
+          else if (pb === i) { part = 'second'; pairAngles = [angles[2], angles[3]]; }
+          else continue;
+
+          const o = blockOrigin(geo, j);
+          for (const angle of pairAngles) {
+            groups.push({ role: 'block', angle: angle, block: j, part: part,
+                          lines: generateAngledLines(o.x, o.y, geo.block, geo.block,
+                                                     marks.family, marks.pitch, angle) });
+          }
+          groups.push({ role: 'label', angle: null, block: j, part: part,
+                        lines: polylinesToSegments(blockLabel(geo, marks, lm, j, part)) });
+        }
+
+        const file = {
+          ink: i, name: PEN_NAMES[i], groups: groups,
+          blocks: [0,1,2,3,4,5,6,7,8].filter(j => PAIRS[j][0] === i || PAIRS[j][1] === i),
+          filename: 'intervals-mix-ink' + (i + 1) + '-' +
+                    PEN_NAMES[i].toLowerCase().replace(/\s+/g, '-') + '.svg'
+        };
+        file.penUpNaive = orderFile(file, false);
+        file.penUp = orderFile(file, true);
+        file.segments = groups.reduce((n, g) => n + g.lines.length, 0);
+        file.distance = groups.reduce((d, g) =>
+          d + g.lines.reduce((s, l) => s + lineDistance(l), 0), 0);
+        for (const g of groups) {
+          g.segments = g.lines.length;
+          g.distance = g.lines.reduce((s, l) => s + lineDistance(l), 0);
+        }
+        out.push(file);
+      }
+      return out;
+    }
+
+    // The date the sheet was generated for. A constant, not new Date(): the
+    // files have to be byte-identical from a cold boot or the check cannot tell
+    // a real change from a clock tick.
+    const SHEET_DATE = '2026-09-08';
+
+    // THE LABEL, CUT DOWN THE PLUS. Three lines under every block, centred on it:
+    // the pair number big, the two pen names, and the two code hexes small. The
+    // first pen draws everything up to and including the "+"; the second draws
+    // what follows. Plot the files with two pens crossed and the label says so
+    // in colour, which is the swatch's trick adapted to a block with two owners.
+    function blockLabel(geo, marks, lm, j, part) {
+      const o = blockOrigin(geo, j);
+      const [pa, pb] = PAIRS[j];
+      const cx = o.x + geo.block / 2;
+      const y = o.y + geo.block;
+      const out = [];
+
+      const nameA = PEN_NAMES[pa].toUpperCase(), nameB = PEN_NAMES[pb].toUpperCase();
+      const hexA = penHex[pa].toUpperCase(), hexB = penHex[pb].toUpperCase();
+
+      const split = (a, b, cap, baseline) => {
+        const full = a + ' + ' + b;
+        const x0 = cx - textWidth(full, cap) / 2;
+        return part === 'first'
+          ? textPolylines(a + ' +', x0, y + baseline, cap)
+          : textPolylines(b, x0 + textWidth(a + ' + ', cap), y + baseline, cap);
+      };
+
+      if (part === 'first') {
+        const id = (pa + 1) + '+' + (pb + 1);
+        out.push(...textPolylines(id, cx - textWidth(id, lm.idCap) / 2,
+                                  y + lm.baselines[0], lm.idCap));
+      }
+      out.push(...split(nameA, nameB, lm.nameCap, lm.baselines[1]));
+      out.push(...split(hexA, hexB, lm.hexCap, lm.baselines[2]));
+      return out;
+    }
+
+    // ============ PLOT ORDER — carried over from the swatch ============
+    function hop(ax, ay, bx, by) { return Math.hypot(bx - ax, by - ay); }
+
+    function entryCost(l, px, py) {
+      return Math.min(hop(px, py, l.x1, l.y1), hop(px, py, l.x2, l.y2));
+    }
+
+    function orderFile(file, serpentine) {
+      let px = null, py = null, penUp = 0;
+      for (const group of file.groups) {
+        const n = group.lines.length;
+        let dir = 1;
+        if (serpentine && px !== null && n > 0) {
+          dir = entryCost(group.lines[0], px, py) <=
+                entryCost(group.lines[n - 1], px, py) ? 1 : -1;
+        }
+        const out = [];
+        for (let k = 0; k < n; k++) {
+          const l = group.lines[dir > 0 ? k : n - 1 - k];
+          const flip = serpentine && px !== null &&
+            hop(px, py, l.x2, l.y2) < hop(px, py, l.x1, l.y1);
+          const s = flip ? { x1: l.x2, y1: l.y2, x2: l.x1, y2: l.y1 }
+                         : { x1: l.x1, y1: l.y1, x2: l.x2, y2: l.y2 };
+          if (px !== null) penUp += hop(px, py, s.x1, s.y1);
+          out.push(s);
+          px = s.x2; py = s.y2;
+        }
+        group.lines = out;
+      }
+      return penUp;
+    }
+
+    // ============ SVG ============
+    function buildFileSVG(file, geo, marks) {
+      const groups = file.groups.map((g, i) =>
+        '    <g id="' + i + '-' + g.role + '-ink' + (file.ink + 1) +
+        (g.block === null ? '' : '-b' + (g.block + 1)) +
+        (g.angle === null ? '' : '-a' + g.angle) +
+        '" data-role="' + g.role + '"' +
+        (g.block === null ? '' : ' data-block-index="' + g.block + '" data-part="' + g.part + '"') +
+        (g.angle === null ? '' : ' data-angle="' + g.angle + '"') +
+        ' data-segments="' + g.lines.length +
+        '" data-drawn-mm="' + g.distance.toFixed(3) + '">\n' +
+        g.lines.map(l => '      <line x1="' + l.x1.toFixed(6) + '" y1="' + l.y1.toFixed(6) +
+          '" x2="' + l.x2.toFixed(6) + '" y2="' + l.y2.toFixed(6) + '"/>').join('\n') +
+        '\n    </g>').join('\n');
+
+      const mine = file.blocks.map(j => {
+        const o = blockOrigin(geo, j);
+        const part = PAIRS[j][0] === file.ink ? 'first' : 'second';
+        return (j + 1) + ':' + part + ':' + o.x.toFixed(3) + ',' + o.y.toFixed(3);
+      }).join(' ');
+
+      return '<?xml version="1.0" encoding="UTF-8"?>\n' +
+'<svg xmlns="http://www.w3.org/2000/svg"\n' +
+'     width="' + geo.paperW + 'mm"\n' +
+'     height="' + geo.paperH + 'mm"\n' +
+'     viewBox="0 0 ' + geo.paperW + ' ' + geo.paperH + '"\n' +
+'     data-project="intervals"\n' +
+'     data-sheet="neighbour-midpoints"\n' +
+'     data-paper="strathmore-bristol-400-plate"\n' +
+'     data-ink="ink' + (file.ink + 1) + '"\n' +
+'     data-pen="' + file.name + '"\n' +
+'     data-code-hex="' + penHex[file.ink] + '"\n' +
+'     data-plot-order-index="' + (file.ink + 1) + ' of 9"\n' +
+'     data-blocks="' + mine + '"\n' +
+'     data-pairs="' + PAIRS.map(([a, b]) => (a + 1) + '+' + (b + 1)).join(' ') + '"\n' +
+'     data-predicted-hexes="' + PAIRS.map(([a, b], j) =>
+                              (a + 1) + '+' + (b + 1) + ':' + mixHex[j]).join(' ') + '"\n' +
+'     data-block-size-mm="' + geo.block + '"\n' +
+'     data-sample-regions="' + file.blocks.map(j => {
+                              const o = blockOrigin(geo, j);
+                              return (j + 1) + ':' + (o.x + marks.inset).toFixed(3) + ',' +
+                                     (o.y + marks.inset).toFixed(3) + ',' +
+                                     (geo.block - 2 * marks.inset).toFixed(3);
+                            }).join(' ') + '"\n' +
+'     data-registration="' + registrationPoints(geo)
+                              .map(p => p.id + ':' + p.x.toFixed(3) + ',' + p.y.toFixed(3))
+                              .join(' ') + '"\n' +
+'     data-paper-patches="' + patchOrigins(geo)
+                              .map(p => p.id + ':' + p.x.toFixed(3) + ',' + p.y.toFixed(3))
+                              .join(' ') + '"\n' +
+'     data-patch-size-mm="' + geo.patch + '"\n' +
+'     data-envelope="' + geo.envX.toFixed(3) + ' ' + geo.envY.toFixed(3) + ' ' +
+                         geo.envW + ' ' + geo.envH + '"\n' +
+'     data-quadrant="0 0 ' + geo.quadX1.toFixed(3) + ' ' + geo.quadY1.toFixed(3) + '"\n' +
+'     data-usable-box="' + geo.ux0.toFixed(3) + ' ' + geo.uy0.toFixed(3) + ' ' +
+                           (geo.ux1 - geo.ux0).toFixed(3) + ' ' +
+                           (geo.uy1 - geo.uy0).toFixed(3) + '"\n' +
+'     data-angles="' + readAngles().join(',') + '"\n' +
+'     data-slot-split="first-pen:1,2 second-pen:3,4"\n' +
+'     data-pitch-mm="' + marks.pitch + '"\n' +
+'     data-opacity-target="' + marks.target + '"\n' +
+'     data-curve-exponent="' + marks.curve + '"\n' +
+'     data-family-coverage="' + marks.family.toFixed(6) + '"\n' +
+'     data-segments="' + file.segments + '"\n' +
+'     data-distance-mm="' + Math.round(file.distance) + '"\n' +
+'     data-pen-up-mm="' + file.penUp.toFixed(3) + '"\n' +
+'     data-pen-up-naive-mm="' + file.penUpNaive.toFixed(3) + '">\n' +
+'  <rect x="0" y="0" width="' + geo.paperW + '" height="' + geo.paperH + '" fill="none" stroke="none"/>\n' +
+'  <g stroke="black" stroke-width="1" stroke-linecap="butt">\n' +
+groups + '\n' +
+'  </g>\n' +
+'</svg>';
+    }
+
+    // ============ REBUILD ============
+    function rebuild() {
+      const geo = readGeometry();
+      const marks = readMarks();
+      files = buildFiles(geo, marks, readAngles());
+      sheetBounds = boundsOf(files);
+      renderNotes(geo, marks);
+      renderTime();
+      renderMixTable();
+      renderPenTable();
+      renderBounds(geo);
+      renderButtons();
+      showPreview(previewIndex);
+    }
+
+    function boundsOf(fs) {
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      for (const f of fs) for (const g of f.groups) for (const l of g.lines) {
+        x0 = Math.min(x0, l.x1, l.x2); x1 = Math.max(x1, l.x1, l.x2);
+        y0 = Math.min(y0, l.y1, l.y2); y1 = Math.max(y1, l.y1, l.y2);
+      }
+      return { x0, y0, x1, y1, w: x1 - x0, h: y1 - y0 };
+    }
+
+    function renderNotes(geo, marks) {
+      const lm = labelMetrics(geo, marks);
+      const interior = geo.block - 2 * marks.inset;
+      document.getElementById('quadrant-note').innerHTML =
+        'Usable box <b>' + (geo.ux1 - geo.ux0).toFixed(1) + ' &times; ' +
+        (geo.uy1 - geo.uy0).toFixed(1) + ' mm</b> at (' + geo.ux0.toFixed(1) + ', ' +
+        geo.uy0.toFixed(1) + ') &mdash; the quadrant (' + geo.quadX1.toFixed(1) + ' &times; ' +
+        geo.quadY1.toFixed(1) + ' mm) &cap; the envelope, less ' + geo.quadMargin +
+        ' mm on the inner edges. Registration rectangle <b>' + geo.regW.toFixed(1) +
+        ' &times; ' + geo.regH.toFixed(1) + ' mm</b>.';
+      document.getElementById('blocks-note').innerHTML =
+        'Target ' + marks.target.toFixed(2) + ' &rarr; &times;<b>' + marks.mult.toFixed(3) +
+        '</b> over four crossing families, <b>' + marks.family.toFixed(4) +
+        '</b> coverage each &mdash; two families per pen. Block ' + geo.block +
+        ' mm, sampled interior <b>' + interior.toFixed(1) + ' &times; ' + interior.toFixed(1) +
+        ' mm</b>. Column pitch ' + lm.pitch.toFixed(1) + ' mm fits a ' +
+        lm.widest.toFixed(1) + ' mm label at cap <b>' + lm.nameCap.toFixed(2) +
+        ' mm</b>; label band ' + lm.band.toFixed(1) + ' mm against a ' + geo.rowGap +
+        ' mm row gap. Curve ' + marks.curve.toFixed(1) +
+        ' is a no-op at full ink and moves nothing here.';
+      const reg = registrationPoints(geo);
+      document.getElementById('instrument-note').innerHTML =
+        'Registration crosses at <b>' + reg.map(p => '(' + p.x.toFixed(1) + ', ' +
+          p.y.toFixed(1) + ')</b>').join(', ') + ' mm from the sheet’s top-left. ' +
+        'Two ' + geo.patch + ' mm paper patches in the title band, ticked 3 mm clear ' +
+        'so no ink touches what the scan samples.';
+    }
+
+    function renderTime() {
+      const t = readTiming();
+      const drawn = files.reduce((d, f) => d + f.distance, 0);
+      const up = files.reduce((d, f) => d + f.penUp, 0);
+      const segs = files.reduce((n, f) => n + f.segments, 0);
+      const sec = drawn / t.draw + up / t.travel + segs * t.lift;
+      const fmt = v => {
+        const s = Math.round(v);
+        return Math.floor(s / 60) + ' min ' + String(s % 60).padStart(2, '0') + ' s';
+      };
+      document.getElementById('time-readout').innerHTML =
+        '<b>' + (drawn / 1000).toFixed(1) + ' m</b> drawn in <b>' + segs.toLocaleString() +
+        '</b> segments, <b>' + (up / 1000).toFixed(1) + ' m</b> in the air<br>' +
+        'Drawing ' + fmt(drawn / t.draw) + ' &middot; travel ' + fmt(up / t.travel) +
+        ' &middot; ' + segs.toLocaleString() + ' segs × overhead ' + fmt(segs * t.lift) + '<br>' +
+        '<b>' + fmt(sec) + '</b> of machine time, plus nine pen swaps';
+    }
+
+    function renderMixTable() {
+      const tbody = document.getElementById('mix-table');
+      tbody.innerHTML = '';
+      PAIRS.forEach(([a, b], j) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td><span class="pair-swatch"><span style="background:' + penHex[a] +
+          '"></span><span style="background:' + penHex[b] + '"></span></span></td>' +
+          '<td>' + (j + 1) + ' &mdash; ' + (a + 1) + '+' + (b + 1) + '</td>' +
+          '<td>' + PEN_NAMES[a] + ' + ' + PEN_NAMES[b] + '</td>' +
+          '<td><div class="color-swatch" style="display:inline-block;background:' + mixHex[j] +
+          '"></div> <span class="mono">' + mixHex[j] + '</span></td>';
+        tbody.appendChild(tr);
+      });
+      document.getElementById('mix-note').innerHTML =
+        'The Lab midpoint is the artwork’s own <span class="mono">betterLerp(ink_a, ink_b, 0.5)</span>, ' +
+        'read at boot, not restated. It is the prediction; the plotted block is the measurement. ' +
+        'Blocks run in the swatch’s row-major grid order, and block 9 closes the wheel ' +
+        '(' + PEN_NAMES[8] + ' back to ' + PEN_NAMES[0] + ').';
+    }
+
+    function renderPenTable() {
+      const tbody = document.getElementById('pen-table');
+      tbody.innerHTML = '';
+      for (const f of files) {
+        const tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td><div class="color-swatch" style="background:' + penHex[f.ink] + '"></div></td>' +
+          '<td>ink' + (f.ink + 1) + ' ' + f.name + '</td>' +
+          '<td>' + f.blocks.map(j => (j + 1)).join(', ') + '</td>' +
+          '<td>' + (f.distance / 1000).toFixed(2) + ' m</td>' +
+          '<td>' + f.segments.toLocaleString() + '</td>' +
+          '<td>' + (f.penUp / 1000).toFixed(2) + ' m</td>';
+        tbody.appendChild(tr);
+      }
+      document.getElementById('pen-note').innerHTML =
+        'Nine pen loads, one file each — a pen is loaded once and draws both of its ' +
+        'blocks before it comes out. Swap order is the wheel order, ink1 first: ' +
+        PEN_NAMES.map((n, i) => (i + 1) + ' ' + n).join(', ') + '. ' +
+        'ink1’s file also carries the registration marks, patch ticks and titles.';
+    }
+
+    function renderBounds(geo) {
+      const b = sheetBounds;
+      const insideEnv = b.x0 >= geo.envX - 1e-6 && b.y0 >= geo.envY - 1e-6 &&
+                        b.x1 <= geo.envX + geo.envW + 1e-6 && b.y1 <= geo.envY + geo.envH + 1e-6;
+      const insideQuad = b.x1 <= geo.quadX1 + 1e-6 && b.y1 <= geo.quadY1 + 1e-6;
+      const insideBox = b.x0 >= geo.ux0 - 1e-6 && b.y0 >= geo.uy0 - 1e-6 &&
+                        b.x1 <= geo.ux1 + 1e-6 && b.y1 <= geo.uy1 + 1e-6;
+      const slack = Math.min(b.x0 - geo.ux0, geo.ux1 - b.x1, b.y0 - geo.uy0, geo.uy1 - b.y1);
+      document.getElementById('bounds-readout').innerHTML =
+        'Ink extent <b>' + b.w.toFixed(1) + ' &times; ' + b.h.toFixed(1) + ' mm</b> at (' +
+        b.x0.toFixed(1) + ', ' + b.y0.toFixed(1) + ') – (' + b.x1.toFixed(1) + ', ' +
+        b.y1.toFixed(1) + ')<br>' +
+        'Upper-left quadrant ' + geo.quadX1.toFixed(1) + ' &times; ' + geo.quadY1.toFixed(1) +
+        ' mm &mdash; ' + (insideQuad ? 'inside' : '<span class="bad">OUTSIDE</span>') + '<br>' +
+        'Envelope ' + geo.envW + ' &times; ' + geo.envH + ' mm &mdash; ' +
+        (insideEnv ? 'inside' : '<span class="bad">OUTSIDE THE ENVELOPE</span>') + '<br>' +
+        'Usable box &mdash; ' + (insideBox
+          ? 'inside, margin <b>' + slack.toFixed(1) + ' mm</b> at the tightest edge'
+          : '<span class="bad">OUTSIDE THE USABLE BOX</span>') + '<br>' +
+        'Free for other tests on this sheet: everything right of x=' + geo.quadX1.toFixed(1) +
+        ' mm and below y=' + geo.quadY1.toFixed(1) + ' mm';
+    }
+
+    function renderButtons() {
+      const prev = document.getElementById('preview-buttons');
+      prev.innerHTML = '';
+      const mk = (label, idx) => {
+        const b = document.createElement('button');
+        b.textContent = label;
+        b.onclick = () => showPreview(idx);
+        if (idx === previewIndex) b.className = 'active';
+        prev.appendChild(b);
+      };
+      mk('Sheet', 0);
+      files.forEach((f, i) => mk('ink' + (f.ink + 1), i + 1));
+
+      const dl = document.getElementById('download-buttons');
+      dl.innerHTML = '';
+      files.forEach((f, i) => {
+        const b = document.createElement('button');
+        b.innerHTML = '<div class="color-swatch" style="background:' + penHex[f.ink] + '"></div>' +
+                      'ink' + (f.ink + 1) + ' &middot; ' + f.name;
+        b.onclick = () => downloadFile(i);
+        dl.appendChild(b);
+      });
+      const all = document.createElement('button');
+      all.className = 'full-width';
+      all.textContent = 'Download all 9 pen files';
+      all.onclick = downloadAll;
+      dl.appendChild(all);
+    }
+
+    // ============ PREVIEW ============
+    function showPreview(idx) {
+      previewIndex = idx;
+      document.getElementById('preview-buttons').querySelectorAll('button')
+        .forEach((b, i) => b.classList.toggle('active', i === idx));
+
+      const geo = readGeometry();
+      const marks = readMarks();
+      const scale = Math.min(PREVIEW_SIZE / geo.paperW, PREVIEW_SIZE / geo.paperH);
+      const shown = idx === 0 ? files : [files[idx - 1]];
+
+      const body = shown.map(f => '<g stroke="' + penHex[f.ink] + '" stroke-width="' +
+        (marks.pitch * 0.9).toFixed(3) + '" stroke-linecap="butt">' +
+        f.groups.map(g => g.lines.map(l =>
+          '<line x1="' + l.x1.toFixed(4) + '" y1="' + l.y1.toFixed(4) +
+          '" x2="' + l.x2.toFixed(4) + '" y2="' + l.y2.toFixed(4) + '"/>').join('')).join('') +
+        '</g>').join('');
+
+      document.getElementById('svg-preview-container').innerHTML =
+        '<svg id="sheet-preview" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' +
+        geo.paperW + ' ' + geo.paperH + '" style="width:' + (geo.paperW * scale) +
+        'px;height:' + (geo.paperH * scale) + 'px;display:block;background:#fbfaf6">' +
+        body + '</svg>';
+
+      const note = document.getElementById('preview-note');
+      if (idx === 0) {
+        note.innerHTML = 'All nine files composited in the code’s pen colours at the ' +
+          'nib’s own width, on a Bristol-ish ground. Three quarters of the sheet is ' +
+          'deliberately empty — that is the point of the quadrant.';
+      } else {
+        const f = files[idx - 1];
+        note.innerHTML = 'ink' + (f.ink + 1) + ' ' + f.name + ' — blocks ' +
+          f.blocks.map(j => (j + 1)).join(' and ') + ', ' +
+          f.segments.toLocaleString() + ' segments, ' + (f.distance / 1000).toFixed(2) +
+          ' m drawn, ' + (f.penUp / 1000).toFixed(2) + ' m pen-up (was ' +
+          (f.penUpNaive / 1000).toFixed(2) + ' m unordered).';
+      }
+    }
+
+    function downloadFile(i) {
+      downloadSVG(files[i].filename, buildFileSVG(files[i], readGeometry(), readMarks()));
+    }
+
+    function downloadAll() {
+      const geo = readGeometry();
+      const marks = readMarks();
+      files.forEach((f, i) =>
+        setTimeout(() => downloadSVG(f.filename, buildFileSVG(f, geo, marks)), i * 150));
+    }
+
+    // ============ CARRIED OVER FROM THE SWATCH ============
+    function lineDistance(line) {
+      const dx = line.x2 - line.x1;
+      const dy = line.y2 - line.y1;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    function generateAngledLines(cellX, cellY, cellWidth, cellHeight, coverage, lineWidth, angleDeg) {
+      const lines = [];
+      const theta = angleDeg * Math.PI / 180;
+      const sinA = Math.sin(theta);
+      const cosA = Math.cos(theta);
+
+      const corners = [
+        [cellX, cellY],
+        [cellX + cellWidth, cellY],
+        [cellX, cellY + cellHeight],
+        [cellX + cellWidth, cellY + cellHeight]
+      ];
+      const dVals = corners.map(([x, y]) => -x * sinA + y * cosA);
+      const dMin = Math.min(...dVals);
+      const dMax = Math.max(...dVals);
+      const perpSpan = dMax - dMin;
+
+      const numLines = Math.max(1, Math.round(coverage * perpSpan / lineWidth));
+      const spacing = perpSpan / numLines;
+      const firstD = dMin + spacing / 2;
+
+      const xMin = cellX;
+      const xMax = cellX + cellWidth;
+      const yMin = cellY;
+      const yMax = cellY + cellHeight;
+
+      for (let i = 0; i < numLines; i++) {
+        const d = firstD + i * spacing;
+
+        let tMin = -1e9;
+        let tMax = 1e9;
+
+        if (Math.abs(cosA) > 1e-12) {
+          const tLeft  = (xMin + d * sinA) / cosA;
+          const tRight = (xMax + d * sinA) / cosA;
+          tMin = Math.max(tMin, Math.min(tLeft, tRight));
+          tMax = Math.min(tMax, Math.max(tLeft, tRight));
+        }
+
+        if (Math.abs(sinA) > 1e-12) {
+          const tTop    = (yMin - d * cosA) / sinA;
+          const tBottom = (yMax - d * cosA) / sinA;
+          tMin = Math.max(tMin, Math.min(tTop, tBottom));
+          tMax = Math.min(tMax, Math.max(tTop, tBottom));
+        }
+
+        if (tMin >= tMax - 1e-9) continue;
+
+        let x1 = -d * sinA + tMin * cosA;
+        let y1 =  d * cosA + tMin * sinA;
+        let x2 = -d * sinA + tMax * cosA;
+        let y2 =  d * cosA + tMax * sinA;
+
+        if (x1 > x2) [x1, y1, x2, y2] = [x2, y2, x1, y1];
+
+        lines.push({ x1, y1, x2, y2 });
+      }
+      return lines;
+    }
+
+    function downloadSVG(filename, content) {
+      const blob = new Blob([content], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // The check harness drives this page rather than re-deriving its geometry.
+    // Pure functions can be copied onto window; the mutable state cannot — an
+    // Object.assign of a getter copies its value at assign time, which here is
+    // an empty array. The live views are defineProperty accessors.
+    Object.assign(window, {
+      PEN_NAMES, PAIRS, readGeometry, readMarks, readAngles, readTiming,
+      registrationPoints, patchOrigins, blockOrigin, titleZone, labelMetrics,
+      buildFileSVG, boundsOf, showPreview, opacityMultiplier
+    });
+    Object.defineProperty(window, 'mixFiles', { get: () => files });
+    Object.defineProperty(window, 'mixPenHex', { get: () => penHex });
+    Object.defineProperty(window, 'mixMixHex', { get: () => mixHex });
+    Object.defineProperty(window, 'mixBounds', { get: () => sheetBounds });
+  </script>
+</body>
+</html>
