@@ -67,6 +67,13 @@ export const GLYPHS = {
   // Additive only: no existing glyph is touched, so every other generator's
   // emitted bytes are unchanged.
   '\u0394': [[[0, 6], [2, 0], [4, 6], [0, 6]]],
+  // Degree sign, added 2026-09-10 for the six-pen wheel sheet's HSB hue targets
+  // and its hue residual. Additive only, exactly as the Delta was: no existing
+  // glyph is touched, so every other generator's emitted bytes are unchanged.
+  // An eight-sided ring near the cap line; at a 2 mm cap it is a 0.33 mm circle,
+  // which is what a plotted degree sign is.
+  '\u00b0': [[[3, 1.2], [2.707, 1.907], [2, 2.2], [1.293, 1.907], [1, 1.2],
+              [1.293, 0.493], [2, 0.2], [2.707, 0.493], [3, 1.2]]],
   '+': [[[2, 1.4], [2, 4.6]], [[0.4, 3], [3.6, 3]]],
   '(': [[[2.6, 0], [1.2, 1.6], [1.2, 4.4], [2.6, 6]]],
   ')': [[[1.4, 0], [2.8, 1.6], [2.8, 4.4], [1.4, 6]]],
