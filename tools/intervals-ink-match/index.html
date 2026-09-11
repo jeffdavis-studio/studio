@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Intervals — ink match</title>
+<style>
+  :root {
+    --surround: #f7f5ef;
+    --chrome: #23232a;
+    --chrome-2: #2e2e37;
+    --text: #f2f2f4;
+    --dim: #9a9aa6;
+    --accent: #6fa8ff;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+  }
+  body {
+    background: var(--surround);
+    color: var(--text);
+    font: 12px/1.35 ui-sans-serif, -apple-system, "Helvetica Neue", Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    padding: 7px;
+    gap: 7px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- top bar ---------- */
+  #bar {
+    flex: 0 0 auto;
+    height: 40px;
+    background: var(--chrome);
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 10px;
+  }
+  #bar h1 {
+    font-size: 13px;
+    font-weight: 600;
+    margin: 0;
+    letter-spacing: .2px;
+    white-space: nowrap;
+  }
+  #bar h1 span { color: var(--dim); font-weight: 400; }
+  .spacer { flex: 1 1 auto; }
+  .grp {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+  .grp > label { color: var(--dim); font-size: 11px; }
+  button {
+    font: inherit;
+    font-size: 11px;
+    color: var(--text);
+    background: var(--chrome-2);
+    border: 1px solid #43434f;
+    border-radius: 5px;
+    padding: 5px 9px;
+    cursor: pointer;
+  }
+  button:hover { background: #3b3b46; }
+  button:active { background: #4a4a57; }
+  button.on { background: var(--accent); border-color: var(--accent); color: #0d1b33; font-weight: 600; }
+  .swatchbtn {
+    width: 24px; height: 22px; padding: 0;
+    border-radius: 4px;
+    border: 1px solid #55555f;
+  }
+  .swatchbtn.on { outline: 2px solid var(--accent); outline-offset: 1px; border-color: #fff; }
+
+  /* ---------- grid ---------- */
+  #grid {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 7px;
+  }
+  .card {
+    min-height: 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    border-radius: 7px;
+    overflow: hidden;
+    background: var(--chrome);
+    border: 1px solid rgba(0,0,0,.18);
+  }
+  .chead {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    height: 23px;
+  }
+  .cname { font-size: 12px; font-weight: 600; }
+  .cid { font-size: 10.5px; color: var(--dim); font-variant-numeric: tabular-nums; }
+  .reset {
+    padding: 2px 6px;
+    font-size: 10px;
+    line-height: 1.2;
+  }
+
+  /* the swatch sits inside a frame painted with the surround colour */
+  .frame {
+    flex: 1 1 auto;
+    min-height: 0;
+    background: var(--surround);
+    padding: 11px 11px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .swatch {
+    flex: 1 1 auto;
+    min-height: 190px;
+    border-radius: 3px;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.10);
+  }
+  /* original | current comparison strip */
+  .strip {
+    flex: 0 0 auto;
+    height: 24px;
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    border-radius: 3px;
+    overflow: hidden;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.10);
+    position: relative;
+  }
+  .strip > div { flex: 1 1 50%; }
+  .strip .lbl {
+    position: absolute;
+    right: 4px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 9.5px;
+    font-variant-numeric: tabular-nums;
+    padding: 1px 4px;
+    border-radius: 3px;
+    background: rgba(255,255,255,.82);
+    color: #1a1a1a;
+    pointer-events: none;
+    flex: 0 0 auto;
+  }
+
+  /* ---------- controls ---------- */
+  .ctl {
+    flex: 0 0 auto;
+    padding: 5px 8px 7px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 21px;
+  }
+  .row > .k {
+    width: 11px;
+    color: var(--dim);
+    font-size: 10.5px;
+    font-weight: 600;
+    text-align: center;
+    flex: 0 0 auto;
+  }
+  input[type=range] {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 16px;
+    margin: 0;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+  input[type=number], input[type=text] {
+    font: inherit;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+    background: #16161b;
+    border: 1px solid #43434f;
+    border-radius: 4px;
+    padding: 2px 4px;
+    text-align: center;
+  }
+  input[type=number] { width: 42px; flex: 0 0 auto; }
+  input[type=number]::-webkit-inner-spin-button { opacity: .35; }
+  .hexrow { height: 23px; margin-top: 2px; }
+  .hexrow .k { width: auto; }
+  input.hex {
+    flex: 1 1 auto;
+    min-width: 0;
+    letter-spacing: .6px;
+    font-size: 11.5px;
+    text-transform: uppercase;
+  }
+  input.hex.bad { border-color: #d05a5a; color: #ff9e9e; }
+  .hsbout {
+    flex: 0 0 auto;
+    font-size: 10.5px;
+    color: var(--dim);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  /* ---------- footnote ---------- */
+  #foot {
+    flex: 0 0 auto;
+    height: 15px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 4px;
+    font-size: 10.5px;
+    color: #7a7468;
+  }
+
+  /* ---------- help ---------- */
+  #help {
+    position: fixed;
+    inset: 0;
+    background: rgba(10,10,14,.62);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+  }
+  #help.show { display: flex; }
+  #help .panel {
+    background: var(--chrome);
+    border: 1px solid #43434f;
+    border-radius: 9px;
+    padding: 18px 20px;
+    max-width: 560px;
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+  #help h2 { margin: 0 0 8px; font-size: 14px; }
+  #help ol { margin: 0 0 10px; padding-left: 18px; }
+  #help li { margin-bottom: 4px; }
+  #help p { margin: 0 0 8px; color: var(--dim); }
+  #help code { background: #16161b; padding: 1px 4px; border-radius: 3px; }
+
+  #toast {
+    position: fixed;
+    left: 50%; bottom: 26px;
+    transform: translateX(-50%);
+    background: var(--accent);
+    color: #0d1b33;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 7px 14px;
+    border-radius: 6px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .18s;
+    z-index: 30;
+  }
+  #toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div id="bar">
+  <h1>Intervals — ink match <span>&middot; eight Sakura Pigma Micron pens</span></h1>
+  <div class="spacer"></div>
+  <div class="grp">
+    <label>Surround</label>
+    <button class="swatchbtn on" data-surround="#f7f5ef" style="background:#f7f5ef" title="Bristol paper white #f7f5ef"></button>
+    <button class="swatchbtn" data-surround="#ffffff" style="background:#ffffff" title="Pure white #ffffff"></button>
+    <button class="swatchbtn" data-surround="#808080" style="background:#808080" title="Mid gray #808080 — helps judge saturation"></button>
+  </div>
+  <div class="grp">
+    <button id="hatch" title="Draw the swatch as the plot's four-direction hatch at 0.95 density instead of a solid fill">Hatch</button>
+  </div>
+  <div class="grp">
+    <button id="copy">Copy all</button>
+    <button id="json">Download JSON</button>
+    <button id="resetall">Reset all</button>
+    <button id="helpbtn" title="How to use this">?</button>
+  </div>
+</div>
+
+<div id="grid"></div>
+
+<div id="foot">
+  <span>Values are HSB exactly as <code>Intervals_v4.js</code> stores them — <code>ink1 = color(H, S, B)</code>.</span>
+  <span>ink7 (Purple) is deliberately skipped: Jeff cut it from the set on 2026-09-10. The code ids stay as they are so the wheel order does not shift.</span>
+  <span class="spacer"></span>
+  <span>Changes save automatically.</span>
+</div>
+
+<div id="help"><div class="panel">
+  <h2>How to use this</h2>
+  <ol>
+    <li>Hold the plotted swatch sheet next to the screen, in the light you normally judge in.</li>
+    <li>For each pen, move H / S / B until the block on screen matches the ink on the paper. Paper white is the default surround; switch to mid gray if you need to judge saturation.</li>
+    <li>The thin strip under each block is the old placeholder on the left, your value on the right, with the &Delta;E between them.</li>
+    <li>When all eight look right, hit <strong>Copy all</strong> and text it to Morgan. (Or <strong>Download JSON</strong> if you would rather send a file.)</li>
+  </ol>
+  <p>Sliders are HSB, so hue 0 is red and runs the way you read a colour wheel. The numbers are exactly what goes into <code>color(H, S, B)</code> in the generator — no conversion in between.</p>
+  <p>Everything saves as you go, so you can close the lid and come back. <strong>Reset</strong> on a card, or <strong>Reset all</strong>, puts the placeholders back.</p>
+  <p style="margin-bottom:0"><em>Click anywhere to close.</em></p>
+</div></div>
+
+<div id="toast"></div>
+
+<script>
+"use strict";
+
+// ---- the eight inks. Placeholders are read verbatim from Intervals_v4.js
+// setup(): colorMode(HSB) then ink1..ink9 = color(H, S, B). ink7 (Purple) is
+// omitted on purpose — Jeff cut it from the set 2026-09-10 — but the ids of the
+// others are unchanged so the wheel order in the generator still lines up.
+const INKS = [
+  { id: "ink1", name: "Orange",      hsb: [ 31, 67, 95] },
+  { id: "ink2", name: "Yellow",      hsb: [ 54, 62, 96] },
+  { id: "ink3", name: "Fresh Green", hsb: [101, 50, 73] },
+  { id: "ink4", name: "Green",       hsb: [168, 53, 64] },
+  { id: "ink5", name: "Blue",        hsb: [224, 86, 65] },
+  { id: "ink6", name: "Royal Blue",  hsb: [252, 91, 80] },
+  { id: "ink8", name: "Rose",        hsb: [316, 54, 67] },
+  { id: "ink9", name: "Red",         hsb: [359, 76, 85] }
+];
+
+const STORE = "intervals-ink-match-v1";
+
+// ---- colour maths -----------------------------------------------------
+function hsbToRgb(h, s, v) {
+  h = ((h % 360) + 360) % 360; s /= 100; v /= 100;
+  const f = n => {
+    const k = (n + h / 60) % 6;
+    return Math.round(255 * (v - v * s * Math.max(0, Math.min(k, 4 - k, 1))));
+  };
+  return [f(5), f(3), f(1)];
+}
+function rgbToHsb(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+  let h = 0;
+  if (d) {
+    if (mx === r)      h = 60 * (((g - b) / d) % 6);
+    else if (mx === g) h = 60 * ((b - r) / d + 2);
+    else               h = 60 * ((r - g) / d + 4);
+  }
+  if (h < 0) h += 360;
+  return [Math.round(h), Math.round(mx ? (d / mx) * 100 : 0), Math.round(mx * 100)];
+}
+const hex2 = n => n.toString(16).padStart(2, "0");
+const rgbToHex = ([r, g, b]) => "#" + hex2(r) + hex2(g) + hex2(b);
+const hsbToHex = hsb => rgbToHex(hsbToRgb(hsb[0], hsb[1], hsb[2]));
+function parseHex(str) {
+  let s = String(str).trim().replace(/^#/, "");
+  if (/^[0-9a-fA-F]{3}$/.test(s)) s = s.split("").map(c => c + c).join("");
+  if (!/^[0-9a-fA-F]{6}$/.test(s)) return null;
+  return [0, 2, 4].map(i => parseInt(s.substr(i, 2), 16));
+}
+// sRGB -> Lab (D65), then CIE76 dE
+function rgbToLab([r, g, b]) {
+  const lin = c => { c /= 255; return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+  const R = lin(r), G = lin(g), B = lin(b);
+  const X = (0.4124564 * R + 0.3575761 * G + 0.1804375 * B) / 0.95047;
+  const Y = (0.2126729 * R + 0.7151522 * G + 0.0721750 * B) / 1.00000;
+  const Z = (0.0193339 * R + 0.1191920 * G + 0.9503041 * B) / 1.08883;
+  const f = t => t > 0.008856 ? Math.cbrt(t) : (7.787 * t) + 16 / 116;
+  const fx = f(X), fy = f(Y), fz = f(Z);
+  return [116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)];
+}
+function deltaE76(rgbA, rgbB) {
+  const a = rgbToLab(rgbA), b = rgbToLab(rgbB);
+  return Math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2);
+}
+
+// ---- the plot's four-direction hatch, as a CSS approximation -----------
+// The emitter lays four line families at 22.5 / 67.5 / 112.5 / 157.5 degrees.
+// Ink composites rather than adds: apparent = 1 - (1 - c)^4. For an apparent
+// 0.95 each family must cover 1 - 0.05^0.25 = 0.5271 of its own band.
+const HATCH_ANGLES = [22.5, 67.5, 112.5, 157.5];
+const HATCH_PERIOD = 9;                                  // px between lines
+const HATCH_INK = HATCH_PERIOD * (1 - Math.pow(0.05, 0.25)); // px of ink per period
+function hatchCss(hex) {
+  return HATCH_ANGLES.map(a =>
+    `repeating-linear-gradient(${a}deg, ${hex} 0 ${HATCH_INK.toFixed(2)}px, ` +
+    `rgba(0,0,0,0) ${HATCH_INK.toFixed(2)}px ${HATCH_PERIOD}px)`
+  ).join(", ");
+}
+
+// ---- state ------------------------------------------------------------
+let state = INKS.map(k => k.hsb.slice());
+let surround = "#f7f5ef";
+let hatchOn = false;
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORE);
+    if (!raw) return;
+    const o = JSON.parse(raw);
+    if (o && Array.isArray(o.hsb) && o.hsb.length === INKS.length) {
+      state = o.hsb.map((t, i) =>
+        Array.isArray(t) && t.length === 3 && t.every(n => Number.isFinite(n))
+          ? [clamp(t[0], 0, 360), clamp(t[1], 0, 100), clamp(t[2], 0, 100)]
+          : INKS[i].hsb.slice()
+      );
+    }
+    if (typeof o.surround === "string") surround = o.surround;
+    if (typeof o.hatch === "boolean") hatchOn = o.hatch;
+  } catch (e) { /* corrupt store: fall back to placeholders */ }
+}
+function save() {
+  try {
+    localStorage.setItem(STORE, JSON.stringify({ hsb: state, surround, hatch: hatchOn }));
+  } catch (e) { /* private mode: the page still works, it just will not persist */ }
+}
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, Math.round(v)));
+
+// ---- build the cards --------------------------------------------------
+const grid = document.getElementById("grid");
+const cards = INKS.map((ink, i) => {
+  const el = document.createElement("div");
+  el.className = "card";
+  el.innerHTML = `
+    <div class="chead">
+      <span class="cname">${ink.name}</span>
+      <span class="cid">${ink.id}</span>
+      <span class="spacer"></span>
+      <button class="reset" title="Back to the placeholder">reset</button>
+    </div>
+    <div class="frame">
+      <div class="swatch"></div>
+      <div class="strip">
+        <div class="orig"></div>
+        <div class="cur"></div>
+        <span class="lbl"></span>
+      </div>
+    </div>
+    <div class="ctl">
+      <div class="row"><span class="k">H</span><input type="range" min="0" max="360" step="1"><input type="number" min="0" max="360" step="1"></div>
+      <div class="row"><span class="k">S</span><input type="range" min="0" max="100" step="1"><input type="number" min="0" max="100" step="1"></div>
+      <div class="row"><span class="k">B</span><input type="range" min="0" max="100" step="1"><input type="number" min="0" max="100" step="1"></div>
+      <div class="row hexrow">
+        <input type="text" class="hex" spellcheck="false" autocomplete="off">
+        <span class="hsbout"></span>
+      </div>
+    </div>`;
+  grid.appendChild(el);
+
+  const rows = [...el.querySelectorAll(".ctl .row")].slice(0, 3);
+  const ranges = rows.map(r => r.querySelector("input[type=range]"));
+  const nums   = rows.map(r => r.querySelector("input[type=number]"));
+  const hexIn  = el.querySelector("input.hex");
+
+  ranges.forEach((r, j) => r.addEventListener("input", () => { setChannel(i, j, +r.value); }));
+  nums.forEach((n, j) => n.addEventListener("input", () => {
+    if (n.value === "" || n.value === "-") return;
+    setChannel(i, j, +n.value);
+  }));
+  nums.forEach((n, j) => n.addEventListener("blur", () => paint(i)));
+
+  hexIn.addEventListener("input", () => {
+    const rgb = parseHex(hexIn.value);
+    if (!rgb) { hexIn.classList.add("bad"); return; }
+    hexIn.classList.remove("bad");
+    state[i] = rgbToHsb(rgb[0], rgb[1], rgb[2]);
+    paint(i, { skipHex: true });
+    save();
+  });
+  hexIn.addEventListener("blur", () => { hexIn.classList.remove("bad"); paint(i); });
+
+  el.querySelector(".reset").addEventListener("click", () => {
+    state[i] = ink.hsb.slice();
+    paint(i); save();
+  });
+
+  return {
+    el, ranges, nums, hexIn,
+    swatch: el.querySelector(".swatch"),
+    orig:   el.querySelector(".strip .orig"),
+    cur:    el.querySelector(".strip .cur"),
+    lbl:    el.querySelector(".strip .lbl"),
+    hsbout: el.querySelector(".hsbout")
+  };
+});
+
+function setChannel(i, ch, v) {
+  const max = ch === 0 ? 360 : 100;
+  state[i][ch] = clamp(v, 0, max);
+  paint(i);
+  save();
+}
+
+function paint(i, opts) {
+  opts = opts || {};
+  const c = cards[i], ink = INKS[i], hsb = state[i];
+  const hex = hsbToHex(hsb);
+  const origHex = hsbToHex(ink.hsb);
+
+  if (hatchOn) {
+    c.swatch.style.background = hatchCss(hex);
+    c.swatch.style.backgroundColor = surround;
+  } else {
+    c.swatch.style.background = hex;
+  }
+  c.orig.style.background = origHex;
+  c.cur.style.background = hex;
+
+  const dE = deltaE76(hsbToRgb(...ink.hsb), hsbToRgb(...hsb));
+  c.lbl.textContent = dE < 0.5 ? "placeholder" : "ΔE " + dE.toFixed(1);
+
+  c.ranges.forEach((r, j) => { if (r.value != hsb[j]) r.value = hsb[j]; });
+  c.nums.forEach((n, j) => {
+    if (document.activeElement !== n && n.value != hsb[j]) n.value = hsb[j];
+  });
+  if (!opts.skipHex && document.activeElement !== c.hexIn) c.hexIn.value = hex.toUpperCase();
+  c.hsbout.textContent = `HSB ${hsb[0]} ${hsb[1]} ${hsb[2]}`;
+}
+
+function paintAll() { for (let i = 0; i < cards.length; i++) paint(i); }
+
+// ---- top bar ----------------------------------------------------------
+const surroundBtns = [...document.querySelectorAll("[data-surround]")];
+function applySurround(hex) {
+  surround = hex;
+  document.documentElement.style.setProperty("--surround", hex);
+  surroundBtns.forEach(b => b.classList.toggle("on", b.dataset.surround === hex));
+  if (hatchOn) paintAll();
+  save();
+}
+surroundBtns.forEach(b => b.addEventListener("click", () => applySurround(b.dataset.surround)));
+
+const hatchBtn = document.getElementById("hatch");
+hatchBtn.addEventListener("click", () => {
+  hatchOn = !hatchOn;
+  hatchBtn.classList.toggle("on", hatchOn);
+  paintAll(); save();
+});
+
+function lines() {
+  return INKS.map((ink, i) => {
+    const h = state[i];
+    return `${ink.id} ${ink.name} ${hsbToHex(h).toUpperCase()}  HSB ${h[0]} ${h[1]} ${h[2]}`;
+  }).join("\n");
+}
+
+function toast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove("show"), 1700);
+}
+
+document.getElementById("copy").addEventListener("click", async () => {
+  const text = lines();
+  try {
+    await navigator.clipboard.writeText(text);
+    toast("Copied eight lines");
+  } catch (e) {
+    // clipboard API needs a secure context / permission — fall back to a select-all textarea
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.cssText = "position:fixed;left:-9999px";
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand("copy");
+    ta.remove();
+    toast(ok ? "Copied eight lines" : "Copy failed — use Download JSON");
+  }
+});
+
+document.getElementById("json").addEventListener("click", () => {
+  const payload = {
+    tool: "intervals-ink-match",
+    note: "HSB as Intervals_v4.js stores it: colorMode(HSB); inkN = color(H, S, B). ink7 (Purple) is out of the set as of 2026-09-10.",
+    timestamp: new Date().toISOString(),
+    inks: INKS.map((ink, i) => ({
+      id: ink.id,
+      name: ink.name,
+      hsb: state[i].slice(),
+      hex: hsbToHex(state[i]).toUpperCase(),
+      placeholder_hsb: ink.hsb.slice(),
+      placeholder_hex: hsbToHex(ink.hsb).toUpperCase(),
+      deltaE76: +deltaE76(hsbToRgb(...ink.hsb), hsbToRgb(...state[i])).toFixed(2)
+    }))
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "intervals-inks-" + new Date().toISOString().slice(0, 10) + ".json";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  toast("JSON downloaded");
+});
+
+document.getElementById("resetall").addEventListener("click", () => {
+  state = INKS.map(k => k.hsb.slice());
+  paintAll(); save();
+  toast("All eight back to placeholders");
+});
+
+const help = document.getElementById("help");
+document.getElementById("helpbtn").addEventListener("click", () => help.classList.add("show"));
+help.addEventListener("click", () => help.classList.remove("show"));
+document.addEventListener("keydown", e => { if (e.key === "Escape") help.classList.remove("show"); });
+
+// ---- go ---------------------------------------------------------------
+load();
+applySurround(surround);
+hatchBtn.classList.toggle("on", hatchOn);
+paintAll();
+</script>
+</body>
+</html>
