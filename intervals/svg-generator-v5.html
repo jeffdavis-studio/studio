@@ -9,6 +9,16 @@
     Intervals edition. Supersedes intervals/svg-generator-v4.html, which stays
     as it is. Forked originally from mechanical-drawings/svg-generator-v6.html.
 
+    2026-09-11 — THE EIGHT-INK SET AND AN 11 IN DEFAULT. The artwork script is
+    Intervals_v5.js now (Jeff's eight by-eye ink values, Purple out, the array
+    sorted ascending by hue so Red at 6 sits first). That reorders the ink array,
+    so this page no longer restates the pen names or derives an id from an index:
+    PEN_NAMES and PEN_IDS are read off the script's inkNames/inkIds at boot, the
+    way penHex already was, and the boot guard is eight, not nine. The default
+    image is 279.4 mm — 11 in exactly, Jeff's size for the first plotted token —
+    which leaves 8.8 mm of slack each side of the window and 65.3 mm top and
+    bottom. Nothing else moved; the frame work below is untouched.
+
     WHAT V5 CHANGES — THE FRAME, AND ONLY THE FRAME, 2026-09-10. Jeff, by voice:
     the files he had been plotting come out "cut off on the left and pushed left
     and down". v4 sized its SVG to the 14x17 sheet (355.6 x 431.8 mm) and
@@ -19,7 +29,8 @@
     58.6 mm off one edge. In v5 the document IS the window: 297 x 410 mm from
     plot-frame.mjs, plain top-left origin, y down, 1 unit = 1 mm, no paper size
     in the file at all. The image is centered in the DOCUMENT, so at the default
-    290 mm square the horizontal slack is (297 - 290) / 2 = 3.5 mm per side —
+    279.4 mm (11 in) square the horizontal slack is (297 - 279.4) / 2 = 8.8 mm
+    per side —
     which is exactly why the sheet has to cover the whole window, not just be
     big enough. Jeff centers the 14x17 sheet on the machine by hand: 29.3 mm of
     sheet outside the window each side, 10.9 mm top and bottom. Everything else
@@ -100,7 +111,7 @@
     measurement. The knob exists, off, with the available count live in the
     readout so the number is visible without turning it on.
 
-    It does NOT re-implement the artwork. Intervals_v4.js is loaded as a sibling
+    It does NOT re-implement the artwork. Intervals_v5.js is loaded as a sibling
     script and driven directly: set tokenData.hash, call setup(), call
     coverage(). The weight table this reads is the artwork's own, so the emitter
     cannot drift from the piece. If Intervals moves to a v5, change the one
@@ -111,14 +122,14 @@
       clipper), lineDistance, downloadSVG, the per-pen file model (mm units, 1:1
       viewBox, monochrome strokes, zero-stroke sheet rect), the
       group-with-data-attrs shape, and the materials-table pattern.
-      betterLerp/rgbToLab/labToRgb are not copied in — Intervals_v4.js already
+      betterLerp/rgbToLab/labToRgb are not copied in — Intervals_v5.js already
       defines them globally.
 
     Every dimension is a control. There are no baked-in millimetres — including,
     now, the machine profile the time estimate is built on.
   -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
-  <script src="Intervals_v4.js"></script>
+  <script src="Intervals_v5.js"></script>
   <!--
     THE FRAME, imported as an ES module and handed to the classic script below.
     The rest of this page is a plain global script (p5 global mode, inline
@@ -349,12 +360,12 @@
           <h3>Document &amp; Image</h3>
           <div class="form-row">
             <div class="form-group">
-              <label for="imgWidth">Image W (mm)</label>
-              <input type="number" id="imgWidth" value="290" step="1" min="10">
+              <label for="imgWidth">Image W &mdash; 11 in = 279.4 mm</label>
+              <input type="number" id="imgWidth" value="279.4" step="0.1" min="10">
             </div>
             <div class="form-group">
-              <label for="imgHeight">Image H (mm)</label>
-              <input type="number" id="imgHeight" value="290" step="1" min="10">
+              <label for="imgHeight">Image H &mdash; 11 in = 279.4 mm</label>
+              <input type="number" id="imgHeight" value="279.4" step="0.1" min="10">
             </div>
           </div>
           <div class="note" id="image-note">The document IS the iDraw H's drawable window &mdash;
@@ -513,14 +524,17 @@
     // ============ CONSTANTS ============
     const PREVIEW_SIZE = 630;
 
-    // The nine Micron 05 colours, in wheel order, mapping 1:1 onto Intervals'
-    // ink1..ink9. HSB is not restated here — it is read off the artwork's own
-    // `inks` array at boot, so the swatches cannot disagree with the piece.
-    // Names are Jeff's, 2026-08-24.
-    const PEN_NAMES = [
-      'Orange', 'Yellow', 'Fresh Green', 'Green', 'Blue',
-      'Royal Blue', 'Purple', 'Rose', 'Red'
-    ];
+    // THE PEN TABLE IS THE ARTWORK'S, NOT THIS PAGE'S (2026-09-11). Until
+    // Intervals_v5 the ink array was nine long in Jeff's own id order, so a
+    // hardcoded name list indexed by position worked and `ink' + (i + 1)` was
+    // the id. Neither is true now: v5 drops Purple and sorts the eight ASCENDING
+    // BY HUE so mix()'s wrap segment is right with Red at hue 6, which puts Red
+    // (ink9) at index 0. So the ids and names are read off the script's own
+    // inkIds/inkNames at boot, exactly the way the hexes already were, and every
+    // label in this page follows the array instead of restating it. Names are
+    // Jeff's, 2026-08-24; the values are his by-eye match of 2026-09-11.
+    let PEN_NAMES = [];        // filled at boot from the artwork's inkNames
+    let PEN_IDS = [];          // filled at boot from the artwork's inkIds
 
     // ============ GLOBAL STATE ============
     let artCanvas = null;
@@ -530,7 +544,7 @@
     let previewIndex = 0;      // 0 = digital render, 1..n = layer n-1
 
     // ============ BOOT ============
-    // Intervals_v4.js seeds itself with a Math.random hash at parse time. This
+    // Intervals_v5.js seeds itself with a Math.random hash at parse time. This
     // runs before p5's load handler, so the first render is already ours.
     tokenData.hash = randomHash();
 
@@ -565,6 +579,15 @@
 
       colorMode(RGB);
       penHex = inks.map(c => rgbHex(c));
+      PEN_NAMES = inkNames.slice();
+      PEN_IDS = inkIds.slice();
+      if (inks.length !== PEN_NAMES.length || inks.length !== PEN_IDS.length) {
+        throw new Error('Intervals_v5.js: inks/inkNames/inkIds disagree — ' +
+          inks.length + '/' + PEN_NAMES.length + '/' + PEN_IDS.length);
+      }
+      if (inks.length !== 8) {
+        throw new Error('Intervals_v5.js exposed ' + inks.length + ' inks, expected the eight-pen set');
+      }
 
       document.getElementById('tokenHash').value = tokenData.hash;
       ['imgWidth', 'imgHeight', 'linePitch',
@@ -631,11 +654,13 @@
       const imgW = parseFloat(document.getElementById('imgWidth').value) || 1;
       const imgH = parseFloat(document.getElementById('imgHeight').value) || 1;
       // The image-position rule, unchanged from v4 except for what it centers
-      // in. At the default 290 mm square the slack is (297 - 290) / 2 = 3.5 mm
-      // across and (410 - 290) / 2 = 60 mm down. 3.5 mm is less than the 6 mm
-      // frame the chart sheets keep, and that is deliberate: the artwork takes
-      // essentially the whole short axis (KB 3.8), which is why the sheet has to
-      // cover the full window.
+      // in. The default is 11 in = 279.4 mm exactly (Jeff, 2026-09-11 — he
+      // thinks in inches and the first plotted token is an 11 in square), which
+      // leaves (297 - 279.4) / 2 = 8.8 mm of slack across and
+      // (410 - 279.4) / 2 = 65.3 mm down. 8.8 mm is more than the 6 mm frame the
+      // chart sheets keep, but the artwork still takes essentially the whole
+      // short axis (KB 3.8), which is why the sheet has to cover the full
+      // window rather than merely be big enough.
       return {
         docW, docH, docMargin, imgW, imgH,
         imgX: (docW - imgW) / 2,
@@ -731,7 +756,7 @@
     // bars is flat across eps from 1e-9 to 1e-3 (13,289 -> 13,264 bars, 0.2%),
     // then moves hard by 5e-3 (down to 12,540). 1e-3 is the top of that plateau,
     // and it is also about where the geometry drops a family anyway — at the
-    // default 290 mm image and 0.45 mm pitch a weight below ~5e-4 rounds to zero
+    // default 279.4 mm image and 0.45 mm pitch a weight below ~5e-4 rounds to zero
     // lines. Below the plateau you are counting float dust as a pen.
     const ACTIVE_WEIGHT_EPS = 1e-3;
 
@@ -858,7 +883,7 @@
     // sit spacing/2 inside the rect and spacing >= pitch >= nib at any coverage
     // at or below 1, so the ink edge was already inside. This makes it a
     // guarantee independent of density instead of a consequence of it, and it
-    // costs at most 0.225 mm off each side of a 290 mm image. It is a control,
+    // costs at most 0.225 mm off each side of a 279.4 mm image. It is a control,
     // so set it to 0 to get v3's behaviour back.
     //
     // THE STACK IS NOT REGENERATED, IT IS CLIPPED. The line grid — how many
@@ -1173,7 +1198,7 @@
 
     function layerFilename(t, layer) {
       const slug = PEN_NAMES[layer.ink].toLowerCase().replace(/\s+/g, '-');
-      return 'intervals-' + t.hash.slice(2, 10) + '-ink' + (layer.ink + 1) + '-' + slug +
+      return 'intervals-' + t.hash.slice(2, 10) + '-' + PEN_IDS[layer.ink] + '-' + slug +
              '-' + layer.angle + 'deg.svg';
     }
 
@@ -1200,8 +1225,8 @@
     // where a pure lift constant would not be. It will run pessimistic on a sheet
     // of long strokes and it should be re-fitted if the profile changes.
     //
-    // NOT COUNTED: pen swaps, the lead-in from home, and the operator. A nine-pen
-    // sheet is several minutes of hands either way and that is not the machine's
+    // NOT COUNTED: pen swaps, the lead-in from home, and the operator. A full
+    // eight-pen sheet is several minutes of hands either way and that is not the machine's
     // time to predict.
     const DRAW_MM_S = 66.7;        // 4000 mm/min, the locked profile
     const TRAVEL_MM_S = 133.3;     // 8000 mm/min pen-up
@@ -1396,7 +1421,7 @@
         const secs = mine.reduce((t, l) => t + layerSeconds(l, mach), 0);
         tr.innerHTML =
           '<td><div class="color-swatch" style="background:' + penHex[i] + '"></div></td>' +
-          '<td>ink' + (i + 1) + ' ' + PEN_NAMES[i] + '</td>' +
+          '<td>' + PEN_IDS[i] + ' ' + PEN_NAMES[i] + '</td>' +
           '<td>' + (mine.length ? mine.map(l => l.angle + '&deg;').join(', ') : '&mdash;') + '</td>' +
           '<td>' + (mine.length ? (dist / 1000).toFixed(1) + ' m' : '&mdash;') + '</td>' +
           '<td>' + (mine.length ? segs.toLocaleString() : '&mdash;') + '</td>' +
@@ -1422,14 +1447,14 @@
         prev.appendChild(b);
       };
       mk('Render', 0);
-      layers.forEach((l, i) => mk('ink' + (l.ink + 1) + ' ' + l.angle + '\u00b0', i + 1));
+      layers.forEach((l, i) => mk(PEN_IDS[l.ink] + ' ' + l.angle + '\u00b0', i + 1));
 
       const dl = document.getElementById('download-buttons');
       dl.innerHTML = '';
       layers.forEach((l, i) => {
         const b = document.createElement('button');
         b.innerHTML = '<div class="color-swatch" style="background:' + penHex[l.ink] + '"></div>' +
-                      'ink' + (l.ink + 1) + ' &middot; ' + l.angle + '&deg;';
+                      PEN_IDS[l.ink] + ' &middot; ' + l.angle + '&deg;';
         b.onclick = () => downloadLayer(i);
         dl.appendChild(b);
       });
@@ -1453,7 +1478,7 @@
       if (idx === 0) {
         renderEl.style.display = 'block';
         svgEl.style.display = 'none';
-        note.textContent = 'The artwork as Intervals_v4 draws it, at the token above.';
+        note.textContent = 'The artwork as Intervals_v5 draws it, at the token above.';
         return;
       }
 
@@ -1479,7 +1504,7 @@
       // on paper. Still display only: the file is black at stroke-width 1.
       g.setAttribute('stroke-width', readMarks().nib.toFixed(3));
 
-      note.innerHTML = 'ink' + (layer.ink + 1) + ' ' + PEN_NAMES[layer.ink] + ' at ' + layer.angle +
+      note.innerHTML = PEN_IDS[layer.ink] + ' ' + PEN_NAMES[layer.ink] + ' at ' + layer.angle +
         '&deg; &mdash; ' + layer.lineCount.toLocaleString() + ' segments, ' +
         (layer.distance / 1000).toFixed(1) + ' m, across ' + layer.bars.length + ' bars, ' +
         (layer.penUp / 1000).toFixed(1) + ' m pen-up (was ' +
@@ -1503,7 +1528,7 @@
           .map(l => '      <line x1="' + l.x1.toFixed(6) + '" y1="' + l.y1.toFixed(6) +
                     '" x2="' + l.x2.toFixed(6) + '" y2="' + l.y2.toFixed(6) + '"/>')
           .join('\n');
-        return '    <g id="' + i + '-bar-ink' + (layer.ink + 1) + '-b' + bar.band + 's' + bar.step +
+        return '    <g id="' + i + '-bar-' + PEN_IDS[layer.ink] + '-b' + bar.band + 's' + bar.step +
                '" data-band="' + bar.band + '" data-step="' + bar.step +
                '" data-weight="' + bar.weight.toFixed(6) +
                '" data-density="' + bar.density.toFixed(6) +
@@ -1537,7 +1562,7 @@
 '     data-s="' + t.s + '"\n' +
 '     data-rotation="' + (t.r * 90) + '"\n' +
 '     data-variant="' + t.vtype + '"\n' +
-'     data-ink="ink' + (layer.ink + 1) + '"\n' +
+'     data-ink="' + PEN_IDS[layer.ink] + '"\n' +
 '     data-pen="' + PEN_NAMES[layer.ink] + '"\n' +
 '     data-angle="' + layer.angle + '"\n' +
 '     data-slots="' + [...layer.slots].sort().join(',') + '"\n' +
