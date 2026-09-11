@@ -117,6 +117,21 @@
     cannot drift from the piece. If Intervals moves to a v5, change the one
     script tag below and nothing else.
 
+    THE FILE MODEL IS ONE FILE PER PEN, since 2026-09-11 (Jeff: "we should have
+    a single file per pen, even if there are multiple angles for that pen").
+    Until today the emitter wrote one file per (pen, angle) layer, so a token
+    where one ink carried three angles came off as three files for one pen load
+    — token 1 was ten files for seven pens. Now each pen gets ONE SVG on the
+    297 x 410 working-area document, with one <g> per angle layer inside it, in
+    plot order, each group keeping the data-* it carried when it was its own
+    file. The geometry is untouched: a pen file is exactly the concatenation of
+    its old per-angle files, and the check asserts that on segment count, drawn
+    length and pen-up. Pen loads = number of files again.
+
+    The per-(pen, angle) emission is still here behind a checkbox, off by
+    default — the check harness runs both models and compares them, and it is
+    the only way to plot one angle of a pen on its own.
+
     CARRIED OVER VERBATIM from v2, and from svg-generator-v6 before it:
       the whole of §DENSITY, generateAngledLines (the rectangle/angle/coverage
       clipper), lineDistance, downloadSVG, the per-pen file model (mm units, 1:1
@@ -308,6 +323,11 @@
     table.pens tr.idle .color-swatch {
       opacity: 0.25;
     }
+    table.pens tr.total td {
+      border-top: 2px solid #333;
+      border-bottom: none;
+      padding-top: 8px;
+    }
     .readout {
       font-size: 12px;
       line-height: 1.7;
@@ -465,6 +485,12 @@
             </div>
           </div>
           <div class="form-row" style="margin-top: 12px;">
+            <div class="form-group" style="flex-direction: row; align-items: center; gap: 8px;">
+              <input type="checkbox" id="perAngleFiles" style="width: auto;">
+              <label for="perAngleFiles" style="margin: 0;">One file per angle (not per pen)</label>
+            </div>
+          </div>
+          <div class="form-row" style="margin-top: 12px;">
             <div class="form-group">
               <label for="mergeTol">Merge Tolerance (mm)</label>
               <input type="number" id="mergeTol" value="0.001" step="0.001" min="0" max="1">
@@ -515,6 +541,7 @@
         <div class="section">
           <h3>Download SVG</h3>
           <div class="buttons" id="download-buttons"></div>
+          <div class="note" id="download-note"></div>
         </div>
       </div>
     </div>
@@ -541,6 +568,7 @@
     let penHex = [];           // filled at boot from the artwork's inks
     let tok = null;            // { hash, s, r, vtype, bars }
     let layers = [];           // [{ ink, angle, bars, lineCount, distance, penUp, filename }]
+    let pens = [];             // [{ ink, layers, filename, lineCount, distance, penUp, ... }] — the files
     let previewIndex = 0;      // 0 = digital render, 1..n = layer n-1
 
     // ============ BOOT ============
@@ -597,7 +625,7 @@
        'drawSpeed', 'travelSpeed', 'segOverhead'].forEach(id => {
         document.getElementById(id).addEventListener('input', rebuild);
       });
-      ['familyCompensate', 'serpentine', 'mergeCollinear'].forEach(id => {
+      ['familyCompensate', 'serpentine', 'mergeCollinear', 'perAngleFiles'].forEach(id => {
         document.getElementById(id).addEventListener('change', rebuild);
       });
       document.getElementById('tokenHash').addEventListener('change', () => {
@@ -967,6 +995,7 @@
       return {
         serpentine: document.getElementById('serpentine').checked,
         merge: document.getElementById('mergeCollinear').checked,
+        perAngle: document.getElementById('perAngleFiles').checked,
         tol: isFinite(tol) && tol >= 0 ? tol : MERGE_TOL_MM
       };
     }
@@ -1202,6 +1231,78 @@
              '-' + layer.angle + 'deg.svg';
     }
 
+    // The pen file's name is the pen and nothing else. No angle in it — one pen,
+    // one file, one load.
+    function penFilename(t, ink) {
+      const slug = PEN_NAMES[ink].toLowerCase().replace(/\s+/g, '-');
+      return 'intervals-' + t.hash.slice(2, 10) + '-' + PEN_IDS[ink] + '-' + slug + '.svg';
+    }
+
+    // ============ PER-PEN FILES ============
+    // Group the angle layers by ink, keeping the layer order buildLayers already
+    // sorted into (pen, then angle), and sum the figures. NOTHING is recomputed:
+    // a pen carries its layers by reference, so what lands in the file is the
+    // same geometry the per-angle file would have carried.
+    //
+    // penUp is the SUM of the layers' own pen-up, which is the definition it had
+    // when each layer was its own file: travel inside a layer. The lift between
+    // one angle group and the next is real but is not in that figure, so it is
+    // reported separately as data-pen-up-between-groups-mm rather than folded in
+    // — the machine used to make that same move as the operator's swap, and
+    // keeping it out is what makes the pen file equal to the concatenation.
+    function buildPens(t, ls) {
+      const byInk = new Map();
+      for (const l of ls) {
+        if (!byInk.has(l.ink)) byInk.set(l.ink, { ink: l.ink, layers: [] });
+        byInk.get(l.ink).layers.push(l);
+      }
+      const out = [...byInk.values()].sort((a, b) => a.ink - b.ink);
+      const sum = (pen, f) => pen.layers.reduce((n, l) => n + f(l), 0);
+      for (const pen of out) {
+        pen.angles = pen.layers.map(l => l.angle);
+        pen.slots = [...new Set(pen.layers.flatMap(l => [...l.slots]))].sort();
+        pen.bars = sum(pen, l => l.bars.length);
+        pen.lineCount = sum(pen, l => l.lineCount);
+        pen.segmentsRaw = sum(pen, l => l.segmentsRaw);
+        pen.distance = sum(pen, l => l.distance);
+        pen.drawn = sum(pen, l => l.drawn);
+        pen.penUp = sum(pen, l => l.penUp);
+        pen.penUpNaive = sum(pen, l => l.penUpNaive);
+        pen.merged = sum(pen, l => l.merged);
+        pen.mergeAvailable = sum(pen, l => l.mergeAvailable);
+        pen.penUpBetween = penUpBetweenGroups(pen);
+        pen.filename = penFilename(t, pen.ink);
+      }
+      return out;
+    }
+
+    // The lift from the end of one angle group to the start of the next, in
+    // document order. Reported, not charged: see buildPens.
+    function penUpBetweenGroups(pen) {
+      let up = 0;
+      for (let i = 1; i < pen.layers.length; i++) {
+        const a = lastPoint(pen.layers[i - 1]);
+        const b = firstPoint(pen.layers[i]);
+        if (a && b) up += hop(a.x, a.y, b.x, b.y);
+      }
+      return up;
+    }
+    function firstPoint(layer) {
+      for (const bar of layer.bars) if (bar.lines.length) return { x: bar.lines[0].x1, y: bar.lines[0].y1 };
+      return null;
+    }
+    function lastPoint(layer) {
+      for (let i = layer.bars.length - 1; i >= 0; i--) {
+        const n = layer.bars[i].lines.length;
+        if (n) return { x: layer.bars[i].lines[n - 1].x2, y: layer.bars[i].lines[n - 1].y2 };
+      }
+      return null;
+    }
+
+    function penSeconds(pen, mach) {
+      return pen.layers.reduce((t, l) => t + layerSeconds(l, mach), 0);
+    }
+
     // ============ MACHINE TIME ============
     // New in v4. Every plot-time estimate this lane has printed — the swatch
     // sheet's 66 min, the calibration sheet's 60 min — assumed 40 mm/s drawing,
@@ -1267,6 +1368,7 @@
       const marks = readMarks();
       const plot = readPlot();
       layers = buildLayers(tok, geo, marks, readAngles(), plot);
+      pens = buildPens(tok, layers);
 
       renderTokenReadout(marks);
       renderEdgeNote(marks);
@@ -1368,11 +1470,11 @@
       const tUp = up / mach.travel;
       const tOver = segs * mach.overhead;
       const total = tDraw + tUp + tOver;
-      const pens = new Set(layers.map(l => l.ink)).size;
+      const penCount = new Set(layers.map(l => l.ink)).size;
       const geo = readGeometry();
       document.getElementById('time-readout').innerHTML =
         '<b>' + fmtTime(total) + '</b> at ' + geo.imgW + '\u00d7' + geo.imgH + ' mm, ' +
-        pens + ' pens, ' + layers.length + ' files<br>' +
+        penCount + ' pens, ' + penCount + ' files, ' + layers.length + ' angle layers<br>' +
         'drawing ' + fmtTime(tDraw) + ' &middot; in the air ' + fmtTime(tUp) +
         ' &middot; per-segment overhead ' + fmtTime(tOver) +
         ' (<b>' + (100 * tOver / Math.max(1e-9, total)).toFixed(0) + '%</b>)';
@@ -1419,21 +1521,46 @@
         const segs = mine.reduce((n, l) => n + l.lineCount, 0);
         const up = mine.reduce((d, l) => d + l.penUp, 0);
         const secs = mine.reduce((t, l) => t + layerSeconds(l, mach), 0);
+        // The per-LAYER figures stay visible under the pen's total: a pen at two
+        // angles is still two line families and the time splits between them.
+        const angleCell = mine.length
+          ? mine.map(l => l.angle + '&deg; ' + fmtTime(layerSeconds(l, mach))).join('<br>')
+          : '&mdash;';
         tr.innerHTML =
           '<td><div class="color-swatch" style="background:' + penHex[i] + '"></div></td>' +
           '<td>' + PEN_IDS[i] + ' ' + PEN_NAMES[i] + '</td>' +
-          '<td>' + (mine.length ? mine.map(l => l.angle + '&deg;').join(', ') : '&mdash;') + '</td>' +
+          '<td>' + angleCell + '</td>' +
           '<td>' + (mine.length ? (dist / 1000).toFixed(1) + ' m' : '&mdash;') + '</td>' +
           '<td>' + (mine.length ? segs.toLocaleString() : '&mdash;') + '</td>' +
           '<td>' + (mine.length ? (up / 1000).toFixed(1) + ' m' : '&mdash;') + '</td>' +
-          '<td>' + (mine.length ? fmtTime(secs) : '&mdash;') + '</td>';
+          '<td>' + (mine.length ? '<b>' + fmtTime(secs) + '</b>' : '&mdash;') + '</td>';
         tbody.appendChild(tr);
       }
+
+      // The sheet, summed off the same rows.
+      const tDist = layers.reduce((d, l) => d + l.distance, 0);
+      const tSegs = layers.reduce((n, l) => n + l.lineCount, 0);
+      const tUp = layers.reduce((d, l) => d + l.penUp, 0);
+      const tSecs = layers.reduce((t, l) => t + layerSeconds(l, mach), 0);
+      const total = document.createElement('tr');
+      total.className = 'total';
+      total.innerHTML =
+        '<td></td>' +
+        '<td><b>Sheet</b></td>' +
+        '<td>' + pens.length + ' files</td>' +
+        '<td><b>' + (tDist / 1000).toFixed(1) + ' m</b></td>' +
+        '<td><b>' + tSegs.toLocaleString() + '</b></td>' +
+        '<td><b>' + (tUp / 1000).toFixed(1) + ' m</b></td>' +
+        '<td><b>' + fmtTime(tSecs) + '</b></td>';
+      tbody.appendChild(total);
+
       document.getElementById('pen-note').innerHTML =
-        'A pen listed at two angles carries two line families and gets two files. ' +
-        'They plot back to back without a swap. Pen-up is travel with the nib off the paper, ' +
-        'in the order the file is written. Time is the machine at the locked profile &mdash; ' +
-        'no pen swap, no lead-in, no operator.';
+        'One file per pen since 2026-09-11, so pen loads = files: <b>' + pens.length +
+        '</b> here. A pen listed at two angles carries two line families; they are two groups ' +
+        'inside its one file and plot back to back, and the time column splits the pen’s ' +
+        'total between them. Pen-up is travel with the nib off the paper, in the order the file ' +
+        'is written. Time is the machine at the locked profile &mdash; no pen swap, no lead-in, ' +
+        'no operator.';
     }
 
     function renderButtons() {
@@ -1451,18 +1578,42 @@
 
       const dl = document.getElementById('download-buttons');
       dl.innerHTML = '';
-      layers.forEach((l, i) => {
-        const b = document.createElement('button');
-        b.innerHTML = '<div class="color-swatch" style="background:' + penHex[l.ink] + '"></div>' +
-                      PEN_IDS[l.ink] + ' &middot; ' + l.angle + '&deg;';
-        b.onclick = () => downloadLayer(i);
-        dl.appendChild(b);
-      });
-      const all = document.createElement('button');
-      all.className = 'full-width';
-      all.textContent = 'Download all ' + layers.length + ' layers';
-      all.onclick = downloadAllLayers;
-      dl.appendChild(all);
+      const perAngle = readPlot().perAngle;
+      if (perAngle) {
+        layers.forEach((l, i) => {
+          const b = document.createElement('button');
+          b.innerHTML = '<div class="color-swatch" style="background:' + penHex[l.ink] + '"></div>' +
+                        PEN_IDS[l.ink] + ' &middot; ' + l.angle + '&deg;';
+          b.onclick = () => downloadLayer(i);
+          dl.appendChild(b);
+        });
+        const all = document.createElement('button');
+        all.className = 'full-width';
+        all.textContent = 'Download all ' + layers.length + ' layers';
+        all.onclick = downloadAllLayers;
+        dl.appendChild(all);
+      } else {
+        pens.forEach((p, i) => {
+          const b = document.createElement('button');
+          b.innerHTML = '<div class="color-swatch" style="background:' + penHex[p.ink] + '"></div>' +
+                        PEN_IDS[p.ink] +
+                        (p.angles.length > 1 ? ' &middot; ' + p.angles.length + ' angles' : '');
+          b.onclick = () => downloadPen(i);
+          dl.appendChild(b);
+        });
+        const all = document.createElement('button');
+        all.className = 'full-width';
+        all.textContent = 'Download all ' + pens.length + ' pen files';
+        all.onclick = downloadAllPens;
+        dl.appendChild(all);
+      }
+      document.getElementById('download-note').innerHTML = perAngle
+        ? '<b>One file per angle</b> &mdash; ' + layers.length + ' files for ' + pens.length +
+          ' pens, the model before 2026-09-11. A pen with two angles gets two files that plot ' +
+          'back to back without a swap.'
+        : '<b>One file per pen</b> &mdash; ' + pens.length + ' files, ' + pens.length +
+          ' loads. A pen’s angle layers are groups inside its file, in plot order. ' +
+          'Same segments either way.';
     }
 
     // ============ PREVIEW ============
@@ -1522,13 +1673,17 @@
     // produced for it, traceable to coverage(). data-drawn-mm is what is actually
     // in the group. They differ only where a collinear merge moved a segment into
     // a neighbour's group, and they sum to the same layer total either way.
-    function buildLayerSVG(layer, t, geo, marks, plot, mach) {
-      const groups = layer.bars.map((bar, i) => {
+    // The bar groups of ONE angle layer, indented by pad. Both file models emit
+    // through this one function and nothing else touches the geometry — which is
+    // what makes a per-pen file exactly the concatenation of that pen's old
+    // per-angle files. Only the indent differs.
+    function barGroups(layer, pad) {
+      return layer.bars.map((bar, i) => {
         const lineElements = bar.lines
-          .map(l => '      <line x1="' + l.x1.toFixed(6) + '" y1="' + l.y1.toFixed(6) +
+          .map(l => pad + '  <line x1="' + l.x1.toFixed(6) + '" y1="' + l.y1.toFixed(6) +
                     '" x2="' + l.x2.toFixed(6) + '" y2="' + l.y2.toFixed(6) + '"/>')
           .join('\n');
-        return '    <g id="' + i + '-bar-' + PEN_IDS[layer.ink] + '-b' + bar.band + 's' + bar.step +
+        return pad + '<g id="' + i + '-bar-' + PEN_IDS[layer.ink] + '-b' + bar.band + 's' + bar.step +
                '" data-band="' + bar.band + '" data-step="' + bar.step +
                '" data-weight="' + bar.weight.toFixed(6) +
                '" data-density="' + bar.density.toFixed(6) +
@@ -1545,9 +1700,13 @@
                // their own clip then fails on arithmetic rather than on ink.
                '" data-clip="' + bar.clip.x.toFixed(6) + ' ' + bar.clip.y.toFixed(6) + ' ' +
                                  bar.clip.w.toFixed(6) + ' ' + bar.clip.h.toFixed(6) + '">\n' +
-               lineElements + '\n    </g>';
+               lineElements + '\n' + pad + '</g>';
       }).join('\n');
+    }
 
+    // Everything about the document, the token and the marks settings — identical
+    // in both file models, and stated once so they cannot drift apart.
+    function fileHead(t, geo) {
       return '<?xml version="1.0" encoding="UTF-8"?>\n' +
 '<svg xmlns="http://www.w3.org/2000/svg"\n' +
 '     width="' + geo.docW + 'mm"\n' +
@@ -1561,12 +1720,11 @@
 '     data-token="' + t.hash + '"\n' +
 '     data-s="' + t.s + '"\n' +
 '     data-rotation="' + (t.r * 90) + '"\n' +
-'     data-variant="' + t.vtype + '"\n' +
-'     data-ink="' + PEN_IDS[layer.ink] + '"\n' +
-'     data-pen="' + PEN_NAMES[layer.ink] + '"\n' +
-'     data-angle="' + layer.angle + '"\n' +
-'     data-slots="' + [...layer.slots].sort().join(',') + '"\n' +
-'     data-pitch-mm="' + marks.pitch + '"\n' +
+'     data-variant="' + t.vtype + '"\n';
+    }
+
+    function fileMarks(geo, marks) {
+      return '     data-pitch-mm="' + marks.pitch + '"\n' +
 '     data-nib-mm="' + marks.nib + '"\n' +
 '     data-paper-gap-mm="' + marks.paperGap + '"\n' +
 '     data-outer-inset-mm="' + marks.outerInset + '"\n' +
@@ -1579,25 +1737,86 @@
 '     data-image="' + geo.imgX.toFixed(3) + ' ' + geo.imgY.toFixed(3) + ' ' +
                       geo.imgW + ' ' + geo.imgH + '"\n' +
 '     data-image-slack-mm="' + geo.slackX.toFixed(3) + ' across, ' +
-                              geo.slackY.toFixed(3) + ' down"\n' +
-'     data-plot-order="' + (plot.serpentine ? 'serpentine' : 'emitted') + '"\n' +
+                              geo.slackY.toFixed(3) + ' down"\n';
+    }
+
+    // The plot-order settings and the totals. the argument is a layer or a pen: both carry
+    // the same field names, a pen's being the sums over its layers.
+    function filePlot(plot, o, mach, seconds) {
+      return '     data-plot-order="' + (plot.serpentine ? 'serpentine' : 'emitted') + '"\n' +
 '     data-collinear-merge="' + (plot.merge ? 'on' : 'off') + '"\n' +
 '     data-merge-tolerance-mm="' + plot.tol + '"\n' +
-'     data-merges-available="' + layer.mergeAvailable + '"\n' +
-'     data-merged-segments="' + layer.merged + '"\n' +
-'     data-segments-before-merge="' + layer.segmentsRaw + '"\n' +
-'     data-segments="' + layer.lineCount + '"\n' +
-'     data-distance-mm="' + Math.round(layer.distance) + '"\n' +
-'     data-pen-up-mm="' + layer.penUp.toFixed(3) + '"\n' +
-'     data-pen-up-naive-mm="' + layer.penUpNaive.toFixed(3) + '"\n' +
-'     data-drawn-mm="' + layer.drawn.toFixed(3) + '"\n' +
+'     data-merges-available="' + o.mergeAvailable + '"\n' +
+'     data-merged-segments="' + o.merged + '"\n' +
+'     data-segments-before-merge="' + o.segmentsRaw + '"\n' +
+'     data-segments="' + o.lineCount + '"\n' +
+'     data-distance-mm="' + Math.round(o.distance) + '"\n' +
+'     data-pen-up-mm="' + o.penUp.toFixed(3) + '"\n' +
+'     data-pen-up-naive-mm="' + o.penUpNaive.toFixed(3) + '"\n' +
+'     data-drawn-mm="' + o.drawn.toFixed(3) + '"\n' +
 '     data-draw-speed-mm-s="' + mach.draw + '"\n' +
 '     data-travel-speed-mm-s="' + mach.travel + '"\n' +
 '     data-segment-overhead-s="' + mach.overhead + '"\n' +
-'     data-plot-seconds="' + layerSeconds(layer, mach).toFixed(1) + '">\n' +
+'     data-plot-seconds="' + seconds.toFixed(1) + '">\n';
+    }
+
+    // The secondary model: one file per (pen, angle). Off by default since
+    // 2026-09-11 — kept because the check harness emits both and compares them,
+    // and because it is the only way to plot one angle of a pen alone.
+    function buildLayerSVG(layer, t, geo, marks, plot, mach) {
+      return fileHead(t, geo) +
+'     data-file-model="per-angle"\n' +
+'     data-ink="' + PEN_IDS[layer.ink] + '"\n' +
+'     data-pen="' + PEN_NAMES[layer.ink] + '"\n' +
+'     data-angle="' + layer.angle + '"\n' +
+'     data-slots="' + [...layer.slots].sort().join(',') + '"\n' +
+fileMarks(geo, marks) +
+filePlot(plot, layer, mach, layerSeconds(layer, mach)) +
 '  <rect x="0" y="0" width="' + geo.docW + '" height="' + geo.docH + '" fill="none" stroke="none"/>\n' +
 '  <g stroke="black" stroke-width="1" stroke-linecap="butt">\n' +
-groups + '\n' +
+barGroups(layer, '    ') + '\n' +
+'  </g>\n' +
+'</svg>';
+    }
+
+    // THE DEFAULT MODEL since 2026-09-11: one file per pen, one <g> per angle
+    // layer inside it, in plot order. The angle group carries the data-* the
+    // per-angle file's root used to carry; the root carries the pen's totals.
+    function buildPenSVG(pen, t, geo, marks, plot, mach) {
+      const angleGroups = pen.layers.map(layer =>
+        '    <g id="layer-' + PEN_IDS[layer.ink] + '-' + layer.angle + 'deg"' +
+        ' data-ink="' + PEN_IDS[layer.ink] + '"' +
+        ' data-pen="' + PEN_NAMES[layer.ink] + '"' +
+        ' data-angle="' + layer.angle + '"' +
+        ' data-slots="' + [...layer.slots].sort().join(',') + '"' +
+        ' data-bars="' + layer.bars.length + '"' +
+        ' data-segments="' + layer.lineCount + '"' +
+        ' data-segments-before-merge="' + layer.segmentsRaw + '"' +
+        ' data-merged-segments="' + layer.merged + '"' +
+        ' data-distance-mm="' + Math.round(layer.distance) + '"' +
+        ' data-drawn-mm="' + layer.drawn.toFixed(3) + '"' +
+        ' data-pen-up-mm="' + layer.penUp.toFixed(3) + '"' +
+        ' data-pen-up-naive-mm="' + layer.penUpNaive.toFixed(3) + '"' +
+        ' data-plot-seconds="' + layerSeconds(layer, mach).toFixed(1) + '">\n' +
+        barGroups(layer, '      ') + '\n' +
+        '    </g>').join('\n');
+
+      return fileHead(t, geo) +
+'     data-file-model="per-pen"\n' +
+'     data-ink="' + PEN_IDS[pen.ink] + '"\n' +
+'     data-pen="' + PEN_NAMES[pen.ink] + '"\n' +
+'     data-angles="' + pen.angles.join(',') + '"\n' +
+'     data-angle-layers="' + pen.layers.length + '"\n' +
+'     data-slots="' + pen.slots.join(',') + '"\n' +
+fileMarks(geo, marks) +
+filePlot(plot, pen, mach, penSeconds(pen, mach)) +
+// Inside a layer, as before. The lift BETWEEN two angle groups is the one
+// figure the per-angle files never had to carry, so it is stated on its own
+// rather than folded into data-pen-up-mm — which stays the sum of the layers.
+'     data-pen-up-between-groups-mm="' + pen.penUpBetween.toFixed(3) + '"\n' +
+'  <rect x="0" y="0" width="' + geo.docW + '" height="' + geo.docH + '" fill="none" stroke="none"/>\n' +
+'  <g stroke="black" stroke-width="1" stroke-linecap="butt">\n' +
+angleGroups + '\n' +
 '  </g>\n' +
 '</svg>';
     }
@@ -1615,6 +1834,22 @@ groups + '\n' +
       const mach = readMachine();
       layers.forEach((layer, i) => {
         setTimeout(() => downloadSVG(layer.filename, buildLayerSVG(layer, tok, geo, marks, plot, mach)), i * 150);
+      });
+    }
+
+    function downloadPen(i) {
+      const pen = pens[i];
+      downloadSVG(pen.filename,
+        buildPenSVG(pen, tok, readGeometry(), readMarks(), readPlot(), readMachine()));
+    }
+
+    function downloadAllPens() {
+      const geo = readGeometry();
+      const marks = readMarks();
+      const plot = readPlot();
+      const mach = readMachine();
+      pens.forEach((pen, i) => {
+        setTimeout(() => downloadSVG(pen.filename, buildPenSVG(pen, tok, geo, marks, plot, mach)), i * 150);
       });
     }
 

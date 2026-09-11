@@ -192,6 +192,29 @@ function groups(svg) {
   return out;
 }
 
+// The angle layers inside a per-pen file. A bar group closes at six spaces and an
+// angle group at four, so the close is unambiguous without a real parser.
+function angleGroups(svg) {
+  const out = [];
+  const re = /<g id="layer-(ink\d+)-([\d.]+)deg"([^>]*)>([\s\S]*?)\n    <\/g>/g;
+  let m;
+  while ((m = re.exec(svg))) {
+    const head = '<g' + m[3] + '>';
+    out.push({
+      ink: m[1], angle: +m[2], head, body: m[4],
+      slots: attr(head, 'data-slots'),
+      bars: +attr(head, 'data-bars'),
+      segments: +attr(head, 'data-segments'),
+      distance: +attr(head, 'data-distance-mm'),
+      drawn: +attr(head, 'data-drawn-mm'),
+      penUp: +attr(head, 'data-pen-up-mm'),
+      penUpNaive: +attr(head, 'data-pen-up-naive-mm'),
+      seconds: +attr(head, 'data-plot-seconds')
+    });
+  }
+  return out;
+}
+
 // A drawn segment's identity, independent of which end the pen starts from. Six
 // decimals is what the file carries, so both sides of every comparison are
 // rounded to it before they are compared.
@@ -234,9 +257,10 @@ const tone = (W, e) => (e === 1 ? W : 1 - Math.pow(Math.max(0, 1 - W), e));
 const reference = (W, mult, e) => 1 - Math.pow(Math.max(0, 1 - tone(W, e) * mult / 4), 4);
 const opacityMultiplier = t => 4 * (1 - Math.pow(1 - Math.min(0.999, Math.max(0, t)), 0.25));
 
-async function setConfig(page, hash, extra) {
+async function setConfig(page, hash, extra, perAngle) {
   for (const [id, v] of Object.entries(REF)) await page.fill('#' + id, v);
   for (const [id, v] of Object.entries(extra || {})) await page.fill('#' + id, v);
+  await setPerAngle(page, !!perAngle);
   await page.fill('#tokenHash', hash);
   await page.locator('#tokenHash').blur();
   await page.waitForFunction(h => typeof tok !== 'undefined' && tok && tok.hash === h, hash, { timeout: 20000 });
@@ -258,20 +282,50 @@ async function readState(page) {
       distance: l.distance, filename: l.filename, bars: l.bars.length,
       penUp: l.penUp, penUpNaive: l.penUpNaive, drawn: l.drawn,
       merged: l.merged, mergeAvailable: l.mergeAvailable, segmentsRaw: l.segmentsRaw
+    })),
+    // 2026-09-11: the files are per pen now. The layers above are what goes
+    // INSIDE them.
+    pens: pens.map(p => ({
+      ink: p.ink, angles: p.angles.slice(), filename: p.filename, bars: p.bars,
+      lineCount: p.lineCount, distance: p.distance, drawn: p.drawn,
+      penUp: p.penUp, penUpNaive: p.penUpNaive, segmentsRaw: p.segmentsRaw,
+      merged: p.merged, mergeAvailable: p.mergeAvailable, penUpBetween: p.penUpBetween,
+      layerCount: p.layers.length
     }))
   }));
 }
 
-async function emitAll(page, state, downloadDir, hash) {
+// The per-angle checkbox is the secondary file model, off by default. The check
+// emits BOTH and compares them, so it drives this rather than assuming it.
+async function setPerAngle(page, on) {
+  // The prior page (svg-generator-v3) is driven by the same setConfig and has no
+  // such control — it predates the two file models. Absent means per-angle, which
+  // is what it emits.
+  const el = await page.$('#perAngleFiles');
+  if (!el) return;
+  if ((await el.isChecked()) !== on) {
+    await el.setChecked(on);
+    await page.waitForTimeout(150);
+  }
+}
+
+async function emitAll(page, state, downloadDir, hash, perAngle) {
   const files = new Map();
-  for (let i = 0; i < state.layers.length; i++) {
+  const count = perAngle ? state.layers.length : state.pens.length;
+  // Chromium refuses more than ten automatic downloads per page load, and since
+  // 2026-09-11 this runs twice per hash — once per file model. Start each pass
+  // from a fresh load so the two do not share that budget.
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForFunction(() => typeof layers !== 'undefined' && layers.length > 0, null, { timeout: 20000 });
+  await setConfig(page, hash, null, perAngle);
+  for (let i = 0; i < count; i++) {
     // Chromium refuses more than ten automatic downloads per page load. A token
     // can want more layers than that, so reload and re-enter the config between
     // batches — every file still arrives through a real click on a real button.
     if (i > 0 && i % 8 === 0) {
       await page.reload({ waitUntil: 'networkidle' });
       await page.waitForFunction(() => typeof layers !== 'undefined' && layers.length > 0, null, { timeout: 20000 });
-      await setConfig(page, hash);
+      await setConfig(page, hash, null, perAngle);
     }
     const [dl] = await Promise.all([
       page.waitForEvent('download'),
@@ -428,12 +482,174 @@ for (const hash of hashes) {
   check(Math.abs((DOC_W - 279.4) / 2 - 8.8) < 1e-9 && Math.abs((DOC_H - 279.4) / 2 - 65.3) < 1e-9,
     'an 11 in square in the ' + DOC_W + ' x ' + DOC_H + ' document no longer leaves 8.8 / 65.3 mm');
 
-  const files = await emitAll(page, state, downloadDir, hash);
+  // --- 2026-09-11: THE FILE MODEL IS ONE FILE PER PEN ------------------------
+  // Jeff: "we should have a single file per pen, even if there are multiple
+  // angles for that pen." Both models are emitted here through real clicks on
+  // real buttons, and the pen file is proved to be exactly the concatenation of
+  // that pen's per-angle files. The secondary model first, because the whole
+  // battery below reads those files.
+  check(state.plot.perAngle === false, 'the per-angle file model is on by default');
+
+  await setPerAngle(page, true);
+  const files = await emitAll(page, state, downloadDir, hash, true);
   const buttonCount = await page.$$eval('#download-buttons button', b => b.length);
   check(buttonCount === state.layers.length + 1,
-    'download buttons ' + buttonCount + ', expected ' + (state.layers.length + 1));
+    'per-angle download buttons ' + buttonCount + ', expected ' + (state.layers.length + 1));
   check(files.size === state.layers.length,
     'emitted ' + files.size + ' unique files for ' + state.layers.length + ' layers');
+
+  await setPerAngle(page, false);
+  const penFiles = await emitAll(page, state, downloadDir, hash, false);
+  const penButtons = await page.$$eval('#download-buttons button', b => b.length);
+  check(penButtons === state.pens.length + 1,
+    'per-pen download buttons ' + penButtons + ', expected ' + (state.pens.length + 1));
+  check(penFiles.size === state.pens.length,
+    'emitted ' + penFiles.size + ' pen files for ' + state.pens.length + ' pens');
+  check(state.pens.length === new Set(state.layers.map(l => l.ink)).size,
+    'pens on the sheet ' + new Set(state.layers.map(l => l.ink)).size +
+    ' but ' + state.pens.length + ' pen files');
+  console.log('    files: ' + state.pens.length + ' per pen (' + state.layers.length +
+    ' angle layers inside them)');
+
+  for (const pen of state.pens) {
+    const svg = penFiles.get(pen.filename);
+    const mine = state.layers.filter(l => l.ink === pen.ink);
+    check(!!svg, 'missing pen file ' + pen.filename);
+    if (!svg) continue;
+
+    check(!/\d+deg/.test(pen.filename), pen.filename + ': the file name still names an angle');
+    check(pen.filename.includes(state.inkIds[pen.ink]) &&
+        pen.filename.includes(state.inkNames[pen.ink].toLowerCase().replace(/\s+/g, '-')),
+      pen.filename + ': the file name does not name the pen');
+    check(attr(svg, 'data-file-model') === 'per-pen',
+      pen.filename + ': data-file-model is ' + attr(svg, 'data-file-model'));
+    check(attr(svg, 'data-ink') === state.inkIds[pen.ink],
+      pen.filename + ': data-ink is ' + attr(svg, 'data-ink'));
+    check(attr(svg, 'data-pen') === state.inkNames[pen.ink],
+      pen.filename + ': data-pen is ' + attr(svg, 'data-pen'));
+    check(attr(svg, 'data-angles') === mine.map(l => l.angle).join(','),
+      pen.filename + ': data-angles is ' + attr(svg, 'data-angles') +
+      ', expected ' + mine.map(l => l.angle).join(','));
+    check(attr(svg, 'width') === DOC_W + 'mm' && attr(svg, 'height') === DOC_H + 'mm',
+      pen.filename + ': not the ' + DOC_W + ' x ' + DOC_H + ' mm working area');
+    check(attr(svg, 'viewBox') === VIEWBOX, pen.filename + ': viewBox is not "' + VIEWBOX + '"');
+    check(!/<svg\b[^>]*\stransform=/.test(svg), pen.filename + ': the root carries a transform');
+    const prect = svg.match(/<rect x="0" y="0" width="([\d.]+)" height="([\d.]+)" fill="none" stroke="none"\/>/);
+    check(!!prect && +prect[1] === DOC_W && +prect[2] === DOC_H,
+      pen.filename + ': document rect missing or not the full working area');
+    const pStroke = svg.match(/<g stroke="[^"]*"/g) || [];
+    check(pStroke.length === 1 && pStroke[0] === '<g stroke="black"',
+      pen.filename + ': not a single black stroke group');
+    check(!/<line[^>]*(stroke|fill)=/.test(svg), pen.filename + ': a line carries its own colour');
+
+    // one <g> per angle layer, in plot order, ids unique inside the file
+    const ags = angleGroups(svg);
+    check(ags.length === mine.length,
+      pen.filename + ': ' + ags.length + ' angle groups, expected ' + mine.length);
+    check(JSON.stringify(ags.map(g => g.angle)) === JSON.stringify(mine.map(l => l.angle)),
+      pen.filename + ': angle groups are ' + ags.map(g => g.angle).join(',') +
+      ', expected ' + mine.map(l => l.angle).join(',') + ' in plot order');
+    const ids = (svg.match(/<g id="([^"]+)"/g) || []);
+    check(new Set(ids).size === ids.length, pen.filename + ': duplicate group id inside the file');
+
+    // THE EQUALITY. Segment for segment, in order and in direction, the pen file
+    // is the concatenation of that pen's per-angle files.
+    let sumSegs = 0, sumDrawn = 0, sumUp = 0, sumUpNaive = 0;
+    for (let i = 0; i < Math.min(ags.length, mine.length); i++) {
+      const g = ags[i];
+      const layer = mine[i];
+      const legacy = files.get(layer.filename);
+      check(!!legacy, pen.filename + ': no per-angle file ' + layer.filename + ' to compare');
+      if (!legacy) continue;
+      check(g.ink === state.inkIds[pen.ink] && g.angle === layer.angle,
+        pen.filename + ': angle group ' + i + ' is ' + g.ink + '/' + g.angle);
+      const a = lines(g.body);
+      const b = lines(legacy);
+      check(a.length === b.length,
+        pen.filename + ' ' + layer.angle + '\u00b0: ' + a.length + ' segments against ' +
+        b.length + ' in ' + layer.filename);
+      const ordered = a.length === b.length && a.every((l, k) =>
+        l.x1 === b[k].x1 && l.y1 === b[k].y1 && l.x2 === b[k].x2 && l.y2 === b[k].y2);
+      check(ordered, pen.filename + ' ' + layer.angle +
+        '\u00b0: segments differ from ' + layer.filename + ' in order or direction');
+      const same = sameMultiset(multiset(a), multiset(b));
+      check(same.ok, pen.filename + ' ' + layer.angle + '\u00b0: ' + same.why);
+      // and the bar groups inside are the same bar groups
+      const ga = groups(g.body), gb = groups(legacy);
+      check(ga.length === gb.length && ga.every((x, k) =>
+          x.band === gb[k].band && x.step === gb[k].step && x.entry === gb[k].entry &&
+          x.drawn === gb[k].drawn && x.penUp === gb[k].penUp),
+        pen.filename + ' ' + layer.angle + '\u00b0: bar groups differ from ' + layer.filename);
+      // the three hashes, per angle group against the per-angle file's root
+      check(g.segments === +attr(legacy, 'data-segments'),
+        pen.filename + ' ' + layer.angle + '\u00b0: data-segments ' + g.segments +
+        ' against ' + attr(legacy, 'data-segments'));
+      check(Math.abs(g.drawn - +attr(legacy, 'data-drawn-mm')) < 1e-6,
+        pen.filename + ' ' + layer.angle + '\u00b0: data-drawn-mm differs');
+      check(Math.abs(g.penUp - +attr(legacy, 'data-pen-up-mm')) < 1e-6,
+        pen.filename + ' ' + layer.angle + '\u00b0: data-pen-up-mm differs');
+      check(Math.abs(penUpOf(a) - penUpOf(b)) < 1e-6,
+        pen.filename + ' ' + layer.angle + '\u00b0: measured pen-up differs from ' + layer.filename);
+      check(Math.abs(penUpOf(a) - g.penUp) < 1e-3,
+        pen.filename + ' ' + layer.angle + '\u00b0: group pen-up ' + g.penUp +
+        ' against ' + penUpOf(a).toFixed(3) + ' measured');
+      sumSegs += g.segments;
+      sumDrawn += g.drawn;
+      sumUp += g.penUp;
+      sumUpNaive += g.penUpNaive;
+    }
+
+    // The pen's own totals are those sums, on all three hashes. The group figures
+    // are written to three decimals, so a sum of n of them can be off by n/2000
+    // from the root's own unrounded sum — the tolerance is that, not a fudge.
+    const sumTol = 0.001 * Math.max(1, mine.length);
+    check(+attr(svg, 'data-segments') === sumSegs,
+      pen.filename + ': root data-segments ' + attr(svg, 'data-segments') + ' against ' + sumSegs);
+    check(lines(svg).length === sumSegs,
+      pen.filename + ': ' + lines(svg).length + ' <line> elements against ' + sumSegs);
+    check(Math.abs(+attr(svg, 'data-drawn-mm') - sumDrawn) <= sumTol,
+      pen.filename + ': root data-drawn-mm ' + attr(svg, 'data-drawn-mm') + ' against ' + sumDrawn.toFixed(3));
+    check(Math.abs(+attr(svg, 'data-pen-up-mm') - sumUp) <= sumTol,
+      pen.filename + ': root data-pen-up-mm ' + attr(svg, 'data-pen-up-mm') + ' against ' + sumUp.toFixed(3));
+    check(Math.abs(+attr(svg, 'data-pen-up-naive-mm') - sumUpNaive) <= sumTol,
+      pen.filename + ': root data-pen-up-naive-mm against ' + sumUpNaive.toFixed(3));
+    check(Math.abs(+attr(svg, 'data-drawn-mm') -
+        mine.reduce((d, l) => d + l.drawn, 0)) < 1e-3,
+      pen.filename + ': root drawn does not equal the page\u2019s own layer sum');
+    check(Math.abs(+attr(svg, 'data-pen-up-mm') - mine.reduce((d, l) => d + l.penUp, 0)) < 1e-3,
+      pen.filename + ': root pen-up does not equal the page\u2019s own layer sum');
+    // the between-group lift is reported, not folded in
+    check(attr(svg, 'data-pen-up-between-groups-mm') !== null,
+      pen.filename + ': the between-group lift is not reported');
+    check(mine.length > 1 || +attr(svg, 'data-pen-up-between-groups-mm') === 0,
+      pen.filename + ': one angle layer but a non-zero between-group lift');
+    // every segment still inside the image, inside the document
+    for (const l of lines(svg)) {
+      for (const [x, y] of [[l.x1, l.y1], [l.x2, l.y2]]) {
+        check(x >= -1e-6 && y >= -1e-6 && x <= DOC_W + 1e-6 && y <= DOC_H + 1e-6,
+          pen.filename + ': a segment endpoint is outside the working area');
+      }
+    }
+  }
+
+  // the whole sheet, across the pen files
+  const penTotalSegs = state.pens.reduce((n, p) => n + p.lineCount, 0);
+  check(penTotalSegs === state.layers.reduce((n, l) => n + l.lineCount, 0),
+    'the pen files carry ' + penTotalSegs + ' segments against the layers\u2019 ' +
+    state.layers.reduce((n, l) => n + l.lineCount, 0));
+
+  // byte-stable across two builds, and the download is that build
+  const stable = await page.evaluate(() => {
+    const a = pens.map(p => buildPenSVG(p, tok, readGeometry(), readMarks(), readPlot(), readMachine()));
+    rebuild();
+    const b = pens.map(p => buildPenSVG(p, tok, readGeometry(), readMarks(), readPlot(), readMachine()));
+    return { same: a.length === b.length && a.every((x, i) => x === b[i]),
+             files: pens.map((p, i) => [p.filename, b[i]]) };
+  });
+  check(stable.same, 'the pen files are not byte-stable across two builds');
+  for (const [name, body] of stable.files) {
+    check(penFiles.get(name) === body, name + ': the downloaded bytes are not the built bytes');
+  }
 
   // --- structural checks, from the files, not the page -----------------------
   const geo = state.geo;
@@ -1026,7 +1242,8 @@ for (const hash of hashes) {
 
   const byPen = {};
   for (const l of state.layers) (byPen[state.inkIds[l.ink]] ||= []).push(l.angle + '\u00b0');
-  console.log('    ' + pens.size + ' pens \u2192 ' + state.layers.length + ' files: ' +
+  console.log('    ' + pens.size + ' pens \u2192 ' + pens.size + ' files, ' +
+    state.layers.length + ' angle layers: ' +
     Object.entries(byPen).map(([k, v]) => k + ' [' + v.join(' ') + ']').join(', '));
   console.log('    ' + totalLines.toLocaleString() + ' segments, ' + (totalDist / 1000).toFixed(1) +
     ' m drawn, all inside the ' + geo.imgW + '\u00d7' + geo.imgH + ' mm image');
