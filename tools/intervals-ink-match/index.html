@@ -311,7 +311,7 @@
 <div id="grid"></div>
 
 <div id="foot">
-  <span>Values are HSB exactly as <code>Intervals_v4.js</code> stores them — <code>ink1 = color(H, S, B)</code>.</span>
+  <span>Values are HSB exactly as <code>Intervals_v5.js</code> stores them — <code>ink1 = color(H, S, B)</code>.</span>
   <span>ink7 (Purple) is deliberately skipped: Jeff cut it from the set on 2026-09-10. The code ids stay as they are so the wheel order does not shift.</span>
   <span class="spacer"></span>
   <span>Changes save automatically.</span>
@@ -603,7 +603,7 @@ document.getElementById("copy").addEventListener("click", async () => {
 document.getElementById("json").addEventListener("click", () => {
   const payload = {
     tool: "intervals-ink-match",
-    note: "HSB as Intervals_v4.js stores it: colorMode(HSB); inkN = color(H, S, B). ink7 (Purple) is out of the set as of 2026-09-10.",
+    note: "HSB as Intervals_v5.js stores it: colorMode(HSB); inkN = color(H, S, B). ink7 (Purple) is out of the set as of 2026-09-10; Intervals_v5 sorts the eight ascending by hue, so array order is not id order.",
     timestamp: new Date().toISOString(),
     inks: INKS.map((ink, i) => ({
       id: ink.id,
