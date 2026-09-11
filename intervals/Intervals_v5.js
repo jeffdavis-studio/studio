@@ -32,7 +32,7 @@ for (let i = 0; i < 66; i++) {
 // PRNG calls, so it cannot shift an anchor. See the note above coverage().
 //
 // (v3, retained: gcol() returns the ink decomposition that built each anchor
-// alongside the colour, so the plotted version can read the per-ink coverage
+// alongside the color, so the plotted version can read the per-ink coverage
 // weights straight out of the artwork instead of re-fitting them.)
 
 let R, w, h, r, s, ng, amin, amax, lmin, vprob, swt, twt, cwt, vtype, h1, anchor, comp, c1, c2, c3, c4, c5, c6;
