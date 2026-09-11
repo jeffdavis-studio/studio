@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Intervals — Registration Marks (backing sheet)</title>
+<!--
+  intervals/registration-generator.html — the one file that gets plotted onto the
+  BACKING SHEET, not onto art paper. 2026-09-11.
+
+  THE PROBLEM IT SOLVES. The document is the plotter's working area, 297 x 410 mm
+  (plot-frame.mjs), and the iDraw H anchors that document against its home corner,
+  which is the upper RIGHT (KB 3.10). The art paper is a 14 x 17 in sheet —
+  355.6 x 431.8 mm — so it is LARGER than the window on every side: 29.3 mm of
+  paper hangs outside each vertical edge and 10.9 mm outside each horizontal one.
+  The machine cannot draw the paper's outline, and the window's center is not the
+  footprint's center, so there is no mark on the machine to lay a sheet against.
+
+  THE FIX. Tape a scrap backing sheet to the board, plot this file onto it ONCE,
+  then use its marks to rule the paper rectangle and tape a card L-bracket at one
+  corner. After that every art sheet drops into the same place by hand, and the
+  registration marks live under the art paper where no ink can reach them.
+
+  WHAT IT DRAWS, all single-pen, one lift per mark, under a minute:
+    - four corner brackets at the WINDOW corners, 15 mm legs
+    - four crosshair ticks at the edge midpoints, 10 mm, on the two centerlines
+    - the four corner ticks of the 279.4 mm (11 in) image square
+    - a short center cross, so the two centerlines can be picked up by eye
+
+  THE WINDOW CORNERS ARE DRAWN AT THE TRUE CORNERS — 0,0 and 297,410 and the two
+  between. Nothing in this lane has ever plotted inside the outer 6 mm: the
+  2026-09-01 calibration frame was inset 12 mm and the 2026-09-10 wheel kept
+  plot-frame's 6 mm margin. So if a bracket comes up short, that is the machine
+  telling us the real extent of its window, and a throwaway plot on a backing
+  sheet is the cheapest place to learn it. The centerline ticks and the image
+  square, which are what centering actually uses, sit far inside any doubt.
+-->
+<style>
+  :root { color-scheme: light; }
+  body { margin: 0; font-family: Inter, -apple-system, system-ui, sans-serif;
+         background: #f6f6f4; color: #111; }
+  .wrap { display: flex; gap: 28px; padding: 26px 30px; align-items: flex-start; }
+  .panel { width: 430px; }
+  h1 { font-size: 19px; margin: 0 0 6px; font-weight: 600; }
+  p { font-size: 13px; line-height: 1.6; color: #444; margin: 0 0 14px; }
+  table { border-collapse: collapse; font-size: 12.5px; width: 100%; margin-bottom: 16px; }
+  td { padding: 4px 0; border-bottom: 1px solid #e4e4e0; }
+  td:last-child { text-align: right; font-family: ui-monospace, Menlo, monospace; }
+  button { font: inherit; font-size: 13px; padding: 9px 16px; border: 1px solid #111;
+           background: #111; color: #fff; border-radius: 4px; cursor: pointer; }
+  #preview { background: #fff; border: 1px solid #ddd; }
+  .note { font-size: 12px; color: #666; line-height: 1.55; }
+  code { font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="panel">
+    <h1>Registration marks &mdash; backing sheet</h1>
+    <p>Plot this <b>once</b>, onto a scrap sheet taped to the board. Not onto art paper.
+    Single pen, one lift per mark, under a minute. Then rule the paper rectangle off the
+    centerlines and tape a card L&#8209;bracket at the top&#8209;right corner &mdash; home
+    is upper&#8209;right &mdash; and every 14&nbsp;&times;&nbsp;17 sheet after that drops
+    into the same place.</p>
+    <table id="facts"></table>
+    <button onclick="downloadSVG()">Download registration SVG</button>
+    <p class="note" style="margin-top:14px">
+      Paper overhang: <b>29.3 mm each side, 10.9 mm top and bottom</b> &mdash; the sheet is
+      bigger than the window, which is why its outline cannot be plotted.
+      Image slack at 11 in: <b>8.8 mm each side, 65.3 mm top and bottom</b>.
+    </p>
+  </div>
+  <div><svg id="preview"></svg></div>
+</div>
+
+<script type="module">
+  import { DOC_W, DOC_H, VIEWBOX } from './plot-frame.mjs';
+  window.PLOT_FRAME = { DOC_W, DOC_H, VIEWBOX };
+  window.dispatchEvent(new Event('frame-ready'));
+</script>
+<script>
+  // ============ THE MARKS ============
+  const IMG_MM = 279.4;      // 11 in exactly — the first plotted token, Jeff 2026-09-11
+  const BRACKET = 15;        // mm, each leg of a window-corner bracket
+  const EDGE_TICK = 10;      // mm, the crosshair tick at each edge midpoint
+  const IMG_TICK = 8;        // mm, each leg of an image-square corner tick
+  const CENTER_CROSS = 12;   // mm, each arm of the center cross
+  const STROKE = 0.5;        // mm on screen; the file is stroke-width 1, plotter convention
+
+  // Every mark is one polyline — one pen-down, one pen-up. That is what keeps
+  // this under a minute and what keeps a corner from being drawn as two strokes
+  // that do not quite meet.
+  function marks(W, H) {
+    const out = [];
+    const cx = W / 2, cy = H / 2;
+    const i0 = (W - IMG_MM) / 2, j0 = (H - IMG_MM) / 2;
+    const i1 = i0 + IMG_MM, j1 = j0 + IMG_MM;
+
+    // 1. window corners — vertex AT the corner, legs running inward
+    const corners = [[0, 0, 1, 1], [W, 0, -1, 1], [0, H, 1, -1], [W, H, -1, -1]];
+    for (const [x, y, sx, sy] of corners) {
+      out.push({ kind: 'window-corner', pts: [
+        [x + sx * BRACKET, y], [x, y], [x, y + sy * BRACKET]] });
+    }
+
+    // 2. edge midpoints — a tick ON each centerline, running inward from the edge
+    out.push({ kind: 'edge-mid', pts: [[cx, 0], [cx, EDGE_TICK]] });
+    out.push({ kind: 'edge-mid', pts: [[cx, H], [cx, H - EDGE_TICK]] });
+    out.push({ kind: 'edge-mid', pts: [[0, cy], [EDGE_TICK, cy]] });
+    out.push({ kind: 'edge-mid', pts: [[W, cy], [W - EDGE_TICK, cy]] });
+
+    // 3. the image square's four corners
+    const img = [[i0, j0, 1, 1], [i1, j0, -1, 1], [i0, j1, 1, -1], [i1, j1, -1, -1]];
+    for (const [x, y, sx, sy] of img) {
+      out.push({ kind: 'image-corner', pts: [
+        [x + sx * IMG_TICK, y], [x, y], [x, y + sy * IMG_TICK]] });
+    }
+
+    // 4. the center, so the two centerlines can be picked up by eye and extended
+    out.push({ kind: 'center', pts: [[cx - CENTER_CROSS, cy], [cx + CENTER_CROSS, cy]] });
+    out.push({ kind: 'center', pts: [[cx, cy - CENTER_CROSS], [cx, cy + CENTER_CROSS]] });
+    return out;
+  }
+
+  function buildSVG(W, H, forFile) {
+    const ms = marks(W, H);
+    const body = ms.map(m =>
+      '  <polyline points="' + m.pts.map(p => p.map(n => +n.toFixed(3)).join(',')).join(' ') +
+      '" data-mark="' + m.kind + '"/>').join('\n');
+    const sw = forFile ? '1' : STROKE;
+    return '<?xml version="1.0" encoding="UTF-8"?>\n' +
+'<svg xmlns="http://www.w3.org/2000/svg"\n' +
+'     width="' + W + 'mm"\n' +
+'     height="' + H + 'mm"\n' +
+'     viewBox="' + window.PLOT_FRAME.VIEWBOX + '"\n' +
+'     data-project="intervals"\n' +
+'     data-file="registration marks, backing sheet"\n' +
+'     data-document-is="plotter-working-area (not the paper)"\n' +
+'     data-working-area-mm="' + W + ' x ' + H + '"\n' +
+'     data-origin="top-left, y down, 1 unit = 1 mm; machine home is upper-right"\n' +
+'     data-paper="14x17 sheet, 355.6 x 431.8 mm — larger than the window on every side"\n' +
+'     data-paper-overhang-mm="29.3 each side, 10.9 top and bottom"\n' +
+'     data-image-mm="' + IMG_MM + ' (11 in)"\n' +
+'     data-image-slack-mm="' + ((W - IMG_MM) / 2).toFixed(3) + ' across, ' +
+       ((H - IMG_MM) / 2).toFixed(3) + ' down"\n' +
+'     data-marks="' + ms.length + '"\n' +
+'     data-pens="1">\n' +
+'  <rect x="0" y="0" width="' + W + '" height="' + H + '" fill="none" stroke="none" stroke-width="0"/>\n' +
+'  <g stroke="black" stroke-width="' + sw + '" stroke-linecap="butt" fill="none">\n' +
+body + '\n' +
+'  </g>\n' +
+'</svg>\n';
+  }
+
+  function render() {
+    const W = window.PLOT_FRAME.DOC_W, H = window.PLOT_FRAME.DOC_H;
+    const ms = marks(W, H);
+    const scale = 760 / H;
+    const svg = document.getElementById('preview');
+    svg.setAttribute('viewBox', window.PLOT_FRAME.VIEWBOX);
+    svg.setAttribute('width', (W * scale).toFixed(0));
+    svg.setAttribute('height', (H * scale).toFixed(0));
+    svg.innerHTML =
+      '<rect x="0" y="0" width="' + W + '" height="' + H + '" fill="#fff"/>' +
+      '<rect x="' + (W - IMG_MM) / 2 + '" y="' + (H - IMG_MM) / 2 + '" width="' + IMG_MM +
+        '" height="' + IMG_MM + '" fill="none" stroke="#e6e6e6" stroke-width="0.4" ' +
+        'stroke-dasharray="3 3"/>' +
+      '<g stroke="#111" stroke-width="' + STROKE + '" fill="none" stroke-linecap="butt">' +
+      ms.map(m => '<polyline points="' + m.pts.map(p => p.join(',')).join(' ') + '"/>').join('') +
+      '</g>';
+
+    const rows = [
+      ['document (the machine’s window)', W + ' × ' + H + ' mm'],
+      ['center', (W / 2).toFixed(1) + ', ' + (H / 2).toFixed(1) + ' mm'],
+      ['image square', IMG_MM + ' mm (11 in)'],
+      ['image slack', ((W - IMG_MM) / 2).toFixed(1) + ' each side, ' +
+        ((H - IMG_MM) / 2).toFixed(1) + ' top/bottom'],
+      ['paper (14 × 17 in)', '355.6 × 431.8 mm'],
+      ['paper from center', '177.8 mm across (7.0 in), 215.9 mm down (8.5 in)'],
+      ['marks', ms.length + ', single pen'],
+      ['pen-down length', ms.reduce((d, m) => d + m.pts.slice(1).reduce((a, p, i) =>
+        a + Math.hypot(p[0] - m.pts[i][0], p[1] - m.pts[i][1]), 0), 0).toFixed(0) + ' mm']
+    ];
+    document.getElementById('facts').innerHTML =
+      rows.map(r => '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td></tr>').join('');
+  }
+
+  function downloadSVG() {
+    const W = window.PLOT_FRAME.DOC_W, H = window.PLOT_FRAME.DOC_H;
+    const blob = new Blob([buildSVG(W, H, true)], { type: 'image/svg+xml' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'intervals-registration-297x410.svg';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+
+  window.marks = marks;
+  window.buildSVG = buildSVG;
+  window.downloadSVG = downloadSVG;
+  window.REG = { IMG_MM, BRACKET, EDGE_TICK, IMG_TICK, CENTER_CROSS };
+  if (window.PLOT_FRAME) render(); else window.addEventListener('frame-ready', render);
+</script>
+</body>
+</html>
