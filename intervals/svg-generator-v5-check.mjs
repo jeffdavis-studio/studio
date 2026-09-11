@@ -540,7 +540,7 @@ for (const hash of hashes) {
     const pStroke = svg.match(/<g stroke="[^"]*"/g) || [];
     check(pStroke.length === 1 && pStroke[0] === '<g stroke="black"',
       pen.filename + ': not a single black stroke group');
-    check(!/<line[^>]*(stroke|fill)=/.test(svg), pen.filename + ': a line carries its own colour');
+    check(!/<line[^>]*(stroke|fill)=/.test(svg), pen.filename + ': a line carries its own color');
 
     // one <g> per angle layer, in plot order, ids unique inside the file
     const ags = angleGroups(svg);
