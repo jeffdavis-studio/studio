@@ -117,7 +117,7 @@
     flex: 1 1 auto;
     min-height: 0;
     background: var(--surround);
-    padding: 11px 11px 8px;
+    padding: 13px 16px 9px;
     display: flex;
     flex-direction: column;
     gap: 7px;
@@ -140,7 +140,21 @@
     box-shadow: inset 0 0 0 1px rgba(0,0,0,.10);
     position: relative;
   }
-  .strip > div { flex: 1 1 50%; }
+  .strip > div { flex: 1 1 50%; position: relative; }
+  .strip .cur { box-shadow: inset 1px 0 0 rgba(0,0,0,.28); }
+  .strip .tag {
+    position: absolute;
+    left: 4px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 9px;
+    letter-spacing: .4px;
+    text-transform: uppercase;
+    padding: 1px 3px;
+    border-radius: 2px;
+    background: rgba(255,255,255,.72);
+    color: #3a3a3a;
+    pointer-events: none;
+  }
   .strip .lbl {
     position: absolute;
     right: 4px; top: 50%;
@@ -441,8 +455,8 @@ const cards = INKS.map((ink, i) => {
     <div class="frame">
       <div class="swatch"></div>
       <div class="strip">
-        <div class="orig"></div>
-        <div class="cur"></div>
+        <div class="orig"><span class="tag">was</span></div>
+        <div class="cur"><span class="tag">now</span></div>
         <span class="lbl"></span>
       </div>
     </div>
