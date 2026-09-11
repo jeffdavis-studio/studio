@@ -335,19 +335,25 @@
 <script>
 "use strict";
 
-// ---- the eight inks. Placeholders are read verbatim from Intervals_v4.js
-// setup(): colorMode(HSB) then ink1..ink9 = color(H, S, B). ink7 (Purple) is
-// omitted on purpose — Jeff cut it from the set 2026-09-10 — but the ids of the
-// others are unchanged so the wheel order in the generator still lines up.
+// ---- the eight inks. The starting values are read verbatim from
+// Intervals_v5.js setup(): colorMode(HSB) then ink1..ink9 = color(H, S, B).
+// ink7 (Purple) is omitted on purpose — Jeff cut it from the set 2026-09-10.
+//
+// THESE ARE JEFF'S OWN VALUES NOW (2026-09-11). They were the §3.6 hexes, and
+// he replaced all eight by eye on this page against the plotted swatches at 95%
+// coverage: "the parent colors that we work with on the digital side." Every
+// hue moved, Fresh Green by 34 degrees. So the was/now strip on each card now
+// compares against what the artwork actually draws, and ΔE 0 means a card is
+// where he left it — not where the old placeholder was.
 const INKS = [
-  { id: "ink1", name: "Orange",      hsb: [ 31, 67, 95] },
-  { id: "ink2", name: "Yellow",      hsb: [ 54, 62, 96] },
-  { id: "ink3", name: "Fresh Green", hsb: [101, 50, 73] },
-  { id: "ink4", name: "Green",       hsb: [168, 53, 64] },
-  { id: "ink5", name: "Blue",        hsb: [224, 86, 65] },
-  { id: "ink6", name: "Royal Blue",  hsb: [252, 91, 80] },
-  { id: "ink8", name: "Rose",        hsb: [316, 54, 67] },
-  { id: "ink9", name: "Red",         hsb: [359, 76, 85] }
+  { id: "ink1", name: "Orange",      hsb: [ 18, 69, 97] },
+  { id: "ink2", name: "Yellow",      hsb: [ 44, 62, 98] },
+  { id: "ink3", name: "Fresh Green", hsb: [135, 55, 80] },
+  { id: "ink4", name: "Green",       hsb: [172, 90, 66] },
+  { id: "ink5", name: "Blue",        hsb: [214, 90, 78] },
+  { id: "ink6", name: "Royal Blue",  hsb: [235, 61, 57] },
+  { id: "ink8", name: "Rose",        hsb: [329, 57, 78] },
+  { id: "ink9", name: "Red",         hsb: [  6, 74, 87] }
 ];
 
 const STORE = "intervals-ink-match-v1";
