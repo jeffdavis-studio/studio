@@ -30,7 +30,7 @@
       WORKING AREA — DOC_W x DOC_H mm, imported, not typed. v1 took Paper w and
       Paper h as fields defaulting to the 14x17 sheet and centered the image in
       that; the iDraw H anchors the document against its home corner, not
-      against the paper, so every millimetre of paper margin baked into a file
+      against the paper, so every millimeter of paper margin baked into a file
       became a shift of the image on the machine (plot-frame.mjs states the
       whole argument, and KB §3.13 the plot it came from). The two paper fields
       are gone. Image W and H stay, and the image centers in the DOCUMENT:
@@ -65,7 +65,7 @@
     lies. What came across and stays: the fixed 1.4 density curve, the 0.95
     opacity target, and §BAR EDGE — the paperGapMm parameter and the clipRect
     that realizes it. The 0.25 mm paper gap is the whole reason this page keeps
-    having to move: it is a quarter-millimetre decision about where ink stops,
+    having to move: it is a quarter-millimeter decision about where ink stops,
     and it is exactly the kind of thing you can only judge by looking at it.
     plot-preview-v2-check.mjs asserts the layer set against svg-generator-v5.html,
     so the copy cannot drift. Deliberately NOT copied across: v5's serpentine
@@ -76,7 +76,7 @@
 
     THE PRECEDENT. Mechanical Drawings solved this with preview-v5.js's `hatched`
     flag: paper background, then each pencil's line family stroked in its own
-    colour over the top, letting overlap do the mixing. Same idea, three
+    color over the top, letting overlap do the mixing. Same idea, three
     differences forced by the pens: the families come from the artwork's own
     coverage() table rather than a four-corner blend, strokes are opaque at the
     nib width rather than alpha 128 at a hairline (Micron ink covers; the density
@@ -97,11 +97,11 @@
     pens land on the same fibre). Neither is a fudge factor: the DIFFERENCE
     between them is the error the coverage maths does not carry, and it is
     biggest exactly where the most pens cross. OPTICAL MIX blurs the preview by n
-    millimetres of paper, which is what the eye does at a viewing distance — at 0
+    millimeters of paper, which is what the eye does at a viewing distance — at 0
     you are inspecting marks, at 0.5-1 mm you are seeing the picture. Display
     only; the match figures are always sampled off the raw marks.
 
-    Not baked in anywhere: millimetres, angles, nib width, paper colour. Every
+    Not baked in anywhere: millimeters, angles, nib width, paper color. Every
     one of them is a field.
   -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
@@ -347,7 +347,7 @@
     <div class="section">
       <h3>Pens — Sakura Pigma Micron 05</h3>
       <table class="pens">
-        <thead><tr><th></th><th>Ink</th><th>Angles</th><th>Metres</th><th>Segs</th></tr></thead>
+        <thead><tr><th></th><th>Ink</th><th>Angles</th><th>Meters</th><th>Segs</th></tr></thead>
         <tbody id="pen-table"></tbody>
       </table>
       <div class="note" id="pen-note"></div>
@@ -506,7 +506,7 @@
     }
 
     // Reads the artwork after setup() has run. The s override is applied after
-    // setup, never before: s is drawn from the PRNG ahead of every colour
+    // setup, never before: s is drawn from the PRNG ahead of every color
     // decision, so replacing it afterwards re-samples the ramps at a different
     // resolution without shifting a single anchor.
     function readToken() {
@@ -542,7 +542,7 @@
     }
 
     // draw() lays 3s full-height bars edge to edge across the square, then
-    // rotates the whole field by r*90 about the centre. A 90 degree rotation of a
+    // rotates the whole field by r*90 about the center. A 90 degree rotation of a
     // bar keeps it a rectangle, so the field stays axis-aligned.
     function barRect(band, step, t, geo) {
       const t0 = step / t.s + band / (3 * t.s);
@@ -609,7 +609,7 @@
     // So in v4 the curve is a TONE MAP on the bar's own ink fraction, applied
     // once, at the bar, which is where Mechanical Drawings applies it — to a
     // cell's darkness value, not to each pencil's share of it. The per-ink split
-    // stays the artwork's raw proportions, because that is the colour mix and it
+    // stays the artwork's raw proportions, because that is the color mix and it
     // is not the curve's to touch. Both of Jeff's numbers then hold exactly: a
     // full bar lands on the opacity target at every family count, and the
     // exponent shapes everything between paper and full. At 1.0 the tone map is
@@ -658,7 +658,7 @@
 
     // ============ BAR EDGE (from svg-generator-v4.html, verbatim) ============
     // The pen lays a capsule — the Minkowski sum of the segment with a disc of
-    // radius nib/2 — so a line's ink reaches nib/2 past its centre in every
+    // radius nib/2 — so a line's ink reaches nib/2 past its center in every
     // direction. Clip the hatch at nib/2 + paperGapMm/2 inside the boundary a bar
     // shares with its neighbour and the ink stops paperGapMm/2 short of it; the
     // neighbour does the same; the bare paper between the two ink edges is
@@ -794,8 +794,8 @@
     }
 
     // ============ THE HATCHED PREVIEW ============
-    // Paper, then every visible layer stroked in its own pen colour at the nib
-    // width, in millimetres, through one transform. Overlap is left to do the
+    // Paper, then every visible layer stroked in its own pen color at the nib
+    // width, in millimeters, through one transform. Overlap is left to do the
     // mixing — that is the whole point, and it is why the strokes are opaque by
     // default: the density solve upstream is an AREA-coverage argument, so a
     // stroke exactly one nib wide makes composite() true on screen instead of
@@ -904,7 +904,7 @@
     }
 
     // ============ THE MATCH READOUT ============
-    // Per bar: the colour draw() fills it with, against the mean colour the
+    // Per bar: the color draw() fills it with, against the mean color the
     // hatched canvas actually shows for the same bar. Both go through the
     // artwork's own rgbToLab, so this is a Lab distance in the same space lgap()
     // uses to space the anchors.

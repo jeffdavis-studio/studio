@@ -33,7 +33,7 @@
 //
 // 2. IT COULD DRAW HATCHING THAT ISN'T THE PICTURE. Guarded by sampling the
 //    hatched canvas per bar and requiring each bar to sit nearer its OWN digital
-//    colour than to other bars' colours — measured against a shuffled pairing,
+//    color than to other bars' colors — measured against a shuffled pairing,
 //    which is the null hypothesis "the hatching is in the wrong place". A
 //    threshold on dE alone would not catch a transposed or mirrored field; this
 //    does, because a rotation or a band swap destroys the pairing.
@@ -139,7 +139,7 @@ const readFrame = page => page.evaluate(() => ({
   fitOptions: [...document.getElementById('fitMode').options].map(o => o.value)
 }));
 
-// Per bar: the mean colour off the hatched canvas, and the colour draw() fills
+// Per bar: the mean color off the hatched canvas, and the color draw() fills
 // the same bar with. Both returned so the pairing test can be done out here.
 const readPairs = page => page.evaluate(() => {
   const canvas = document.getElementById('hatch-canvas');
@@ -322,15 +322,15 @@ for (const hash of hashes) {
   const pairs = await readPairs(page);
   check(pairs.length === state.bars, 'every bar sampled (' + pairs.length + '/' + state.bars + ')');
   const own = pairs.reduce((s, p) => s + dE(p.got, p.want), 0) / pairs.length;
-  // Null hypothesis: the same sampled colours paired to the wrong bars. Rotated
+  // Null hypothesis: the same sampled colors paired to the wrong bars. Rotated
   // by a third of the field so no bar keeps its own partner and the comparison
-  // is against real bar colours, not noise.
+  // is against real bar colors, not noise.
   const k = Math.max(1, Math.round(pairs.length / 3));
   const shuffled = pairs.reduce((s, p, i) =>
     s + dE(p.got, pairs[(i + k) % pairs.length].want), 0) / pairs.length;
   console.log('    mean dE to own bar ' + own.toFixed(1) + ', to a displaced bar ' + shuffled.toFixed(1));
   check(own < shuffled * 0.6,
-    'each bar matches its own colour far better than a displaced one (' +
+    'each bar matches its own color far better than a displaced one (' +
     own.toFixed(1) + ' vs ' + shuffled.toFixed(1) + ')');
   // A field drawn at the wrong rotation would still pair badly, but so would a
   // field drawn at the right rotation with the bands transposed. Check the bands
