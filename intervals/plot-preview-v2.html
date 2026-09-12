@@ -279,8 +279,8 @@
     <div class="section">
       <h3>Image (mm)</h3>
       <div class="row c2">
-        <div><label>Image w &mdash; 11 in = 279.4</label><input type="number" id="imgWidth" value="279.4" step="0.1" min="10"></div>
-        <div><label>Image h &mdash; 11 in = 279.4</label><input type="number" id="imgHeight" value="279.4" step="0.1" min="10"></div>
+        <div><label>Image w</label><input type="number" id="imgWidth" value="279.4" step="0.1" min="10"></div>
+        <div><label>Image h</label><input type="number" id="imgHeight" value="279.4" step="0.1" min="10"></div>
       </div>
       <div class="note" id="doc-note"></div>
     </div>
@@ -987,12 +987,11 @@
       const mm = v => (Math.round(v * 10) / 10).toFixed(1);
       const doc = geo.docW + ' \u00d7 ' + geo.docH + ' mm document';
       const slack = 'slack ' + mm(geo.slackX) + ' mm across, ' + mm(geo.slackY) + ' mm down';
+      // One line: one screen, no scroll binds at 1280x800, and the argument for
+      // the frame is in the header comment, not on the sidebar.
       const tight = geo.slackX < geo.docMargin || geo.slackY < geo.docMargin;
       document.getElementById('doc-note').innerHTML =
-        doc + ' &mdash; the plotter\'s working area, from plot-frame.mjs, not a control. ' +
-        'Image centered in it: ' + slack + '. ' +
-        (tight ? '<b>Inside the ' + geo.docMargin + ' mm layout box.</b>'
-               : geo.docMargin + ' mm layout box.');
+        doc + ' &middot; ' + (tight ? '<b>' + slack + '</b>' : slack);
       document.getElementById('hatch-cap').textContent = plot.fit === 'document'
         ? 'Hatched preview \u2014 ' + doc + ', ' + slack
         : 'Hatched preview \u2014 what the pens draw';
@@ -1070,8 +1069,8 @@
       }
       const active = new Set(layers.map(l => l.ink)).size;
       document.getElementById('pen-note').innerHTML =
-        '<b>' + active + ' of ' + PEN_NAMES.length + '</b> pens, ascending by hue as Intervals_v5 orders them. ' +
-        'Two angles on one pen are two layers inside that pen\'s file.';
+        '<b>' + active + ' of ' + PEN_NAMES.length + '</b> pens, by hue. ' +
+        'Two angles on one pen = two layers in its file.';
     }
 
     // Every layer is switchable, so a pen can be isolated or pulled to see what it
