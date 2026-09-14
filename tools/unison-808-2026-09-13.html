@@ -200,7 +200,7 @@
 
   <!-- Provenance lives in the tooltip, not in the layout. Nothing that measures
        the sound appears on this screen. -->
-  <footer title="engine @2f749f4 · built 2026-09-13">
+  <footer title="engine @71adcdb · built 2026-09-14">
     <span><kbd>1</kbd>–<kbd>9</kbd> play a voice &nbsp;·&nbsp; <kbd>space</kbd> start / stop</span>
     <span class="sp"></span>
     <span>Nothing is sampled. Every hit is synthesised in the browser by the engine's own code, live off the knobs.</span>
@@ -211,7 +211,7 @@
 
 <!-- ===================== inlined engine (verbatim, private repo) ===================== -->
 <script type="text/plain" id="src-engine">
-/* ===== src/core/prng.js @ 2f749f4 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/prng.js @ 71adcdb — verbatim from jeffdavis-studio/unison-engine ===== */
 // prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
 // token hash, consumed in canonical draw order (Technical Architecture v1.2).
 //
@@ -258,7 +258,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/tr808.js @ 2f749f4 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/tr808.js @ 71adcdb — verbatim from jeffdavis-studio/unison-engine ===== */
 // tr808.js — THE MACHINE. A TR-808-lineage core voice: bass drum, snare,
 // closed hat, open hat, each with a front panel the token actually turns.
 //
@@ -663,7 +663,7 @@
     cpBandHz: 1000, cpQ: 1.4, cpHpHz: 620,
     cpGap1: 0.0100, cpGap2: 0.0130,   // sec, between burst 1-2 and 2-3
     cpBurstTau: 0.0011,               // sec, each pulse's own damping
-    cpTailTau: 0.0380,                // sec, the VCA's long open after burst 3
+    cpTailTau: 0.0200,                // sec, the VCA's long open after burst 3
     cpTailLevel: 0.92,
     // THE TAIL DISCHARGES AT TWO RATES, 2026-08-23. Measured, not assumed:
     // clap-tail.mjs walks CP.WAV's own RMS envelope (the fitter's 5 ms window,
@@ -691,9 +691,9 @@
     // best two-exponential fit is 8.66 dB rms, barely better than one rate at
     // 13.46. It wants 250-300 ms. cpTailSlow = 0 reduces this to the old
     // single-stage tail exactly, which is the null case the ladder started from.
-    cpTailSlow: 0.060,                // fraction of the tail on the slow rate
+    cpTailSlow: 0.100,                // fraction of the tail on the slow rate
     cpTailTau2: 0.400,                // sec, the slow rate once the junction stops conducting
-    cpTailRise: 0.0080,               // sec, the tail cap's CHARGE time — see below
+    cpTailRise: 0.0060,               // sec, the tail cap's CHARGE time — see below
     // THE TAIL DOES NOT START AT ITS MAXIMUM; IT CHARGES INTO IT, 2026-08-30.
     // The clap's two largest canonical rows were both in the attack and neither
     // had ever been named: attack peak 25.45 ms against the machine's 38.42
@@ -742,6 +742,55 @@
     // deliberately left on the discharge-only form: a rise can only make the
     // tail quieter and therefore shorter, never longer, so the existing length
     // still covers it and the shared PRNG stream is untouched by construction.
+    // THE GATE HAS A WIDTH, 2026-09-13 — and it is what fixes decay t20.
+    // cc77b57 shipped the charge stage above and disclosed a regression with
+    // it: decay t20 went 55.9 -> 64.9 ms against the machine's 46.9, the
+    // largest row left on the voice. The cause is structural, not a bad fit.
+    // With the charge and the discharge MULTIPLIED, the tail is still charging
+    // through its own peak, so the first milliseconds after the peak are held
+    // up by a rising term. The envelope has no corner; it cannot have one.
+    // MEASURED FIRST, TWO-SIDED, AT SIX WINDOW LENGTHS — this thread has three
+    // cases of a statistic that turned out to be its own probe:
+    //     window (ms)      1      2      3      5      8     12
+    //     REF  t20      25.9   43.9   47.9   46.4   55.9   57.9
+    //     OURS t20      43.9   61.4   61.4   63.4   67.8   70.3
+    // The number drifts with the window on BOTH sides, so no absolute value
+    // here is quotable — but the gap is 15-20 ms at every window from 2 ms up
+    // and never reverses. Read as a shape at a 10 ms window: the machine falls
+    // ~20 dB in ~47 ms after its peak (tau ~25 ms) then flattens to tau ~85 ms;
+    // ours took 65 ms for the first 20 dB (tau ~35 ms) then ran at tau ~46.
+    // Too slow early and too fast late. The machine's knee is SHARPER than
+    // ours. Our tail already had two rates; what it did not have was a corner.
+    // AND THE EXISTING CONSTANTS COULD NOT BUY ONE. A full two-round ladder on
+    // all four tail axes moved nothing (FITTED = {}, 0.1375 unchanged), and the
+    // 42-cell cpTailRise x cpTailTau grid — they are coupled, so a coordinate
+    // ladder cannot see the diagonal — shows why: t20 IS reachable there, 48.9
+    // ms at rise 0.008 / tau 0.018, and it costs the attack, peak 34.43 instead
+    // of 38.42 and rise 10-90 collapsing to 4.99 ms. TOTAL 0.1870. One RC
+    // cannot both hold the peak out to 38 ms and drop 20 dB by 85 ms.
+    // THE CIRCUIT. The gate is a pulse, and a pulse has a width. The cap
+    // charges through the series resistance only while the gate is OPEN, and
+    // the discharge starts from the instant it closes — so the envelope peaks
+    // at the gate's trailing edge and turns a corner there. One constant, and
+    // it is the one physical fact the product form leaves out.
+    // cpTailGate = 0 selects the product form and returns the cc77b57 circuit
+    // BIT-FOR-BIT (asserted: 93,829 samples, sample-for-sample identical).
+    // WHAT IT BOUGHT, and what it cost. t20 44.9 ms vs 46.9 (0.3248 -> 0.0436),
+    // rise 10-90 exactly on the machine at 16.96 (0.1716 -> 0.0000), peak held
+    // at 38.42, centroid @80ms 0.1322 -> 0.0246. Against: per-band tau 0.2652
+    // -> 0.3411, which is an artefact of the aggregate and worth reading before
+    // treating as a loss — btau averages |log(ours/ref)| over the bands both
+    // sides can measure, and on the nine the old circuit could measure the new
+    // one is BETTER (0.2554 vs 0.2647). The row rises because 30-60 Hz is newly
+    // measurable at 12.2 ms against the machine's 36.8, so a tenth and badly
+    // matched term joins the mean. We gained low end and were charged for it.
+    // NEITHER HALF WORKS ALONE, which is the evidence this is a circuit change
+    // and not a fit: the gate with cpLpTau held at 0.035 scores 0.1573 and
+    // cpLpTau 0.045 with no gate scores 0.1462 — both WORSE than the 0.1375
+    // baseline. Only the pair is better. The buffer-length solver above DOES
+    // have to know about this one (unlike cpTailRise, a width delays the
+    // discharge rather than shortening it), so the gate is added there.
+    cpTailGate: 0.0160,               // sec, how long the gate stays open
     // THE CLAP DARKENS AS IT DECAYS — 2026-08-18, and this is the whole defect
     // the 8/18 pass was chasing under the wrong name. Per-band tau on CP.WAV
     // falls monotonically with frequency: 110.1 ms at 120-240 Hz, 89.6, 73.9,
@@ -759,7 +808,52 @@
     // envelope out to fix them dragged the high bands out with it. Two poles
     // roll off 12 dB/oct instead of 6, which lets the tail envelope be long
     // enough for the bottom while the top still dies on schedule.
-    cpLpStart: 22000, cpLpEnd: 850, cpLpTau: 0.035, cpLpStages: 2,
+    // THE LOW END IS AUDIBLE AND THE OBJECTIVE CANNOT SEE IT — 2026-09-13,
+    // ANSWERED, AND DELIBERATELY NOT FIXED. Kept here rather than in a thread
+    // because the mechanism has now been built and thrown away twice.
+    // THE DEFICIT, re-measured on this tree without a filter at all — a
+    // whole-signal FFT, so no group delay and no window to argue about, which
+    // is what the 08-30 reading got wrong with a causal 4-pole low-pass:
+    //     band        0-30   30-60  60-120  120-240  240-480   480+   (dB re
+    //     CP.WAV     -37.0   -46.8   -43.9    -39.3    -26.8   -0.0    total)
+    //     ours       -59.2   -58.9   -56.0    -46.2    -28.5   -0.0
+    // The headline "16.8 dB below 120 Hz" was hiding its own shape: the
+    // machine's sub-120 energy is dominated by 0-30 Hz, most of which is below
+    // hearing. In the band an ear actually has, 30-120 Hz, the deficit is
+    // 12.1 dB, not 16.8.
+    // THE MECHANISM TESTED. VCA control-voltage feedthrough: the tail gate's
+    // own curve added back after BOTH output high-passes, so no filter change
+    // can reach it. Raw, it is a near-DC blob and the objective hates it at
+    // every level (0.1195 -> 0.1373 at the first step, monotone up from there)
+    // — which is what 08-30 found and reported as "no level at which this
+    // helps". THAT CLAIM NEEDS ONE CORRECTION: the tail CV is unipolar, so the
+    // raw bleed puts its energy at literal DC, which no coupling cap passes and
+    // no speaker reproduces. AC-couple it at 20 Hz, as any real output stage
+    // does, and the objective stops getting worse.
+    // BUT IT STILL CANNOT SEE IT. AC-coupled, the total reads 0.1177 / 0.1181 /
+    // 0.1179 / 0.1178 / 0.1181 / 0.1182 across levels 0.0001 to 0.0015 — a
+    // 15x change of level moving the fourth decimal non-monotonically — and the
+    // whole surface over six corners x six levels lies between 0.118 and 0.126.
+    // That is a STEP at zero followed by a plateau, not a fitted optimum: any
+    // nonzero low-frequency floor changes which bands the per-band statistics
+    // can measure, and that discretisation is the entire 0.0014. A constant
+    // fitted to it would be fitted to the objective's own gate.
+    // AND IT IS AUDIBLE, which is the answer the question was actually asked
+    // for. At the level that closes the 30-120 Hz deficit to the machine
+    // (0.004, AC-coupled) audibility.mjs reads peak NMR 28.08 dB, lit frac
+    // 0.0054 — over the gate on both criteria, and still over it at half that
+    // level (22.07 dB, 0.0030). So of the two branches 08-30 left open, it is
+    // (b): the deficit is real, it is audible, and the canonical objective has
+    // no row that can see it. Closing it will never show up as a number, and
+    // nothing in this lane should be fitted to it.
+    // ONE SHAPE MISMATCH, for whoever does fix it: the bleed over-delivers at
+    // 30-60 Hz and under-delivers at 60-120 relative to the machine, at every
+    // corner tried. Feedthrough of this envelope is the wrong spectral slope,
+    // so the mechanism is probably not exactly right even though the band is.
+    // The working stage is a 64-line patch in
+    // files/unison/clap-t20-2026-09-13/clap-cv-bleed.patch in the studio
+    // workspace; it adds no samples and does not re-roll the shared PRNG.
+    cpLpStart: 22000, cpLpEnd: 850, cpLpTau: 0.045, cpLpStages: 2,
     // Second high-pass pass. Peak band balance had us +14.4 dB at 120-240 and
     // +9.2 at 240-480 against the machine, and within 3 dB everywhere above
     // 480 — one pole at 620 Hz is not steep enough to keep the thump out.
@@ -1186,11 +1280,14 @@
     // clap — is bit-identical to before the two-stage tail existed.
     const tailSec = (() => {
       const cut = Math.exp(-8), s = CIRCUIT.cpTailSlow;
-      if (s <= 0) return CIRCUIT.cpTailTau * 8;
+      // The gate holds the discharge off for cpTailGate seconds, so the buffer
+      // has to be that much longer or the tail is truncated mid-decay.
+      const w = CIRCUIT.cpTailGate > 0 ? CIRCUIT.cpTailGate : 0;
+      if (s <= 0) return w + CIRCUIT.cpTailTau * 8;
       const g = (t) => (1 - s) * Math.exp(-t / CIRCUIT.cpTailTau) + s * Math.exp(-t / CIRCUIT.cpTailTau2);
       let lo = 0, hi = Math.max(CIRCUIT.cpTailTau, CIRCUIT.cpTailTau2) * 24;
       for (let k = 0; k < 60; k++) { const mid = (lo + hi) / 2; if (g(mid) > cut) lo = mid; else hi = mid; }
-      return hi;
+      return w + hi;
     })();
     const len = CIRCUIT.cpGap1 + CIRCUIT.cpGap2 + tailSec + 0.03;
     const x = alloc(len);
@@ -1208,9 +1305,23 @@
         const d = t - t3, s = CIRCUIT.cpTailSlow;
         // The cap charges through the gate's series resistance on the way up
         // and discharges two-rate on the way down — see cpTailRise.
+        const w = CIRCUIT.cpTailGate;
+        // Two forms of the same node, selected by whether the gate has a WIDTH.
+        // w = 0: charge and discharge run together and MULTIPLY, which is what
+        // cc77b57 shipped. w > 0: the gate holds open for w seconds — the cap
+        // only charges while it is open, and the discharge starts from the
+        // instant it closes. The second form has a CORNER; the product form
+        // rounds it off by construction. See cpTailGate.
         const chg = CIRCUIT.cpTailRise > 0 ? 1 - Math.exp(-d / CIRCUIT.cpTailRise) : 1;
-        g += CIRCUIT.cpTailLevel * chg * ((1 - s) * Math.exp(-d / CIRCUIT.cpTailTau) +
-                                          s * Math.exp(-d / CIRCUIT.cpTailTau2));
+        if (w > 0) {
+          const held = CIRCUIT.cpTailRise > 0 ? 1 - Math.exp(-w / CIRCUIT.cpTailRise) : 1;
+          g += CIRCUIT.cpTailLevel * (d <= w ? chg
+            : held * ((1 - s) * Math.exp(-(d - w) / CIRCUIT.cpTailTau) +
+                      s * Math.exp(-(d - w) / CIRCUIT.cpTailTau2)));
+        } else {
+          g += CIRCUIT.cpTailLevel * chg * ((1 - s) * Math.exp(-d / CIRCUIT.cpTailTau) +
+                                            s * Math.exp(-d / CIRCUIT.cpTailTau2));
+        }
       }
       x[i] *= g;
     }
@@ -1327,7 +1438,7 @@ self.onmessage = function (e) {
 <!-- ===================== fitted panel positions ===================== -->
 <script>
 window.FIT_POS = {"ohDecay":0.9844,"bdDecay":0.6641,"sdSnappy":0.7813,"ltTune":0.8438,"mtTune":0.3516,"htTune":0.4844};
-/* WHERE THE KNOBS OPEN @ 2f749f4, built 2026-09-13.
+/* WHERE THE KNOBS OPEN @ 71adcdb, built 2026-09-14.
 
    Every knob apply-fit moved opens at CENTRE, because after the apply the
    centre IS the fit. Only the knobs it measured and did not move are held at
