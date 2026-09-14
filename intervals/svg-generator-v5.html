@@ -34,7 +34,7 @@
     which is exactly why the sheet has to cover the whole window, not just be
     big enough. Jeff centers the 14x17 sheet on the machine by hand: 29.3 mm of
     sheet outside the window each side, 10.9 mm top and bottom. Everything else
-    — bars, curve 1.4, opacity 0.95, paper gap 0.25, the angle set, serpentine
+    — bars, curve 1.0, opacity 0.95, paper gap 0, the angle set, serpentine
     order, the merge, the per-pen files — is v4's, unchanged.
 
     WHAT V4 CHANGES (Asana 1218157822866103): the four calibration decisions
@@ -42,13 +42,19 @@
     The plot-order work of v3 is untouched; §PLOT ORDER and §MERGE below are v3's
     text, kept because they are still what the code does.
 
-    1. DENSITY CURVE, default 1.4. The empirical fit is abandoned. Jeff, by voice
-       standing at the sheet: "I would rather just do coverage density in a
-       straightforward way, like Mechanical Drawings." Mechanical Drawings uses a
-       fixed curveExponent of 1.4, so that is the default here — no ramp fitted
-       from paper. The control stays, because it is MD's tunable too, but it is
-       no longer a placeholder waiting on a measurement. The per-family composite
-       and v2's per-bar solve are untouched: they are geometry, not calibration.
+    1. DENSITY CURVE, default 1.0 since 2026-09-14, was 1.4. The empirical fit
+       is abandoned. Jeff, by voice standing at the calibration sheet on 09-03:
+       "I would rather just do coverage density in a straightforward way, like
+       Mechanical Drawings." That set it to MD's fixed 1.4 — no ramp fitted from
+       paper. Then he plotted Intervals token 1 at 1.0 and compared: "1.0 density
+       curve on Intervals is better... I'm good locking in 1.0 density curve."
+       So the default is 1.0, and MD's constant did not survive contact with this
+       project's own plot. The control stays. NOTE that at 1.0 the curve is the
+       identity — 1 − (1 − w)^1 = w — so the density stage is a no-op at the
+       default and weight passes through to the reference untouched; see §DENSITY
+       on why WHERE it is applied still matters the moment anyone raises it. The
+       per-family composite and v2's per-bar solve are untouched: they are
+       geometry, not calibration.
 
     2. OPACITY TARGET, default 0.95, was 0.90. Jeff on the plotted blocks: 98
        "starts to feel like there's overlapping going on, it almost
@@ -57,13 +63,20 @@
        against 0.90's x1.75, so the sheet costs about 20% more ink and time. That
        is why §MACHINE TIME is now printed before a plot rather than after one.
 
-    3. BAR EDGE becomes a parameter, paperGapMm, default 0.25. See §BAR EDGE.
-       v3 butted the bars — line centres on the shared boundary — and on paper
-       that reads as a stroke drawn around each bar, because the two nibs overlap
-       across the seam. Half a nib of inset was closer but left a visible white
-       channel. Jeff wants the paper interval between two bars' INK EDGES to be a
-       stated number he can nudge, and 0.25 mm is where he wants to start. It is
-       held loosely and it is a control, not a constant.
+    3. BAR EDGE becomes a parameter, paperGapMm, default 0 since 2026-09-14,
+       was 0.25. See §BAR EDGE. v3 butted the bars — line centres on the shared
+       boundary — and on paper that reads as a stroke drawn around each bar,
+       because the two nibs overlap across the seam. Half a nib of inset was
+       closer but left a visible white channel. Jeff wanted the paper interval
+       between two bars' INK EDGES to be a stated number he could nudge, and
+       started at 0.25 mm. Token 1 answered it: "I'd like to close the bar gap
+       to 0. A little touching/overlap is going to be better to help combat
+       slight misalignment from pen switching." The gap is not there to be
+       pretty, it is there to survive pen-switch registration error — and at
+       0.25 mm the error wins and opens a white channel. 0 means ink edges
+       butted. It stays a control, and readMarks reads it with isFinite rather
+       than `||` precisely so that 0 is a settable value, which is now
+       load-bearing rather than defensive.
 
     4. ANGLE SET unchanged: 22.5 / 67.5 / 112.5 / 157.5. Jeff on the fans, "A
        creates rosettes and stars, the others look more like screens... I'd zero
@@ -406,7 +419,7 @@
             </div>
             <div class="form-group">
               <label for="curveExponent">Density Curve</label>
-              <input type="number" id="curveExponent" value="1.4" step="0.1" min="1" max="7">
+              <input type="number" id="curveExponent" value="1.0" step="0.1" min="1" max="7">
             </div>
             <div class="form-group">
               <label for="opacityTarget">Opacity Target</label>
@@ -442,7 +455,7 @@
             </div>
             <div class="form-group">
               <label for="paperGap">Paper Gap (mm)</label>
-              <input type="number" id="paperGap" value="0.25" step="0.05" min="-2" max="5">
+              <input type="number" id="paperGap" value="0" step="0.05" min="-2" max="5">
             </div>
             <div class="form-group">
               <label for="outerInset">Outer Inset (mm)</label>
@@ -791,7 +804,12 @@
     // Jeff, 2026-09-03, reading the plotted calibration sheet: the empirical
     // density fit is abandoned in favour of Mechanical Drawings' fixed exponent,
     // and the opacity target moves from 0.90 to 0.95. Both stay controls.
-    const CURVE_EXPONENT = 1.4;
+    // Jeff, 2026-09-14, reading Intervals token 1 plotted at 1.0 against 1.4:
+    // "1.0 density curve on Intervals is better... I'm good locking in 1.0
+    // density curve and zero gap. I don't need to replot those settings." MD's
+    // 1.4 is out; 1.0 is this project's own measured answer. At 1.0 the curve is
+    // the identity and the density stage is a no-op — see §DENSITY.
+    const CURVE_EXPONENT = 1.0;
     const OPACITY_TARGET = 0.95;
 
     // Sakura Pigma Micron 05. Pitch and nib are the same 0.45 mm today, and they
@@ -799,7 +817,9 @@
     // solid fill, nib is the physical width of the ink a line lays down. §BAR
     // EDGE needs the nib, not the pitch.
     const NIB_MM = 0.45;
-    const PAPER_GAP_MM = 0.25;
+    // 0 since 2026-09-14 (Jeff, token 1): ink edges butted. A little touching
+    // beats a white channel, because pen-switch misalignment eats the gap.
+    const PAPER_GAP_MM = 0;
 
     // Apparent coverage of a set of per-family requested coverages.
     function composite(cs) {
@@ -822,7 +842,9 @@
     // WHERE THE CURVE GOES, and why v4 moved it. v3 applied curveWeight to each
     // ink's weight and then summed the curved weights into the reference. With
     // the curve at 1.0 that is a no-op and it never showed. At 1.4 it does two
-    // wrong things at once. The curve is concave, so it raises every weight; the
+    // wrong things at once. Since 2026-09-14 the default is back at 1.0, so the
+    // stage is a no-op again TODAY — but v4's placement is what makes the
+    // control safe to turn, so it stays where v4 put it. The curve is concave, so it raises every weight; the
     // curved total of a four-ink bar at full ink comes out near 1.33, and
     // reference(1.33) is 0.99 coverage. A full bar would print at 99% on the very
     // sheet where Jeff picked 95% because 98% "almost over-darkens". Splitting
@@ -889,8 +911,10 @@
     // overlap by a full nib across every seam and the seam prints darker than
     // either bar. Jeff, reading the calibration sheet's bar-edge block: butted
     // "reads like a stroke around each bar"; inset by half a line width was
-    // closer but left a touch of white. He wants the white channel to be a
-    // number, starting at 0.25 mm and re-judged on the first full sheet.
+    // closer but left a touch of white. He wanted the white channel to be a
+    // number, starting at 0.25 mm and re-judged on the first full sheet. It was:
+    // on token 1, 2026-09-14, he closed it to 0 — pen-switch misalignment opens
+    // a white channel faster than 0.25 mm of deliberate gap can stay closed.
     //
     // THE RULE. The pen lays a capsule: the Minkowski sum of the drawn segment
     // with a disc of radius nib/2. So a line's ink reaches nib/2 beyond its
@@ -947,10 +971,12 @@
     // on the calibration sheet's density ramps to fit an exponent from ink on
     // Bristol. Jeff abandoned that fit on 2026-09-03, standing at the plotted
     // sheet: "I would rather just do coverage density in a straightforward way,
-    // like Mechanical Drawings." So the default is Mechanical Drawings' constant,
-    // 1.4, and the ramp row on the calibration sheet goes unused. The control
-    // stays — 1.4 is MD's tunable, not a law — but it is now a chosen value
-    // rather than a placeholder.
+    // like Mechanical Drawings." So the default became Mechanical Drawings'
+    // constant, 1.4, and the ramp row on the calibration sheet goes unused. The
+    // control stays — 1.4 was MD's tunable, not a law — and on 2026-09-14, with
+    // Intervals token 1 plotted, Jeff took it to 1.0: "1.0 density curve on
+    // Intervals is better." So the default is 1.0, chosen off this project's own
+    // plot rather than inherited. At 1.0 this stage is the identity map.
     //
     // It is a property of pen and paper, not of how many pens share the bar, so
     // it stays global and is applied first — the compensation then solves against
@@ -1403,9 +1429,11 @@
         'Opacity ' + marks.target.toFixed(2) + ' &rarr; four-family reference &times; <b>' +
         marks.mult.toFixed(2) + '</b> (crossing families composite, they do not add). ' +
         'Curve <b>' + marks.curveExp + '</b> maps weight to coverage as 1 &minus; (1 &minus; w)^' +
-        marks.curveExp + '. The empirical fit was abandoned by Jeff on 2026-09-03 &mdash; ' +
-        '&ldquo;I would rather just do coverage density in a straightforward way, like Mechanical ' +
-        'Drawings&rdquo; &mdash; so 1.4 is Mechanical Drawings\u2019 constant, not a fitted number.';
+        marks.curveExp + '.' + (marks.curveExp === 1 ? ' At 1 that is the identity &mdash; weight ' +
+        'passes through untouched.' : '') + ' The empirical fit was abandoned by Jeff on 2026-09-03 in ' +
+        'favour of Mechanical Drawings\u2019 1.4; on 2026-09-14, reading Intervals token 1 plotted at ' +
+        'both, he set it to <b>1.0</b> &mdash; &ldquo;1.0 density curve on Intervals is better&rdquo; ' +
+        '&mdash; so the default is this project\u2019s own measured value, not an inherited constant.';
       renderFamilyReadout(marks);
     }
 

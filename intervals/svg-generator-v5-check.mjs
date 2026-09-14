@@ -428,10 +428,15 @@ for (const hash of hashes) {
   check(consoleErrors.length === 0, 'console errors: ' + consoleErrors.join(' | '));
   check(state.marks.compensate === true, 'compensation is not on by default');
 
-  // --- v4: Jeff's four decisions are the DEFAULTS, not settings you have to know
-  check(state.marks.curveExp === 1.4, 'density curve default is ' + state.marks.curveExp + ', not 1.4');
+  // --- v4: Jeff's four decisions are the DEFAULTS, not settings you have to know.
+  // Two of them were re-decided on 2026-09-14 off the plotted token 1: the
+  // density curve 1.4 -> 1.0 ("1.0 density curve on Intervals is better") and
+  // the paper gap 0.25 -> 0 ("a little touching/overlap is going to be better
+  // to help combat slight misalignment from pen switching"). MD's 1.4 was
+  // inherited; 1.0 is this project's own plot answering.
+  check(state.marks.curveExp === 1.0, 'density curve default is ' + state.marks.curveExp + ', not 1.0');
   check(state.marks.target === 0.95, 'opacity target default is ' + state.marks.target + ', not 0.95');
-  check(state.marks.paperGap === 0.25, 'paper gap default is ' + state.marks.paperGap + ', not 0.25');
+  check(state.marks.paperGap === 0, 'paper gap default is ' + state.marks.paperGap + ', not 0');
   check(state.marks.nib === 0.45, 'nib default is ' + state.marks.nib + ', not 0.45');
   check(Math.abs(state.marks.outerInset - state.marks.nib / 2) < 1e-9,
     'outer inset default ' + state.marks.outerInset + ' is not nib/2');
@@ -904,13 +909,31 @@ for (const hash of hashes) {
     // — so it is the serpentine heuristic's own tail, not anything the ink
     // change introduced; a different decomposition just lands more bars in it.
     // What it costs is the point: 6.3 mm and 29.4 mm of extra pen-up against
-    // 7.70 m and 6.61 m saved on those two layers, 0.08% and 0.44%. So the count
-    // is bounded at 30% of a layer's bars to catch an ordering that has actually
-    // inverted, and the cost assertion below at 0.5% of the saving is the gate.
-    check(barsOver <= Math.max(2, Math.ceil(0.30 * gs.length)),
+    // 7.70 m and 6.61 m saved on those two layers, 0.08% and 0.44%.
+    //
+    // RE-MEASURED 2026-09-14, when the paper gap went to 0. Butting the bars
+    // moves the tail, because a bar the ordered pass now enters from a touching
+    // neighbour starts its in-bar walk somewhere else. Same hash, same layers,
+    // old defaults -> new:
+    //     ink2 yellow 112.5   7/26 0.445%  ->  10/26 0.589%   <- the worst, both times
+    //     ink2 yellow  22.5   5/26 0.081%  ->   5/26 0.089%
+    //     ink6 blue    22.5   1/13 0.005%  ->   1/13 0.005%
+    //     ink6 blue   112.5   1/13 0.041%  ->   1/13 0.064%
+    // It is the same layer that drove the 09-11 bound, moved a little; nothing
+    // else changed and no layer newly entered the tail. In absolute terms the
+    // worst layer pays 38.1 mm of extra pen-up on a sheet that draws 180.8 m and
+    // walks 43.5 m in the air — about a third of a second of machine time.
+    // So the bounds are re-laddered on the same headroom the 09-11 measurement
+    // used (~1.12x over worst observed): count 30% -> 45% (12 of 26 against 10
+    // measured), cost 0.5% -> 0.7% (against 0.589% measured). An ordering that
+    // has actually INVERTED puts most of a layer's bars over, which 45% still
+    // catches. Both numbers are fitted on hash 006f9c32's emitted files, which
+    // is the one hash this walk emits — same basis as 09-11, and worth widening
+    // if the emit set ever grows.
+    check(barsOver <= Math.max(2, Math.ceil(0.45 * gs.length)),
       layer.filename + ': ' + barsOver + ' of ' + gs.length +
       ' bars are above their unordered walk — the ordering has stopped being greedy');
-    check(overExcess <= 0.005 * Math.max(1, layer.penUpNaive - layer.penUp),
+    check(overExcess <= 0.007 * Math.max(1, layer.penUpNaive - layer.penUp),
       layer.filename + ': bars above their unordered walk cost ' + overExcess.toFixed(1) +
       ' mm against ' + ((layer.penUpNaive - layer.penUp) / 1000).toFixed(2) + ' m saved');
     if (barsOver) overBars.push(layer.filename.replace(/^intervals-[0-9a-f]+-/, '').replace(/\.svg$/, '') +
