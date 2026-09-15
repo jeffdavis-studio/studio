@@ -428,6 +428,15 @@
           </div>
           <div class="form-row" style="margin-top: 12px;">
             <div class="form-group">
+              <label for="toneModel">Tone</label>
+              <select id="toneModel">
+                <option value="reference" selected>reference (current)</option>
+                <option value="linear">linear</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row" style="margin-top: 12px;">
+            <div class="form-group">
               <label for="familyTrim">Family Trim k=1..4</label>
               <input type="text" id="familyTrim" value="1, 1, 1, 1" spellcheck="false">
             </div>
@@ -638,7 +647,7 @@
        'drawSpeed', 'travelSpeed', 'segOverhead'].forEach(id => {
         document.getElementById(id).addEventListener('input', rebuild);
       });
-      ['familyCompensate', 'serpentine', 'mergeCollinear', 'perAngleFiles'].forEach(id => {
+      ['toneModel', 'familyCompensate', 'serpentine', 'mergeCollinear', 'perAngleFiles'].forEach(id => {
         document.getElementById(id).addEventListener('change', rebuild);
       });
       document.getElementById('tokenHash').addEventListener('change', () => {
@@ -863,10 +872,48 @@
       return curveExp === 1 ? W : 1 - Math.pow(Math.max(0, 1 - W), curveExp);
     }
 
-    function barMultiplier(weights, mult, curveExp) {
+    // ============ TONE MODEL ============
+    // Asana 1218479413072151. Jeff, 2026-09-14: "the plots look darker and maybe
+    // more saturated than the digital. Are we handling white (paper)
+    // incorporation properly?" He is right, and reference() is one of the two
+    // reasons why.
+    //
+    // The digital keeps a bar's paper share EXACTLY: col = (1 - tint) * mix +
+    // tint * white, so the paper showing through a bar is tint, and the bar's
+    // ink is W = 1 - tint. reference(W) = 1 - (1 - W * mult / 4)^4 is concave,
+    // so it touches the digital line only at W = 0 and W = 1 and sits above it
+    // everywhere between: a bar of half ink prints 71% covered, not 50%, and
+    // keeps 29% of its paper instead of 50%. Measured over token 1's 27 bars
+    // (intervals/white-loss-check.mjs) the mean paper share is 34.4% digital
+    // against 19.5% printed — 14.9 points of white gone, worst on the mid-tones,
+    // least on the darkest bars because W = 1 is the one point on the line.
+    //
+    // LINEAR is the alternative, and it is the digital's own relation: a bar of
+    // ink W prints at W * target. Paper share is preserved up to the target, a
+    // full bar still lands on 0.95 exactly, and every partial bar carries the
+    // ink fraction the artwork asked for. Under it token 1's mean printed paper
+    // is 37.7%, which sits 3.3 points ABOVE the digital — that gap is the 5% a
+    // full bar deliberately does not cover, because 95% is what this project
+    // calls 100% color.
+    //
+    // REFERENCE STAYS THE DEFAULT. This is a control for Jeff to judge off a
+    // plotted strip, not a correction applied on my say-so. The physical copy is
+    // the review.
+    //
+    // The curve exponent still shapes the reference model and is a no-op at its
+    // locked 1.0; it does not touch linear, which is a straight line by
+    // definition and has nothing for an exponent to bend.
+    const TONE_MODEL = 'reference';
+
+    function toneReference(W, mult, curveExp, target, tone) {
+      if (tone === 'linear') return Math.min(1, W * target);
+      return 1 - Math.pow(Math.max(0, 1 - curveTone(W, curveExp) * mult / 4), 4);
+    }
+
+    function barMultiplier(weights, mult, curveExp, target, tone) {
       const W = weights.reduce((s, w) => s + w, 0);
       if (!(W > 0)) return mult;
-      const reference = 1 - Math.pow(Math.max(0, 1 - curveTone(W, curveExp) * mult / 4), 4);
+      const reference = toneReference(W, mult, curveExp, target, tone);
       let lo = 0;
       let hi = 64;
       for (let i = 0; i < 50; i++) {
@@ -892,8 +939,10 @@
       const gapV = parseFloat(document.getElementById('paperGap').value);
       const outV = parseFloat(document.getElementById('outerInset').value);
       const nib = isFinite(nibV) && nibV > 0 ? nibV : NIB_MM;
+      const toneEl = document.getElementById('toneModel');
+      const tone = toneEl && toneEl.value === 'linear' ? 'linear' : TONE_MODEL;
       return {
-        pitch, curveExp, target, mult: opacityMultiplier(target),
+        pitch, curveExp, target, tone, mult: opacityMultiplier(target),
         compensate,
         activeEps: isFinite(eps) && eps >= 0 ? eps : ACTIVE_WEIGHT_EPS,
         trim: [0, 1, 2, 3].map(i => trim[i] !== undefined ? trim[i] : FAMILY_TRIM[i]),
@@ -1001,7 +1050,7 @@
       // tone curve bypassed with it, so the readout has something to compare
       // against that is genuinely what v1 did.
       const mult = marks.compensate && k > 0
-        ? barMultiplier(raw, marks.mult, marks.curveExp) * marks.trim[Math.min(k, 4) - 1]
+        ? barMultiplier(raw, marks.mult, marks.curveExp, marks.target, marks.tone) * marks.trim[Math.min(k, 4) - 1]
         : marks.mult;
       const density = new Map();
       active.forEach((e, i) => density.set(e, raw[i] * mult));
@@ -1757,6 +1806,7 @@
 '     data-paper-gap-mm="' + marks.paperGap + '"\n' +
 '     data-outer-inset-mm="' + marks.outerInset + '"\n' +
 '     data-curve="' + marks.curveExp + '"\n' +
+'     data-tone="' + marks.tone + '"\n' +
 '     data-opacity-target="' + marks.target + '"\n' +
 '     data-coverage-multiplier="' + marks.mult.toFixed(6) + '"\n' +
 '     data-family-compensation="' + (marks.compensate ? 'on' : 'off') + '"\n' +
