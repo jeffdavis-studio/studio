@@ -75,6 +75,15 @@ export const GLYPHS = {
   '\u00b0': [[[3, 1.2], [2.707, 1.907], [2, 2.2], [1.293, 1.907], [1, 1.2],
               [1.293, 0.493], [2, 0.2], [2.707, 0.493], [3, 1.2]]],
   '+': [[[2, 1.4], [2, 4.6]], [[0.4, 3], [3.6, 3]]],
+  // Percent, added 2026-09-15 for the white-loss strip's paper-share row labels.
+  // Additive only, exactly as the Delta and the degree sign were: no existing
+  // glyph is touched, so every other generator's emitted bytes are unchanged.
+  // textPolylines SKIPS a character it has no glyph for, so a missing '%' does
+  // not fail loudly — it silently prints "75 PAPER" and the label reads as a
+  // count. That is how this one was found: by looking at the rasterized sheet.
+  '%': [[[0.3, 6], [3.7, 0]],
+        [[0.3, 0.5], [1.3, 0.5], [1.3, 1.9], [0.3, 1.9], [0.3, 0.5]],
+        [[2.7, 4.1], [3.7, 4.1], [3.7, 5.5], [2.7, 5.5], [2.7, 4.1]]],
   '(': [[[2.6, 0], [1.2, 1.6], [1.2, 4.4], [2.6, 6]]],
   ')': [[[1.4, 0], [2.8, 1.6], [2.8, 4.4], [1.4, 6]]],
   '\u00b7': [[[1.85, 2.85], [2.15, 3.15]]]
