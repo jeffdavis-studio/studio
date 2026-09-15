@@ -2,7 +2,8 @@
 //
 //   node intervals/white-loss-tone-check.mjs
 //
-// Asana 1218479413072151. The control offers "reference (current)" and "linear".
+// Asana 1218479413072151. The control offers "reference (current)", "linear" and
+// "linear + crossing trim" (trim added 2026-09-15 for the half-size sheet).
 // What this asserts, in order of what would actually hurt:
 //
 //   1. THE DEFAULT DID NOT MOVE. The select boots on reference, readMarks()
@@ -15,6 +16,8 @@
 //   3. Reference is unchanged: it still composites to 1 - (1 - W*mult/4)^4.
 //   4. Linear lays LESS ink than reference on every partial bar and exactly the
 //      same on a full one — the white the tone curve was eating, given back.
+//   5. Trim spends the INK budget: sum of c_i == W * target on every bar, and it
+//      lays no more ink than linear anywhere.
 import { chromium } from '/Users/morgan/morgan/music/node_modules/playwright/index.mjs';
 import { createServer } from 'node:http';
 import { readFileSync } from 'node:fs';
@@ -75,7 +78,7 @@ const boot = await page.evaluate(() => ({
 }));
 check(errs.length === 0, 'console/page errors: ' + errs.join(' | '));
 check(boot.selectValue === 'reference', 'the Tone select boots on ' + boot.selectValue + ', must be reference');
-check(JSON.stringify(boot.options) === JSON.stringify(['reference', 'linear']),
+check(JSON.stringify(boot.options) === JSON.stringify(['reference', 'linear', 'trim']),
   'the Tone options are ' + boot.options.join(','));
 check(boot.tone === 'reference', 'readMarks().tone is ' + boot.tone + ' at boot');
 check(boot.curveExp === 1 && boot.target === 0.95, 'the locked calibration moved: curve ' + boot.curveExp + ', target ' + boot.target);
@@ -106,12 +109,14 @@ async function sample(tone) {
 
 const ref = await sample('reference');
 const lin = await sample('linear');
+const trm = await sample('trim');
 const back = await sample('reference');
 
 check(back.files.length === boot.files.length && back.files.every((f, i) => f === boot.files[i]),
   'switching to linear and back did not return the byte-identical default files');
 check(boot.files.some(f => f.includes('data-tone="reference"')), 'the emitted file does not carry data-tone="reference"');
 check(lin.files.some(f => f.includes('data-tone="linear"')), 'the linear file does not carry data-tone="linear"');
+check(trm.files.some(f => f.includes('data-tone="trim"')), 'the trim file does not carry data-tone="trim"');
 
 const mult = opacityMultiplier(0.95);
 // ---- 2/3. each model hits its own reference ---------------------------------
@@ -125,6 +130,16 @@ for (let i = 0; i < ref.bars.length; i++) {
   else if (b.inkLaid < a.inkLaid - 1e-9) lighter++;
   else heavier++;
 }
+// ---- 5. trim spends the ink budget and never out-inks linear ----------------
+let worstTrim = 0, trimHeavier = 0;
+for (let i = 0; i < trm.bars.length; i++) {
+  const b = lin.bars[i], c = trm.bars[i];
+  worstTrim = Math.max(worstTrim, Math.abs(c.inkLaid - Math.min(1, c.W) * 0.95));
+  if (c.inkLaid > b.inkLaid + 1e-9) trimHeavier++;
+}
+check(worstTrim < 1e-9, 'trim misses the W*target ink budget by ' + worstTrim.toExponential(2));
+check(trimHeavier === 0, trimHeavier + ' bars lay MORE ink under trim than under linear');
+
 check(worstRef < 1e-9, 'reference model misses its own reference by ' + worstRef.toExponential(2));
 check(worstLin < 1e-9, 'linear model misses W*target by ' + worstLin.toExponential(2));
 check(heavier === 0, heavier + ' partial bars lay MORE ink under linear than under reference');
@@ -168,6 +183,8 @@ console.log('  mean paper share        ' + ((1 - mean(ref.bars.map(b => b.covere
   (mean(ref.bars.map(b => 1 - b.W)) * 100).toFixed(2) + '%)');
 console.log('  mean ink laid per bar   ' + mean(ref.bars.map(b => b.inkLaid)).toFixed(3) + ' reference  vs  ' +
   mean(lin.bars.map(b => b.inkLaid)).toFixed(3) + ' linear');
+console.log('  mean ink laid, trim     ' + mean(trm.bars.map(b => b.inkLaid)).toFixed(3) +
+  '   (paper ' + ((1 - mean(trm.bars.map(b => b.covered))) * 100).toFixed(2) + '%)');
 console.log('  ' + lighter + ' of ' + ref.bars.length + ' bars lighter under linear, ' + full + ' full bar(s) identical');
 
 await browser.close();

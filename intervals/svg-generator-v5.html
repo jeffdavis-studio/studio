@@ -432,6 +432,7 @@
               <select id="toneModel">
                 <option value="reference" selected>reference (current)</option>
                 <option value="linear">linear</option>
+                <option value="trim">linear + crossing trim</option>
               </select>
             </div>
           </div>
@@ -903,16 +904,34 @@
     // The curve exponent still shapes the reference model and is a no-op at its
     // locked 1.0; it does not touch linear, which is a straight line by
     // definition and has nothing for an exponent to bend.
+    //
+    // TRIM is the third rung, added 2026-09-15 for the half-size three-panel
+    // sheet. It is LINEAR with the crossing overlap spent out of the ink budget.
+    // THE ASSUMPTION, stated plainly: where two families cross, the paper
+    // carries two inks, so that area costs twice the ink but buys one area of
+    // cover. So trim spends the INK budget rather than the COVERAGE budget —
+    // sum of c_i = W * target instead of composite(c) = W * target. Because the
+    // weights of a bar sum to W by construction, that multiplier is simply the
+    // target: c_i = w_i * target, no bisection at all. The doubled area is paid
+    // for once and the excess comes back as bare paper, so a crossed bar prints
+    // lighter than linear by exactly its crossing share. First-order and
+    // deliberately simple: it assumes two inks stacked read as two inks' worth
+    // of darkness. It is not a fit, and at W = 1 with k > 1 families it does NOT
+    // reach 0.95 — that is the model showing its own shape, not a bug.
     const TONE_MODEL = 'reference';
+    const TONE_MODELS = ['reference', 'linear', 'trim'];
 
     function toneReference(W, mult, curveExp, target, tone) {
-      if (tone === 'linear') return Math.min(1, W * target);
+      if (tone === 'linear' || tone === 'trim') return Math.min(1, W * target);
       return 1 - Math.pow(Math.max(0, 1 - curveTone(W, curveExp) * mult / 4), 4);
     }
 
     function barMultiplier(weights, mult, curveExp, target, tone) {
       const W = weights.reduce((s, w) => s + w, 0);
       if (!(W > 0)) return mult;
+      // TRIM spends the ink budget, not the coverage budget: sum(w_i * m) =
+      // W * target, and sum(w_i) = W, so m = target exactly. No solve.
+      if (tone === 'trim') return target;
       const reference = toneReference(W, mult, curveExp, target, tone);
       let lo = 0;
       let hi = 64;
@@ -940,7 +959,7 @@
       const outV = parseFloat(document.getElementById('outerInset').value);
       const nib = isFinite(nibV) && nibV > 0 ? nibV : NIB_MM;
       const toneEl = document.getElementById('toneModel');
-      const tone = toneEl && toneEl.value === 'linear' ? 'linear' : TONE_MODEL;
+      const tone = toneEl && TONE_MODELS.includes(toneEl.value) ? toneEl.value : TONE_MODEL;
       return {
         pitch, curveExp, target, tone, mult: opacityMultiplier(target),
         compensate,
