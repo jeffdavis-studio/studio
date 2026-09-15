@@ -1,0 +1,581 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unison — the Juno</title>
+<style>
+  :root{
+    --bg:#16161a; --panel:#1f1f25; --edge:#34343d; --ink:#e8e8ec; --dim:#8d8d99;
+    --accent:#d8873f; --key:#f2f2f0; --keyd:#232329; --lit:#d8873f;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:14px/1.55 ui-sans-serif,-apple-system,"Segoe UI",Inter,sans-serif;
+    -webkit-text-size-adjust:100%;}
+  .wrap{max-width:940px;margin:0 auto;padding:22px 18px 60px}
+  h1{font-size:19px;font-weight:600;margin:0 0 2px;letter-spacing:.01em}
+  .sub{color:var(--dim);font-size:13px;margin:0 0 18px}
+  .card{background:var(--panel);border:1px solid var(--edge);border-radius:10px;padding:16px;margin-bottom:16px}
+  .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  button{font:inherit;color:var(--ink);background:#2a2a32;border:1px solid var(--edge);
+    border-radius:7px;padding:7px 13px;cursor:pointer}
+  button:hover{border-color:var(--accent)}
+  button.on{background:var(--accent);border-color:var(--accent);color:#1a1a1a;font-weight:600}
+  label.k{display:block;font-size:11px;color:var(--dim);letter-spacing:.06em;text-transform:uppercase;margin-bottom:3px}
+  .knobs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:13px 16px}
+  .knob input{width:100%;accent-color:var(--accent)}
+  .val{font-variant-numeric:tabular-nums;font-size:12px;color:var(--ink)}
+  .val .d{color:var(--accent)}
+  /* keyboard */
+  #kbd{position:relative;height:132px;margin:4px 0 10px;user-select:none;touch-action:none}
+  .wk{position:absolute;top:0;bottom:0;background:var(--key);border:1px solid #b9b9b4;
+    border-radius:0 0 5px 5px;box-shadow:inset 0 -7px 9px -8px #000}
+  .wk.d{background:var(--lit)}
+  .bk{position:absolute;top:0;height:62%;background:var(--keyd);border:1px solid #000;
+    border-radius:0 0 4px 4px;z-index:2}
+  .bk.d{background:var(--lit)}
+  .kl{position:absolute;bottom:4px;width:100%;text-align:center;font-size:9px;color:#8a8a84;pointer-events:none}
+  .note{color:var(--dim);font-size:12.5px;line-height:1.6}
+  .note b{color:var(--ink);font-weight:600}
+  footer{color:var(--dim);font-size:12px;border-top:1px solid var(--edge);padding-top:12px;margin-top:22px}
+  code{font:12px ui-monospace,Menlo,monospace;color:var(--accent)}
+  details summary{cursor:pointer;color:var(--dim);font-size:12.5px}
+  details[open] summary{margin-bottom:8px}
+  .declined{font-size:12px;color:var(--dim);margin:6px 0 0;padding-left:14px;border-left:2px solid var(--edge)}
+  .declined b{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Unison — the Juno</h1>
+  <p class="sub">The poly voice, synthesised live in your browser from <code>src/instruments/juno.js</code> — the same file the song render calls. Nothing here is a sample.</p>
+
+  <div class="card">
+    <label class="k">Patch</label>
+    <div class="row" id="patches"></div>
+  </div>
+
+  <div class="card">
+    <label class="k">Play</label>
+    <div id="kbd"></div>
+    <div class="row">
+      <button data-chord="0,3,7,10">Cm7</button>
+      <button data-chord="0,4,7,11">Cmaj7</button>
+      <button data-chord="0,5,7,12">Csus4</button>
+      <button data-chord="0,3,7,14">Cm add9</button>
+      <button data-chord="0,4,7,10,14">C9</button>
+      <button id="prog">Progression</button>
+      <button id="hold">Hold: off</button>
+    </div>
+    <p class="note" style="margin-top:10px">Click the keys, or use your keyboard: <b>A W S E D F T G Y H U J K</b> for one octave, <b>Z</b> / <b>X</b> to shift octaves. The chord buttons go through the voice's own <code>schedule()</code>, which is the same entry point the song uses — a poly synth judged one note at a time is not judged at all.</p>
+  </div>
+
+  <div class="card">
+    <label class="k">Panel</label>
+    <div class="knobs" id="knobs"></div>
+    <div class="row" style="margin-top:14px">
+      <button id="reset">Back to center</button>
+      <span class="note" id="dirty"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>Where this opens, and what the reference pack could not tell us</summary>
+      <p class="note" id="opensNote"></p>
+      <p class="note" style="margin-top:10px"><b>Measured and declined.</b> Each of these was fitted against the verified reference pack and then not applied, because the residual turned out to be something the recording drew rather than something the instrument does:</p>
+      <div id="declined"></div>
+    </details>
+  </div>
+
+  <footer title="engine @4dc82c0 · built 2026-09-15">Unison engine — jeffdavis-studio/unison-engine. Hover for build provenance.</footer>
+</div>
+
+<script>
+/* ===== src/core/mix.js @ 4dc82c0 — verbatim from jeffdavis-studio/unison-engine ===== */
+// mix.js — the fan-in ≤2 summing rule, as a primitive.
+//
+// Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
+// audio renders are NOT bit-reproducible wherever a node sums 3+ inputs —
+// float addition isn't associative and the browser doesn't fix the summation
+// order. Chain-mixing every summing point at fan-in ≤2 makes renders
+// bit-identical (SHA-256-equal) across pages and loads. Tone.js cannot adopt
+// this fix; it is why the engine is raw Web Audio.
+//
+// RULE: no AudioNode in this engine may ever receive more than two .connect()s.
+// Anywhere three or more signals meet, they meet through U.chainMixer.
+(function (g) {
+  "use strict";
+  const U = (g.U = g.U || {});
+
+  // Serial chain of 2-input gains. add() splices a fresh gain between the
+  // accumulator and `out`, so every summing node sums exactly two signals in a
+  // fixed order. Order of add() calls is part of the deterministic contract.
+  U.chainMixer = function (ctx, out) {
+    let acc = null;
+    let count = 0;
+    return {
+      add(node) {
+        count++;
+        if (!acc) { acc = ctx.createGain(); node.connect(acc); acc.connect(out); return; }
+        const link = ctx.createGain();
+        acc.disconnect(out);
+        acc.connect(link);
+        node.connect(link);
+        link.connect(out);
+        acc = link;
+      },
+      get count() { return count; },
+    };
+  };
+})(typeof window !== "undefined" ? window : globalThis);
+
+/* ===== src/instruments/juno.js @ 4dc82c0 — verbatim from jeffdavis-studio/unison-engine ===== */
+// juno.js — Juno-60-flavor poly voice, raw Web Audio, zero dependencies.
+// Ported from the 2026-07-21 bake-off winner (voice-raw.js), restructured to
+// live behind a desk strip: U.createJuno(ctx, strip, patchName) builds its own
+// voice bus (+ chorus when the patch calls for it) and feeds strip.input.
+//
+// VOICING (2026-07-22, Jeff): the Tone render's darker/rounder character was
+// "more of the era" — the raw engine stands, but the raw voice is dialed
+// toward it. Changes vs the bake-off patch: comp filter center down
+// (cutoffBase 500→430, cutoffEnv 3200→2500), chorus slower/wider/softer
+// (0.6→0.5 Hz, ±0.6→±0.9 ms, taps split 3.5/4.6 ms, wet 0.55→0.50).
+// 2026-09-15: chorus depth measured to ±1.9 ms and applied; kbdTrack added as
+// a modelled circuit element, default 0 (inert). See analysis/fits/juno-comp.json.
+// A/B reference renders: unison-bakeoff-raw.m4a / unison-bakeoff-tone.m4a in
+// the Studio Advancement Drive folder.
+//
+// Patch model: saw DCO + sub-square (-1 oct), per-voice lowpass with envelope,
+// ADSR amp. All summing obeys the fan-in ≤2 rule (core/mix.js): voices
+// chain-mix into the voice bus; chorus output sums dry + wet only.
+(function (g) {
+  "use strict";
+  const U = (g.U = g.U || {});
+
+  const midiHz = (m) => 440 * Math.pow(2, (m - 69) / 12);
+
+  U.JUNO_PATCHES = {
+    comp: {
+      subLevel: 0.35, cutoffBase: 430, cutoffEnv: 2500, filterQ: 0.9,
+      fA: 0.006, fD: 0.28, fS: 0.35,
+      a: 0.005, d: 0.18, s: 0.65, r: 0.22, level: 0.16, chorus: true,
+    },
+    bass: {
+      subLevel: 0.5, cutoffBase: 220, cutoffEnv: 1400, filterQ: 1.1,
+      fA: 0.003, fD: 0.12, fS: 0.22,
+      a: 0.003, d: 0.10, s: 0.55, r: 0.08, level: 0.30, chorus: false,
+    },
+    // --- 2026-07-28: the four patches the composition engine needs beyond the
+    // bake-off pair. Same voice architecture, different envelopes and filter
+    // ranges — a Juno's whole range is the slider positions, so that's honest.
+    // Levels are first-pass and are a listening job, like the house faders.
+    sub: {
+      // 808-lineage bass: nearly no harmonics past the fundamental, long tail.
+      subLevel: 0.85, cutoffBase: 95, cutoffEnv: 260, filterQ: 0.7,
+      fA: 0.004, fD: 0.30, fS: 0.30,
+      a: 0.004, d: 0.20, s: 0.80, r: 0.30, level: 0.34, chorus: false,
+    },
+    pad: {
+      // slow in, slow out, filter well down — sits under everything
+      subLevel: 0.30, cutoffBase: 320, cutoffEnv: 1100, filterQ: 0.7,
+      fA: 0.45, fD: 1.20, fS: 0.55,
+      a: 0.40, d: 0.60, s: 0.85, r: 0.90, level: 0.11, chorus: true,
+    },
+    arp: {
+      // short and bright; every note is a pluck
+      subLevel: 0.20, cutoffBase: 700, cutoffEnv: 3600, filterQ: 1.4,
+      fA: 0.003, fD: 0.09, fS: 0.18,
+      a: 0.002, d: 0.07, s: 0.30, r: 0.10, level: 0.13, chorus: true,
+    },
+    lead: {
+      // singable: enough body to carry, filter open enough to cut the desk
+      subLevel: 0.28, cutoffBase: 620, cutoffEnv: 3000, filterQ: 1.6,
+      fA: 0.012, fD: 0.35, fS: 0.45,
+      a: 0.015, d: 0.22, s: 0.72, r: 0.28, level: 0.17, chorus: true,
+    },
+    stab: {
+      // the ORCH5 homage: instant attack, hard decay, brassy filter sweep
+      subLevel: 0.45, cutoffBase: 400, cutoffEnv: 4200, filterQ: 2.0,
+      fA: 0.002, fD: 0.14, fS: 0.12,
+      a: 0.002, d: 0.12, s: 0.25, r: 0.14, level: 0.15, chorus: false,
+    },
+  };
+
+  // Juno BBD-style chorus (mode I flavor): dry pass + two swept delay taps,
+  // one LFO with inverted polarity per side — the Juno stereo trick. Slightly
+  // split tap centers (3.5/4.6 ms) widen it without a second LFO.
+  // Fan-in check: `out` sums dry + wet (2); merger takes one tap per channel.
+  function makeChorus(ctx, out) {
+    const input = ctx.createGain();
+    const dry = ctx.createGain(); dry.gain.value = 1.0;
+    const wet = ctx.createGain(); wet.gain.value = 0.50;
+    const dL = ctx.createDelay(0.05), dR = ctx.createDelay(0.05);
+    dL.delayTime.value = 0.0035; dR.delayTime.value = 0.0046;
+    const lfo = ctx.createOscillator(); lfo.frequency.value = 0.5;
+    // depth +/-1.9 ms — APPLIED 2026-09-15 from analysis/juno-chorus-depth.mjs.
+    // The one knob this reference pack legitimately moves. Comb wobble fitted
+    // against the four chorused references with wet held at Jeff's 0.50:
+    // residual 0.813 -> 0.533, an interior minimum on a monotonic ladder, and
+    // it agrees with the joint stage-two fit's 0.00194. Jeff's 0.5 Hz rate and
+    // 0.50 wet are untouched: the rate is not measurable from this pack
+    // (chorus-rate.mjs) and wet finished at its search bound, which the rig
+    // reads as "could not reach", not as a value.
+    const depthL = ctx.createGain(); depthL.gain.value = +0.0019;
+    const depthR = ctx.createGain(); depthR.gain.value = -0.0019;
+    lfo.connect(depthL).connect(dL.delayTime);
+    lfo.connect(depthR).connect(dR.delayTime);
+    lfo.start(0);
+    const merger = ctx.createChannelMerger(2);
+    input.connect(dry).connect(out);
+    input.connect(dL).connect(merger, 0, 0);
+    input.connect(dR).connect(merger, 0, 1);
+    merger.connect(wet).connect(out);
+    return input;
+  }
+
+  // strip: a desk strip from U.createDesk (voice output lands in strip.input,
+  // ahead of trim → hp → fader, so the desk owns level and hygiene).
+  U.createJuno = function (ctx, strip, patchName) {
+    const p = U.JUNO_PATCHES[patchName];
+    if (!p) throw new Error("createJuno: unknown patch " + patchName);
+
+    // voice bus → [chorus] → strip input. Chorus is part of the instrument,
+    // not a desk insert — it's the Juno's own BBD, printed with the part.
+    let voiceTarget;
+    if (p.chorus) {
+      const chorusOut = ctx.createGain();
+      const chorusIn = makeChorus(ctx, chorusOut);
+      strip.input.add(chorusOut);
+      voiceTarget = chorusIn;
+    } else {
+      voiceTarget = ctx.createGain();
+      strip.input.add(voiceTarget);
+    }
+    const voiceMix = U.chainMixer(ctx, voiceTarget);
+
+    // DETERMINISM: hold a reference to every node we create. Chrome disposes a
+    // finished AudioScheduledSourceNode once it is unreachable from JS, and the
+    // *timing* of that disposal depends on GC, which depends on wall clock and
+    // memory pressure. Disposal ends the node's contribution a render quantum
+    // early or late, which is inaudible but changes the last bits — and a
+    // long, dense song renders differently run to run because of it. Holding
+    // references makes disposal never happen, so every render is identical.
+    // Measured 2026-07-28: without this, a 45s/3000-event render was bistable
+    // across pages (identical peak/rms, different SHA); with it, bit-exact.
+    const held = [];
+
+    function noteOn(t, midi, vel, dur) {
+      const f = midiHz(midi);
+
+      const saw = ctx.createOscillator(); saw.type = "sawtooth"; saw.frequency.value = f;
+      const sub = ctx.createOscillator(); sub.type = "square"; sub.frequency.value = f / 2;
+      const subG = ctx.createGain(); subG.gain.value = p.subLevel;
+
+      // KEYBOARD TRACKING (VCF KYBD) — 2026-09-15. A Juno-60 has a VCF KYBD
+      // slider and this voice did not model it at all: the cutoff sat at a
+      // fixed Hz no matter which key was held. That is a CIRCUIT-MODEL error
+      // rather than a fit residual, and it shows up as one — the 2026-08-16 fit
+      // was darker than the references and the gap WIDENED with pitch, which is
+      // the signature of a missing slope, and no knob in the old model could
+      // move a slope. Measured off the verified pack: the references' settled
+      // cutoff is 194 / 668 / 2110 Hz at f0 32.65 / 130.9 / 524.86 Hz, a log-log
+      // slope of 0.859 — near-full tracking. Anchored at C4 so kbdTrack = 0 is
+      // exactly the old behaviour and every patch that does not set it is
+      // bit-identical to before.
+      const trk = Math.pow(f / 261.63, p.kbdTrack || 0);
+      const cBase = p.cutoffBase * trk, cEnv = p.cutoffEnv * trk;
+      const filt = ctx.createBiquadFilter(); filt.type = "lowpass"; filt.Q.value = p.filterQ;
+      const peak = Math.min(cBase + cEnv * vel, ctx.sampleRate * 0.45);
+      filt.frequency.setValueAtTime(cBase, t);
+      filt.frequency.linearRampToValueAtTime(peak, t + p.fA);
+      filt.frequency.exponentialRampToValueAtTime(Math.max(cBase + cEnv * p.fS * vel, 60), t + p.fA + p.fD);
+
+      const amp = ctx.createGain();
+      const lvl = p.level * vel;
+      amp.gain.setValueAtTime(0, t);
+      amp.gain.linearRampToValueAtTime(lvl, t + p.a);
+      amp.gain.linearRampToValueAtTime(lvl * p.s, t + p.a + p.d);
+      const offT = t + dur;
+      amp.gain.setValueAtTime(lvl * p.s, offT);
+      amp.gain.linearRampToValueAtTime(0.0001, offT + p.r);
+
+      // filt sums saw + sub (fan-in 2); each amp chain-mixes into the voice bus.
+      saw.connect(filt); sub.connect(subG).connect(filt);
+      filt.connect(amp);
+      voiceMix.add(amp);
+      saw.start(t); sub.start(t);
+      saw.stop(offT + p.r + 0.05); sub.stop(offT + p.r + 0.05);
+      held.push(saw, sub, subG, filt, amp);
+    }
+
+    return {
+      held,
+      noteOn,
+      schedule(events, t0) { for (const e of events) noteOn(t0 + e.t, e.midi, e.vel, e.dur); },
+    };
+  };
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+
+<script>
+window.FIT_POS = {"cutoffBase":0.5,"cutoffEnv":0.5,"filterQ":0.5,"kbdTrack":0.5,"subLevel":0.5,"chorusRate":0.5,"chorusWet":0.5,"a":0.5,"d":0.5,"s":0.5,"r":0.5};
+// The REASON each declined knob was declined, carried onto the page itself. A
+// notApplied block that only lives in the repo is a record Jeff cannot read,
+// and the whole point of declining a knob on the record is that the decline is
+// visible where the instrument is.
+window.FIT_WHY = {"cutoffBase":"THE PACK'S FILTER IS OPEN. Its 85% energy point sits at harmonic 5.9 / 5.1 / 4.0 and it rolls off -6.2 / -6.2 / -6.4 dB/oct at C1 / C3 / C5 — a textbook sawtooth is -6 dB/oct with its 85% point near k=4. So the references carry almost no filter information, and the apparent 0.859 keyboard-tracking slope is the saw's own spectrum scaling with f0, not a VCF. Fitting to it would replace Jeff's 2026-07-22 by-ear voicing with one recording session's slider position.","cutoffEnv":"same: the references' filter is open, so this is their slider position, not the circuit","filterQ":"same; and Q 3.5 against an open-filter reference is the search buying spectral shape it cannot otherwise reach","kbdTrack":"MODELLED BUT NOT MEASURABLE FROM THIS PACK. A Juno-60 has a VCF KYBD slider and juno.js now models it (default 0 = inert, shipped sound unchanged). The ladder in analysis/juno-kbd-ladder.mjs walked it 0 -> 1.0 at Jeff's voicing: the mean residual moved only 1.175 -> 1.040 and C1/C3 got WORSE above 0.7 (rolloff -9.7 vs the references' -6.2). It cannot be pinned against a pack whose filter is open.","subLevel":"THEIR PATCH, NOT THE INSTRUMENT. The pack was recorded with the sub slider down — -23 / -55.6 / -64.9 dB against our -4 dB — and the 2026-08-16 fit drove subLevel to 0.000 AT ITS BOUND. A Juno-60 has a sub oscillator. Removed from the objective entirely rather than fitted; see probes() in fit-juno.mjs.","chorusRate":"NOT MEASURABLE FROM THIS PACK, and that is now a measurement rather than a shrug. analysis/chorus-rate.mjs recovers a known rate to within 0.04 Hz over 0.4-4.5 Hz given a 4 s window, and recovers nothing at 1.5 s. The pack's longest steady span is 1.13 s, and the UNCHORUSED control files answer at higher prominence (3.5-3.9 dB) than the chorused ones (1.4-2.7 dB). Jeff's 0.5 Hz stands.","chorusWet":"finished AT ITS SEARCH BOUND in the joint stage-two fit, which the rig reads as 'could not reach', not as a value","a":"the references' note-off times are unknown, so amplitude decay cannot be separated from 'the player let go'. Fitting an envelope to a guess is worse than not fitting.","d":"same — note-off unknown","s":"same — note-off unknown","r":"same — note-off unknown"};
+/* WHERE THE KNOBS OPEN @ 4dc82c0, built 2026-09-15.
+
+   Every knob apply-fit moved opens at CENTRE, because after the apply the
+   centre IS the fit. Only the knobs it measured and did not move are here, and
+   each one is here because a fit record says so:
+
+     cutoffBase   <- juno/comp
+       THE PACK'S FILTER IS OPEN. Its 85% energy point sits at harmonic 5.9 / 5.1 / 4.0 and it rolls off -6.2 / -6.2 / -6.4 dB/oct at C1 / C3 / C5 — a textbook sawtooth is -6 dB/oct with its 85% point near k=4. So the references carry almost no filter information, and the apparent 0.859 keyboard-tracking slope is the saw's own spectrum scaling with f0, not a VCF. Fitting to it would replace Jeff's 2026-07-22 by-ear voicing with one recording session's slider position.
+     cutoffEnv    <- juno/comp
+       same: the references' filter is open, so this is their slider position, not the circuit
+     filterQ      <- juno/comp
+       same; and Q 3.5 against an open-filter reference is the search buying spectral shape it cannot otherwise reach
+     kbdTrack     <- juno/comp
+       MODELLED BUT NOT MEASURABLE FROM THIS PACK. A Juno-60 has a VCF KYBD slider and juno.js now models it (default 0 = inert, shipped sound unchanged). The ladder in analysis/juno-kbd-ladder.mjs walked it 0 -> 1.0 at Jeff's voicing: the mean residual moved only 1.175 -> 1.040 and C1/C3 got WORSE above 0.7 (rolloff -9.7 vs the references' -6.2). It cannot be pinned against a pack whose filter is open.
+     subLevel     <- juno/comp
+       THEIR PATCH, NOT THE INSTRUMENT. The pack was recorded with the sub slider down — -23 / -55.6 / -64.9 dB against our -4 dB — and the 2026-08-16 fit drove subLevel to 0.000 AT ITS BOUND. A Juno-60 has a sub oscillator. Removed from the objective entirely rather than fitted; see probes() in fit-juno.mjs.
+     chorusRate   <- juno/comp
+       NOT MEASURABLE FROM THIS PACK, and that is now a measurement rather than a shrug. analysis/chorus-rate.mjs recovers a known rate to within 0.04 Hz over 0.4-4.5 Hz given a 4 s window, and recovers nothing at 1.5 s. The pack's longest steady span is 1.13 s, and the UNCHORUSED control files answer at higher prominence (3.5-3.9 dB) than the chorused ones (1.4-2.7 dB). Jeff's 0.5 Hz stands.
+     chorusWet    <- juno/comp
+       finished AT ITS SEARCH BOUND in the joint stage-two fit, which the rig reads as 'could not reach', not as a value
+     a            <- juno/comp
+       the references' note-off times are unknown, so amplitude decay cannot be separated from 'the player let go'. Fitting an envelope to a guess is worse than not fitting.
+     d            <- juno/comp
+       same — note-off unknown
+     s            <- juno/comp
+       same — note-off unknown
+     r            <- juno/comp
+       same — note-off unknown */
+</script>
+
+<script>
+/* ---------------------------------------------------------------------------
+   The page. It owns the UI and nothing else: every sound below is made by
+   U.createJuno out of the engine block above, through the same U.chainMixer
+   fan-in rule the song render obeys.
+   WHERE IT OPENS. At CENTRE for every knob a fit moved, because the centre now
+   IS the fit — opening at a fitted position would apply it twice and give you a
+   machine no token can draw. The knobs that were measured and DECLINED open at
+   the shipped value, since nothing moved the centre onto those. Every one of
+   them, and why, is in analysis/fits/. See analysis/build-instrument-page.mjs.
+--------------------------------------------------------------------------- */
+(function(){
+  "use strict";
+  const PATCHES = Object.keys(U.JUNO_PATCHES);
+  let patch = "comp";
+  let octave = 4;
+  let hold = false;
+  const heldVoices = [];
+
+  let ctx = null;
+  function audio(){
+    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.state === "suspended") ctx.resume();
+    return ctx;
+  }
+
+  // --- the panel -----------------------------------------------------------
+  // Ranges are the SEARCH BOUNDS the fitter uses (analysis/fit-juno.mjs), so a
+  // slider here covers the same ground a fit does. Center is the shipped value,
+  // which for every applied knob IS the fit.
+  const SPEC = [
+    ["cutoffBase", 60, 3000, 1, "Hz", true],
+    ["cutoffEnv", 100, 9000, 1, "Hz", true],
+    ["filterQ", 0.3, 6, 0.01, "", true],
+    ["kbdTrack", 0, 1.2, 0.01, "", false],
+    ["subLevel", 0, 1, 0.01, "", false],
+    ["fA", 0.001, 0.5, 0.001, "s", true],
+    ["fD", 0.02, 2, 0.001, "s", true],
+    ["fS", 0.02, 1, 0.01, "", false],
+    ["a", 0.001, 1.5, 0.001, "s", true],
+    ["d", 0.01, 2, 0.001, "s", true],
+    ["s", 0, 1, 0.01, "", false],
+    ["r", 0.01, 3, 0.001, "s", true],
+    ["level", 0.02, 0.5, 0.005, "", false],
+  ];
+  const over = {};
+  const knobsEl = document.getElementById("knobs");
+
+  function shipped(k){
+    const v = U.JUNO_PATCHES[patch][k];
+    return v == null ? (k === "kbdTrack" ? 0 : 0) : v;
+  }
+  function fmt(v, unit){
+    if (unit === "Hz") return Math.round(v) + " Hz";
+    if (unit === "s") return (v*1000 < 100 ? (v*1000).toFixed(1) : Math.round(v*1000)) + " ms";
+    return (+v).toFixed(2);
+  }
+  function buildKnobs(){
+    knobsEl.innerHTML = "";
+    for (const [k, lo, hi, step, unit] of SPEC){
+      const base = shipped(k);
+      const wrap = document.createElement("div");
+      wrap.className = "knob";
+      wrap.innerHTML =
+        '<label class="k">' + k + '</label>' +
+        '<input type="range" min="'+lo+'" max="'+hi+'" step="'+step+'" value="'+(over[k] ?? base)+'">' +
+        '<div class="val"><span class="cur"></span> <span class="d"></span></div>';
+      const inp = wrap.querySelector("input");
+      const cur = wrap.querySelector(".cur"), d = wrap.querySelector(".d");
+      const paint = () => {
+        const v = parseFloat(inp.value);
+        cur.textContent = fmt(v, unit);
+        const off = Math.abs(v - base) > (step/2);
+        d.textContent = off ? "(center " + fmt(base, unit) + ")" : "at center";
+        d.style.color = off ? "var(--accent)" : "var(--dim)";
+      };
+      inp.addEventListener("input", () => { over[k] = parseFloat(inp.value); paint(); markDirty(); });
+      paint();
+      knobsEl.appendChild(wrap);
+    }
+    markDirty();
+  }
+  function markDirty(){
+    const n = SPEC.filter(([k,,,step]) => over[k] != null && Math.abs(over[k]-shipped(k)) > step/2).length;
+    document.getElementById("dirty").textContent = n ? n + " knob" + (n>1?"s":"") + " off center" : "every knob at center";
+  }
+  document.getElementById("reset").onclick = () => { for (const k in over) delete over[k]; buildKnobs(); };
+
+  // --- patch buttons -------------------------------------------------------
+  const pEl = document.getElementById("patches");
+  PATCHES.forEach(p => {
+    const b = document.createElement("button");
+    b.textContent = p; b.dataset.p = p;
+    if (p === patch) b.className = "on";
+    b.onclick = () => {
+      patch = p;
+      [...pEl.children].forEach(c => c.className = c.dataset.p === p ? "on" : "");
+      for (const k in over) delete over[k];
+      buildKnobs();
+    };
+    pEl.appendChild(b);
+  });
+
+  // --- playing -------------------------------------------------------------
+  // One live voice per gesture, built through createJuno exactly as the session
+  // builds it: a chainMixer strip into the destination, and the patch table
+  // restored afterwards so an override can never leak into the next note.
+  function makeVoice(){
+    const c = audio();
+    const saved = U.JUNO_PATCHES[patch];
+    U.JUNO_PATCHES = Object.assign({}, U.JUNO_PATCHES);
+    U.JUNO_PATCHES[patch] = Object.assign({}, saved, over);
+    const out = c.createGain(); out.gain.value = 1.0; out.connect(c.destination);
+    const strip = { input: U.chainMixer(c, out) };
+    const v = U.createJuno(c, strip, patch);
+    U.JUNO_PATCHES[patch] = saved;
+    heldVoices.push(v);            // the anti-GC contract juno.js documents
+    if (heldVoices.length > 48) heldVoices.splice(0, 16);
+    return v;
+  }
+  function play(midis, dur){
+    const c = audio();
+    const v = makeVoice();
+    const t0 = c.currentTime + 0.02;
+    v.schedule(midis.map(m => ({ t: 0, midi: m, vel: 0.8, dur: dur })), t0);
+  }
+  document.querySelectorAll("[data-chord]").forEach(b => {
+    b.onclick = () => play(b.dataset.chord.split(",").map(n => 48 + (+n)), hold ? 3.0 : 1.4);
+  });
+  document.getElementById("hold").onclick = (e) => {
+    hold = !hold; e.target.textContent = "Hold: " + (hold ? "on" : "off");
+    e.target.className = hold ? "on" : "";
+  };
+  // A short progression, so the chorus and the filter envelope are heard doing
+  // what they do over time rather than in a single stab.
+  document.getElementById("prog").onclick = () => {
+    const c = audio(); const v = makeVoice(); const t0 = c.currentTime + 0.05;
+    const chords = [[0,3,7,10],[-2,3,5,10],[-4,0,3,7],[-5,-1,2,7]];
+    const ev = [];
+    chords.forEach((ch, i) => ch.forEach(n => ev.push({ t: i*1.35, midi: 48+n, vel: 0.78, dur: 1.2 })));
+    v.schedule(ev, t0);
+  };
+
+  // --- the keyboard --------------------------------------------------------
+  const WHITE = [0,2,4,5,7,9,11], BLACK = {1:0,3:1,6:3,8:4,10:5};
+  const kbdEl = document.getElementById("kbd");
+  const KEYMAP = "awsedftgyhujk";
+  const KEYSEMI = {a:0,w:1,s:2,e:3,d:4,f:5,t:6,g:7,y:8,h:9,u:10,j:11,k:12};
+  let keyEls = {};
+  function buildKbd(){
+    kbdEl.innerHTML = ""; keyEls = {};
+    const OCTS = 2, nWhite = OCTS*7 + 1;
+    const w = 100/nWhite;
+    let wi = 0;
+    for (let o = 0; o < OCTS; o++){
+      for (let i = 0; i < 7; i++){
+        const semi = o*12 + WHITE[i];
+        const el = document.createElement("div");
+        el.className = "wk"; el.style.left = (wi*w)+"%"; el.style.width = w+"%";
+        el.dataset.semi = semi;
+        const lbl = Object.keys(KEYSEMI).find(k => KEYSEMI[k] === semi);
+        if (lbl) el.innerHTML = '<span class="kl">'+lbl.toUpperCase()+'</span>';
+        kbdEl.appendChild(el); keyEls[semi] = el; wi++;
+      }
+    }
+    const last = document.createElement("div");
+    last.className = "wk"; last.style.left = (wi*w)+"%"; last.style.width = w+"%";
+    last.dataset.semi = OCTS*12; kbdEl.appendChild(last); keyEls[OCTS*12] = last;
+    for (let o = 0; o < OCTS; o++){
+      for (const s in BLACK){
+        const semi = o*12 + (+s);
+        const el = document.createElement("div");
+        el.className = "bk";
+        el.style.left = ((o*7 + BLACK[s] + 1)*w - w*0.3) + "%";
+        el.style.width = (w*0.6)+"%";
+        el.dataset.semi = semi;
+        kbdEl.appendChild(el); keyEls[semi] = el;
+      }
+    }
+  }
+  buildKbd();
+  function noteFor(semi){ return octave*12 + semi; }
+  function hit(semi){
+    const el = keyEls[semi];
+    if (el){ el.classList.add("d"); setTimeout(() => el.classList.remove("d"), 170); }
+    play([noteFor(semi)], hold ? 2.2 : 0.7);
+  }
+  kbdEl.addEventListener("pointerdown", (e) => {
+    const t = e.target.closest("[data-semi]");
+    if (t) { e.preventDefault(); hit(+t.dataset.semi); }
+  });
+  const down = {};
+  window.addEventListener("keydown", (e) => {
+    const k = e.key.toLowerCase();
+    if (k === "z"){ octave = Math.max(1, octave-1); return; }
+    if (k === "x"){ octave = Math.min(7, octave+1); return; }
+    if (KEYSEMI[k] == null || down[k] || e.metaKey || e.ctrlKey) return;
+    down[k] = 1; hit(KEYSEMI[k]);
+  });
+  window.addEventListener("keyup", (e) => { delete down[e.key.toLowerCase()]; });
+
+  // --- the record ----------------------------------------------------------
+  document.getElementById("opensNote").textContent =
+    "Every knob a fit moved opens at CENTER, because after the apply the center IS the fit — "
+  + "opening at a fitted position would apply it twice. The knobs that were measured and declined "
+  + "open at the shipped value, since nothing moved the center onto those.";
+  const dEl = document.getElementById("declined");
+  const WHY = window.FIT_WHY || {};
+  Object.keys(window.FIT_POS || {}).forEach(k => {
+    const p = document.createElement("p");
+    p.className = "declined";
+    p.innerHTML = "<b>" + k + "</b> — " + (WHY[k] || "measured and declined; see analysis/fits/ in the engine repo.");
+    dEl.appendChild(p);
+  });
+  if (!dEl.children.length) dEl.innerHTML = '<p class="declined">No declined knobs on record.</p>';
+
+  buildKnobs();
+})();
+</script>
+</body>
+</html>
