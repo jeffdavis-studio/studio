@@ -6,9 +6,10 @@
 // "linear + crossing trim" (trim added 2026-09-15 for the half-size sheet).
 // What this asserts, in order of what would actually hurt:
 //
-//   1. THE DEFAULT DID NOT MOVE. The select boots on reference, readMarks()
-//      reports tone 'reference', and the pen files built at the defaults are
-//      byte-identical to the ones the page built before the control existed —
+//   1. THE DEFAULT IS LINEAR (Jeff, 2026-09-15, off the plotted sheet — his eye
+//      on paper, not the modeled numbers). The select boots on linear and
+//      readMarks() reports tone 'linear'. Reference stays reachable and
+//      round-trips byte-identically, so the pre-9/15 behavior is recoverable —
 //      proved here by building with the select at its default and again after
 //      switching to linear and back.
 //   2. Linear does what it claims: a bar of ink W composites to W * target, so
@@ -77,10 +78,10 @@ const boot = await page.evaluate(() => ({
   files: pens.map(p => buildPenSVG(p, tok, readGeometry(), readMarks(), readPlot(), readMachine()))
 }));
 check(errs.length === 0, 'console/page errors: ' + errs.join(' | '));
-check(boot.selectValue === 'reference', 'the Tone select boots on ' + boot.selectValue + ', must be reference');
+check(boot.selectValue === 'linear', 'the Tone select boots on ' + boot.selectValue + ', must be linear');
 check(JSON.stringify(boot.options) === JSON.stringify(['reference', 'linear', 'trim']),
   'the Tone options are ' + boot.options.join(','));
-check(boot.tone === 'reference', 'readMarks().tone is ' + boot.tone + ' at boot');
+check(boot.tone === 'linear', 'readMarks().tone is ' + boot.tone + ' at boot');
 check(boot.curveExp === 1 && boot.target === 0.95, 'the locked calibration moved: curve ' + boot.curveExp + ', target ' + boot.target);
 
 // bar-level numbers under each model
@@ -112,9 +113,11 @@ const lin = await sample('linear');
 const trm = await sample('trim');
 const back = await sample('reference');
 
-check(back.files.length === boot.files.length && back.files.every((f, i) => f === boot.files[i]),
-  'switching to linear and back did not return the byte-identical default files');
-check(boot.files.some(f => f.includes('data-tone="reference"')), 'the emitted file does not carry data-tone="reference"');
+check(back.files.length === ref.files.length && back.files.every((f, i) => f === ref.files[i]),
+  'reference did not round-trip byte-identically after switching away and back');
+check(boot.files.length === lin.files.length && boot.files.every((f, i) => f === lin.files[i]),
+  'the boot files differ from an explicit linear selection — the default is not really linear');
+check(boot.files.some(f => f.includes('data-tone="linear"')), 'the boot file does not carry data-tone="linear"');
 check(lin.files.some(f => f.includes('data-tone="linear"')), 'the linear file does not carry data-tone="linear"');
 check(trm.files.some(f => f.includes('data-tone="trim"')), 'the trim file does not carry data-tone="trim"');
 
@@ -189,5 +192,5 @@ console.log('  ' + lighter + ' of ' + ref.bars.length + ' bars lighter under lin
 
 await browser.close();
 server.close();
-console.log(failures === 0 ? 'PASS — tone control, default unmoved' : failures + ' FAILURES');
+console.log(failures === 0 ? 'PASS — tone control, linear is the default' : failures + ' FAILURES');
 process.exit(failures === 0 ? 0 : 1);

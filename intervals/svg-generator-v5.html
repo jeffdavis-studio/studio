@@ -430,8 +430,8 @@
             <div class="form-group">
               <label for="toneModel">Tone</label>
               <select id="toneModel">
-                <option value="reference" selected>reference (current)</option>
-                <option value="linear">linear</option>
+                <option value="reference">reference (pre-9/15)</option>
+                <option value="linear" selected>linear</option>
                 <option value="trim">linear + crossing trim</option>
               </select>
             </div>
@@ -918,7 +918,7 @@
     // deliberately simple: it assumes two inks stacked read as two inks' worth
     // of darkness. It is not a fit, and at W = 1 with k > 1 families it does NOT
     // reach 0.95 — that is the model showing its own shape, not a bug.
-    const TONE_MODEL = 'reference';
+    const TONE_MODEL = 'linear';
     const TONE_MODELS = ['reference', 'linear', 'trim'];
 
     function toneReference(W, mult, curveExp, target, tone) {
