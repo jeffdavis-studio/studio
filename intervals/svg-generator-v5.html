@@ -694,6 +694,50 @@
       return t;
     }
 
+    // ============ TINT LADDER HOOK (2026-09-16) ============
+    // HARNESS ONLY. Nothing on this page calls either function, no control
+    // reaches them, and with no call the page is byte-identical to what it was
+    // before they existed. intervals/tint-ladder.mjs uses them to render one
+    // token at a ladder of forced tints.
+    //
+    // WHY IT FORCES THE ANCHORS AND NOT amin/amax. The obvious move is to set
+    // amin = amax = a and re-run setup(), and it does NOT hold the token still.
+    // setup()'s anchor picks run through rejection loops — `while (lgap(c1.col,
+    // c3.col) < lmin) c3 = gcol(ghue())` and five more like it — and lgap reads
+    // LIGHTNESS, which is exactly what the tint moves. Measured on token 1
+    // (0x58f8c875) on 2026-09-16: forcing the tint at setup reproduces the
+    // token's own ink assignment at a = 0, 0.12, 0.24 and 0.36, and at a = 0.48
+    // and 0.60 c5 and c6 re-roll to different inks entirely. The PRNG call ORDER
+    // survives; the loop TRIP COUNT does not.
+    //
+    // So the ladder works on the anchors the token already has. An anchor is
+    // col = (1 - tint) * mix(ink, ink2, t) + tint * white, and gcol() hands back
+    // ink, ink2 and t alongside the color, so the mix is exactly recoverable and
+    // only the tint is replaced. Ink indices, t, slots, s and r are untouched by
+    // construction, which is the whole point of a ladder: one variable moves.
+    let tintLadderSaved = null;
+
+    function forceAnchorTint(a) {
+      const anchors = [c1, c2, c3, c4, c5, c6];
+      if (!tintLadderSaved) tintLadderSaved = anchors.map(c => ({ col: c.col, tint: c.tint }));
+      colorMode(RGB);
+      const white = color(255, 255, 255);
+      for (const c of anchors) {
+        c.col = betterLerp(betterLerp(inks[c.ink], inks[c.ink2], c.t), white, a);
+        c.tint = a;
+      }
+      redraw();
+    }
+
+    function restoreAnchorTint() {
+      if (!tintLadderSaved) return false;
+      const anchors = [c1, c2, c3, c4, c5, c6];
+      anchors.forEach((c, i) => { c.col = tintLadderSaved[i].col; c.tint = tintLadderSaved[i].tint; });
+      tintLadderSaved = null;
+      redraw();
+      return true;
+    }
+
     // ============ GEOMETRY ============
     function readGeometry() {
       // THE FRAME IS NOT A CONTROL — plot-frame.mjs. The document is the
