@@ -263,6 +263,21 @@ function variantRow(name) {
   return VARIANTS[0];
 }
 
+// ?variant=<name> forces a row, and it is validated against the table rather
+// than trusted: a typo would otherwise fall through variantRow() to 'none' and
+// look like the token simply did not draw a variant. Read here, after VARIANTS
+// exists, and written into PLOT — so forcing a row from the URL and forcing one
+// from the bench are the same act through the same field.
+(function pinVariant() {
+  const v = urlParam('variant');
+  if (!v) return;
+  for (let i = 0; i < VARIANTS.length; i++) {
+    if (VARIANTS[i].name === v) { PLOT.variant = v; return; }
+  }
+  console.warn('Intervals_v6: ?variant=' + v + ' is not a VARIANTS row — ignored. Rows: ' +
+    VARIANTS.map(r => r.name).join(', '));
+})();
+
 // ============================================================================
 // THE ARTWORK
 // ============================================================================
