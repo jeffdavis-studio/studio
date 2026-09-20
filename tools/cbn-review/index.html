@@ -25,8 +25,8 @@
   button { cursor:pointer; }
   button:hover { background:#f2f2f2; }
   .row2 { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
-  #stage { min-height:0; display:flex; align-items:center; justify-content:center; padding:6px; }
-  svg#page { height:100%; width:auto; max-width:100%; display:block; background:#fff; }
+  #stage { flex:1 1 0; min-height:0; display:flex; align-items:center; justify-content:center; padding:6px; }
+  svg#page { height:100%; max-height:100%; width:auto; max-width:100%; aspect-ratio:612/792; display:block; background:#fff; }
   svg#page polygon { stroke:#111; stroke-width:.45; vector-effect:non-scaling-stroke; }
   svg#page polygon.hi { stroke:var(--sel); stroke-width:1.6; }
   svg#page polygon.bad { stroke:#e00; stroke-width:2; }
