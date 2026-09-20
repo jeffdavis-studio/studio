@@ -156,11 +156,15 @@ function render() {
   for (const [k, n] of Object.entries(st.manual)) if (col.has(k)) col.set(k, n);
 
   // the page
+  // every edge-sharing pair counts, same role or not; only knot ribbons
+  // touching ribbons are exempt (Jeff's rule 1 exception, 9/18)
+  const ribbon = new Set(pg.classes.filter((c) => c.rib).map((c) => c.k));
   const bad = new Set();
   let pairsBad = 0;
   for (const [a, b] of pg.pairs) {
     const x = S.of.get(a), y = S.of.get(b);
-    if (x === undefined || y === undefined || x === y) continue;
+    if (x === undefined || y === undefined) continue;
+    if (x === y && ribbon.has(x)) continue;
     if (col.get(x) === col.get(y)) { pairsBad++; bad.add(a); bad.add(b); }
   }
   const svg = [];
