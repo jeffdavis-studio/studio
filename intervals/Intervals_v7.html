@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Intervals v7</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <!--
+            Same page as Intervals_v6.html, pointed at Intervals_v7.js. Three
+            things differ, and they are all in the artwork rather than here:
+
+            FULL SCREEN. v6 forced the canvas square; v7 fills the window. The
+            size is read once, in setup() — there is no resize handler, by
+            Jeff's call on 2026-09-21 ("doesn't need to actively resize. Just
+            on refresh"), so a new window shape is one reload away.
+
+            ?aspect=W:H pins the canvas to an aspect fitted inside the window,
+            centered by the flex rule below. ?aspect=14:11 is the plot
+            composition, so this is how to look at what the pen will draw. It
+            changes the CANVAS only and never reaches the export.
+
+            THE PLOT IS 11 x 14 IN LANDSCAPE, TURNED ONTO A PORTRAIT SHEET. The
+            composition is 355.6 x 279.4 mm (14 x 11 in). A 14 in side is
+            355.6 mm against the plotter's 297 mm short axis, so landscape paper
+            does not fit the machine: the paper stays portrait exactly as it
+            does today and the artwork is turned a quarter turn clockwise inside
+            the file, landing 279.4 x 355.6 mm centered in the 297 x 410 mm
+            document. Turn the finished sheet a quarter turn counterclockwise to
+            view it. Every emitted file says so on its root.
+
+            Export is unchanged: press "p", or open with ?plot=1. ?hash=0x<64
+            hex> pins the token, ?variant=<name> forces a VARIANTS row.
+        -->
+        <style>
+            html, body {
+                margin: 0;
+                padding: 0;
+                overflow: hidden;
+                background: #fff;
+            }
+            /* Full screen the canvas already fills this exactly; with ?aspect
+               it is smaller than the window and this centers it. flex: 0 0 auto
+               so the canvas keeps the pixel size the artwork gave it and is
+               never stretched or shrunk by the box. */
+            body {
+                width: 100vw;
+                height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            canvas {
+                display: block;
+                flex: 0 0 auto;
+            }
+        </style>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+        <script src="Intervals_v7.js" type="text/javascript"></script>
+    </head>
+    <body>
+    </body>
+</html>
