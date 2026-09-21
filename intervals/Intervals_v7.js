@@ -360,7 +360,13 @@ function setup() {
   noStroke();
   noFill();
   r = R.random_int(0, 1);
-  s = R.random_int(8, 20);
+  // LANDSCAPE NATIVE (Jeff, 2026-09-21): the piece went from 11:11 to 11:14,
+  // and the step count follows the axis the bars cross. r = 0 is vertical
+  // bars laid across the width, 10-24 horizontal steps; r = 1 is horizontal
+  // bars laid down the height, 8-20 vertical steps (the square's old range).
+  // Each step is three bars. The live view may be square or portrait; the
+  // counts do not change with the viewport.
+  s = r === 0 ? R.random_int(10, 24) : R.random_int(8, 20);
   ng = 0.5;
   lmin = 3;
   vprob = PLOT.variantProb;
