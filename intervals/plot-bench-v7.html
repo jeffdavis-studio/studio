@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Intervals v7 — plot bench</title>
+  <!--
+    THE THIN BENCH, v7. It supersedes plot-bench-v6.html and is the same page
+    doing the same job against Intervals_v7.js: it writes PLOT, calls
+    buildPlotFiles(), draws the result, and calls exportPlotFiles(). Nothing
+    here computes geometry — if something on this page starts to, it belongs in
+    the artwork instead. The one map it does call, compToDoc(), is the
+    artwork's own.
+
+    WHAT CHANGED FROM THE v6 BENCH, and only this:
+
+      1. It loads Intervals_v7.js, and sets window.INTERVALS_ASPECT to the
+         composition aspect so the artwork pane IS the plot composition
+         (14 : 11 landscape) rather than the bench window's shape.
+
+      2. THE PREVIEW SHOWS THE DOCUMENT, NOT THE COMPOSITION. v7's plot is a
+         landscape composition turned a quarter turn clockwise onto a portrait
+         297 x 410 mm sheet, so the pen draws the image on its side. The
+         composite pane is therefore the document as the plotter sees it —
+         portrait, image rectangle outlined, lines in document millimeters —
+         because what Jeff looks at here has to be what the pen draws. The
+         artwork pane beside it is the same picture upright.
+
+      3. Composition width AND height are both controls (v6's image was square
+         and had one field), and the readout states the composition, the
+         document rectangle and the bar axis.
+
+    Everything cut from the v6 bench is still cut, and still a field in PLOT
+    settable from the console: family trim, the active-weight floor, collinear
+    merge and its tolerance, the machine profile, the pen table.
+  -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+  <script src="Intervals_v7.js"></script>
+  <script>
+    // Before p5 calls setup(). The artwork reads this when no ?aspect= is in
+    // the URL, so the artwork pane is the plot composition and the two panes
+    // are the same image, once upright and once turned.
+    window.INTERVALS_ASPECT = PLOT.imgW + ':' + PLOT.imgH;
+  </script>
+  <style>
+    body { font-family: aktiv-grotesk, -apple-system, sans-serif; margin: 0; padding: 24px; color: #333; background: #fff; }
+    h1 { font-size: 17px; font-weight: 600; margin: 0 0 4px; }
+    .sub { font-size: 12px; color: #777; margin-bottom: 20px; }
+    .wrap { display: flex; gap: 28px; align-items: flex-start; }
+    .panes { flex: 0 0 auto; }
+    .panes canvas { display: block; background: #fff; }
+    .pair { display: flex; gap: 14px; align-items: flex-start; }
+    .pane-label { font-size: 11px; color: #777; margin: 6px 0 2px; text-transform: uppercase; letter-spacing: .06em; }
+    .pane-note { font-size: 11px; color: #999; margin-top: 4px; max-width: 320px; line-height: 1.45; }
+    .controls { flex: 1 1 auto; max-width: 420px; font-size: 12px; }
+    fieldset { border: 1px solid #ddd; border-radius: 4px; margin: 0 0 14px; padding: 10px 12px 12px; }
+    legend { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: #777; padding: 0 4px; }
+    .row { display: flex; gap: 8px; margin-bottom: 6px; align-items: center; }
+    .row label { flex: 0 0 96px; color: #666; }
+    input, select { flex: 1 1 auto; font: inherit; padding: 3px 5px; border: 1px solid #ccc; border-radius: 3px; min-width: 0; }
+    input.hash { font-family: ui-monospace, Menlo, monospace; font-size: 11px; }
+    button { font: inherit; padding: 5px 11px; border: 1px solid #bbb; border-radius: 3px; background: #f6f6f6; cursor: pointer; }
+    button.go { background: #222; color: #fff; border-color: #222; }
+    .readout { font-family: ui-monospace, Menlo, monospace; font-size: 11px; line-height: 1.55; color: #555; white-space: pre-wrap; }
+    .note { font-size: 11px; color: #888; line-height: 1.5; margin-top: 8px; }
+    .pens { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+    .pens button { font-size: 11px; padding: 3px 7px; display: flex; align-items: center; gap: 5px; }
+    .sw { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+  </style>
+</head>
+<body>
+  <h1>Intervals v7 — plot bench</h1>
+  <div class="sub">The artwork is the emitter. This page only writes PLOT and calls it.</div>
+
+  <div class="wrap">
+    <div class="panes">
+      <div class="pair">
+        <div>
+          <div class="pane-label">Artwork &mdash; the composition, upright</div>
+          <div id="render-container"></div>
+          <div class="pane-note" id="art-note"></div>
+        </div>
+        <div>
+          <div class="pane-label">Pen files &mdash; the document, as the plotter sees it</div>
+          <canvas id="hatch"></canvas>
+          <div class="pane-note" id="doc-note"></div>
+        </div>
+      </div>
+      <div class="pens" id="pen-buttons"></div>
+      <div class="note" id="pen-note"></div>
+    </div>
+
+    <div class="controls">
+      <fieldset>
+        <legend>Token</legend>
+        <div class="row"><label>Hash</label><input type="text" class="hash" id="hash" spellcheck="false"></div>
+        <div class="row"><label>Variant</label>
+          <select id="variant"><option value="">(token decides)</option></select>
+        </div>
+        <div class="row"><label>Bars (s)</label><input type="number" id="sOverride" value="0" step="1" min="0" max="60"></div>
+        <div class="row">
+          <button onclick="reroll()">New token</button>
+          <button onclick="location.href = pinnedURL()">Open pinned</button>
+        </div>
+        <div class="readout" id="token-readout"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Marks</legend>
+        <div class="row"><label>Pitch mm</label><input type="number" id="pitch" step="0.01" min="0.05"></div>
+        <div class="row"><label>Nib mm</label><input type="number" id="nib" step="0.01" min="0.01"></div>
+        <div class="row"><label>Opacity</label><input type="number" id="opacityTarget" step="0.01" min="0.1" max="0.99"></div>
+        <div class="row"><label>Tone</label><select id="tone"></select></div>
+        <div class="row"><label>Paper gap mm</label><input type="number" id="paperGap" step="0.05" min="-2" max="5"></div>
+        <div class="row"><label>Outer inset</label><input type="number" id="outerInset" step="0.025" min="0"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Angles &mdash; one per ramp slot, artwork-relative</legend>
+        <div class="row"><label>Slot 1</label><input type="number" id="angle0" step="0.5"></div>
+        <div class="row"><label>Slot 2</label><input type="number" id="angle1" step="0.5"></div>
+        <div class="row"><label>Slot 3</label><input type="number" id="angle2" step="0.5"></div>
+        <div class="row"><label>Slot 4</label><input type="number" id="angle3" step="0.5"></div>
+        <div class="note" id="angle-note"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Tint &mdash; amax locked 0.40 (2026-09-18)</legend>
+        <div class="row"><label>amin</label><input type="number" id="amin" step="0.05" min="0" max="1"></div>
+        <div class="row"><label>amax</label><input type="number" id="amax" step="0.05" min="0" max="1"></div>
+        <div class="note">Tint is drawn per anchor at setup, so moving these re-runs
+          setup(). The lightness-gap rejection loops read lightness, which is what
+          tint moves &mdash; so a different range can re-roll an anchor's inks, not
+          just lighten them. That is the artwork, not a bug.</div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Composition &amp; plot</legend>
+        <div class="row"><label>Comp W mm</label><input type="number" id="imgW" step="0.1" min="10"></div>
+        <div class="row"><label>Comp H mm</label><input type="number" id="imgH" step="0.1" min="10"></div>
+        <div class="row"><label>Serpentine</label><input type="checkbox" id="serpentine" style="flex:0 0 auto"></div>
+        <div class="row"><label>Per-angle files</label><input type="checkbox" id="perAngleFiles" style="flex:0 0 auto"></div>
+        <div class="note">The composition is 355.6 &times; 279.4 mm &mdash; 14 &times; 11 in
+          LANDSCAPE, on a 14 &times; 17 sheet with 1.5 in margins. It is turned a
+          quarter turn clockwise into the document, which is fixed at 297 &times;
+          410 mm: the plotter's working area, not the paper (plot-frame.mjs). The
+          document is not a control and never should be. Changing the composition
+          here does not change the sheet or the margins &mdash; those are physical.</div>
+      </fieldset>
+
+      <div class="row">
+        <button class="go" onclick="exportPlotFiles()">Export pen files</button>
+        <button onclick="resetPlot()">Reset to locked</button>
+      </div>
+      <div class="note">Export is the artwork's own exportPlotFiles() &mdash; the
+        same call key &ldquo;p&rdquo; makes on Intervals_v7.html. The bench adds no
+        geometry of its own, so a file exported here is the file the artwork
+        writes, at the settings shown.</div>
+    </div>
+  </div>
+
+<script>
+  // The locked defaults, snapshotted before any control touches PLOT, so
+  // "Reset to locked" restores the ARTWORK'S values rather than this page's.
+  const LOCKED = JSON.parse(JSON.stringify({
+    pitch: PLOT.pitch, nib: PLOT.nib, opacityTarget: PLOT.opacityTarget,
+    tone: PLOT.tone, paperGap: PLOT.paperGap, outerInset: PLOT.outerInset,
+    angles: PLOT.angles, amin: PLOT.amin, amax: PLOT.amax,
+    imgW: PLOT.imgW, imgH: PLOT.imgH, serpentine: PLOT.serpentine,
+    perAngleFiles: PLOT.perAngleFiles, sOverride: PLOT.sOverride
+  }));
+
+  const HATCH_PX = 1300;      // raster resolution of the document pane, long axis
+  const PANE_CSS = 460;       // on-screen long-axis size of each pane
+  let built = null;
+  let hidden = new Set();
+  let artCanvas = null;
+
+  window.addEventListener('load', () => {
+    const wait = setInterval(() => {
+      const c = document.querySelector('canvas:not(#hatch)');
+      if (!c || typeof window.createCanvas !== 'function') return;
+      clearInterval(wait);
+      boot(c);
+    }, 20);
+  });
+
+  function boot(canvasEl) {
+    artCanvas = canvasEl;
+    document.getElementById('render-container').appendChild(artCanvas);
+    // The artwork pane is shown at the COMPOSITION aspect, which is what
+    // window.INTERVALS_ASPECT made the canvas. Long axis to PANE_CSS.
+    const ar = PLOT.imgW / PLOT.imgH;
+    artCanvas.style.width = (ar >= 1 ? PANE_CSS : PANE_CSS * ar) + 'px';
+    artCanvas.style.height = (ar >= 1 ? PANE_CSS / ar : PANE_CSS) + 'px';
+    // setup() is re-invoked on every token or tint change. Its createCanvas
+    // would otherwise append a fresh canvas each time; the artwork's w/h come
+    // from canvasSize(), which reads the window and INTERVALS_ASPECT and does
+    // not change between calls, so returning the existing one is exact rather
+    // than an approximation.
+    window.createCanvas = function () { return artCanvas; };
+
+    const variantSel = document.getElementById('variant');
+    VARIANTS.forEach(v => {
+      const o = document.createElement('option');
+      o.value = v.name;
+      o.textContent = v.name + (v.weight > 0 ? ' (weight ' + v.weight + ')' : ' (default row)');
+      variantSel.appendChild(o);
+    });
+    const toneSel = document.getElementById('tone');
+    PLOT.toneModels.forEach(m => {
+      const o = document.createElement('option');
+      o.value = m; o.textContent = m;
+      toneSel.appendChild(o);
+    });
+
+    writeControls();
+    document.getElementById('hash').value = tokenData.hash;
+    if (PLOT.variant) variantSel.value = PLOT.variant;
+
+    // Two classes of control. The first only changes how the PLOT constants are
+    // read at export time, so a rebuild is enough. The second changes what
+    // setup() draws, so the artwork has to be re-run first.
+    ['pitch', 'nib', 'opacityTarget', 'tone', 'paperGap', 'outerInset',
+     'angle0', 'angle1', 'angle2', 'angle3', 'imgW', 'imgH', 'sOverride',
+     'serpentine', 'perAngleFiles'].forEach(id => {
+      const el = document.getElementById(id);
+      el.addEventListener(el.type === 'checkbox' || el.tagName === 'SELECT' ? 'change' : 'input', () => {
+        readControls(); rebuild();
+      });
+    });
+    ['amin', 'amax', 'variant'].forEach(id => {
+      document.getElementById(id).addEventListener('change', () => {
+        readControls(); reseed(tokenData.hash);
+      });
+    });
+    document.getElementById('hash').addEventListener('change', () => {
+      reseed(document.getElementById('hash').value.trim());
+    });
+
+    rebuild();
+  }
+
+  // ============ PLOT <- UI ============
+  function readControls() {
+    const num = (id, d) => { const v = parseFloat(document.getElementById(id).value); return isFinite(v) ? v : d; };
+    PLOT.pitch = num('pitch', LOCKED.pitch);
+    PLOT.nib = num('nib', LOCKED.nib);
+    PLOT.opacityTarget = num('opacityTarget', LOCKED.opacityTarget);
+    PLOT.tone = document.getElementById('tone').value;
+    PLOT.paperGap = num('paperGap', LOCKED.paperGap);
+    PLOT.outerInset = num('outerInset', LOCKED.outerInset);
+    PLOT.angles = [0, 1, 2, 3].map(i => num('angle' + i, LOCKED.angles[i]));
+    PLOT.amin = num('amin', LOCKED.amin);
+    PLOT.amax = num('amax', LOCKED.amax);
+    // Two fields now: the composition is 14 x 11, not a square.
+    PLOT.imgW = num('imgW', LOCKED.imgW);
+    PLOT.imgH = num('imgH', LOCKED.imgH);
+    PLOT.sOverride = Math.max(0, Math.round(num('sOverride', 0)));
+    PLOT.serpentine = document.getElementById('serpentine').checked;
+    PLOT.perAngleFiles = document.getElementById('perAngleFiles').checked;
+    PLOT.variant = document.getElementById('variant').value || null;
+  }
+
+  function writeControls() {
+    const set = (id, v) => document.getElementById(id).value = v;
+    set('pitch', PLOT.pitch); set('nib', PLOT.nib);
+    set('opacityTarget', PLOT.opacityTarget);
+    document.getElementById('tone').value = PLOT.tone;
+    set('paperGap', PLOT.paperGap); set('outerInset', PLOT.outerInset);
+    [0, 1, 2, 3].forEach(i => set('angle' + i, PLOT.angles[i]));
+    set('amin', PLOT.amin); set('amax', PLOT.amax);
+    set('imgW', PLOT.imgW); set('imgH', PLOT.imgH);
+    set('sOverride', PLOT.sOverride);
+    document.getElementById('serpentine').checked = PLOT.serpentine !== false;
+    document.getElementById('perAngleFiles').checked = PLOT.perAngleFiles === true;
+  }
+
+  function resetPlot() {
+    Object.assign(PLOT, JSON.parse(JSON.stringify(LOCKED)));
+    PLOT.variant = null;
+    document.getElementById('variant').value = '';
+    writeControls();
+    reseed(tokenData.hash);
+  }
+
+  // ============ TOKEN ============
+  function reseed(hash) {
+    if (!/^0x[0-9a-fA-F]{64}$/.test(hash)) hash = randomTokenHash();
+    tokenData.hash = hash;
+    document.getElementById('hash').value = hash;
+    hidden = new Set();
+    setup();        // re-derives every anchor from the hash and the tint range
+    redraw();       // one-shot; the artwork calls noLoop()
+    rebuild();
+  }
+
+  function reroll() { reseed(randomTokenHash()); }
+
+  // The URL that reopens exactly this token. The whole point of ?hash=: a file
+  // on disk can be traced back to a page that renders it.
+  function pinnedURL() {
+    const v = PLOT.variant ? '&variant=' + PLOT.variant : '';
+    return location.pathname + '?hash=' + tokenData.hash + v;
+  }
+
+  // ============ BUILD + DRAW ============
+  function rebuild() {
+    built = buildPlotFiles();
+    drawComposite();
+    renderReadout();
+    renderPenButtons();
+  }
+
+  // THE DOCUMENT, NOT THE COMPOSITION. The pen files are turned a quarter turn
+  // relative to the artwork, so previewing them upright would be previewing
+  // something the plotter never draws. This pane is the 297 x 410 mm document:
+  // the working-area edge in light gray, the image rectangle it has to sit
+  // inside in a darker gray, and every layer stroked in its own pen color at
+  // the NIB WIDTH in millimeters, on white — overlap left to do the mixing,
+  // because the density solve upstream is an area-coverage argument and an
+  // opaque stroke of exactly one nib wide makes composite() true on screen
+  // instead of approximated by an alpha guess. Round caps: the plotter's nib is
+  // a disc, so a segment's ink is the Minkowski sum of the segment with a disc
+  // of radius nib/2 — which is the geometry the bar-edge clip is computed
+  // against. A butt cap draws each bar short by half a nib and invents a seam.
+  //
+  // The composition -> document map is the ARTWORK'S, compToDoc(). This page
+  // does not have its own.
+  function drawComposite() {
+    const geo = built.geo;
+    const canvas = document.getElementById('hatch');
+    const scale = HATCH_PX / Math.max(geo.docW, geo.docH);
+    canvas.width = Math.max(1, Math.round(geo.docW * scale));
+    canvas.height = Math.max(1, Math.round(geo.docH * scale));
+    const long = Math.max(geo.docW, geo.docH);
+    canvas.style.width = (PANE_CSS * geo.docW / long) + 'px';
+    canvas.style.height = (PANE_CSS * geo.docH / long) + 'px';
+
+    const hexes = penHexes();
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.setTransform(scale, 0, 0, scale, 0, 0);
+
+    ctx.lineWidth = 0.5;
+    ctx.strokeStyle = '#e4e4e4';
+    ctx.strokeRect(0.25, 0.25, geo.docW - 0.5, geo.docH - 0.5);
+    ctx.strokeStyle = '#c8c8c8';
+    ctx.strokeRect(geo.rectX, geo.rectY, geo.rectW, geo.rectH);
+
+    ctx.lineCap = 'round';
+    for (const layer of built.layers) {
+      if (hidden.has(layer.key)) continue;
+      ctx.strokeStyle = hexes[layer.ink];
+      ctx.lineWidth = built.marks.nib;
+      ctx.beginPath();
+      for (const bar of layer.bars) {
+        for (const l of bar.lines) {
+          const a = compToDoc(l.x1, l.y1, geo);
+          const b = compToDoc(l.x2, l.y2, geo);
+          ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+        }
+      }
+      ctx.stroke();
+    }
+
+    const inch = mm => (mm / 25.4).toFixed(2);
+    document.getElementById('art-note').textContent =
+      'Composition ' + geo.imgW + ' x ' + geo.imgH + ' mm (' +
+      inch(geo.imgW) + ' x ' + inch(geo.imgH) + ' in), landscape.';
+    document.getElementById('doc-note').textContent =
+      'Document ' + geo.docW + ' x ' + geo.docH + ' mm portrait. Image ' +
+      geo.rectW.toFixed(1) + ' x ' + geo.rectH.toFixed(1) + ' at x ' +
+      geo.rectX.toFixed(1) + '-' + geo.rectX1.toFixed(1) + ', y ' +
+      geo.rectY.toFixed(1) + '-' + geo.rectY1.toFixed(1) + '. Turned a quarter turn ' +
+      geo.turn + '; ' + geo.view + '.';
+  }
+
+  function renderReadout() {
+    const t = built.token;
+    const geo = built.geo;
+    const segs = built.layers.reduce((n, l) => n + l.lineCount, 0);
+    const drawn = built.layers.reduce((d, l) => d + l.drawn, 0);
+    const up = built.layers.reduce((d, l) => d + l.penUp, 0);
+    const naive = built.layers.reduce((d, l) => d + l.penUpNaive, 0);
+    const secs = built.pens.reduce((x, p) => x + penSeconds(p, built.mach), 0);
+    const cut = naive > 0 ? 100 * (1 - up / naive) : 0;
+    const sNote = t.s !== t.tokenS ? '  (token ' + t.tokenS + ', overridden)' : '';
+    document.getElementById('token-readout').textContent =
+      'variant   ' + t.vtype + '   tint ' + t.amin + '–' + t.amax + '\n' +
+      'bars      ' + t.bars.length + '   s ' + t.s + sNote + '\n' +
+      'bar axis  r ' + t.r + ' — ' + (t.r === 0 ? 'vertical, gradient left to right'
+                                                : 'horizontal, gradient top to bottom') + '\n' +
+      'comp      ' + geo.imgW + ' × ' + geo.imgH + ' mm   document ' + geo.docW + ' × ' + geo.docH + ' mm\n' +
+      'files     ' + built.files.length + '   layers ' + built.layers.length + '   segments ' + segs.toLocaleString() + '\n' +
+      'drawn     ' + (drawn / 1000).toFixed(2) + ' m   pen-up ' + (up / 1000).toFixed(2) + ' m  (−' + cut.toFixed(0) + '%)\n' +
+      'plot time ' + fmtTime(secs);
+    document.getElementById('angle-note').textContent =
+      'Artwork-relative. Turned into the document they are ' +
+      PLOT.angles.map(a => angleToDoc(a)).join(' / ') + '° — the file carries both, ' +
+      'data-angle and data-angle-document.';
+  }
+
+  function renderPenButtons() {
+    const host = document.getElementById('pen-buttons');
+    host.innerHTML = '';
+    const hexes = penHexes();
+    const names = penNames();
+    for (const layer of built.layers) {
+      const b = document.createElement('button');
+      b.innerHTML = '<span class="sw" style="background:' + hexes[layer.ink] + '"></span>' +
+                    names[layer.ink] + ' ' + layer.angle + '°';
+      b.style.opacity = hidden.has(layer.key) ? 0.35 : 1;
+      b.onclick = () => {
+        if (hidden.has(layer.key)) hidden.delete(layer.key); else hidden.add(layer.key);
+        drawComposite(); renderPenButtons();
+      };
+      host.appendChild(b);
+    }
+    document.getElementById('pen-note').textContent =
+      'Click a layer to hold it back — the composite is the sum of the visible ones, at the nib width, on white. Layer angles are artwork-relative.';
+  }
+</script>
+</body>
+</html>
