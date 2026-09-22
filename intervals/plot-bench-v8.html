@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Intervals v8 — plot bench</title>
+  <!--
+    Dev bench for Intervals_v8.js. It sets the artwork's own globals (pitch,
+    nib, angles, tmin, ...) and previews layers() as the plotter will draw it.
+    It computes no geometry of its own, and nothing here edits the artwork
+    file. Keys 1-8 export at the settings shown (with no field focused).
+  -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+  <script src="dev-token.js"></script>
+  <script src="Intervals_v8.js"></script>
+  <script>
+    // The artwork pane shows the composition aspect.
+    window.aspect = [imgw, imgh];
+  </script>
+  <style>
+    body { font-family: aktiv-grotesk, -apple-system, sans-serif; margin: 0; padding: 24px; color: #333; background: #fff; }
+    h1 { font-size: 17px; font-weight: 600; margin: 0 0 20px; }
+    .wrap { display: flex; gap: 28px; align-items: flex-start; }
+    .panes { flex: 0 0 auto; max-width: 934px; }
+    .panes canvas { display: block; background: #fff; }
+    .pair { display: flex; gap: 14px; align-items: flex-start; }
+    .pane-label { font-size: 11px; color: #777; margin: 6px 0 2px; text-transform: uppercase; letter-spacing: .06em; }
+    .pane-note { font-size: 11px; color: #999; margin-top: 4px; max-width: 320px; line-height: 1.45; }
+    .controls { flex: 1 1 auto; max-width: 420px; font-size: 12px; }
+    fieldset { border: 1px solid #ddd; border-radius: 4px; margin: 0 0 14px; padding: 10px 12px 12px; }
+    legend { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: #777; padding: 0 4px; }
+    .row { display: flex; gap: 8px; margin-bottom: 6px; align-items: center; }
+    .row label { flex: 0 0 96px; color: #666; }
+    input, select { flex: 1 1 auto; font: inherit; padding: 3px 5px; border: 1px solid #ccc; border-radius: 3px; min-width: 0; }
+    input.hash { font-family: ui-monospace, Menlo, monospace; font-size: 11px; }
+    button { font: inherit; padding: 5px 11px; border: 1px solid #bbb; border-radius: 3px; background: #f6f6f6; cursor: pointer; }
+    .readout { font-family: ui-monospace, Menlo, monospace; font-size: 11px; line-height: 1.55; color: #555; white-space: pre-wrap; }
+    .note { font-size: 11px; color: #888; line-height: 1.5; margin-top: 8px; }
+    .pens { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+    .pens button { font-size: 11px; padding: 3px 7px; display: flex; align-items: center; gap: 5px; }
+    .sw { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+  </style>
+</head>
+<body>
+  <h1>Intervals v8 — plot bench</h1>
+
+  <div class="wrap">
+    <div class="panes">
+      <div class="pair">
+        <div>
+          <div class="pane-label">Artwork &mdash; the composition, upright</div>
+          <div id="render-container"></div>
+          <div class="pane-note" id="art-note"></div>
+        </div>
+        <div>
+          <div class="pane-label">Pen files &mdash; the document, as the plotter sees it</div>
+          <canvas id="hatch"></canvas>
+          <div class="pane-note" id="doc-note"></div>
+        </div>
+      </div>
+      <div class="pens" id="pen-buttons"></div>
+      <div class="note">Click a layer to hold it back. Lines are drawn at the nib width in each pen's color, on white.</div>
+    </div>
+
+    <div class="controls">
+      <fieldset>
+        <legend>Token</legend>
+        <div class="row"><label>Hash</label><input type="text" class="hash" id="hash" spellcheck="false"></div>
+        <div class="row"><label>Variant</label>
+          <select id="vpick">
+            <option value="">(token decides)</option>
+            <option value="saturated">saturated</option>
+            <option value="tinted">tinted</option>
+            <option value="complementary">complementary</option>
+          </select>
+        </div>
+        <div class="row"><label>Steps (s)</label><input type="number" id="sover" value="0" step="1" min="0" max="60"></div>
+        <div class="row">
+          <button onclick="reroll()">New token</button>
+          <button onclick="location.href = pinnedURL()">Open pinned</button>
+        </div>
+        <div class="note">Steps 0 uses the token's own. Another value re-samples the ramps without moving an anchor.</div>
+        <div class="readout" id="token-readout"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Marks</legend>
+        <div class="row"><label>Pitch mm</label><input type="number" id="pitch" step="0.01" min="0.05"></div>
+        <div class="row"><label>Nib mm</label><input type="number" id="nib" step="0.01" min="0.01"></div>
+        <div class="row"><label>Opacity</label><input type="number" id="target" step="0.01" min="0.1" max="0.99"></div>
+        <div class="row"><label>Paper gap mm</label><input type="number" id="gap" step="0.05" min="-2" max="5"></div>
+        <div class="row"><label>Outer inset</label><input type="number" id="inset" step="0.025" min="0"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Angles &mdash; one per ramp slot, artwork-relative</legend>
+        <div class="row"><label>Slot 1</label><input type="number" id="angle0" step="0.5"></div>
+        <div class="row"><label>Slot 2</label><input type="number" id="angle1" step="0.5"></div>
+        <div class="row"><label>Slot 3</label><input type="number" id="angle2" step="0.5"></div>
+        <div class="row"><label>Slot 4</label><input type="number" id="angle3" step="0.5"></div>
+        <div class="note" id="angle-note"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Tint</legend>
+        <div class="row"><label>tmin</label><input type="number" id="tmin" step="0.05" min="0" max="1"></div>
+        <div class="row"><label>tmax</label><input type="number" id="tmax" step="0.05" min="0" max="1"></div>
+        <div class="note">Tint is drawn per anchor in setup(), and the lightness-gap loops read it, so a new range can re-roll an anchor's inks, not just lighten them.</div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Composition</legend>
+        <div class="row"><label>Width mm</label><input type="number" id="imgw" step="0.1" min="10"></div>
+        <div class="row"><label>Height mm</label><input type="number" id="imgh" step="0.1" min="10"></div>
+        <div class="note">The document stays 297 &times; 410 mm: the plotter's working area, not the paper.</div>
+      </fieldset>
+
+      <div class="row"><button onclick="resetBench()">Reset to locked</button></div>
+    </div>
+  </div>
+
+<script>
+  let locked = { pitch: pitch, nib: nib, target: target, gap: gap, inset: inset, angles: angles.slice(), tmin: tmin, tmax: tmax, imgw: imgw, imgh: imgh };
+  let hatchpx = 1300;
+  let panecss = 460;
+  let built, art, tokens;
+  let hidden = [];
+
+  window.addEventListener('load', function () {
+    let wait = setInterval(function () {
+      let cv = document.querySelector('canvas:not(#hatch)');
+      if (cv && typeof s === 'number' && s > 0) {
+        clearInterval(wait);
+        boot(cv);
+      }
+    }, 20);
+  });
+
+  function boot(cv) {
+    art = cv;
+    document.getElementById('render-container').appendChild(art);
+    art.style.width = (imgw >= imgh ? panecss : panecss * imgw / imgh) + 'px';
+    art.style.height = (imgw >= imgh ? panecss * imgh / imgw : panecss) + 'px';
+    // setup() re-runs on every token or tint change; keep the one canvas.
+    window.createCanvas = function () {
+      return art;
+    };
+    tokens = s;
+    writeControls();
+    document.getElementById('hash').value = tokenData.hash;
+    document.getElementById('vpick').value = window.variant || '';
+    let quick = ['pitch', 'nib', 'target', 'gap', 'inset', 'angle0', 'angle1', 'angle2', 'angle3', 'imgw', 'imgh', 'sover'];
+    for (let i = 0; i < quick.length; i++) {
+      document.getElementById(quick[i]).addEventListener('input', function () {
+        readControls();
+        rebuild();
+      });
+    }
+    let full = ['tmin', 'tmax', 'vpick'];
+    for (let i = 0; i < full.length; i++) {
+      document.getElementById(full[i]).addEventListener('change', function () {
+        readControls();
+        reseed(tokenData.hash);
+      });
+    }
+    document.getElementById('hash').addEventListener('change', function () {
+      reseed(document.getElementById('hash').value.trim());
+    });
+    rebuild();
+  }
+
+  function num(id, fallback) {
+    let v = parseFloat(document.getElementById(id).value);
+    if (!isFinite(v)) {
+      v = fallback;
+    }
+    return v;
+  }
+
+  function readControls() {
+    pitch = num('pitch', locked.pitch);
+    nib = num('nib', locked.nib);
+    target = num('target', locked.target);
+    gap = num('gap', locked.gap);
+    inset = num('inset', locked.inset);
+    for (let i = 0; i < 4; i++) {
+      angles[i] = num('angle' + i, locked.angles[i]);
+    }
+    tmin = num('tmin', locked.tmin);
+    tmax = num('tmax', locked.tmax);
+    imgw = num('imgw', locked.imgw);
+    imgh = num('imgh', locked.imgh);
+    window.variant = document.getElementById('vpick').value;
+  }
+
+  function writeControls() {
+    let vals = { pitch: pitch, nib: nib, target: target, gap: gap, inset: inset, tmin: tmin, tmax: tmax, imgw: imgw, imgh: imgh };
+    let ids = Object.keys(vals);
+    for (let i = 0; i < ids.length; i++) {
+      document.getElementById(ids[i]).value = vals[ids[i]];
+    }
+    for (let i = 0; i < 4; i++) {
+      document.getElementById('angle' + i).value = angles[i];
+    }
+  }
+
+  function resetBench() {
+    pitch = locked.pitch;
+    nib = locked.nib;
+    target = locked.target;
+    gap = locked.gap;
+    inset = locked.inset;
+    angles = locked.angles.slice();
+    tmin = locked.tmin;
+    tmax = locked.tmax;
+    imgw = locked.imgw;
+    imgh = locked.imgh;
+    window.variant = '';
+    document.getElementById('vpick').value = '';
+    document.getElementById('sover').value = 0;
+    writeControls();
+    reseed(tokenData.hash);
+  }
+
+  function reseed(hash) {
+    if (!/^0x[0-9a-fA-F]{64}$/.test(hash)) {
+      hash = devHash();
+    }
+    tokenData.hash = hash;
+    document.getElementById('hash').value = hash;
+    hidden = [];
+    setup();
+    tokens = s;
+    rebuild();
+  }
+
+  function reroll() {
+    reseed(devHash());
+  }
+
+  function pinnedURL() {
+    let url = location.pathname + '?hash=' + tokenData.hash + '&id=' + tokenData.tokenId;
+    if (window.variant) {
+      url += '&variant=' + window.variant;
+    }
+    return url;
+  }
+
+  function rebuild() {
+    let over = round(num('sover', 0));
+    s = tokens;
+    if (over > 0) {
+      s = over;
+    }
+    clear();
+    redraw();
+    built = layers();
+    drawComposite();
+    renderReadout();
+    renderPenButtons();
+  }
+
+  function penColor(k) {
+    return 'rgb(' + round(red(inks[k])) + ',' + round(green(inks[k])) + ',' + round(blue(inks[k])) + ')';
+  }
+
+  // The document as the plotter sees it: the turned image, every visible layer
+  // at the nib width with round caps, since the nib is a disc.
+  function drawComposite() {
+    let x0 = (docw - imgh) / 2;
+    let y0 = (doch - imgw) / 2;
+    let cv = document.getElementById('hatch');
+    let k = hatchpx / max(docw, doch);
+    cv.width = round(docw * k);
+    cv.height = round(doch * k);
+    cv.style.width = (panecss * docw / max(docw, doch)) + 'px';
+    cv.style.height = (panecss * doch / max(docw, doch)) + 'px';
+    let ctx = cv.getContext('2d');
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, cv.width, cv.height);
+    ctx.setTransform(k, 0, 0, k, 0, 0);
+    ctx.lineWidth = 0.5;
+    ctx.strokeStyle = '#e4e4e4';
+    ctx.strokeRect(0.25, 0.25, docw - 0.5, doch - 0.5);
+    ctx.strokeStyle = '#c8c8c8';
+    ctx.strokeRect(x0, y0, imgh, imgw);
+    ctx.lineCap = 'round';
+    ctx.lineWidth = nib;
+    for (let i = 0; i < built.length; i++) {
+      if (hidden.indexOf(built[i].ink + '@' + built[i].angle) < 0) {
+        ctx.strokeStyle = penColor(built[i].ink);
+        ctx.beginPath();
+        for (let j = 0; j < built[i].bars.length; j++) {
+          let ls = built[i].bars[j].lines;
+          for (let f = 0; f < ls.length; f++) {
+            ctx.moveTo(x0 + imgh - ls[f].y1, y0 + ls[f].x1);
+            ctx.lineTo(x0 + imgh - ls[f].y2, y0 + ls[f].x2);
+          }
+        }
+        ctx.stroke();
+      }
+    }
+    document.getElementById('art-note').textContent = 'Composition ' + imgw + ' x ' + imgh + ' mm (' +
+      (imgw / 25.4).toFixed(2) + ' x ' + (imgh / 25.4).toFixed(2) + ' in), landscape.';
+    document.getElementById('doc-note').textContent = 'Document ' + docw + ' x ' + doch + ' mm portrait. Image ' +
+      imgh + ' x ' + imgw + ' at x ' + x0.toFixed(1) + '-' + (x0 + imgh).toFixed(1) + ', y ' + y0.toFixed(1) + '-' +
+      (y0 + imgw).toFixed(1) + ', turned a quarter turn clockwise; turn the sheet counterclockwise to view.';
+  }
+
+  function renderReadout() {
+    let count = 0;
+    let drawn = 0;
+    let up = 0;
+    let secs = 0;
+    let used = [];
+    for (let i = 0; i < built.length; i++) {
+      count += built[i].count;
+      drawn += built[i].drawn;
+      up += built[i].up;
+      secs += built[i].drawn / vdraw + built[i].up / vtravel + built[i].count * tseg;
+      if (used.indexOf(built[i].ink) < 0) {
+        used.push(built[i].ink);
+      }
+    }
+    let axis = 'horizontal, gradient top to bottom';
+    if (r === 0) {
+      axis = 'vertical, gradient left to right';
+    }
+    let snote = '';
+    if (s !== tokens) {
+      snote = '  (token ' + tokens + ', overridden)';
+    }
+    let docangles = [];
+    for (let i = 0; i < 4; i++) {
+      docangles.push((angles[i] + 90) % 180);
+    }
+    document.getElementById('token-readout').textContent =
+      'variant   ' + vtype + '   tint ' + amin + '-' + amax + '\n' +
+      'steps     ' + s + '   bars ' + 3 * s + snote + '\n' +
+      'bar axis  r ' + r + ', ' + axis + '\n' +
+      'files     ' + used.length + '   layers ' + built.length + '   segments ' + count.toLocaleString() + '\n' +
+      'drawn     ' + (drawn / 1000).toFixed(2) + ' m   pen-up ' + (up / 1000).toFixed(2) + ' m\n' +
+      'plot time ' + fmtTime(secs);
+    document.getElementById('angle-note').textContent = 'In the turned document these are ' +
+      docangles.join(' / ') + ' degrees.';
+  }
+
+  function renderPenButtons() {
+    let host = document.getElementById('pen-buttons');
+    host.innerHTML = '';
+    for (let i = 0; i < built.length; i++) {
+      let b = document.createElement('button');
+      b.innerHTML = '<span class="sw" style="background:' + penColor(built[i].ink) + '"></span>' +
+        (built[i].ink + 1) + ' ' + names[built[i].ink] + ' ' + built[i].angle + '&deg;';
+      let key = built[i].ink + '@' + built[i].angle;
+      b.style.opacity = hidden.indexOf(key) < 0 ? 1 : 0.35;
+      b.onclick = function () {
+        if (hidden.indexOf(key) < 0) {
+          hidden.push(key);
+        } else {
+          hidden.splice(hidden.indexOf(key), 1);
+        }
+        drawComposite();
+        renderPenButtons();
+      };
+      host.appendChild(b);
+    }
+  }
+
+  // Rounded to the minute over an hour and to ten seconds under: the overhead
+  // constant comes from one plot.
+  function fmtTime(sec) {
+    let out = '';
+    if (sec < 3600) {
+      let t = round(sec / 10) * 10;
+      out = floor(t / 60) + ' m ' + String(t % 60).padStart(2, '0') + ' s';
+    } else {
+      let t = round(sec / 60);
+      out = floor(t / 60) + ' h ' + String(t % 60).padStart(2, '0') + ' m';
+    }
+    return out;
+  }
+</script>
+</body>
+</html>

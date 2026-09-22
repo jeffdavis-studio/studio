@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Intervals v8</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <!--
+            Dev page. Like Art Blocks, it defines tokenData before the artwork
+            loads, so Intervals_v8.js runs here exactly as it will on chain.
+
+            ?hash=0x<64 hex>   pin the token (otherwise random)
+            ?id=<n>            token id for file names (otherwise random)
+            ?variant=<name>    force saturated, tinted or complementary
+            ?aspect=W:H        fit the canvas to an aspect; 14:11 is the plot
+
+            Keys 1-8 download that ink's plot file (1 Red ... 8 Rose).
+        -->
+        <style>
+            html, body {
+                margin: 0;
+                padding: 0;
+                overflow: hidden;
+                background: #fff;
+            }
+            body {
+                width: 100vw;
+                height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            canvas {
+                display: block;
+                flex: 0 0 auto;
+            }
+        </style>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+        <script src="dev-token.js"></script>
+        <script src="Intervals_v8.js"></script>
+    </head>
+    <body>
+    </body>
+</html>
