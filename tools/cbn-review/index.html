@@ -54,7 +54,7 @@
 <body>
 <div id="app">
   <div class="col l">
-    <div class="pad"><h1>Color by number vol 1</h1><div style="font-size:11px;color:var(--dim)">Click a shape to move it and its copies to another role; click a role, then a chart color, to recolor it. Save writes the file the book build reads.</div></div>
+    <div class="pad"><h1>Color by number vol 1</h1><div style="font-size:11px;color:var(--dim)">Round 6 &middot; an edge now means 1.5pt or more of shared boundary, so corner contacts no longer count. Click a shape to move it and its copies to another role; click a role, then a chart color, to recolor it. Save writes the file the book build reads.</div></div>
     <div class="scroll" id="pages"></div>
     <div class="pad" style="border-top:1px solid var(--line)">
       <h2>Knobs</h2>
@@ -86,7 +86,11 @@
   </div>
 </div>
 <script>
-const LS = 'cbn-assignment-2026-09-20';
+// Round 6 key. The 9/20 edits are not lost: Jeff's roles and colors for the
+// six pages he changed are the DEFAULTS in this data.json, so the tool opens on
+// his work. A fresh key stops those same edits landing a second time on top of
+// themselves.
+const LS = 'cbn-assignment-2026-09-21';
 let DATA = null, cur = 0, sel = null, selRegion = null;
 // pageId -> { manual:{role:n}, fam, walk, hub, alt,
 //             moves:{orbit:role}, merge:{role:role}, splits:{role:'rot'|'par'}, newRoles:n }
@@ -151,7 +155,12 @@ function solve(pg, st) {
   const order = [...keys].sort((a, b) => rank(a) - rank(b));
   const ring = new Map(order.map((k, i) => [k, i]));
   const ladder = (pg.ladders[st.fam] || pg.ladders[pg.family]).ladder;
-  for (let size = Math.max(5, pg.kRequested); size <= ladder.length; size++) {
+  // A family's ladder can be shorter than the page's k — mono blue has six
+  // values and RAD-14 asks for eight. Starting above the ladder's length made
+  // the loop never run and dropped the page to a single color, so the start is
+  // clamped to what the ladder can actually give.
+  const start = Math.min(Math.max(5, pg.kRequested), ladder.length);
+  for (let size = start; size <= ladder.length; size++) {
     const pal = ladder.slice(0, size);
     const col = new Map();
     let ok = true;
@@ -188,8 +197,16 @@ function render() {
   const pg = DATA.pages[cur], st = stFor(pg);
   $('#kFam').value = st.fam; $('#kWalk').value = st.walk; $('#kHub').value = String(st.hub);
   const S = solve(pg, st);
-  // Jeff's picks win over the default
   const col = new Map(S.col);
+  // Round 6. While the knobs are untouched, the page shows the coloring the
+  // book build actually rendered — which on the six pages Jeff edited is HIS
+  // roles and HIS colors. The client-side solve is a fresh greedy pass and does
+  // not reproduce it, so the tool and the reveals used to be able to disagree.
+  // Turn any knob and the solve takes over again, as before.
+  const untouched = st.fam === pg.family && st.walk === pg.mode && !st.hub && !st.alt
+    && !Object.keys(st.moves).length && !Object.keys(st.merge).length && !Object.keys(st.splits).length;
+  if (untouched) for (const [k, n] of Object.entries(pg.def)) if (col.has(k)) col.set(k, n);
+  // Jeff's picks win over both
   for (const [k, n] of Object.entries(st.manual)) if (col.has(k)) col.set(k, n);
 
   // the page
@@ -222,7 +239,8 @@ function render() {
     '<span><b>' + pg.id + '</b> · ' + pg.label + '</span>' +
     '<span>colors <b>' + used.size + '</b></span>' +
     '<span class="' + (pairsBad ? 'no' : 'ok') + '">edge-sharing pairs sharing a color <b>' + pairsBad + '</b></span>' +
-    '<span class="' + (used.size >= 5 ? 'ok' : 'no') + '">five-color floor ' + (used.size >= 5 ? 'met' : 'not met') + '</span>';
+    '<span class="' + (used.size >= 5 && used.size <= 8 ? 'ok' : 'no') + '">palette ' + used.size + ' (5-8)</span>' +
+    '<span style="color:var(--dim)">' + (pg.source === 'jeff' ? 'opened on your 9/21 colors' : 'engine') + ' · shapes ' + pg.coreShapes + '+' + pg.separationExtras + ' \u2192 k ' + pg.kBeforeClamp + '\u2192' + pg.kRequested + '</span>';
 
   // the role list
   const count = new Map();
@@ -280,7 +298,7 @@ function save(quiet) {
   // role) before it reads `assign` (role -> chart number), so a regrouping Jeff
   // does here survives into the book build even when the role names are ones
   // the build has never seen.
-  const out = { built: '2026-09-20', round: 5, tool: 'cbn-review', pages: {} };
+  const out = { built: '2026-09-21', round: 6, tool: 'cbn-review', pages: {} };
   for (const pg of DATA.pages) {
     const st = stFor(pg), S = solve(pg, st);
     const col = new Map(S.col);
