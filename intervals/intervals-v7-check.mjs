@@ -69,8 +69,9 @@ const USE = HASHES.length ? HASHES : DEFAULT_HASHES;
 
 // The eight, in the artwork's ARRAY order — ascending by hue, Red first,
 // because mix() treats last -> first as the wrap segment and Jeff's Red is at
-// hue 6. Purple (ink7) is out of the set since 2026-09-10.
-const EIGHT_IDS = ['ink9', 'ink1', 'ink2', 'ink3', 'ink4', 'ink5', 'ink6', 'ink8'];
+// hue 6. Ids renumbered 2026-09-22 to ink1-ink8 in this same order (old
+// ink9 Red is ink1; the retired Purple is skipped) — see the ink table.
+const EIGHT_IDS = ['ink1', 'ink2', 'ink3', 'ink4', 'ink5', 'ink6', 'ink7', 'ink8'];
 const EIGHT_NAMES = ['Red', 'Orange', 'Yellow', 'Fresh Green', 'Green', 'Blue', 'Royal Blue', 'Rose'];
 const EIGHT_HEXES = ['#de4a3a', '#f7804d', '#fad15f', '#5ccc78', '#11a894', '#1461c7', '#394091', '#c75690'];
 

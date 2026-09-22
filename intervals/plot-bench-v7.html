@@ -6,7 +6,7 @@
   <!--
     THE THIN BENCH, v7. It supersedes plot-bench-v6.html and is the same page
     doing the same job against Intervals_v7.js: it writes PLOT, calls
-    buildPlotFiles(), draws the result, and calls exportPlotFiles(). Nothing
+    buildPlotFiles(), draws the result, and exports one ink at a time. Nothing
     here computes geometry — if something on this page starts to, it belongs in
     the artwork instead. The one map it does call, compToDoc(), is the
     artwork's own.
@@ -138,7 +138,6 @@
         <div class="row"><label>Comp W mm</label><input type="number" id="imgW" step="0.1" min="10"></div>
         <div class="row"><label>Comp H mm</label><input type="number" id="imgH" step="0.1" min="10"></div>
         <div class="row"><label>Serpentine</label><input type="checkbox" id="serpentine" style="flex:0 0 auto"></div>
-        <div class="row"><label>Per-angle files</label><input type="checkbox" id="perAngleFiles" style="flex:0 0 auto"></div>
         <div class="note">The composition is 355.6 &times; 279.4 mm &mdash; 14 &times; 11 in
           LANDSCAPE, on a 14 &times; 17 sheet with 1.5 in margins. It is turned a
           quarter turn clockwise into the document, which is fixed at 297 &times;
@@ -148,11 +147,12 @@
       </fieldset>
 
       <div class="row">
-        <button class="go" onclick="exportPlotFiles()">Export pen files</button>
         <button onclick="resetPlot()">Reset to locked</button>
       </div>
-      <div class="note">Export is the artwork's own exportPlotFiles() &mdash; the
-        same call key &ldquo;p&rdquo; makes on Intervals_v7.html. The bench adds no
+      <div class="note">Export: press an ink number, &ldquo;1&rdquo;&ndash;&ldquo;8&rdquo;
+        (ink1 Red &hellip; ink8 Rose), with no field focused &mdash; the artwork's own
+        exportInkFile(), one file per key press, every angle of that ink inside it.
+        There is no whole-set export, because browsers drop bursts. The bench adds no
         geometry of its own, so a file exported here is the file the artwork
         writes, at the settings shown.</div>
     </div>
@@ -166,7 +166,7 @@
     tone: PLOT.tone, paperGap: PLOT.paperGap, outerInset: PLOT.outerInset,
     angles: PLOT.angles, amin: PLOT.amin, amax: PLOT.amax,
     imgW: PLOT.imgW, imgH: PLOT.imgH, serpentine: PLOT.serpentine,
-    perAngleFiles: PLOT.perAngleFiles, sOverride: PLOT.sOverride
+    sOverride: PLOT.sOverride
   }));
 
   const HATCH_PX = 1300;      // raster resolution of the document pane, long axis
@@ -222,7 +222,7 @@
     // setup() draws, so the artwork has to be re-run first.
     ['pitch', 'nib', 'opacityTarget', 'tone', 'paperGap', 'outerInset',
      'angle0', 'angle1', 'angle2', 'angle3', 'imgW', 'imgH', 'sOverride',
-     'serpentine', 'perAngleFiles'].forEach(id => {
+     'serpentine'].forEach(id => {
       const el = document.getElementById(id);
       el.addEventListener(el.type === 'checkbox' || el.tagName === 'SELECT' ? 'change' : 'input', () => {
         readControls(); rebuild();
@@ -257,7 +257,6 @@
     PLOT.imgH = num('imgH', LOCKED.imgH);
     PLOT.sOverride = Math.max(0, Math.round(num('sOverride', 0)));
     PLOT.serpentine = document.getElementById('serpentine').checked;
-    PLOT.perAngleFiles = document.getElementById('perAngleFiles').checked;
     PLOT.variant = document.getElementById('variant').value || null;
   }
 
@@ -272,7 +271,6 @@
     set('imgW', PLOT.imgW); set('imgH', PLOT.imgH);
     set('sOverride', PLOT.sOverride);
     document.getElementById('serpentine').checked = PLOT.serpentine !== false;
-    document.getElementById('perAngleFiles').checked = PLOT.perAngleFiles === true;
   }
 
   function resetPlot() {

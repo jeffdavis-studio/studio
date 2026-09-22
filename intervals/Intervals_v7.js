@@ -54,7 +54,9 @@
 // The artwork seeds itself with a random hash at parse time, the same as v5.
 // ?hash=0x<64 hex> pins it instead: an exported token has to be reopenable and
 // re-exportable from its URL, or the SVGs on disk cannot be traced back to a
-// piece. ?variant=<name> forces a VARIANTS row; ?plot=1 exports on load.
+// piece. ?variant=<name> forces a VARIANTS row. Export is the keyboard only —
+// press an ink number, 1-8 (see keyPressed at the bottom of the file); there is
+// no URL trigger.
 function urlParam(name) {
   if (typeof location === 'undefined') return null;
   const m = new RegExp('[?&]' + name + '=([^&]*)').exec(location.search || '');
@@ -165,27 +167,38 @@ const PLOT = {
   amax: 0.40,
 
   // --- INKS -----------------------------------------------------------------
-  // The v5 ink table, unchanged: Jeff's eight, ids and names his (2026-08-24),
-  // values his by-eye match of 2026-09-11 against the plotted swatches at 95%
-  // coverage. Purple (ink7) is out of the set per his 2026-09-10 decision.
+  // The v5 ink table: Jeff's eight, names his (2026-08-24), values his by-eye
+  // match of 2026-09-11 against the plotted swatches at 95% coverage.
+  //
+  // IDS RENUMBERED 2026-09-22 (Jeff): ink1-ink8 in hue order, Red first, with
+  // the retired Purple skipped rather than left as a hole. v2-v6 and every
+  // record before this date use the OLD ids, which ran ink1 Orange ... ink6
+  // Royal Blue, ink7 Purple (out since 2026-09-10), ink8 Rose, ink9 Red:
+  //
+  //   new  ink1 Red  ink2 Orange  ink3 Yellow  ink4 Fresh Green  ink5 Green
+  //   old  ink9      ink1         ink2         ink3              ink4
+  //
+  //   new  ink6 Blue  ink7 Royal Blue  ink8 Rose
+  //   old  ink5       ink6             ink8
   //
   // THE ARRAY IS SORTED ASCENDING BY HUE, RED FIRST. mix() walks the hues as an
   // ascending list and treats the last entry -> the first as the wrap segment
   // (hi = hue[0] + 360). Jeff's Red is hue 6; leaving it last would send every
   // hue in [329,360) and [0,18) into the wrap branch with lo = 6, hi = 378.
   // Sorted ascending the wrap segment is Rose 329 -> Red 366, the real short
-  // way around. So inks[i] is NOT ink(i + 1) — index 0 is ink9 Red.
+  // way around. Since the renumbering, inks[i] IS ink(i + 1) — index 0 is
+  // ink1 Red — but inkNumber() reads the id rather than assuming that.
   //
   // hsb is the artwork's own value and is what builds the p5 color; hex is that
   // color stated, and intervals-v6-check.mjs asserts the two agree.
   inks: [
-    { id: 'ink9', name: 'Red',         hsb: [6, 74, 87],   hex: '#de4a3a' },
-    { id: 'ink1', name: 'Orange',      hsb: [18, 69, 97],  hex: '#f7804d' },
-    { id: 'ink2', name: 'Yellow',      hsb: [44, 62, 98],  hex: '#fad15f' },
-    { id: 'ink3', name: 'Fresh Green', hsb: [135, 55, 80], hex: '#5ccc78' },
-    { id: 'ink4', name: 'Green',       hsb: [172, 90, 66], hex: '#11a894' },
-    { id: 'ink5', name: 'Blue',        hsb: [214, 90, 78], hex: '#1461c7' },
-    { id: 'ink6', name: 'Royal Blue',  hsb: [235, 61, 57], hex: '#394091' },
+    { id: 'ink1', name: 'Red',         hsb: [6, 74, 87],   hex: '#de4a3a' },
+    { id: 'ink2', name: 'Orange',      hsb: [18, 69, 97],  hex: '#f7804d' },
+    { id: 'ink3', name: 'Yellow',      hsb: [44, 62, 98],  hex: '#fad15f' },
+    { id: 'ink4', name: 'Fresh Green', hsb: [135, 55, 80], hex: '#5ccc78' },
+    { id: 'ink5', name: 'Green',       hsb: [172, 90, 66], hex: '#11a894' },
+    { id: 'ink6', name: 'Blue',        hsb: [214, 90, 78], hex: '#1461c7' },
+    { id: 'ink7', name: 'Royal Blue',  hsb: [235, 61, 57], hex: '#394091' },
     { id: 'ink8', name: 'Rose',        hsb: [329, 57, 78], hex: '#c75690' }
   ],
 
@@ -218,10 +231,9 @@ const PLOT = {
   // an anchor. s is drawn from the PRNG ahead of every color decision, so
   // replacing it after setup() re-samples the ramps and moves nothing else.
   // 0 = use the token's own s.
-  sOverride: 0,
-  // Bench only: the per-(pen, angle) file model, off since 2026-09-11. One file
-  // per PEN is the default and what exportPlotFiles() writes.
-  perAngleFiles: false
+  sOverride: 0
+  // ONE FILE PER INK, every angle inside it, is the only file model. The
+  // per-(pen, angle) model, off since 2026-09-11, was removed 2026-09-22.
 };
 if (typeof window !== 'undefined') window.PLOT = PLOT;
 
@@ -525,13 +537,7 @@ function draw() {
   if (rule) rule({ s: s, r: r, w: w, h: h, anchors: [c1, c2, c3, c4, c5, c6] });
   pop();
   noLoop();
-  // ?plot=1 — export once, after the first render, and never again.
-  if (!plotAutoDone && urlParam('plot') === '1') {
-    plotAutoDone = true;
-    exportPlotFiles();
-  }
 }
-let plotAutoDone = false;
 
 // gcol returns the anchor together with the ink decomposition that built it,
 // rather than throwing the weights away. By construction:
@@ -799,8 +805,8 @@ class Random {
 // engine has no idea a page exists, and a headless caller needs no DOM beyond
 // the canvas the artwork already made.
 //
-// Nothing here runs unless exportPlotFiles() (or the bench) calls it. The
-// canvas is untouched by all of it.
+// Nothing here runs unless an ink key (or the bench) calls it. The canvas is
+// untouched by all of it.
 
 function rgbHex(c) {
   const v = n => Math.round(n).toString(16).padStart(2, '0');
@@ -1132,7 +1138,6 @@ function plotOrder() {
   return {
     serpentine: PLOT.serpentine !== false,
     merge: PLOT.merge === true,
-    perAngle: PLOT.perAngleFiles === true,
     tol: isFinite(PLOT.mergeTol) && PLOT.mergeTol >= 0 ? PLOT.mergeTol : 0.001
   };
 }
@@ -1329,18 +1334,11 @@ function buildLayers(t, geo, marks, angles, plot) {
     layer.penUp = plot.serpentine ? orderLayer(layer, true) : layer.penUpNaive;
 
     layer.key = layer.ink + '@' + layer.angle;
-    layer.filename = layerFilename(t, layer);
   }
-  // Plot order: by pen, then by angle. A pen's files run back to back and the
-  // sheet takes one swap per pen, not one per file.
+  // Plot order: by pen, then by angle. A pen's angle layers run back to back
+  // inside its one file, and the sheet takes one swap per pen.
   out.sort((a, b) => a.ink - b.ink || a.angle - b.angle);
   return out;
-}
-
-function layerFilename(t, layer) {
-  const slug = penNames()[layer.ink].toLowerCase().replace(/\s+/g, '-');
-  return 'intervals-v7-' + t.hash.slice(2, 10) + '-' + penIds()[layer.ink] + '-' + slug +
-         '-' + layer.angle + 'deg.svg';
 }
 
 // The pen file's name is the pen and nothing else. No angle in it — one pen,
@@ -1353,8 +1351,8 @@ function penFilename(t, ink) {
 // ============ PER-PEN FILES ============
 // Group the angle layers by ink, keeping the layer order buildLayers already
 // sorted into (pen, then angle), and sum the figures. NOTHING is recomputed: a
-// pen carries its layers by reference, so what lands in the file is the same
-// geometry the per-angle file would have carried.
+// pen carries its layers by reference, so what lands in the file is exactly
+// the geometry buildLayers produced.
 //
 // penUp is the SUM of the layers' own pen-up — travel inside a layer. The lift
 // between one angle group and the next is real but is not in that figure, so it
@@ -1575,8 +1573,8 @@ function barGroups(layer, geo, pad) {
   }).join('\n');
 }
 
-// Everything about the document, the token and the marks settings — identical
-// in both file models, stated once so they cannot drift apart.
+// Everything about the document, the token and the marks settings — the same
+// on every pen file of a token, stated once so they cannot drift apart.
 function fileHead(t, geo) {
   return '<?xml version="1.0" encoding="UTF-8"?>\n' +
 '<svg xmlns="http://www.w3.org/2000/svg"\n' +
@@ -1657,32 +1655,11 @@ function filePlot(plot, o, mach, seconds) {
 '     data-plot-seconds="' + seconds.toFixed(1) + '">\n';
 }
 
-// The secondary model: one file per (pen, angle). Off by default since
-// 2026-09-11 — the only way to plot one angle of a pen alone.
-function buildLayerSVG(layer, t, geo, marks, plot, mach) {
-  const ids = penIds(), names = penNames();
-  return fileHead(t, geo) +
-'     data-file-model="per-angle"\n' +
-'     data-ink="' + ids[layer.ink] + '"\n' +
-'     data-pen="' + names[layer.ink] + '"\n' +
-// ARTWORK-RELATIVE, with the turned angle beside it. data-angle is the slot's
-// own angle (PLOT.angles); data-angle-document is what the pen actually draws
-// on the sheet, which is data-angle + 90 modulo 180.
-'     data-angle="' + layer.angle + '"\n' +
-'     data-angle-document="' + angleToDoc(layer.angle) + '"\n' +
-'     data-slots="' + [...layer.slots].sort().join(',') + '"\n' +
-fileMarks(geo, marks) +
-filePlot(plot, layer, mach, layerSeconds(layer, mach)) +
-'  <rect x="0" y="0" width="' + geo.docW + '" height="' + geo.docH + '" fill="none" stroke="none"/>\n' +
-'  <g stroke="black" stroke-width="1" stroke-linecap="butt">\n' +
-barGroups(layer, geo, '    ') + '\n' +
-'  </g>\n' +
-'</svg>';
-}
-
-// THE DEFAULT MODEL since 2026-09-11: one file per pen, one <g> per angle layer
-// inside it, in plot order. The angle group carries the data-* the per-angle
-// file's root used to carry; the root carries the pen's totals.
+// THE FILE MODEL: one file per ink, one <g> per angle layer inside it, in plot
+// order. Each angle group carries that layer's own figures; the root carries
+// the pen's totals. data-angle is ARTWORK-RELATIVE (the slot's own angle in
+// PLOT.angles); data-angle-document is what the pen actually draws on the
+// sheet, which is data-angle + 90 modulo 180.
 function buildPenSVG(pen, t, geo, marks, plot, mach) {
   const ids = penIds(), names = penNames();
   const angleGroups = pen.layers.map(layer =>
@@ -1713,9 +1690,8 @@ function buildPenSVG(pen, t, geo, marks, plot, mach) {
 '     data-angles-document="' + pen.angles.map(angleToDoc).join(',') + '"\n' +
 '     data-angle-layers="' + pen.layers.length + '"\n' +
 '     data-slots="' + pen.slots.join(',') + '"\n' +
-// Inside a layer, the lift BETWEEN two angle groups is the one figure the
-// per-angle files never had to carry, so it is stated on its own rather than
-// folded into data-pen-up-mm — which stays the sum of the layers.
+// The lift BETWEEN two angle groups is stated on its own rather than folded
+// into data-pen-up-mm — which stays the sum of the layers.
 //
 // ORDER MATTERS AND v6 GOT IT WRONG: filePlot() closes the <svg> start tag with
 // '>', so in v6 this attribute was appended after the tag had closed and landed
@@ -1724,7 +1700,9 @@ function buildPenSVG(pen, t, geo, marks, plot, mach) {
 '     data-pen-up-between-groups-mm="' + pen.penUpBetween.toFixed(3) + '"\n' +
 fileMarks(geo, marks) +
 filePlot(plot, pen, mach, penSeconds(pen, mach)) +
-'  <rect x="0" y="0" width="' + geo.docW + '" height="' + geo.docH + '" fill="none" stroke="none"/>\n' +
+// No page-sized <rect> (removed 2026-09-22): width / height / viewBox already
+// fix the document, and Inkscape opened the invisible rect as a stray "rect1"
+// object that had to be deleted before every plot.
 '  <g stroke="black" stroke-width="1" stroke-linecap="butt">\n' +
 angleGroups + '\n' +
 '  </g>\n' +
@@ -1750,9 +1728,8 @@ function plotToken() {
 }
 
 // Everything the export needs, computed and handed back. Nothing is written to
-// disk and nothing touches the canvas — plot-bench-v6.html previews off this,
-// the check harness reads it, and exportPlotFiles() is a download loop over
-// its .files.
+// disk and nothing touches the canvas — plot-bench-v7.html previews off this,
+// the check harness reads it, and exportInkFile() downloads one of its .files.
 function buildPlotFiles() {
   const t = plotToken();
   const geo = plotGeometry();
@@ -1761,22 +1738,37 @@ function buildPlotFiles() {
   const mach = plotMachine();
   const layers = buildLayers(t, geo, marks, plotAngles(), plot);
   const pens = buildPens(t, layers);
-  const files = plot.perAngle
-    ? layers.map(l => ({ filename: l.filename, ink: l.ink, content: buildLayerSVG(l, t, geo, marks, plot, mach) }))
-    : pens.map(p => ({ filename: p.filename, ink: p.ink, content: buildPenSVG(p, t, geo, marks, plot, mach) }));
+  const files = pens.map(p => ({ filename: p.filename, ink: p.ink, content: buildPenSVG(p, t, geo, marks, plot, mach) }));
   return { token: t, geo: geo, marks: marks, plot: plot, mach: mach, layers: layers, pens: pens, files: files };
 }
 
-// THE ONE ACTION. Key "p" on the artwork page, or ?plot=1 in the URL: one SVG
-// per pen for the token on screen, spaced out because a browser drops
-// simultaneous downloads. Returns the build so a caller that does not want
-// files on disk can read the same numbers.
-function exportPlotFiles() {
+// The ink NUMBER is the pen id with the "ink" dropped: ink1 Red -> 1,
+// ink8 Rose -> 8. Read off the id rather than the array index, so the keys
+// follow the pen labels even if the table is ever reordered.
+function inkNumber(ink) {
+  return parseInt(PLOT.inks[ink].id.replace(/^ink/, ''), 10);
+}
+
+// THE EXPORT: one ink's file, every angle inside it, by ink number — key "6"
+// is ink6 Blue. Exactly one download per key press, because a key press is a
+// user gesture in every browser and is never throttled; a burst of downloads
+// is, and a browser drops files from it without a word (token 4865ad36 landed
+// 4 of its 7 pen files on 2026-09-22). So there is no whole-set export. A key
+// for an ink the token does not use logs the inks it does. Returns the file,
+// or null.
+function exportInkFile(n) {
   const built = buildPlotFiles();
-  built.files.forEach((f, i) => {
-    setTimeout(() => downloadSVG(f.filename, f.content), i * 150);
-  });
-  return built;
+  const f = built.files.find(x => inkNumber(x.ink) === n);
+  if (!f) {
+    const row = PLOT.inks.find(k => k.id === 'ink' + n);
+    console.warn('Intervals_v7: no file for ink' + n +
+      (row ? ' ' + row.name + ' — this token does not use it.' : ' — not in the ink set.') +
+      ' Inks in this token: ' + built.files.map(x => inkNumber(x.ink)).join(', '));
+    return null;
+  }
+  console.log('Intervals_v7: downloading ' + f.filename);
+  downloadSVG(f.filename, f.content);
+  return f;
 }
 
 function downloadSVG(filename, content) {
@@ -1791,15 +1783,22 @@ function downloadSVG(filename, content) {
   URL.revokeObjectURL(url);
 }
 
-// Not p5's keyPressed() — a plain listener, so a page that wants its own key
-// handling (the bench does) is not fighting the artwork for the hook. Ignored
-// while a form field has focus, or the bench's hash box could not be typed in.
-if (typeof window !== 'undefined') {
-  window.addEventListener('keydown', e => {
-    if (e.key !== 'p' && e.key !== 'P') return;
-    if (e.metaKey || e.ctrlKey || e.altKey) return;
-    const el = document.activeElement;
-    if (el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) return;
-    exportPlotFiles();
-  });
+// ============ KEYBOARD ============
+// p5's own keyPressed() hook, and the only way to trigger an export on the
+// artwork page — there is no URL parameter for it, and no key for the whole
+// set (Jeff, 2026-09-22), because a burst of downloads is what browsers drop.
+//   1-8    that ink's file alone: "1" is ink1 Red ... "8" is ink8 Rose
+// See exportInkFile for why there is no key for the whole set.
+// p5 1.x hands the KeyboardEvent in, which is how a Cmd/Ctrl/Alt chord is told
+// apart from a bare key. Ignored while a form field has focus, or the bench's
+// hash box could not be typed in. A page hosting the artwork that defines its
+// own keyPressed() replaces this one (the bench does not).
+function keyPressed(e) {
+  if (e && (e.metaKey || e.ctrlKey || e.altKey)) return;
+  const el = document.activeElement;
+  if (el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) return;
+  if (/^[1-8]$/.test(key)) {
+    exportInkFile(parseInt(key, 10));
+    return false;
+  }
 }
