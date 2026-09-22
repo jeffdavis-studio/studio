@@ -54,7 +54,7 @@
 <body>
 <div id="app">
   <div class="col l">
-    <div class="pad"><h1>Color by number vol 1</h1><div style="font-size:11px;color:var(--dim)">Round 6 &middot; an edge now means 1.5pt or more of shared boundary, so corner contacts no longer count. Click a shape to move it and its copies to another role; click a role, then a chart color, to recolor it. Save writes the file the book build reads.</div></div>
+    <div class="pad"><h1>Color by number vol 1</h1><div style="font-size:11px;color:var(--dim)">Round 7 &middot; an edge now means 5.0pt or more of shared boundary, so short corner contacts no longer count. Where a shape class alternates, the copies are walked in angular order around the center, every copy, so the ring repeats under rotation and breaks every fold axis. Click a shape to move it and its copies to another role; click a role, then a chart color, to recolor it. Save writes the file the book build reads.</div></div>
     <div class="scroll" id="pages"></div>
     <div class="pad" style="border-top:1px solid var(--line)">
       <h2>Knobs</h2>
@@ -90,7 +90,7 @@
 // six pages he changed are the DEFAULTS in this data.json, so the tool opens on
 // his work. A fresh key stops those same edits landing a second time on top of
 // themselves.
-const LS = 'cbn-assignment-2026-09-21';
+const LS = 'cbn-assignment-2026-09-22';
 let DATA = null, cur = 0, sel = null, selRegion = null;
 // pageId -> { manual:{role:n}, fam, walk, hub, alt,
 //             moves:{orbit:role}, merge:{role:role}, splits:{role:'rot'|'par'}, newRoles:n }
@@ -298,7 +298,7 @@ function save(quiet) {
   // role) before it reads `assign` (role -> chart number), so a regrouping Jeff
   // does here survives into the book build even when the role names are ones
   // the build has never seen.
-  const out = { built: '2026-09-21', round: 6, tool: 'cbn-review', pages: {} };
+  const out = { built: '2026-09-22', round: 7, tool: 'cbn-review', pages: {} };
   for (const pg of DATA.pages) {
     const st = stFor(pg), S = solve(pg, st);
     const col = new Map(S.col);
