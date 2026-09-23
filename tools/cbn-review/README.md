@@ -40,3 +40,13 @@ which reads **roles first, then colors** — so a regrouping survives into the
 book build even when the role names are ones the build has never seen — renders
 the twelve reveals and numbered pages, and re-certifies each page (color count,
 every edge-sharing pair, the five-color floor).
+
+## Sequenced 50, round 1 (2026-09-23)
+
+Live: https://jeffdavis-studio.github.io/studio/tools/cbn-review/seq50/
+
+The 50 in book order, then the backfill pool (98 pages). Same editing as above.
+Pages load one at a time from `seq50/pages/<id>.json`; the page list comes from
+`seq50/index.json`. Its localStorage key is `cbn-seq50-2026-09-23`, so the round 7
+tool and its key (`cbn-assignment-2026-09-22`) are untouched. Built by
+`files/morgan-studio/kdp/cbn-seq50-2026-09-23/export-tool-seq50.mjs` in the morgan repo.
