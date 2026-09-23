@@ -87,11 +87,11 @@
     </details>
   </div>
 
-  <footer title="engine @424186a · built 2026-09-23">Unison engine, jeffdavis-studio/unison-engine. Page monitor gain +6 dB over the song's strip input. Hover for build provenance.</footer>
+  <footer title="engine @f43a00e · built 2026-09-23">Unison engine, jeffdavis-studio/unison-engine. Page monitor gain +6 dB over the song's strip input. Hover for build provenance.</footer>
 </div>
 
 <script>
-/* ===== src/core/mix.js @ 424186a — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/mix.js @ f43a00e — verbatim from jeffdavis-studio/unison-engine ===== */
 // mix.js — the fan-in ≤2 summing rule, as a primitive.
 //
 // Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
@@ -129,7 +129,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/minimoog.js @ 424186a — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/minimoog.js @ f43a00e — verbatim from jeffdavis-studio/unison-engine ===== */
 // minimoog.js — Minimoog Model D-lineage mono voice, zero dependencies.
 //
 // THE MONO BASS LANE (build order 808 → Juno → Minimoog → …; it also absorbs
@@ -195,12 +195,16 @@
       glide: 0, level: 0.34,
     },
     pluck: {
-      // plucky funk bass: saw + square, the contour does the work — a fast
-      // snap from +3 oct down to closed, amp decays into a lowish sustain
-      osc: [[0, "saw", 0.8, 0, 0.5], [0, "sq", 0.5, 4, 0.5], [-1, "saw", 0, 0, 0.5]],
-      noise: 0, cutoff: 150, emphasis: 0.30, kbd: 1 / 3, amount: 3.2,
+      // plucky funk bass: saw + a little square, the contour does the work — a
+      // fast snap from ~+4 oct down to closed, amp decays into a lowish sustain.
+      // Re-voiced 2026-09-23 after measuring the first pass: its snap was dull
+      // (8th harmonic -36 dB at 20 ms, the square's missing even harmonics
+      // weighing the attack down). Now -25 dB at 20 ms falling to -59 by 150 ms.
+      // A voicing, not a fit — the pack holds no funk pluck.
+      osc: [[0, "saw", 0.8, 0, 0.5], [0, "sq", 0.3, 4, 0.5], [-1, "saw", 0, 0, 0.5]],
+      noise: 0, cutoff: 180, emphasis: 0.40, kbd: 1 / 3, amount: 4.2,
       fA: 0.001, fD: 0.16, fS: 0.0, a: 0.001, d: 0.28, s: 0.55, decaySw: false,
-      glide: 0, level: 0.36,
+      glide: 0, level: 0.42,
     },
     squelch: {
       // resonant, acid-adjacent: one saw, emphasis high, contour sweeping the
@@ -439,7 +443,7 @@ window.FIT_POS = {"cutoff":0.5,"emphasis":0.5,"amount":0.5,"kbd":0.5,"fA":0.5,"f
 // and the whole point of declining a knob on the record is that the decline is
 // visible where the instrument is.
 window.FIT_WHY = {"cutoff":"No reference states its panel, and the only filter readings that can place a cutoff (open vs closed) are Garzul's own patch positions — copying them over a lane voicing is the Juno open-filter trap one instrument later. The circuit behind the knob IS checked: row A confirms a 4-pole ladder (refs fall -32 to -43 dB/oct; a 12 dB filter cannot pass -24).","emphasis":"The pack's one resonant recording (freesound 213657) was rejected by the verifier (pitch IQR 40c, not one held note), so no reference contains resonance to fit to.","amount":"Contour amount is degenerate with cutoff in the only contour reference (04): the fit trades one for the other and pinned amount at its panel maximum. Row E is a circuit check, not a lane fit.","kbd":"Row F is BLIND: with the filter closed below f0 the harmonic RATIOS do not depend on the cutoff (ours reads -30.0 vs -29.6 dB/oct at kbd 0 vs 1), and the pack's absolute levels are unknown. Refs 01/04 are not the same patch (04 lacks 01's octave-down VCO), so they cannot give a slope either.","fA":"Ref 04's filter opens over ~4-6 s — a pad contour, not a bass lane. It proved the model can draw a real Model D contour (row E: residual 17.7 -> 1.5 dB/oct RMS) and exposed that the panel stopped at 2 s (now 10 s, as the Model D). Not a value for any bass lane.","fD":"Same as filter attack: the only contour reference is a slow pad-like patch; applying its times would turn a bass lane into that patch.","fS":"Same as filter attack.","a":"The references' loudness contours are Garzul's slow-swelling patches (peaks at 1.4-4.5 s); nothing in the pack is a bass-lane amp contour.","d":"Same as loud attack.","s":"Same as loud attack.","glide":"No free recording of a real Model D glide was found (the two candidates were Reason's Legend emulation and an AJH MiniMod clone). Glide is modelled (RC portamento); its lane values are voicings, not measurements.","osc.0.2":"Mixer balance is a patch choice; the pack has one player's balances at unstated settings.","osc.1.2":"Same as VCO 1 level.","osc.2.3":"Held at -4c while VCO 2 detune was fitted: one beating row cannot separate two detune knobs (degenerate).","noise":"Ref 07 is the Minimoog noise source alone, unfiltered; its level inside a patch is a mix choice the pack does not contain."};
-/* WHERE THE KNOBS OPEN @ 424186a, built 2026-09-23.
+/* WHERE THE KNOBS OPEN @ f43a00e, built 2026-09-23.
 
    Every knob apply-fit moved opens at CENTRE, because after the apply the
    centre IS the fit. Only the knobs it measured and did not move are here, and
