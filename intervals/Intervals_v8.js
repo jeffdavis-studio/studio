@@ -1,113 +1,47 @@
-// Intervals v8 — Jeff Davis
-// Three interleaved CIELAB ramps between ink-mixed anchors, drawn full screen,
-// and plotted as one hatched SVG per ink. Decisions and their history are in
-// NOTES.md; this file keeps only what the code needs to be read.
-
-// Sample token for local testing. Art Blocks defines tokenData before this
-// script runs, and so do the dev pages, so it stays commented out.
-// let tokenData = { hash: '0x', tokenId: '0' };
-// for (let i = 0; i < 64; i++) {
-//   tokenData.hash += '0123456789abcdef'[Math.floor(Math.random() * 16)];
-// }
-
-let R, w, h, r, s, vtype, amin, amax, h1, anchor, comp, complementary, c, inks, inkh;
-
-let vprob = 0.15;
-let ng = 0.5;
-let lmin = 3;
-let tmin = 0;
-let tmax = 0.4;
-
-// Jeff's eight inks as HSB, matched by eye to plotted swatches at 95%. Sorted by
-// hue, Red first: mix() treats the last entry -> the first as the wrap segment.
-// Ink numbers are index + 1.
-let palette = [
-  [6, 74, 87],
-  [18, 69, 97],
-  [44, 62, 98],
-  [135, 55, 80],
-  [172, 90, 66],
-  [214, 90, 78],
-  [235, 61, 57],
-  [329, 57, 78]
+let R, w, h, o, s, vtype, ltype, amin, amax, pwhite, bx, bw, c, inks, inkh;
+let lmin = 5;
+// Steps per ramp, and each rung's weight; both bar axes draw from the whole
+// ladder.
+// let ladder = [3, 4, 5, 6, 8, 10, 12, 16, 20, 24, 30, 40];
+// let rungs = [1, 2, 2, 3, 3, 3, 3, 3, 3, 2, 2, 1];
+let ladder = [4, 5, 6, 8, 10, 12, 16, 20, 24];
+let rungs = [1, 1, 2, 2, 2, 2, 2, 2, 1];
+// Each color variant's share of tokens; the rest, 82% here, are 'none'.
+let variants = [
+  { name: 'saturated', p: 0.06 },
+  { name: 'tinted', p: 0.06 },
+  { name: 'complementary', p: 0.03 },
+  { name: 'shaded', p: 0.03 }
 ];
-let names = ['Red', 'Orange', 'Yellow', 'Fresh Green', 'Green', 'Blue', 'Royal Blue', 'Rose'];
-
-// Plot, in millimeters. The 14 x 11 in landscape composition is turned a
-// quarter turn clockwise onto the plotter's portrait 297 x 410 working area,
-// because 355.6 mm does not fit its 297 mm axis. Turn the sheet back to view.
-let imgw = 355.6;
-let imgh = 279.4;
-let docw = 297;
-let doch = 410;
-
-// Micron 05. Pitch is line spacing for a solid fill; nib is the ink width the
-// bar-edge clip needs. Bar ink edges butt (gap 0), and the outer inset of half
-// a nib lands the outermost ink edge exactly on the image boundary.
-let pitch = 0.45;
-let nib = 0.45;
-let gap = 0;
-let inset = 0.225;
-// Hatch angle by ramp slot: a ramp's start anchor owns slots 1-2, its end 3-4.
-let angles = [22.5, 67.5, 112.5, 157.5];
-// A bar of ink share W prints at W * target; 0.95 is this project's 100%.
-let target = 0.95;
-// Weights below this are float dust, not a pen.
-let eps = 0.001;
-
-// Time estimate only, fitted on the 2026-09-02 calibration plot: mm/s drawing,
-// mm/s travel, and seconds per segment.
-let vdraw = 66.7;
-let vtravel = 133.3;
-let tseg = 0.13;
+// Each layout's share of tokens, drawn independently of the color variant,
+// and each band's width within a step as a range [lo, hi]; setup() draws a
+// whole number in each range and uses them as a ratio. A fixed ratio is lo =
+// hi, e.g. 1:3:5 is [[1, 1], [3, 3], [5, 5]]. The rest are 'even' (1:1:1).
+let layouts = [
+  { name: 'varied', p: 0.50, widths: [[1, 4], [1, 4], [1, 4]] }
+];
+let pens = [
+  { hsb: [6, 74, 87], name: 'Red' },
+  { hsb: [18, 69, 97], name: 'Orange' },
+  { hsb: [44, 62, 98], name: 'Yellow' },
+  { hsb: [135, 55, 80], name: 'Fresh Green' },
+  { hsb: [172, 90, 66], name: 'Green' },
+  { hsb: [214, 90, 78], name: 'Blue' },
+  { hsb: [235, 61, 57], name: 'Royal Blue' },
+  { hsb: [329, 57, 78], name: 'Rose' }
+];
 
 function setup() {
   R = new Random(tokenData.hash);
   w = windowWidth;
   h = windowHeight;
-  // A dev page can pin the canvas to an aspect. The plot never reads w / h.
-  if (window.aspect) {
-    let k = min(w / window.aspect[0], h / window.aspect[1]);
-    w = round(window.aspect[0] * k);
-    h = round(window.aspect[1] * k);
-  }
   createCanvas(w, h);
   noStroke();
   noFill();
-
-  // r is the bar axis: 0 = columns across the width, 1 = rows down the height.
-  r = R.random_int(0, 1);
-  if (r === 0) {
-    s = R.random_int(10, 24);
-  } else {
-    s = R.random_int(8, 20);
-  }
-
-  vtype = 'none';
-  if (R.random_bool(vprob)) {
-    vtype = R.random_choice(['saturated', 'saturated', 'tinted', 'tinted', 'complementary']);
-  }
-  // The dev pages force a variant after the draw, so the PRNG sequence holds.
-  if (window.variant) {
-    vtype = window.variant;
-  }
-  amin = tmin;
-  amax = tmax;
-  if (vtype === 'saturated') {
-    amax = 0;
-  }
-  if (vtype === 'tinted') {
-    amin = tmax;
-  }
-  complementary = vtype === 'complementary';
-  if (vtype !== 'none') {
-    print(vtype);
-  }
-
   colorMode(HSB);
   inks = [];
-  for (let i = 0; i < palette.length; i++) {
-    inks[i] = color(palette[i][0], palette[i][1], palette[i][2]);
+  for (let i = 0; i < pens.length; i++) {
+    inks[i] = color(pens[i].hsb[0], pens[i].hsb[1], pens[i].hsb[2]);
   }
   colorMode(RGB);
   inkh = [];
@@ -115,31 +49,112 @@ function setup() {
     inkh[i] = hue(inks[i]);
   }
 
-  // Six anchors; ramp j runs c[2j] -> c[2j + 1]. Each anchor keeps a lightness
-  // gap from the anchors on its own side of the other ramps.
-  h1 = ghue();
-  c = [gcol(h1)];
-  comp = false;
-  for (let j = 1; j < 6; j++) {
-    c[j] = gcol(ghue());
-    while (crowded(j, j)) {
-      c[j] = gcol(ghue());
-    }
-    comp = comp || !anchor;
-  }
-  // Complementary must use both sides of the wheel: if every anchor landed on
-  // h1's side, re-roll one onto the far side.
-  if (complementary && !comp) {
-    let j = R.random_int(2, 6) - 1;
-    c[j] = gcol(ghue());
-    while (anchor || crowded(j, 6)) {
-      c[j] = gcol(ghue());
+  // 1. The token: bar axis, steps, color variant, layout.
+  o = R.random_int(0, 1);
+  let pool = [];
+  for (let i = 0; i < ladder.length; i++) {
+    for (let k = 0; k < rungs[i]; k++) {
+      pool.push(ladder[i]);
     }
   }
+  s = R.random_choice(pool);
+  let v = R.random_dec();
+  vtype = 'none';
+  for (let i = 0; i < variants.length; i++) {
+    if (vtype === 'none' && v < variants[i].p) {
+      vtype = variants[i].name;
+    }
+    v -= variants[i].p;
+  }
+  let l = R.random_dec();
+  ltype = 'even';
+  let ranges = [[1, 1], [1, 1], [1, 1]];
+  for (let i = 0; i < layouts.length; i++) {
+    if (ltype === 'even' && l < layouts[i].p) {
+      ltype = layouts[i].name;
+      ranges = layouts[i].widths;
+    }
+    l -= layouts[i].p;
+  }
+  print('variant: ' + vtype);
+  print('layout: ' + ltype);
+  print('bars: ' + 3 * s);
 
+  // 2. Variant settings: every number a variant changes is decided here.
+  // Each anchor adds white or black, never both: an amount from amin to
+  // amax, white with chance pwhite, otherwise black.
+  amin = 0;
+  amax = 0.4;
+  pwhite = 0.5;
+  if (vtype === 'saturated') {
+    amax = 0;
+  }
+  if (vtype === 'tinted') {
+    amin = 0.4;
+    pwhite = 1;
+  }
+  if (vtype === 'shaded') {
+    amin = 0.4;
+    pwhite = 0;
+  }
+  // The layout's widths, one whole number per band from its range, repeat
+  // every step. bx and bw are each band's start and width as fractions of a
+  // step.
+  let widths = [];
+  for (let j = 0; j < 3; j++) {
+    widths[j] = R.random_int(ranges[j][0], ranges[j][1]);
+  }
+  // Varied: at least one band is 1, and the bands are not all the same.
+  while (ltype === 'varied' && (min(widths) > 1 || (widths[0] === widths[1] && widths[1] === widths[2]))) {
+    for (let j = 0; j < 3; j++) {
+      widths[j] = R.random_int(ranges[j][0], ranges[j][1]);
+    }
+  }
+  print('widths: ' + widths.join(':'));
+  let wsum = widths[0] + widths[1] + widths[2];
+  bx = [0, widths[0] / wsum, (widths[0] + widths[1]) / wsum];
+  bw = [widths[0] / wsum, widths[1] / wsum, widths[2] / wsum];
+
+  // 3. Anchors, with gcol() taking each hue by variant. 4. Guarantees: the
+  // pass loop adds a seventh when complementary drew no anchor opposite the
+  // first; anchor jr, chosen at random, is re-drawn pinned to the opposite.
+  c = [];
+  let n = 6;
+  let jr = 0;
+  for (let i = 0; i < n; i++) {
+    let j = i;
+    if (i === 6) {
+      j = jr;
+    }
+    c[j] = gcol(j, i === 6);
+    // The other anchors on j's side are (j + 2) % 6 and (j + 4) % 6.
+    while (((j + 2) % 6 < c.length && abs(c[(j + 2) % 6].light - c[j].light) < lmin) ||
+      ((j + 4) % 6 < c.length && abs(c[(j + 4) % 6].light - c[j].light) < lmin)) {
+      c[j] = gcol(j, i === 6);
+    }
+    if (i === 5 && vtype === 'complementary') {
+      let far = false;
+      for (let k = 1; k < 6; k++) {
+        if (c[k].hue !== c[0].hue) {
+          far = true;
+        }
+      }
+      if (!far) {
+        n = 7;
+        jr = R.random_int(1, 5);
+      }
+    }
+  }
+  // Lightness differences between the ramps, starts then ends: 1-2, 2-3, 1-3.
+  print('L starts: ' + nf(abs(c[0].light - c[2].light), 1, 1) + ' ' + nf(abs(c[2].light - c[4].light), 1, 1) +
+    ' ' + nf(abs(c[0].light - c[4].light), 1, 1));
+  print('L ends: ' + nf(abs(c[1].light - c[3].light), 1, 1) + ' ' + nf(abs(c[3].light - c[5].light), 1, 1) +
+    ' ' + nf(abs(c[1].light - c[5].light), 1, 1));
+  // 5. Features.
   window.$features = {
     Variant: vtype,
-    Orientation: r === 0 ? 'Vertical' : 'Horizontal',
+    Layout: ltype,
+    Orientation: o === 0 ? 'Vertical' : 'Horizontal',
     Bars: 3 * s
   };
 }
@@ -148,89 +163,72 @@ function draw() {
   for (let i = 0; i < s; i++) {
     for (let j = 0; j < 3; j++) {
       let col = betterLerp(c[2 * j].col, c[2 * j + 1].col, i / (s - 1));
-      let t0 = i / s + j / (3 * s);
+      let t0 = (i + bx[j]) / s;
       fill(col);
       stroke(col);
-      if (r === 0) {
-        rect(w * t0, 0, w * (1 / (3 * s)), h);
+      if (o === 0) {
+        rect(w * t0, 0, w * bw[j] / s, h);
       } else {
-        rect(0, h * t0, w, h * (1 / (3 * s)));
+        rect(0, h * t0, w, h * bw[j] / s);
       }
     }
   }
   noLoop();
 }
 
-// True when anchor j is within lmin lightness of an anchor below index n on
-// its own side (starts are even, ends odd).
-function crowded(j, n) {
-  let close = false;
-  for (let k = j % 2; k < n; k += 2) {
-    if (k !== j && lgap(c[k].col, c[j].col) < lmin) {
-      close = true;
-    }
-  }
-  return close;
-}
-
 // An anchor is two neighboring inks over paper:
-//   col = (1 - tint) * [(1 - t) * inks[ink] + t * inks[ink2]] + tint * white
+//   col = (1 - tint) * [(1 - mix) * inks[ink] + mix * inks[ink2]] + tint * white
 // so the plot can lay each ink at its own share.
-function gcol(d) {
-  let m = mix(snap(d));
-  let a = R.random_num(amin, amax);
-  return { col: betterLerp(m.col, color(255, 255, 255), a), ink: m.ink, ink2: m.ink2, t: m.t, tint: a };
-}
-
-function ghue() {
-  let d;
-  if (R.random_bool(ng)) {
-    d = R.random_int(180, 420) % 360;
+function gcol(j, pinned) {
+  // Hue: half the time from 180-420 (blues through reds to yellows), otherwise
+  // any. Complementary anchors after the first take its hue or the opposite,
+  // by coin flip on every draw, so an anchor stuck on one side can escape to
+  // the other; pinned keeps it opposite.
+  let hs;
+  if (vtype === 'complementary' && j > 0) {
+    let off = R.random_int(0, 1) * 180;
+    if (pinned) {
+      off = 180;
+    }
+    hs = (c[0].hue + off) % 360;
+  } else if (R.random_bool(0.5)) {
+    hs = R.random_int(180, 420) % 360;
   } else {
-    d = R.random_int(0, 359);
+    hs = R.random_int(0, 359);
   }
-  return d;
-}
-
-function snap(d) {
-  let e = abs(d - h1);
-  let hs = d;
-  anchor = true;
-  if (complementary) {
-    if (e > 180) {
-      e = 360 - e;
-    }
-    if (e < 90) {
-      hs = h1;
-    } else {
-      anchor = false;
-      hs = (h1 + 180) % 360;
-    }
-  }
-  return hs;
-}
-
-function mix(d) {
+  // The two inks either side of the hue; mix is how far it sits from ink to
+  // ink2 (0 all ink, 1 all ink2). Tint is the paper share, how much white.
   let i = inks.length - 1;
   let lo = inkh[i];
   let hi = inkh[0] + 360;
   for (let j = 0; j < inks.length - 1; j++) {
-    if (d >= inkh[j] && d < inkh[j + 1]) {
+    if (hs >= inkh[j] && hs < inkh[j + 1]) {
       i = j;
       lo = inkh[j];
       hi = inkh[j + 1];
     }
   }
-  if (d < inkh[0]) {
-    d = d + 360;
+  // A hue below Red sits in the Rose -> Red wrap segment, which ends at
+  // Red + 360.
+  let wrap = hs;
+  if (wrap < inkh[0]) {
+    wrap = wrap + 360;
   }
   let k = (i + 1) % inks.length;
-  let t = (d - lo) / (hi - lo);
-  return { col: betterLerp(inks[i], inks[k], t), ink: i, ink2: k, t: t };
-}
-
-function lgap(x, y) {
-  return abs(rgbToLab(x)[0] - rgbToLab(y)[0]);
+  let mix = (wrap - lo) / (hi - lo);
+  // White or black: tint is the white (paper) share, shade the black share,
+  // and one of them is always 0.
+  let amount = R.random_num(amin, amax);
+  let tint = 0;
+  let shade = amount;
+  let edge = color(0, 0, 0);
+  if (R.random_bool(pwhite)) {
+    tint = amount;
+    shade = 0;
+    edge = color(255, 255, 255);
+  }
+  let col = betterLerp(betterLerp(inks[i], inks[k], mix), edge, amount);
+  return { col: col, light: rgbToLab(col)[0], hue: hs, ink: i, ink2: k, mix: mix, tint: tint, shade: shade };
 }
 
 // rgbToLab and labToRgb: thank you easyrgb.com
@@ -339,151 +337,237 @@ function betterLerp(col1, col2, t) {
   return labToRgb(lab);
 }
 
-// The plot, in composition millimeters. Every bar is four ink slots (two per
-// anchor) over paper; each active slot becomes a hatch at its slot's angle,
-// grouped into one layer per (ink, angle), sorted by ink then angle.
-function layers() {
-  let ls = [];
+// THE PLOT EXPORT, in Mechanical Drawings' layout: keyPressed() -> buildSVG()
+// -> buildBars() for the lines, order() for the pen path. Everything here reads
+// the finished artwork (c, s, o); nothing in setup() or draw() reads it back.
+
+// Ink k's hatched bars, per slot, in composition millimeters: Mechanical
+// Drawings' buildCells(). Each bar is five slots over paper: two inks per
+// anchor, and black (ink9, index 8) lerped between the anchors' shades. Each
+// of ink's active slots becomes a hatch at that slot's angle. p is the plot
+// settings, from buildSVG().
+function buildBars(ink, p) {
+  let slots = [[], [], [], [], []];
   for (let i = 0; i < s; i++) {
     for (let j = 0; j < 3; j++) {
-      let t0 = i / s + j / (3 * s);
+      let t0 = (i + bx[j]) / s;
       let u = i / (s - 1);
-      let ca = c[2 * j];
-      let cb = c[2 * j + 1];
-      let ink = [ca.ink, ca.ink2, cb.ink, cb.ink2];
+      let from = c[2 * j];
+      let to = c[2 * j + 1];
+      let owner = [from.ink, from.ink2, to.ink, to.ink2, 8];
       let weights = [
-        (1 - u) * (1 - ca.tint) * (1 - ca.t),
-        (1 - u) * (1 - ca.tint) * ca.t,
-        u * (1 - cb.tint) * (1 - cb.t),
-        u * (1 - cb.tint) * cb.t
+        (1 - u) * (1 - from.tint - from.shade) * (1 - from.mix),
+        (1 - u) * (1 - from.tint - from.shade) * from.mix,
+        u * (1 - to.tint - to.shade) * (1 - to.mix),
+        u * (1 - to.tint - to.shade) * to.mix,
+        (1 - u) * from.shade + u * to.shade
       ];
-      // The pen lays a capsule nib / 2 beyond its line in every direction, so
+      // The pen lays a capsule lw / 2 beyond its line in every direction, so
       // the clip sits that far inside a shared edge (plus half the paper gap)
       // and inset inside the image's outer edge.
-      let lo = gap / 2 + nib / 2;
-      let hi = gap / 2 + nib / 2;
+      let lo = p.gap / 2 + p.lw / 2;
+      let hi = p.gap / 2 + p.lw / 2;
       if (i * 3 + j === 0) {
-        lo = inset;
+        lo = p.inset;
       }
       if (i * 3 + j === 3 * s - 1) {
-        hi = inset;
+        hi = p.inset;
       }
-      let bar, clip;
-      if (r === 0) {
-        bar = { x: t0 * imgw, y: 0, w: (1 / (3 * s)) * imgw, h: imgh };
-        clip = { x: bar.x + lo, y: inset, w: bar.w - lo - hi, h: bar.h - 2 * inset };
+      let box, clip;
+      if (o === 0) {
+        box = { x: t0 * p.imgw, y: 0, w: bw[j] / s * p.imgw, h: p.imgh };
+        clip = { x: box.x + lo, y: p.inset, w: box.w - lo - hi, h: box.h - 2 * p.inset };
       } else {
-        bar = { x: 0, y: t0 * imgh, w: imgw, h: (1 / (3 * s)) * imgh };
-        clip = { x: inset, y: bar.y + lo, w: bar.w - 2 * inset, h: bar.h - lo - hi };
+        box = { x: 0, y: t0 * p.imgh, w: p.imgw, h: bw[j] / s * p.imgh };
+        clip = { x: p.inset, y: box.y + lo, w: box.w - 2 * p.inset, h: box.h - lo - hi };
       }
-      let active = [];
+      // The multiplier m that puts the bar's crossing hatches, which composite
+      // as 1 - product(1 - w * m), on its tone W * target, found by bisection.
+      // It runs over every active slot, whichever ink is being exported.
       let raw = [];
-      for (let k = 0; k < 4; k++) {
-        if (weights[k] > eps) {
-          active.push(k);
-          raw.push(weights[k]);
+      let sum = 0;
+      for (let f = 0; f < 5; f++) {
+        if (weights[f] > p.eps) {
+          raw.push(weights[f]);
+          sum += weights[f];
         }
       }
-      let m = solve(raw);
-      for (let k = 0; k < active.length; k++) {
-        let a = angles[active[k]];
-        let lines = hatch(bar, clip, raw[k] * m, a);
-        if (lines.length > 0) {
-          let li = -1;
-          for (let f = 0; f < ls.length; f++) {
-            if (ls[f].ink === ink[active[k]] && ls[f].angle === a) {
-              li = f;
+      let mlo = 0;
+      let mhi = 64;
+      for (let k = 0; k < 50; k++) {
+        let mid = (mlo + mhi) / 2;
+        let clear = 1;
+        for (let f = 0; f < raw.length; f++) {
+          clear *= 1 - min(1, raw[f] * mid);
+        }
+        if (1 - clear < sum * p.target) {
+          mlo = mid;
+        } else {
+          mhi = mid;
+        }
+      }
+      let m = (mlo + mhi) / 2;
+      // Mechanical Drawings' line grid at the slot's angle, clipped. The grid
+      // is solved on the whole box and only its drawn extent is clipped, so the
+      // clip never changes ink per unit area.
+      for (let f = 0; f < 5; f++) {
+        if (weights[f] > p.eps && owner[f] === ink) {
+          let theta = p.angles[f] * PI / 180;
+          let sa = sin(theta);
+          let ca = cos(theta);
+          let d0 = -box.x * sa + box.y * ca;
+          let d1 = -(box.x + box.w) * sa + box.y * ca;
+          let d2 = -box.x * sa + (box.y + box.h) * ca;
+          let d3 = -(box.x + box.w) * sa + (box.y + box.h) * ca;
+          let dmin = min(d0, d1, d2, d3);
+          let pspan = max(d0, d1, d2, d3) - dmin;
+          let nlines = round(weights[f] * m * pspan / p.spacing);
+          let step = pspan / nlines;
+          let xmin = clip.x;
+          let xmax = clip.x + clip.w;
+          let ymin = clip.y;
+          let ymax = clip.y + clip.h;
+          let ls = [];
+          for (let k = 0; k < nlines; k++) {
+            let dd = dmin + step / 2 + k * step;
+            let tl = (xmin + dd * sa) / ca;
+            let tr = (xmax + dd * sa) / ca;
+            let tt = (ymin - dd * ca) / sa;
+            let tb = (ymax - dd * ca) / sa;
+            let tlo = max(min(tl, tr), min(tt, tb));
+            let thi = min(max(tl, tr), max(tt, tb));
+            // Lines near the box's corners can miss the inset clip entirely.
+            if (tlo < thi - 1e-9) {
+              let x1 = -dd * sa + tlo * ca;
+              let y1 = dd * ca + tlo * sa;
+              let x2 = -dd * sa + thi * ca;
+              let y2 = dd * ca + thi * sa;
+              if (x1 > x2) {
+                [x1, y1, x2, y2] = [x2, y2, x1, y1];
+              }
+              ls.push({ x1: x1, y1: y1, x2: x2, y2: y2 });
             }
           }
-          if (li < 0) {
-            ls.push({ ink: ink[active[k]], angle: a, bars: [] });
-            li = ls.length - 1;
+          if (ls.length > 0) {
+            slots[f].push({ band: j, step: i, lines: ls });
           }
-          ls[li].bars.push({ band: j, step: i, lines: lines });
         }
       }
     }
   }
-  ls.sort(function (a, b) {
-    return a.ink - b.ink || a.angle - b.angle;
-  });
-  for (let i = 0; i < ls.length; i++) {
-    order(ls[i]);
-  }
-  return ls;
+  return slots;
 }
 
-// The multiplier m that puts a bar's crossing hatches, which composite as
-// 1 - product(1 - w * m), on its tone W * target. Monotone in m, so bisection.
-function solve(raw) {
-  let sum = 0;
-  for (let i = 0; i < raw.length; i++) {
-    sum += raw[i];
-  }
-  let lo = 0;
-  let hi = 64;
-  for (let i = 0; i < 50; i++) {
-    let mid = (lo + hi) / 2;
-    let clear = 1;
-    for (let k = 0; k < raw.length; k++) {
-      clear *= 1 - min(1, raw[k] * mid);
-    }
-    if (1 - clear < sum * target) {
-      lo = mid;
-    } else {
-      hi = mid;
-    }
-  }
-  return (lo + hi) / 2;
-}
-
-// Parallel lines at angle a covering fraction cov of the bar. The line grid is
-// solved on the whole bar and only its drawn extent is clipped, so the clip
-// never changes ink per unit area.
-function hatch(bar, clip, cov, a) {
-  let lines = [];
-  let sn = sin(a * PI / 180);
-  let cs = cos(a * PI / 180);
-  let d = [
-    -bar.x * sn + bar.y * cs,
-    -(bar.x + bar.w) * sn + bar.y * cs,
-    -bar.x * sn + (bar.y + bar.h) * cs,
-    -(bar.x + bar.w) * sn + (bar.y + bar.h) * cs
-  ];
-  let n = round(cov * (max(d) - min(d)) / pitch);
-  let space = (max(d) - min(d)) / n;
-  for (let i = 0; i < n; i++) {
-    let dd = min(d) + space / 2 + i * space;
-    let tlo = max(min((clip.x + dd * sn) / cs, (clip.x + clip.w + dd * sn) / cs),
-      min((clip.y - dd * cs) / sn, (clip.y + clip.h - dd * cs) / sn));
-    let thi = min(max((clip.x + dd * sn) / cs, (clip.x + clip.w + dd * sn) / cs),
-      max((clip.y - dd * cs) / sn, (clip.y + clip.h - dd * cs) / sn));
-    // Lines near the bar's corners can miss the inset clip entirely.
-    if (tlo < thi - 1e-9) {
-      let x1 = -dd * sn + tlo * cs;
-      let y1 = dd * cs + tlo * sn;
-      let x2 = -dd * sn + thi * cs;
-      let y2 = dd * cs + thi * sn;
-      if (x1 > x2) {
-        [x1, y1, x2, y2] = [x2, y2, x1, y1];
+// Ink k's plot file (k = 0 is ink1 Red), or '' when the token does not use
+// that ink: Mechanical Drawings' buildSVG(). One layer per slot angle, drawn
+// serpentine, written turned into the document.
+function buildSVG(k) {
+  let p = {
+    // The 14 x 11 in landscape composition is turned a quarter turn clockwise
+    // onto the plotter's portrait 297 x 410 mm working area, because 355.6 mm
+    // does not fit its 297 mm axis. Turn the sheet back to view.
+    imgw: 355.6,
+    imgh: 279.4,
+    docw: 297,
+    doch: 410,
+    // Micron 05. Spacing is the line pitch for a solid fill; lw is the ink
+    // width the pen lays, which the bar-edge clip and the file's stroke use.
+    // Bar ink edges butt (gap 0), and the outer inset of half the line width
+    // lands the outermost ink edge exactly on the image boundary.
+    spacing: 0.45,
+    lw: 0.45,
+    gap: 0,
+    inset: 0.225,
+    // Hatch angle by slot: a ramp's start anchor owns slots 1-2, its end 3-4.
+    // Slot 5 is black, for now perpendicular to the bars: 0 across vertical
+    // bars, 90 across horizontal ones.
+    angles: [22.5, 67.5, 112.5, 157.5, o === 0 ? 0 : 90],
+    // A bar of ink share W prints at W * target; 0.95 is this project's 100%.
+    target: 0.95,
+    // Weights below this are float dust, not a pen.
+    eps: 0.001,
+    // Time estimate only, fitted on the 2026-09-02 calibration plot: mm/s
+    // drawing, mm/s travel, and seconds per segment.
+    vdraw: 66.7,
+    vtravel: 133.3,
+    tseg: 0.13
+  };
+  let slots = buildBars(k, p);
+  let id = 'ink' + (k + 1);
+  let rx = (p.docw - p.imgh) / 2 + p.imgh;
+  let ry = (p.doch - p.imgw) / 2;
+  let count = 0;
+  let drawn = 0;
+  let up = 0;
+  let secs = 0;
+  let as = [];
+  let body = '';
+  for (let f = 0; f < 5; f++) {
+    if (slots[f].length > 0) {
+      let totals = order(slots[f]);
+      count += totals.count;
+      drawn += totals.drawn;
+      up += totals.up;
+      secs += totals.drawn / p.vdraw + totals.up / p.vtravel + totals.count * p.tseg;
+      as.push(p.angles[f]);
+      body += '    <g id="layer-' + id + '-' + p.angles[f] + 'deg" data-angle="' + p.angles[f] +
+        '" data-angle-document="' + (p.angles[f] + 90) % 180 + '">\n';
+      for (let i = 0; i < slots[f].length; i++) {
+        let bar = slots[f][i];
+        body += '      <g id="' + i + '-bar-' + id + '-b' + bar.band + 's' + bar.step + '">\n';
+        for (let j = 0; j < bar.lines.length; j++) {
+          let l = bar.lines[j];
+          body += '        <line x1="' + (rx - l.y1).toFixed(6) + '" y1="' + (ry + l.x1).toFixed(6) +
+            '" x2="' + (rx - l.y2).toFixed(6) + '" y2="' + (ry + l.x2).toFixed(6) + '"/>\n';
+        }
+        body += '      </g>\n';
       }
-      lines.push({ x1: x1, y1: y1, x2: x2, y2: y2 });
+      body += '    </g>\n';
     }
   }
-  return lines;
+  let pc = color(0, 0, 0);
+  let name = 'Black';
+  if (k < 8) {
+    pc = inks[k];
+    name = pens[k].name;
+  }
+  let hexstr = '#' + hex(round(red(pc)), 2) + hex(round(green(pc)), 2) + hex(round(blue(pc)), 2);
+  let svg = '';
+  if (as.length > 0) {
+    svg = '<?xml version="1.0" encoding="UTF-8"?>\n' +
+      '<svg xmlns="http://www.w3.org/2000/svg"\n' +
+      '     width="' + p.docw + 'mm"\n' +
+      '     height="' + p.doch + 'mm"\n' +
+      '     viewBox="0 0 ' + p.docw + ' ' + p.doch + '"\n' +
+      '     data-token="' + tokenData.hash + '"\n' +
+      '     data-token-id="' + tokenData.tokenId + '"\n' +
+      '     data-composition-mm="' + p.imgw + ' x ' + p.imgh + '"\n' +
+      '     data-image-turn="artwork rotated 90 degrees clockwise into the document"\n' +
+      '     data-view="turn the sheet a quarter turn counterclockwise to view"\n' +
+      '     data-ink="' + id + '"\n' +
+      '     data-pen="' + name + '"\n' +
+      '     data-angles="' + as.join(',') + '"\n' +
+      '     data-segments="' + count + '"\n' +
+      '     data-distance-mm="' + drawn.toFixed(1) + '"\n' +
+      '     data-pen-up-mm="' + up.toFixed(1) + '"\n' +
+      '     data-plot-seconds="' + round(secs) + '">\n' +
+      '  <g stroke="' + hexstr + '" stroke-width="' + p.lw + '" stroke-linecap="butt">\n' +
+      body +
+      '  </g>\n' +
+      '</svg>';
+  }
+  return svg;
 }
 
 // Serpentine: enter each bar's stack at the end nearer the pen, and draw each
-// line from its nearer end. Also totals the layer for the time estimate.
-function order(layer) {
+// line from its nearer end. Returns the layer's totals for the time estimate.
+function order(bars) {
   let started = false;
   let px = 0;
   let py = 0;
-  layer.count = 0;
-  layer.drawn = 0;
-  layer.up = 0;
-  for (let i = 0; i < layer.bars.length; i++) {
-    let ls = layer.bars[i].lines;
+  let totals = { count: 0, drawn: 0, up: 0 };
+  for (let i = 0; i < bars.length; i++) {
+    let ls = bars[i].lines;
     let n = ls.length;
     let rev = false;
     if (started) {
@@ -501,7 +585,7 @@ function order(layer) {
         l = { x1: l.x2, y1: l.y2, x2: l.x1, y2: l.y1 };
       }
       if (started) {
-        layer.up += dist(px, py, l.x1, l.y1);
+        totals.up += dist(px, py, l.x1, l.y1);
       }
       drawn += dist(l.x1, l.y1, l.x2, l.y2);
       lines.push(l);
@@ -509,99 +593,44 @@ function order(layer) {
       py = l.y2;
       started = true;
     }
-    layer.bars[i].lines = lines;
-    layer.drawn += drawn;
-    layer.count += n;
+    bars[i].lines = lines;
+    totals.drawn += drawn;
+    totals.count += n;
   }
+  return totals;
 }
 
-// One ink's file: every angle layer of that ink, in plot order, turned into
-// the document. Group ids name the ink, band and step for the plotter.
-function svg(ls) {
-  let id = 'ink' + (ls[0].ink + 1);
-  let rx = (docw - imgh) / 2 + imgh;
-  let ry = (doch - imgw) / 2;
-  let count = 0;
-  let drawn = 0;
-  let up = 0;
-  let secs = 0;
-  let as = [];
-  let body = '';
-  for (let i = 0; i < ls.length; i++) {
-    count += ls[i].count;
-    drawn += ls[i].drawn;
-    up += ls[i].up;
-    secs += ls[i].drawn / vdraw + ls[i].up / vtravel + ls[i].count * tseg;
-    as.push(ls[i].angle);
-    body += '    <g id="layer-' + id + '-' + ls[i].angle + 'deg" data-angle="' + ls[i].angle +
-      '" data-angle-document="' + (ls[i].angle + 90) % 180 + '">\n';
-    for (let j = 0; j < ls[i].bars.length; j++) {
-      let bar = ls[i].bars[j];
-      body += '      <g id="' + j + '-bar-' + id + '-b' + bar.band + 's' + bar.step + '">\n';
-      for (let k = 0; k < bar.lines.length; k++) {
-        let l = bar.lines[k];
-        body += '        <line x1="' + (rx - l.y1).toFixed(6) + '" y1="' + (ry + l.x1).toFixed(6) +
-          '" x2="' + (rx - l.y2).toFixed(6) + '" y2="' + (ry + l.x2).toFixed(6) + '"/>\n';
-      }
-      body += '      </g>\n';
-    }
-    body += '    </g>\n';
-  }
-  let col = inks[ls[0].ink];
-  return '<?xml version="1.0" encoding="UTF-8"?>\n' +
-    '<svg xmlns="http://www.w3.org/2000/svg"\n' +
-    '     width="' + docw + 'mm"\n' +
-    '     height="' + doch + 'mm"\n' +
-    '     viewBox="0 0 ' + docw + ' ' + doch + '"\n' +
-    '     data-token="' + tokenData.hash + '"\n' +
-    '     data-token-id="' + tokenData.tokenId + '"\n' +
-    '     data-composition-mm="' + imgw + ' x ' + imgh + '"\n' +
-    '     data-image-turn="artwork rotated 90 degrees clockwise into the document"\n' +
-    '     data-view="turn the sheet a quarter turn counterclockwise to view"\n' +
-    '     data-ink="' + id + '"\n' +
-    '     data-pen="' + names[ls[0].ink] + '"\n' +
-    '     data-pen-hex="#' + hex(round(red(col)), 2) + hex(round(green(col)), 2) + hex(round(blue(col)), 2) + '"\n' +
-    '     data-angles="' + as.join(',') + '"\n' +
-    '     data-segments="' + count + '"\n' +
-    '     data-distance-mm="' + drawn.toFixed(1) + '"\n' +
-    '     data-pen-up-mm="' + up.toFixed(1) + '"\n' +
-    '     data-plot-seconds="' + round(secs) + '">\n' +
-    '  <g stroke="black" stroke-width="1" stroke-linecap="butt">\n' +
-    body +
-    '  </g>\n' +
-    '</svg>';
-}
-
-// One ink per key press: "1" is ink1 Red ... "8" is ink8 Rose. A key press is
-// a user gesture, so no browser throttles it; a burst of downloads gets
-// dropped, which is why there is no whole-set export.
+// One ink per key press: "1" is ink1 Red ... "8" is ink8 Rose, "9" ink9 Black.
+// A key press is a user gesture, so no browser throttles it; a burst of
+// downloads gets dropped, which is why there is no whole-set export.
 function keyPressed(e) {
   let typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
-  let pen = /^[1-8]$/.test(key) && !typing && !e.metaKey && !e.ctrlKey && !e.altKey;
+  let pen = /^[1-9]$/.test(key) && !typing && !e.metaKey && !e.ctrlKey && !e.altKey;
   if (pen) {
-    saveInk(int(key) - 1);
+    let k = int(key) - 1;
+    let file = buildSVG(k);
+    if (file !== '') {
+      let fname = 'Intervals' + (Number(tokenData.tokenId) % 1000000) + '-Ink' + (k + 1) + '.svg';
+      let blob = new Blob([file], { type: 'image/svg+xml' });
+      let url = URL.createObjectURL(blob);
+      let a = document.createElement('a');
+      a.href = url;
+      a.download = fname;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } else {
+      let used = [];
+      for (let i = 0; i < 9; i++) {
+        if (buildSVG(i) !== '') {
+          used.push(i + 1);
+        }
+      }
+      console.warn('No ink' + (k + 1) + ' in this token. Inks used: ' + used.join(', '));
+    }
   }
   return !pen;
-}
-
-function saveInk(k) {
-  let ls = layers();
-  let mine = [];
-  let used = [];
-  for (let i = 0; i < ls.length; i++) {
-    if (ls[i].ink === k) {
-      mine.push(ls[i]);
-    }
-    if (used.indexOf(ls[i].ink + 1) < 0) {
-      used.push(ls[i].ink + 1);
-    }
-  }
-  if (mine.length > 0) {
-    saveStrings([svg(mine)], 'intervals-' + Number(tokenData.tokenId) % 1000000 + '-ink' + (k + 1) +
-      '-' + names[k].toLowerCase().replace(' ', '-'), 'svg');
-  } else {
-    console.warn('No ink' + (k + 1) + ' ' + names[k] + ' in this token. Inks used: ' + used.join(', '));
-  }
 }
 
 class Random {

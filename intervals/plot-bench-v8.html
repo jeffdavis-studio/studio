@@ -4,18 +4,18 @@
   <meta charset="utf-8">
   <title>Intervals v8 — plot bench</title>
   <!--
-    Dev bench for Intervals_v8.js. It sets the artwork's own globals (pitch,
-    nib, angles, tmin, ...) and previews layers() as the plotter will draw it.
-    It computes no geometry of its own, and nothing here edits the artwork
-    file. Keys 1-8 export at the settings shown (with no field focused).
+    Dev bench for Intervals_v8.js: the artwork beside its pen files, drawn from
+    exactly what buildSVG() writes. The plot settings live inside buildSVG(), so
+    the bench changes only the token: hash, variant, layout and steps. Keys 1-9
+    export as on the artwork page (with no field focused).
   -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+  <script>
+    // The artwork pane shows the plot composition's aspect, 14 x 11.
+    window.aspect = [14, 11];
+  </script>
   <script src="dev-token.js"></script>
   <script src="Intervals_v8.js"></script>
-  <script>
-    // The artwork pane shows the composition aspect.
-    window.aspect = [imgw, imgh];
-  </script>
   <style>
     body { font-family: aktiv-grotesk, -apple-system, sans-serif; margin: 0; padding: 24px; color: #333; background: #fff; }
     h1 { font-size: 17px; font-weight: 600; margin: 0 0 20px; }
@@ -58,7 +58,7 @@
         </div>
       </div>
       <div class="pens" id="pen-buttons"></div>
-      <div class="note">Click a layer to hold it back. Lines are drawn at the nib width in each pen's color, on white.</div>
+      <div class="note">Click a layer to hold it back. Lines are drawn at the Micron 05's 0.45 mm in each pen's color, on white.</div>
     </div>
 
     <div class="controls">
@@ -67,10 +67,12 @@
         <div class="row"><label>Hash</label><input type="text" class="hash" id="hash" spellcheck="false"></div>
         <div class="row"><label>Variant</label>
           <select id="vpick">
-            <option value="">(token decides)</option>
-            <option value="saturated">saturated</option>
-            <option value="tinted">tinted</option>
-            <option value="complementary">complementary</option>
+            <option value="">(any)</option>
+          </select>
+        </div>
+        <div class="row"><label>Layout</label>
+          <select id="lpick">
+            <option value="">(any)</option>
           </select>
         </div>
         <div class="row"><label>Steps (s)</label><input type="number" id="sover" value="0" step="1" min="0" max="60"></div>
@@ -78,51 +80,19 @@
           <button onclick="reroll()">New token</button>
           <button onclick="location.href = pinnedURL()">Open pinned</button>
         </div>
-        <div class="note">Steps 0 uses the token's own. Another value re-samples the ramps without moving an anchor.</div>
+        <div class="note">Variant and layout find a random token that draws them (both are the token's own, so they cannot be forced onto a hash). New token keeps to them. Steps 0 uses the token's own; another value re-samples the ramps without moving an anchor.</div>
         <div class="readout" id="token-readout"></div>
       </fieldset>
 
-      <fieldset>
-        <legend>Marks</legend>
-        <div class="row"><label>Pitch mm</label><input type="number" id="pitch" step="0.01" min="0.05"></div>
-        <div class="row"><label>Nib mm</label><input type="number" id="nib" step="0.01" min="0.01"></div>
-        <div class="row"><label>Opacity</label><input type="number" id="target" step="0.01" min="0.1" max="0.99"></div>
-        <div class="row"><label>Paper gap mm</label><input type="number" id="gap" step="0.05" min="-2" max="5"></div>
-        <div class="row"><label>Outer inset</label><input type="number" id="inset" step="0.025" min="0"></div>
-      </fieldset>
-
-      <fieldset>
-        <legend>Angles &mdash; one per ramp slot, artwork-relative</legend>
-        <div class="row"><label>Slot 1</label><input type="number" id="angle0" step="0.5"></div>
-        <div class="row"><label>Slot 2</label><input type="number" id="angle1" step="0.5"></div>
-        <div class="row"><label>Slot 3</label><input type="number" id="angle2" step="0.5"></div>
-        <div class="row"><label>Slot 4</label><input type="number" id="angle3" step="0.5"></div>
-        <div class="note" id="angle-note"></div>
-      </fieldset>
-
-      <fieldset>
-        <legend>Tint</legend>
-        <div class="row"><label>tmin</label><input type="number" id="tmin" step="0.05" min="0" max="1"></div>
-        <div class="row"><label>tmax</label><input type="number" id="tmax" step="0.05" min="0" max="1"></div>
-        <div class="note">Tint is drawn per anchor in setup(), and the lightness-gap loops read it, so a new range can re-roll an anchor's inks, not just lighten them.</div>
-      </fieldset>
-
-      <fieldset>
-        <legend>Composition</legend>
-        <div class="row"><label>Width mm</label><input type="number" id="imgw" step="0.1" min="10"></div>
-        <div class="row"><label>Height mm</label><input type="number" id="imgh" step="0.1" min="10"></div>
-        <div class="note">The document stays 297 &times; 410 mm: the plotter's working area, not the paper.</div>
-      </fieldset>
-
-      <div class="row"><button onclick="resetBench()">Reset to locked</button></div>
+      <div class="row"><button onclick="resetBench()">Reset</button></div>
     </div>
   </div>
 
 <script>
-  let locked = { pitch: pitch, nib: nib, target: target, gap: gap, inset: inset, angles: angles.slice(), tmin: tmin, tmax: tmax, imgw: imgw, imgh: imgh };
   let hatchpx = 1300;
   let panecss = 460;
-  let built, art, tokens;
+  let previewnib = 0.45;
+  let files, built, art, tokens;
   let hidden = [];
 
   window.addEventListener('load', function () {
@@ -138,30 +108,35 @@
   function boot(cv) {
     art = cv;
     document.getElementById('render-container').appendChild(art);
-    art.style.width = (imgw >= imgh ? panecss : panecss * imgw / imgh) + 'px';
-    art.style.height = (imgw >= imgh ? panecss * imgh / imgw : panecss) + 'px';
-    // setup() re-runs on every token or tint change; keep the one canvas.
+    art.style.width = panecss + 'px';
+    art.style.height = (panecss * 11 / 14) + 'px';
+    // setup() re-runs on every token change; keep the one canvas.
     window.createCanvas = function () {
       return art;
     };
     tokens = s;
-    writeControls();
     document.getElementById('hash').value = tokenData.hash;
-    document.getElementById('vpick').value = window.variant || '';
-    let quick = ['pitch', 'nib', 'target', 'gap', 'inset', 'angle0', 'angle1', 'angle2', 'angle3', 'imgw', 'imgh', 'sover'];
-    for (let i = 0; i < quick.length; i++) {
-      document.getElementById(quick[i]).addEventListener('input', function () {
-        readControls();
-        rebuild();
-      });
+    for (let i = 0; i < variants.length; i++) {
+      let opt = document.createElement('option');
+      opt.value = variants[i].name;
+      opt.textContent = variants[i].name + ' (' + round(variants[i].p * 100, 1) + '%)';
+      document.getElementById('vpick').appendChild(opt);
     }
-    let full = ['tmin', 'tmax', 'vpick'];
-    for (let i = 0; i < full.length; i++) {
-      document.getElementById(full[i]).addEventListener('change', function () {
-        readControls();
-        reseed(tokenData.hash);
-      });
+    for (let i = 0; i < layouts.length; i++) {
+      let opt = document.createElement('option');
+      opt.value = layouts[i].name;
+      opt.textContent = layouts[i].name + ' (' + round(layouts[i].p * 100, 1) + '%)';
+      document.getElementById('lpick').appendChild(opt);
     }
+    if (vtype !== 'none') {
+      document.getElementById('vpick').value = devParam('variant', '');
+    }
+    if (ltype !== 'even') {
+      document.getElementById('lpick').value = devParam('layout', '');
+    }
+    document.getElementById('sover').addEventListener('input', rebuild);
+    document.getElementById('vpick').addEventListener('change', reroll);
+    document.getElementById('lpick').addEventListener('change', reroll);
     document.getElementById('hash').addEventListener('change', function () {
       reseed(document.getElementById('hash').value.trim());
     });
@@ -176,48 +151,11 @@
     return v;
   }
 
-  function readControls() {
-    pitch = num('pitch', locked.pitch);
-    nib = num('nib', locked.nib);
-    target = num('target', locked.target);
-    gap = num('gap', locked.gap);
-    inset = num('inset', locked.inset);
-    for (let i = 0; i < 4; i++) {
-      angles[i] = num('angle' + i, locked.angles[i]);
-    }
-    tmin = num('tmin', locked.tmin);
-    tmax = num('tmax', locked.tmax);
-    imgw = num('imgw', locked.imgw);
-    imgh = num('imgh', locked.imgh);
-    window.variant = document.getElementById('vpick').value;
-  }
-
-  function writeControls() {
-    let vals = { pitch: pitch, nib: nib, target: target, gap: gap, inset: inset, tmin: tmin, tmax: tmax, imgw: imgw, imgh: imgh };
-    let ids = Object.keys(vals);
-    for (let i = 0; i < ids.length; i++) {
-      document.getElementById(ids[i]).value = vals[ids[i]];
-    }
-    for (let i = 0; i < 4; i++) {
-      document.getElementById('angle' + i).value = angles[i];
-    }
-  }
-
+  // Back to the token's own steps and any variant and layout, on the same hash.
   function resetBench() {
-    pitch = locked.pitch;
-    nib = locked.nib;
-    target = locked.target;
-    gap = locked.gap;
-    inset = locked.inset;
-    angles = locked.angles.slice();
-    tmin = locked.tmin;
-    tmax = locked.tmax;
-    imgw = locked.imgw;
-    imgh = locked.imgh;
-    window.variant = '';
     document.getElementById('vpick').value = '';
+    document.getElementById('lpick').value = '';
     document.getElementById('sover').value = 0;
-    writeControls();
     reseed(tokenData.hash);
   }
 
@@ -233,18 +171,17 @@
     rebuild();
   }
 
+  // A new random token that draws the picked variant and layout.
   function reroll() {
-    reseed(devHash());
+    reseed(devFind(document.getElementById('vpick').value, document.getElementById('lpick').value));
   }
 
   function pinnedURL() {
-    let url = location.pathname + '?hash=' + tokenData.hash + '&id=' + tokenData.tokenId;
-    if (window.variant) {
-      url += '&variant=' + window.variant;
-    }
-    return url;
+    return location.pathname + '?hash=' + tokenData.hash + '&id=' + tokenData.tokenId;
   }
 
+  // Read the pen files back: each file's root figures, and its lines per angle
+  // layer, already in document millimeters.
   function rebuild() {
     let over = round(num('sover', 0));
     s = tokens;
@@ -253,19 +190,52 @@
     }
     clear();
     redraw();
-    built = layers();
+    files = [];
+    built = [];
+    for (let k = 0; k < 9; k++) {
+      let svg = buildSVG(k);
+      if (svg !== '') {
+        files.push({ ink: k, svg: svg });
+        let re = /<g id="layer-[^"]*" data-angle="([^"]+)"|<line x1="([^"]+)" y1="([^"]+)" x2="([^"]+)" y2="([^"]+)"\/>/g;
+        let m = re.exec(svg);
+        while (m) {
+          if (m[1]) {
+            built.push({ ink: k, angle: parseFloat(m[1]), lines: [] });
+          } else {
+            built[built.length - 1].lines.push([parseFloat(m[2]), parseFloat(m[3]), parseFloat(m[4]), parseFloat(m[5])]);
+          }
+          m = re.exec(svg);
+        }
+      }
+    }
     drawComposite();
     renderReadout();
     renderPenButtons();
   }
 
-  function penColor(k) {
-    return 'rgb(' + round(red(inks[k])) + ',' + round(green(inks[k])) + ',' + round(blue(inks[k])) + ')';
+  function attr(svg, name) {
+    return new RegExp('\\s' + name + '="([^"]*)"').exec(svg)[1];
   }
 
-  // The document as the plotter sees it: the turned image, every visible layer
-  // at the nib width with round caps, since the nib is a disc.
+  // Ink k's color; index 8 is the black pen, outside the hue palette.
+  function penColor(k) {
+    let pc = color(0, 0, 0);
+    if (k < 8) {
+      pc = inks[k];
+    }
+    return 'rgb(' + round(red(pc)) + ',' + round(green(pc)) + ',' + round(blue(pc)) + ')';
+  }
+
+  // The document as the plotter sees it: working-area edge, the turned image
+  // box, and every visible layer at the nib width with round caps (the nib is
+  // a disc).
   function drawComposite() {
+    let svg = files[0].svg;
+    let docw = parseFloat(attr(svg, 'width'));
+    let doch = parseFloat(attr(svg, 'height'));
+    let comp = attr(svg, 'data-composition-mm').split(' x ');
+    let imgw = parseFloat(comp[0]);
+    let imgh = parseFloat(comp[1]);
     let x0 = (docw - imgh) / 2;
     let y0 = (doch - imgw) / 2;
     let cv = document.getElementById('hatch');
@@ -285,17 +255,15 @@
     ctx.strokeStyle = '#c8c8c8';
     ctx.strokeRect(x0, y0, imgh, imgw);
     ctx.lineCap = 'round';
-    ctx.lineWidth = nib;
+    ctx.lineWidth = previewnib;
     for (let i = 0; i < built.length; i++) {
       if (hidden.indexOf(built[i].ink + '@' + built[i].angle) < 0) {
         ctx.strokeStyle = penColor(built[i].ink);
         ctx.beginPath();
-        for (let j = 0; j < built[i].bars.length; j++) {
-          let ls = built[i].bars[j].lines;
-          for (let f = 0; f < ls.length; f++) {
-            ctx.moveTo(x0 + imgh - ls[f].y1, y0 + ls[f].x1);
-            ctx.lineTo(x0 + imgh - ls[f].y2, y0 + ls[f].x2);
-          }
+        for (let j = 0; j < built[i].lines.length; j++) {
+          let l = built[i].lines[j];
+          ctx.moveTo(l[0], l[1]);
+          ctx.lineTo(l[2], l[3]);
         }
         ctx.stroke();
       }
@@ -312,37 +280,28 @@
     let drawn = 0;
     let up = 0;
     let secs = 0;
-    let used = [];
-    for (let i = 0; i < built.length; i++) {
-      count += built[i].count;
-      drawn += built[i].drawn;
-      up += built[i].up;
-      secs += built[i].drawn / vdraw + built[i].up / vtravel + built[i].count * tseg;
-      if (used.indexOf(built[i].ink) < 0) {
-        used.push(built[i].ink);
-      }
+    for (let i = 0; i < files.length; i++) {
+      count += parseFloat(attr(files[i].svg, 'data-segments'));
+      drawn += parseFloat(attr(files[i].svg, 'data-distance-mm'));
+      up += parseFloat(attr(files[i].svg, 'data-pen-up-mm'));
+      secs += parseFloat(attr(files[i].svg, 'data-plot-seconds'));
     }
     let axis = 'horizontal, gradient top to bottom';
-    if (r === 0) {
+    if (o === 0) {
       axis = 'vertical, gradient left to right';
     }
     let snote = '';
     if (s !== tokens) {
       snote = '  (token ' + tokens + ', overridden)';
     }
-    let docangles = [];
-    for (let i = 0; i < 4; i++) {
-      docangles.push((angles[i] + 90) % 180);
-    }
     document.getElementById('token-readout').textContent =
-      'variant   ' + vtype + '   tint ' + amin + '-' + amax + '\n' +
+      'variant   ' + vtype + '   layout ' + ltype + ' ' + bw.map(function (x) { return round(x * 100) + '%'; }).join(' ') + '\n' +
+      'color     amount ' + amin + '-' + amax + ', ' + round(pwhite * 100) + '% white\n' +
       'steps     ' + s + '   bars ' + 3 * s + snote + '\n' +
-      'bar axis  r ' + r + ', ' + axis + '\n' +
-      'files     ' + used.length + '   layers ' + built.length + '   segments ' + count.toLocaleString() + '\n' +
+      'bar axis  o ' + o + ', ' + axis + '\n' +
+      'files     ' + files.length + '   layers ' + built.length + '   segments ' + count.toLocaleString() + '\n' +
       'drawn     ' + (drawn / 1000).toFixed(2) + ' m   pen-up ' + (up / 1000).toFixed(2) + ' m\n' +
       'plot time ' + fmtTime(secs);
-    document.getElementById('angle-note').textContent = 'In the turned document these are ' +
-      docangles.join(' / ') + ' degrees.';
   }
 
   function renderPenButtons() {
@@ -350,9 +309,9 @@
     host.innerHTML = '';
     for (let i = 0; i < built.length; i++) {
       let b = document.createElement('button');
-      b.innerHTML = '<span class="sw" style="background:' + penColor(built[i].ink) + '"></span>' +
-        (built[i].ink + 1) + ' ' + names[built[i].ink] + ' ' + built[i].angle + '&deg;';
       let key = built[i].ink + '@' + built[i].angle;
+      b.innerHTML = '<span class="sw" style="background:' + penColor(built[i].ink) + '"></span>' +
+        (built[i].ink + 1) + ' ' + (built[i].ink < 8 ? pens[built[i].ink].name : 'Black') + ' ' + built[i].angle + '&deg;';
       b.style.opacity = hidden.indexOf(key) < 0 ? 1 : 0.35;
       b.onclick = function () {
         if (hidden.indexOf(key) < 0) {
