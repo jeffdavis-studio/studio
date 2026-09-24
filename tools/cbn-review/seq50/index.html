@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Color by number vol 1 — sequenced 50, round 4</title>
+<title>Color by number vol 1 — sequenced 50, round 5</title>
 <style>
   :root { --bg:#fff; --ink:#111; --line:#d8d8d8; --dim:#666; --sel:#0b62d6; }
   * { box-sizing:border-box; }
@@ -55,7 +55,7 @@
 <body>
 <div id="app">
   <div class="col l">
-    <div class="pad"><h1>Color by number vol 1 &middot; sequenced 50</h1><div style="font-size:11px;color:var(--dim)">Round 4, 2026-09-24: the coloring schemes are re-weighted. Half the book is analogous (hue 13, value 12); the other half covers every scheme (complementary 5, split 5, value ladder 4, warm 3, cool 3, mono 3, wildcard 2). Same 50 patterns in the same order; each page's scheme is shown in the list. The 50 in book order, then the backfill pool. Every page is the round 7 engine's coloring at its book position. Same editing as round 7: click a shape to move it and its copies, click a role then a chart color to recolor it. Save writes the file the book build reads. Your round 7 edits are kept separately and are not touched here.</div></div>
+    <div class="pad"><h1>Color by number vol 1 &middot; sequenced 50</h1><div style="font-size:11px;color:var(--dim)">Round 5, 2026-09-24: fixes on round 4. Knot ribbons are one color end to end (12, and a few ribbon ends on 2, 22, 32, 42); the rosettes on 3, 32 and 43 alternate strictly; 35 is a new page, PER-54. Pages marked r5 changed; every other page is exactly round 4. Round 4 notes: the coloring schemes are re-weighted. Half the book is analogous (hue 13, value 12); the other half covers every scheme (complementary 5, split 5, value ladder 4, warm 3, cool 3, mono 3, wildcard 2). Same 50 patterns in the same order; each page's scheme is shown in the list. The 50 in book order, then the backfill pool. Every page is the round 7 engine's coloring at its book position. Same editing as round 7: click a shape to move it and its copies, click a role then a chart color to recolor it. Save writes the file the book build reads. Your round 7 edits are kept separately and are not touched here.</div></div>
     <div class="scroll" id="pages"></div>
     <div class="pad" style="border-top:1px solid var(--line)">
       <h2>Knobs</h2>
@@ -105,6 +105,10 @@ const R3_NEW = ['RCT-05'];
 // scheme. Once, drop stored state that holds no real edits and still sits on its
 // round-3 scheme; real edits (and a scheme Jeff chose himself) are kept.
 const R3_FAM = {"PER-37": "analogous-hue", "KNT-03": "complementary", "STR-52": "split", "RAD-28": "value-ladder", "PER-35": "analogous-hue", "STR-30": "complementary", "RCT-05": "split", "PER-50": "analogous-run", "ROT-33": "analogous-hue", "STR-53": "complementary", "PER-33": "split", "KNT-33": "analogous-run", "STR-39": "complementary", "RAD-27": "split", "PER-16": "analogous-run", "STR-44": "analogous-hue", "RCT-31": "complementary", "PER-36": "split", "ROT-25": "value-ladder", "STR-47": "analogous-hue", "PER-40": "complementary", "KNT-14": "split", "STR-03": "warm-run", "RAD-14": "analogous-hue", "PER-39": "split", "STR-41": "analogous-run", "RCT-03": "analogous-hue", "PER-43": "complementary", "ROT-30": "split", "STR-35": "analogous-run", "PER-46": "analogous-hue", "KNT-27": "complementary", "STR-56": "split", "RAD-07": "value-ladder", "PER-47": "analogous-hue", "STR-50": "complementary", "RCT-27": "warm-run", "PER-41": "analogous-hue", "ROT-29": "complementary", "STR-55": "split", "PER-51": "mono", "KNT-31": "analogous-hue", "STR-29": "complementary", "RAD-26": "split", "PER-45": "analogous-run", "STR-46": "analogous-hue", "RCT-36": "complementary", "PER-34": "split", "ROT-18": "analogous-hue", "STR-33": "complementary"};
+// Round 5 (Jeff's notes on round 4): eight pages recolored or replaced. Same
+// one-time drop of blank stored state for them, so each opens on its round-5
+// coloring; real edits are kept.
+const R5_CHANGED = ['KNT-03', 'STR-52', 'KNT-33', 'KNT-14', 'KNT-27', 'PER-54', 'KNT-31', 'STR-29'];
 const SCHEME = { 'analogous-hue': 'analogous hue', 'analogous-run': 'analogous value', complementary: 'complementary', split: 'split', 'value-ladder': 'value ladder', 'warm-run': 'warm run', 'cool-run': 'cool run', mono: 'mono', wildcard: 'wildcard' };
 const isBlank = (s) => !Object.keys(s.manual || {}).length && !Object.keys(s.moves || {}).length && !Object.keys(s.merge || {}).length &&
   !Object.keys(s.splits || {}).length && !s.newRoles && !s.alt && !s.hub;
@@ -315,7 +319,7 @@ function save(quiet) {
   // role) before it reads `assign` (role -> chart number), so a regrouping Jeff
   // does here survives into the book build even when the role names are ones
   // the build has never seen.
-  const out = { built: '2026-09-24', set: 'seq50-round4', tool: 'cbn-review', pages: {} };
+  const out = { built: '2026-09-24', set: 'seq50-round5', tool: 'cbn-review', pages: {} };
   for (const pg of DATA.pages) {
     if (!pg.regions || !state[pg.id]) continue;   // only pages opened here; the rest are the engine defaults
     const st = stFor(pg), S = solve(pg, st);
@@ -360,9 +364,13 @@ fetch('index.json').then((r) => r.json()).then((d) => {
     for (const id of Object.keys(R3_FAM)) if (state[id] && isBlank(state[id]) && (!state[id].fam || state[id].fam === R3_FAM[id])) delete state[id];
     localStorage.setItem(LS, JSON.stringify(state)); localStorage.setItem(LS + ':r4', '1');
   }
+  if (!localStorage.getItem(LS + ':r5')) {
+    for (const id of R5_CHANGED) if (state[id] && isBlank(state[id])) delete state[id];
+    localStorage.setItem(LS, JSON.stringify(state)); localStorage.setItem(LS + ':r5', '1');
+  }
   const firstPool = d.pages.findIndex((p) => p.pool);
   $('#pages').innerHTML = d.pages.map((p, i) => (i === 0 ? '<div class="sec">The 50, in book order</div>' : '') + (i === firstPool ? '<div class="sec">Backfill pool</div>' : '') +
-    '<div class="pg" data-i="' + i + '"><span>' + (p.pool ? '' : p.pos + ' · ') + p.id + '</span><small>' + (p.pool ? '' : (SCHEME[p.family] || p.family) + ' · ') + p.k + ' colors</small></div>').join('');
+    '<div class="pg" data-i="' + i + '"><span>' + (p.pool ? '' : p.pos + ' · ') + p.id + '</span><small>' + (p.pool ? '' : (p.r5 ? 'r5 · ' : '') + (SCHEME[p.family] || p.family) + ' · ') + p.k + ' colors</small></div>').join('');
   $('#chart').innerHTML = d.chart.map((c) => {
     const lum = 0.299 * parseInt(c.hex.slice(1, 3), 16) + 0.587 * parseInt(c.hex.slice(3, 5), 16) + 0.114 * parseInt(c.hex.slice(5, 7), 16);
     return '<div data-n="' + c.n + '" title="' + c.n + ' ' + c.name + '" style="background:' + c.hex + ';color:' + (lum > 140 ? '#000' : '#fff') + '">' + c.n + '</div>';
