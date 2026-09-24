@@ -20,6 +20,10 @@ let variants = [
 let layouts = [
   { name: 'varied', p: 0.50, widths: [[1, 4], [1, 4], [1, 4]] }
 ];
+// Every pen, in ink order: ink1 is pens[0] ... ink9 is pens[8]. The first
+// ncol are the color inks gcol() mixes by hue; black, last, sits outside that
+// ring and only lays the anchors' shade.
+let ncol = 8;
 let pens = [
   { hsb: [6, 74, 87], name: 'Red' },
   { hsb: [18, 69, 97], name: 'Orange' },
@@ -28,7 +32,8 @@ let pens = [
   { hsb: [172, 90, 66], name: 'Green' },
   { hsb: [214, 90, 78], name: 'Blue' },
   { hsb: [235, 61, 57], name: 'Royal Blue' },
-  { hsb: [329, 57, 78], name: 'Rose' }
+  { hsb: [329, 57, 78], name: 'Rose' },
+  { hsb: [0, 0, 0], name: 'Black' }
 ];
 
 function setup() {
@@ -39,8 +44,9 @@ function setup() {
   noStroke();
   noFill();
   colorMode(HSB);
+  // inks and inkh are the color inks only, so black never enters the hue ring.
   inks = [];
-  for (let i = 0; i < pens.length; i++) {
+  for (let i = 0; i < ncol; i++) {
     inks[i] = color(pens[i].hsb[0], pens[i].hsb[1], pens[i].hsb[2]);
   }
   colorMode(RGB);
@@ -343,7 +349,7 @@ function betterLerp(col1, col2, t) {
 
 // Ink k's hatched bars, per slot, in composition millimeters: Mechanical
 // Drawings' buildCells(). Each bar is five slots over paper: two inks per
-// anchor, and black (ink9, index 8) lerped between the anchors' shades. Each
+// anchor, and black (ink9, pens[8]) lerped between the anchors' shades. Each
 // of ink's active slots becomes a hatch at that slot's angle. p is the plot
 // settings, from buildSVG().
 function buildBars(ink, p) {
@@ -525,12 +531,11 @@ function buildSVG(k) {
       body += '    </g>\n';
     }
   }
-  let pc = color(0, 0, 0);
-  let name = 'Black';
-  if (k < 8) {
-    pc = inks[k];
-    name = pens[k].name;
-  }
+  // The pen's name and stroke come from its row in pens, black included.
+  let pen = pens[k];
+  colorMode(HSB);
+  let pc = color(pen.hsb[0], pen.hsb[1], pen.hsb[2]);
+  colorMode(RGB);
   let hexstr = '#' + hex(round(red(pc)), 2) + hex(round(green(pc)), 2) + hex(round(blue(pc)), 2);
   let svg = '';
   if (as.length > 0) {
@@ -545,7 +550,7 @@ function buildSVG(k) {
       '     data-image-turn="artwork rotated 90 degrees clockwise into the document"\n' +
       '     data-view="turn the sheet a quarter turn counterclockwise to view"\n' +
       '     data-ink="' + id + '"\n' +
-      '     data-pen="' + name + '"\n' +
+      '     data-pen="' + pen.name + '"\n' +
       '     data-angles="' + as.join(',') + '"\n' +
       '     data-segments="' + count + '"\n' +
       '     data-distance-mm="' + drawn.toFixed(1) + '"\n' +
@@ -622,7 +627,7 @@ function keyPressed(e) {
       URL.revokeObjectURL(url);
     } else {
       let used = [];
-      for (let i = 0; i < 9; i++) {
+      for (let i = 0; i < pens.length; i++) {
         if (buildSVG(i) !== '') {
           used.push(i + 1);
         }

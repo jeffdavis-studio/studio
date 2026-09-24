@@ -26,7 +26,8 @@ const USE = HASHES.length ? HASHES : [
   '0xdfc8d1a089f2a9b6dde48cf7b4f3e91e66b1e366fa18ce308a93398bbb57afbc'
 ];
 
-const NAMES = ['Red', 'Orange', 'Yellow', 'Fresh Green', 'Green', 'Blue', 'Royal Blue', 'Rose'];
+// pens holds all nine pens; inks, the hue ring gcol() mixes, only the eight colors.
+const NAMES = ['Red', 'Orange', 'Yellow', 'Fresh Green', 'Green', 'Blue', 'Royal Blue', 'Rose', 'Black'];
 const HEXES = ['#de4a3a', '#f7804d', '#fad15f', '#5ccc78', '#11a894', '#1461c7', '#394091', '#c75690'];
 // ink9, the black pen, strokes pure black.
 const STROKES = HEXES.concat(['#000000']);
@@ -145,8 +146,8 @@ try {
     'layouts table: each row has a share and three whole-number width ranges [lo, hi]');
   check(P.layouts.reduce((n, v) => n + v.p, 0) + P.variants.reduce((n, v) => n + v.p, 0) > 0, 'the tables are not empty');
   check(!/vprob/.test(SRC), 'no vprob: each variant carries its own probability');
-  check(P.names.join(',') === NAMES.join(','), 'ink names, Red first (ink1 ... ink8)');
-  check(P.hexes.join(',') === HEXES.join(','), 'the palette renders to the matched hexes (got ' + P.hexes.join(',') + ')');
+  check(P.names.join(',') === NAMES.join(','), 'pen names, Red first (ink1 ... ink8), Black last (ink9)');
+  check(P.hexes.join(',') === HEXES.join(','), 'the eight color inks, and no black, render to the matched hexes (got ' + P.hexes.join(',') + ')');
   console.log('   ' + P.hexes.join(' '));
 
   console.log('\n2. PEN FILES');

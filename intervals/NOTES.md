@@ -145,9 +145,12 @@ every record before 09-22 use the old ids.
   amount, 0 to 0.40, and a 50/50 coin sends it to white (tint, the paper
   share) or black (shade), never both. Tinted forces 0.40 white, shaded 0.40
   black, saturated neither.
-- Black pen (09-23): ink9, key 9, stroke #000000. In the plot each bar is five
-  slots: the four ink slots at (1 - tint - shade) of the anchor, and black at
-  the lerp of the two anchors' shades, all in one density solve. Black hatches
+- Black pen (09-23): ink9, key 9, stroke #000000. Since 09-24 it is
+  `pens[8]` (`hsb [0, 0, 0]`), so the file name and stroke come from the table
+  for all nine; `inks`/`inkh`, the hue ring `gcol()` mixes, stay the first
+  `ncol = 8`. In the plot each bar is five slots: the four ink slots at
+  (1 - tint - shade) of the anchor, and black at the lerp of the two anchors'
+  shades, all in one density solve. Black hatches
   perpendicular to the bars for now (0 across vertical bars, 90 across
   horizontal); the angle is still to be decided.
 - 18% of tokens get a variant, each with its own probability in the variants

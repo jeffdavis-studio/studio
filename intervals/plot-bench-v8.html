@@ -217,12 +217,11 @@
     return new RegExp('\\s' + name + '="([^"]*)"').exec(svg)[1];
   }
 
-  // Ink k's color; index 8 is the black pen, outside the hue palette.
+  // Ink k's color, from its row in pens, black included.
   function penColor(k) {
-    let pc = color(0, 0, 0);
-    if (k < 8) {
-      pc = inks[k];
-    }
+    colorMode(HSB);
+    let pc = color(pens[k].hsb[0], pens[k].hsb[1], pens[k].hsb[2]);
+    colorMode(RGB);
     return 'rgb(' + round(red(pc)) + ',' + round(green(pc)) + ',' + round(blue(pc)) + ')';
   }
 
@@ -311,7 +310,7 @@
       let b = document.createElement('button');
       let key = built[i].ink + '@' + built[i].angle;
       b.innerHTML = '<span class="sw" style="background:' + penColor(built[i].ink) + '"></span>' +
-        (built[i].ink + 1) + ' ' + (built[i].ink < 8 ? pens[built[i].ink].name : 'Black') + ' ' + built[i].angle + '&deg;';
+        (built[i].ink + 1) + ' ' + pens[built[i].ink].name + ' ' + built[i].angle + '&deg;';
       b.style.opacity = hidden.indexOf(key) < 0 ? 1 : 0.35;
       b.onclick = function () {
         if (hidden.indexOf(key) < 0) {
