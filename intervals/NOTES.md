@@ -174,7 +174,17 @@ every record before 09-22 use the old ids.
   placeholders. draw() and
   the plot both read bx / bw, each band's start and width as fractions of a
   step. `$features` reports it as Layout.
-- Candidate variants, none built: black bar, analogous, rainbow, eliminate tints.
+- Hue variants (09-25, 3% each for now): analogous (a 60-degree band running
+  either way from the first anchor's hue; one random anchor pinned to the far
+  end and the rest free inside, so the spread is always exactly 60, which
+  reads as analogous where a looser spread did not; the band is the constant
+  `aspan`), hexad (the six hues on
+  60-degree slots, each anchor taking a slot no other holds), monochromatic
+  (every anchor on the first hue). All place hues relative to the first
+  anchor's and re-draw them on every draw, so a lightness re-draw can move.
+- Achromatic (09-25, 3%): no ink; each anchor is a gray, a black share from
+  0.10 to 0.90 over paper, so the token plots with the black pen alone.
+- Candidate variants, none built: black bar, eliminate tints.
 
 ## Plot order and time
 

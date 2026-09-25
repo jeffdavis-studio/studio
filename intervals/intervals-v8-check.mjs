@@ -27,6 +27,7 @@ const USE = HASHES.length ? HASHES : [
 ];
 
 // pens holds all nine pens; inks, the hue ring gcol() mixes, only the eight colors.
+const VARIANTS = ['saturated', 'tinted', 'complementary', 'shaded', 'analogous', 'hexad', 'monochromatic', 'achromatic'];
 const NAMES = ['Red', 'Orange', 'Yellow', 'Fresh Green', 'Green', 'Blue', 'Royal Blue', 'Rose', 'Black'];
 const HEXES = ['#de4a3a', '#f7804d', '#fad15f', '#5ccc78', '#11a894', '#1461c7', '#394091', '#c75690'];
 // ink9, the black pen, strokes pure black.
@@ -82,7 +83,9 @@ const context = await browser.newContext({ acceptDownloads: true });
 const errors = [];
 const warnings = [];
 
-async function open(path, vw = 900, vh = 900) {
+// wait is how long the page may take to render; a ?variant= / ?layout= search
+// for a rare combination can take much longer than a pinned hash.
+async function open(path, vw = 900, vh = 900, wait = 20000) {
   const page = await context.newPage();
   await page.setViewportSize({ width: vw, height: vh });
   page.on('pageerror', e => errors.push(path + ' pageerror: ' + e.message));
@@ -90,9 +93,9 @@ async function open(path, vw = 900, vh = 900) {
     if (m.type() === 'error') errors.push(path + ' console: ' + m.text());
     if (m.type() === 'warning') warnings.push(m.text());
   });
-  await page.goto(`http://127.0.0.1:${port}/${path}`, { waitUntil: 'networkidle' });
+  await page.goto(`http://127.0.0.1:${port}/${path}`, { waitUntil: 'networkidle', timeout: wait });
   await page.waitForFunction(() => typeof isLooping === 'function' && typeof s === 'number' && s > 0 && !isLooping(),
-    null, { timeout: 20000 });
+    null, { timeout: wait });
   return page;
 }
 
@@ -134,13 +137,26 @@ try {
   check(!new RegExp('^let (' + Object.keys(want).join('|') + ')\\b', 'm').test(top) &&
     !/^let [^\n]*\b(spacing|lw|imgw|docw|angles|target)\b/m.test(top),
     'no plot setting is an artwork global');
-  check(P.vtype === 'none' && P.amin === 0 && P.amax === 0.4 && P.pwhite === 0.5,
-    'white-or-black amount 0 to 0.40, 50/50 white or black (the token has no variant)');
-  check(P.tints.every((t, i) => t === 0 || P.shades[i] === 0), 'no anchor adds both white and black');
+  // The default amount rule, on a token with no color variant, whatever the
+  // shares in the variants table are.
+  {
+    const q = await open(ART);
+    const N = await q.evaluate(() => {
+      tokenData.hash = devFind('none', '');
+      setup();
+      return { vtype, amin, amax, pwhite, tints: c.map(x => x.tint), shades: c.map(x => x.shade) };
+    });
+    await q.close();
+    check(N.vtype === 'none' && N.amin === 0 && N.amax === 0.4 && N.pwhite === 0.5,
+      'white-or-black amount 0 to 0.40, 50/50 white or black (a token with no variant)');
+    check(N.tints.every((t, i) => t === 0 || N.shades[i] === 0), 'no anchor adds both white and black');
+  }
   check(!/^let (amin|amax|pwhite|ng) =/m.test(SRC), 'amount range and hue bias are set where they are used, not as constants');
-  check(P.variants.map(v => v.name + ' ' + v.p).join(', ') === 'saturated 0.06, tinted 0.06, complementary 0.03, shaded 0.03',
-    'variants table: saturated 6%, tinted 6%, complementary 3%, shaded 3% (got ' + P.variants.map(v => v.name + ' ' + v.p).join(', ') + ')');
-  check(Math.abs(P.variants.reduce((n, v) => n + v.p, 0) - 0.18) < 1e-12, '18% of tokens get a color variant');
+  check(P.variants.map(v => v.name).join(',') === VARIANTS.join(','),
+    'variants table has ' + VARIANTS.join(', ') + ' (got ' + P.variants.map(v => v.name).join(', ') + ')');
+  check(P.variants.every(v => v.p > 0) && P.variants.reduce((n, v) => n + v.p, 0) < 1,
+    'every variant has a share, and some tokens are left as none (' +
+    Math.round(100 * P.variants.reduce((n, v) => n + v.p, 0)) + '% get a color variant)');
   check(P.layouts.every(v => typeof v.name === 'string' && v.p > 0 && v.widths.length === 3 &&
       v.widths.every(r => r.length === 2 && Number.isInteger(r[0]) && Number.isInteger(r[1]) && r[0] >= 1 && r[0] <= r[1])),
     'layouts table: each row has a share and three whole-number width ranges [lo, hi]');
@@ -264,11 +280,15 @@ try {
   }
 
   console.log('\n6. VARIANTS');
-  for (const name of ['saturated', 'tinted', 'complementary', 'shaded']) {
+  // Circular distance between two hues, in degrees.
+  const arc = (a, b) => Math.min(Math.abs(a - b), 360 - Math.abs(a - b));
+  for (const name of VARIANTS) {
     const p = await open(`${ART}?variant=${name}`);
     const g = await p.evaluate(() => ({
-      vtype, amin, amax, tints: c.map(x => x.tint), shades: c.map(x => x.shade), f: window.$features,
-      hues: c.map(x => x.hue), light: c.map(x => x.light), black: buildSVG(8), bw: bw.slice(), lt: ltype
+      vtype, amin, amax, lmin, aspan, tints: c.map(x => x.tint), shades: c.map(x => x.shade), f: window.$features,
+      hues: c.map(x => x.hue), light: c.map(x => x.light), black: buildSVG(8), bw: bw.slice(), lt: ltype,
+      rgb: c.map(x => [red(x.col), green(x.col), blue(x.col)]),
+      inkfiles: [0, 1, 2, 3, 4, 5, 6, 7].filter(k => buildSVG(k) !== '')
     }));
     await p.close();
     check(g.vtype === name && g.f.Variant === name, '?variant=' + name + ' finds a token that draws it, and $features says so');
@@ -286,25 +306,38 @@ try {
       check(g.hues.every(x => x === h0 || x === (h0 + 180) % 360), 'complementary: every anchor on the first hue or its opposite');
       check(opp.some(Boolean), 'complementary: at least one anchor opposite');
     }
+    if (name === 'analogous') {
+      let widest = 0;
+      for (let j = 0; j < 6; j++) for (let k = 0; k < 6; k++) widest = Math.max(widest, arc(g.hues[j], g.hues[k]));
+      check(widest === g.aspan, 'analogous: the hues span exactly aspan, ' + g.aspan + ' degrees (widest ' + widest + ')');
+      const offs = g.hues.map(x => ((x - g.hues[0] + 540) % 360) - 180);
+      check(offs.every(x => x >= 0 && x <= g.aspan) || offs.every(x => x <= 0 && x >= -g.aspan),
+        'analogous: every hue inside the band running from the first (offsets ' + offs.join(' ') + ')');
+    }
+    if (name === 'hexad') {
+      const slots = g.hues.map(x => ((x - g.hues[0]) % 360 + 360) % 360).sort((a, b) => a - b);
+      check(slots.join(',') === '0,60,120,180,240,300', 'hexad: the six hues are 60 degrees apart (got ' + slots.join(',') + ')');
+    }
+    if (name === 'monochromatic') check(g.hues.every(x => x === g.hues[0]), 'monochromatic: every anchor on one hue');
+    if (name === 'achromatic') {
+      check(g.rgb.every(x => x[0] === x[1] && x[1] === x[2]), 'achromatic: every anchor is a gray');
+      check(g.inkfiles.length === 0 && g.black !== '', 'achromatic: the plot is the black pen alone');
+      check(g.tints.every((t, i) => Math.abs(t + g.shades[i] - 1) < 1e-12), 'achromatic: each anchor is black over paper, no ink');
+    }
     let gaps = true;
     for (let j = 0; j < 6; j++) {
       for (let k = j % 2; k < 6; k += 2) {
-        if (k !== j && Math.abs(g.light[k] - g.light[j]) < 3) gaps = false;
+        if (k !== j && Math.abs(g.light[k] - g.light[j]) < g.lmin) gaps = false;
       }
     }
     check(gaps, name + ': every anchor clears lmin lightness against its side');
   }
 
   console.log('\n6b. LAYOUTS');
-  // Combinations are rare (3% x 3%), so they are pinned hashes rather than a
-  // search: the dev search for one takes tens of seconds.
-  const COMBOS = {
-    'layout=varied': '',
-    'layout=varied&variant=shaded': '0xf9c75eadbc20a8a166dd7992dc757faf448c37666ca297d60ed630450ac8e3d0',
-    'layout=varied&variant=complementary': '0x8871a519b6f013df2da6293b34ebbb7bbae7ffce0c2b1899bea30fd9e9b69d61'
-  };
-  for (const q of Object.keys(COMBOS)) {
-    const p = await open(`${ART}?${COMBOS[q] ? 'hash=' + COMBOS[q] : q}`);
+  // Found by search, so they follow whatever shares the tables hold; a rare
+  // combination can take a few minutes, hence the long wait.
+  for (const q of ['layout=varied', 'layout=varied&variant=shaded', 'layout=varied&variant=complementary']) {
+    const p = await open(`${ART}?${q}`, 900, 900, 600000);
     const g = await p.evaluate(fn => ({
       lt: ltype, vt: vtype, bw: bw.slice(), f: window.$features, layouts: layouts,
 

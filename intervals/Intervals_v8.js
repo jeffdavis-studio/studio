@@ -1,17 +1,20 @@
-let R, w, h, o, s, vtype, ltype, amin, amax, pwhite, bx, bw, c, inks, inkh;
+let R, w, h, o, s, vtype, ltype, amin, amax, pwhite, adir, aend, bx, bw, c, inks, inkh;
 let lmin = 5;
-// Steps per ramp, and each rung's weight; both bar axes draw from the whole
-// ladder.
+let aspan = 75;
 // let ladder = [3, 4, 5, 6, 8, 10, 12, 16, 20, 24, 30, 40];
 // let rungs = [1, 2, 2, 3, 3, 3, 3, 3, 3, 2, 2, 1];
 let ladder = [4, 5, 6, 8, 10, 12, 16, 20, 24];
 let rungs = [1, 1, 2, 2, 2, 2, 2, 2, 1];
-// Each color variant's share of tokens; the rest, 82% here, are 'none'.
+// Each color variant's share of tokens; the rest, 25% here, are 'none'.
 let variants = [
-  { name: 'saturated', p: 0.06 },
-  { name: 'tinted', p: 0.06 },
-  { name: 'complementary', p: 0.03 },
-  { name: 'shaded', p: 0.03 }
+  { name: 'saturated', p: 0.10 },
+  { name: 'tinted', p: 0.10 },
+  { name: 'complementary', p: 0.10 },
+  { name: 'shaded', p: 0.10 },
+  { name: 'analogous', p: 0.10 },
+  { name: 'hexad', p: 0.10 },
+  { name: 'monochromatic', p: 0.10 },
+  { name: 'achromatic', p: 0.05 }
 ];
 // Each layout's share of tokens, drawn independently of the color variant,
 // and each band's width within a step as a range [lo, hi]; setup() draws a
@@ -103,6 +106,20 @@ function setup() {
     amin = 0.4;
     pwhite = 0;
   }
+  // Analogous spans an aspan-degree band starting at the first anchor's hue:
+  // adir is the direction it runs (+1 or -1), and anchor aend holds its far
+  // end, so the spread is always exactly aspan.
+  if (vtype === 'analogous') {
+    adir = R.random_int(0, 1) * 2 - 1;
+    aend = R.random_int(1, 5);
+  }
+  // Achromatic has no ink: each anchor is a gray, a black share from amin to
+  // amax over paper (see gcol()).
+  if (vtype === 'achromatic') {
+    amin = 0.1;
+    amax = 0.9;
+    pwhite = 0;
+  }
   // The layout's widths, one whole number per band from its range, repeat
   // every step. bx and bw are each band's start and width as fractions of a
   // step.
@@ -151,6 +168,15 @@ function setup() {
       }
     }
   }
+  // Analogous: each anchor's hue offset from the first (0 to aspan, or 0 to
+  // -aspan), and the delta, the widest spread between any two: always aspan.
+  if (vtype === 'analogous') {
+    let offs = [];
+    for (let j = 0; j < 6; j++) {
+      offs[j] = ((c[j].hue - c[0].hue + 540) % 360) - 180;
+    }
+    print('hue delta: ' + (max(offs) - min(offs)) + ' (offsets ' + offs.join(' ') + ')');
+  }
   // Lightness differences between the ramps, starts then ends: 1-2, 2-3, 1-3.
   print('L starts: ' + nf(abs(c[0].light - c[2].light), 1, 1) + ' ' + nf(abs(c[2].light - c[4].light), 1, 1) +
     ' ' + nf(abs(c[0].light - c[4].light), 1, 1));
@@ -187,9 +213,16 @@ function draw() {
 // so the plot can lay each ink at its own share.
 function gcol(j, pinned) {
   // Hue: half the time from 180-420 (blues through reds to yellows), otherwise
-  // any. Complementary anchors after the first take its hue or the opposite,
-  // by coin flip on every draw, so an anchor stuck on one side can escape to
-  // the other; pinned keeps it opposite.
+  // any. After the first anchor, the hue variants place each hue relative to
+  // the first anchor's, fresh on every draw, so an anchor that fails its
+  // lightness gap can move:
+  //   complementary  the first hue or its opposite, by coin flip; pinned keeps
+  //                  it opposite
+  //   analogous      inside the aspan-degree band from the first; anchor aend
+  //                  sits on its far end
+  //   hexad          a 60-degree slot no other anchor holds, so the six hues
+  //                  sit 60 degrees apart
+  //   monochromatic  the first hue exactly
   let hs;
   if (vtype === 'complementary' && j > 0) {
     let off = R.random_int(0, 1) * 180;
@@ -197,6 +230,26 @@ function gcol(j, pinned) {
       off = 180;
     }
     hs = (c[0].hue + off) % 360;
+  } else if (vtype === 'analogous' && j === aend) {
+    hs = (c[0].hue + aspan * adir + 360) % 360;
+  } else if (vtype === 'analogous' && j > 0) {
+    hs = (c[0].hue + R.random_int(0, aspan) * adir + 360) % 360;
+  } else if (vtype === 'hexad' && j > 0) {
+    let open = [];
+    for (let f = 1; f < 6; f++) {
+      let taken = false;
+      for (let k = 1; k < c.length; k++) {
+        if (k !== j && c[k].hue === (c[0].hue + f * 60) % 360) {
+          taken = true;
+        }
+      }
+      if (!taken) {
+        open.push(f * 60);
+      }
+    }
+    hs = (c[0].hue + R.random_choice(open)) % 360;
+  } else if (vtype === 'monochromatic' && j > 0) {
+    hs = c[0].hue;
   } else if (R.random_bool(0.5)) {
     hs = R.random_int(180, 420) % 360;
   } else {
@@ -234,6 +287,12 @@ function gcol(j, pinned) {
     edge = color(255, 255, 255);
   }
   let col = betterLerp(betterLerp(inks[i], inks[k], mix), edge, amount);
+  // Achromatic: no ink, just a gray of black (shade) over paper (tint).
+  if (vtype === 'achromatic') {
+    tint = 1 - amount;
+    shade = amount;
+    col = betterLerp(color(255, 255, 255), color(0, 0, 0), amount);
+  }
   return { col: col, light: rgbToLab(col)[0], hue: hs, ink: i, ink2: k, mix: mix, tint: tint, shade: shade };
 }
 
@@ -605,12 +664,18 @@ function order(bars) {
   return totals;
 }
 
-// One ink per key press: "1" is ink1 Red ... "8" is ink8 Rose, "9" ink9 Black.
-// A key press is a user gesture, so no browser throttles it; a burst of
-// downloads gets dropped, which is why there is no whole-set export.
+// "s" saves the image. One ink per key press: "1" is ink1 Red ... "8" is ink8
+// Rose, "9" ink9 Black. A key press is a user gesture, so no browser
+// throttles it; a burst of downloads gets dropped, which is why there is no
+// whole-set export.
 function keyPressed(e) {
   let typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
-  let pen = /^[1-9]$/.test(key) && !typing && !e.metaKey && !e.ctrlKey && !e.altKey;
+  let free = !typing && !e.metaKey && !e.ctrlKey && !e.altKey;
+  let shot = key === 's' && free;
+  let pen = /^[1-9]$/.test(key) && free;
+  if (shot) {
+    saveCanvas('Intervals' + (Number(tokenData.tokenId) % 1000000), 'png');
+  }
   if (pen) {
     let k = int(key) - 1;
     let file = buildSVG(k);
@@ -635,7 +700,7 @@ function keyPressed(e) {
       console.warn('No ink' + (k + 1) + ' in this token. Inks used: ' + used.join(', '));
     }
   }
-  return !pen;
+  return !(shot || pen);
 }
 
 class Random {
