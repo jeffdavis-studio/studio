@@ -96,8 +96,14 @@ function devFind(v, l) {
 function devTraits(hash) {
   let rng = new Random(hash);
   // Bar axis, then steps: one draw each.
-  rng.random_dec();
-  rng.random_dec();
+  let ax = rng.random_int(0, 1);
+  let pool = [];
+  for (let i = 0; i < ladder.length; i++) {
+    for (let k = 0; k < rungs[i]; k++) {
+      pool.push(ladder[i]);
+    }
+  }
+  let st = rng.random_choice(pool);
   let v = rng.random_dec();
   let vt = 'none';
   for (let i = 0; i < variants.length; i++) {
@@ -113,6 +119,10 @@ function devTraits(hash) {
       lt = layouts[i].name;
     }
     l -= layouts[i].p;
+  }
+  // Steps too narrow for any varied ratio over the band floor are even.
+  if (Math.floor((ax === 0 ? 355.6 : 279.4) / st / 3.88) < 4) {
+    lt = 'even';
   }
   return [vt, lt];
 }
