@@ -1,3 +1,7 @@
+// VIRTUAL-PLOTTER FORK of intervals/Intervals_v8.js. Tracks the program at
+// jeffdavis-studio/studio 2cbcf11 (band floor 84cebc4, plot constants 097ff88).
+// With no opts it draws what the program draws, byte for byte; everything
+// else here is opts plumbing and the tool's methods. Re-sync: see README.md.
 let R, w, h, o, s, vtype, ltype, amin, amax, pwhite, adir, aend, bx, bw, c, inks, inkh;
 let lmin = 5;
 let aspan = 75;
@@ -85,6 +89,14 @@ function setup() {
     }
     l -= layouts[i].p;
   }
+  // wmax is the largest width sum a step can carry over the 3.88 mm band floor
+  // from plotter day 2026-09-25, the largest floor every even layout clears
+  // (279.4 / 24 / 3). Under 4 no varied ratio fits, so the token is even.
+  let wmax = floor((o === 0 ? 355.6 : 279.4) / s / 3.88);
+  if (wmax < 4) {
+    ltype = 'even';
+    ranges = [[1, 1], [1, 1], [1, 1]];
+  }
   print('variant: ' + vtype);
   print('layout: ' + ltype);
   print('bars: ' + 3 * s);
@@ -127,8 +139,10 @@ function setup() {
   for (let j = 0; j < 3; j++) {
     widths[j] = R.random_int(ranges[j][0], ranges[j][1]);
   }
-  // Varied: at least one band is 1, and the bands are not all the same.
-  while (ltype === 'varied' && (min(widths) > 1 || (widths[0] === widths[1] && widths[1] === widths[2]))) {
+  // Varied: at least one band is 1, the bands are not all the same, and they
+  // sum to at most wmax.
+  while (ltype === 'varied' && (min(widths) > 1 || (widths[0] === widths[1] && widths[1] === widths[2]) ||
+    widths[0] + widths[1] + widths[2] > wmax)) {
     for (let j = 0; j < 3; j++) {
       widths[j] = R.random_int(ranges[j][0], ranges[j][1]);
     }
@@ -457,6 +471,11 @@ function mixIndex(weights, owner, m, F, p) {
 
 function buildBars(ink, p) {
   let slots = [[], [], [], [], []];
+  // Slot fill, by artwork (2026-09-29): which ink takes each spare angle is
+  // decided once for the token (fillPlan(), below) before any bar is built.
+  if (p.slotFill && !p.blackSlots && p.fillScope !== 'bar' && !p.fillPlan) {
+    p.fillPlan = fillPlan(p);
+  }
   for (let i = 0; i < s; i++) {
     for (let j = 0; j < 3; j++) {
       let t0 = (i + bx[j]) / s;
@@ -565,11 +584,24 @@ function buildBars(ink, p) {
       if (p.mixLog) {
         p.mixLog[3 * i + j + 1] = { X: X, target: tgt, W: sum };
       }
+      // Slot fill (2026-09-29): empty color slots handed to the bar's inks
+      // after the solve (slotFill(), below). fill is null when the bar is
+      // untouched, and then everything below is the current method's own path.
+      let fill = null;
+      if (p.slotFill && !p.blackSlots) {
+        fill = slotFill(weights, owner, m, box, p, 3 * i + j + 1);
+        if (p.fillLog && fill) {
+          p.fillLog[3 * i + j + 1] = fill;
+        }
+        if (fill && !fill.changed) {
+          fill = null;
+        }
+      }
       // Mechanical Drawings' line grid at the slot's angle, clipped. The grid
       // is solved on the whole box and only its drawn extent is clipped, so the
       // clip never changes ink per unit area.
       for (let f = 0; f < 5; f++) {
-        if (weights[f] > p.eps && (owner[f] === ink || (p.blackSlots && ink === 8 && blackFrac[f] > 0))) {
+        if (fill ? fill.owner[f] === ink && fill.n[f] > 0 : weights[f] > p.eps && (owner[f] === ink || (p.blackSlots && ink === 8 && blackFrac[f] > 0))) {
           let theta = p.angles[f] * PI / 180;
           let sa = sin(theta);
           let ca = cos(theta);
@@ -582,7 +614,7 @@ function buildBars(ink, p) {
           // Black-curve fork (2026-09-28): black's footprint is about 1.85 x its
           // weight, so its line weight becomes a(1 - exp(-1.85 w / a)) / 1.85, a
           // footprint of a(1 - exp(-1.85 w / a)); m and the colors are untouched.
-          let nlines = round((f === 4 ? blackApplied(weights[f], p) : weights[f]) * m * pspan / p.spacing);
+          let nlines = fill ? fill.n[f] : round((f === 4 ? blackApplied(weights[f], p) : weights[f]) * m * pspan / p.spacing);
           let step = pspan / nlines;
           let xmin = clip.x;
           let xmax = clip.x + clip.w;
@@ -639,6 +671,179 @@ function buildBars(ink, p) {
   return slots;
 }
 
+// SLOT FILL (Jeff, 2026-09-29; the virtual plotter's method 7, not in the
+// pushed artwork). A color slot (0-3) is empty when the current method lays no
+// line on it. Empty slots are handed out one at a time, each to one ink: the
+// densest ink (most lines) first, then the next, and round again from the
+// densest once every ink has one (ties: the lower pen). The ink takes the
+// empty slot most nearly perpendicular to the slots it already holds (ties:
+// the lower slot). Scope 'bar' decides this per bar from the bar's own lines.
+// Slot f is the same angle in every bar (angles[f]), but the ink on it is the
+// interval's own (slots 0-1 its start anchor's two inks, 2-3 its end
+// anchor's), so the token-wide scopes work by angle. Scope 'unused' counts an
+// angle empty only when no bar of the token hatches at it, ranks inks by
+// their lines over the whole token, and fixes the hand-out for every bar.
+// Scope 'artwork' (the default) does that and also gives each ink every angle
+// that only it ever hatches at: in a bar that leaves such an angle empty, its
+// owner takes it (a monochromatic token's end bars then hatch like its middle
+// ones). An angle two inks share somewhere belongs to no one, so a token whose
+// intervals mix their pens is unchanged.
+// In a bar, an ink that owns extra slots spreads its weight evenly over all its
+// slots: every one of its grids gets the same pitch, so it lays the same ink
+// per area as before. Whole lines are apportioned by largest remainder so its
+// total is the rounded sum. (Counts cannot be split evenly as they are: the
+// four angles cross a bar at different spans, a 67.5 grid about 0.41 of a 22.5
+// grid on a vertical bar, so equal counts would change the tone.) The solve,
+// m and X, is untouched. Black keeps its own grid, except that with
+// p.fillAchro a bar (scope bar) or token (scope artwork) with no color line
+// hands black all four slot angles in place of its own.
+
+// One bar: returns { owner, n, before: { owner, n }, changed } per slot (5).
+function slotFill(weights, owner, m, box, p, bn) {
+  let span = [];
+  let n0 = [];
+  for (let f = 0; f < 5; f++) {
+    span[f] = gridSpan(box, p.angles[f]);
+    n0[f] = weights[f] > p.eps ? round((f === 4 ? blackApplied(weights[f], p) : weights[f]) * m * span[f] / p.spacing) : 0;
+  }
+  if (p.census) {
+    p.census[bn] = { owner: owner.slice(), n: n0 };
+    return null;
+  }
+  let held = fillHeld([{ owner: owner, n: n0 }]);
+  let extra = [null, null, null, null];
+  if (p.fillScope !== 'bar') {
+    extra = p.fillPlan.extra;
+  } else if (held.length === 0) {
+    if (p.fillAchro) {
+      extra = [8, 8, 8, 8];
+    }
+  } else {
+    extra = fillDeal(held, [0, 1, 2, 3].filter(f => n0[f] === 0), p);
+  }
+  let own = owner.slice();
+  let n = n0.slice();
+  let changed = false;
+  let inks = held.map(q => ({ k: q.k, w: 0, slots: q.slots.slice() }));
+  for (let q of inks) {
+    for (let f = 0; f < 4; f++) {
+      if (n0[f] > 0 && owner[f] === q.k) {
+        q.w += weights[f];
+      }
+    }
+  }
+  if (extra.every(k => k === 8) && held.length === 0 && n0[4] > 0) {
+    inks = [{ k: 8, w: blackApplied(weights[4], p), slots: [] }];
+    own[4] = 8;
+    n[4] = 0;
+  }
+  for (let q of inks) {
+    let xs = [0, 1, 2, 3].filter(f => extra[f] === q.k && n0[f] === 0);
+    if (xs.length === 0) {
+      continue;
+    }
+    changed = true;
+    let fs = q.slots.concat(xs);
+    let ideal = fs.map(f => q.w / fs.length * m * span[f] / p.spacing);
+    let total = round(ideal.reduce((a, b) => a + b, 0));
+    let got = ideal.map(x => floor(x));
+    let left = total - got.reduce((a, b) => a + b, 0);
+    let rank = ideal.map((x, r) => r).sort((a, b) => (ideal[b] - floor(ideal[b])) - (ideal[a] - floor(ideal[a])) || fs[a] - fs[b]);
+    for (let r = 0; r < left; r++) {
+      got[rank[r]] += 1;
+    }
+    fs.forEach((f, r) => {
+      own[f] = q.k;
+      n[f] = got[r];
+    });
+  }
+  return { owner: own, n: n, before: { owner: owner.slice(), n: n0 }, changed: changed };
+}
+
+// The color inks with lines in a set of bars ({ owner, n } each): pen, line
+// count and the slots it holds, densest first (ties: the lower pen).
+function fillHeld(bars) {
+  let held = [];
+  for (let b of bars) {
+    for (let f = 0; f < 4; f++) {
+      if (b.n[f] > 0) {
+        let q = held.find(x => x.k === b.owner[f]);
+        if (!q) {
+          q = { k: b.owner[f], lines: 0, slots: [] };
+          held.push(q);
+        }
+        q.lines += b.n[f];
+        if (q.slots.indexOf(f) < 0) {
+          q.slots.push(f);
+        }
+      }
+    }
+  }
+  held.sort((a, b) => b.lines - a.lines || a.k - b.k);
+  return held;
+}
+
+// Deal the empty slots round the held inks, densest first; each takes the
+// empty slot farthest (mod 180) from the angles it holds. Returns slot -> pen.
+function fillDeal(held, empty, p) {
+  let extra = [null, null, null, null];
+  let has = held.map(q => q.slots.slice());
+  let apart = (f, g) => {
+    let d = abs(p.angles[f] - p.angles[g]) % 180;
+    return min(d, 180 - d);
+  };
+  empty = empty.slice();
+  for (let e = 0; empty.length > 0 && held.length > 0; e++) {
+    let q = e % held.length;
+    let best = 0;
+    let far = -1;
+    for (let x = 0; x < empty.length; x++) {
+      let d = has[q].length ? min(...has[q].map(g => apart(empty[x], g))) : 0;
+      if (d > far + 1e-9) {
+        far = d;
+        best = x;
+      }
+    }
+    extra[empty[best]] = held[q].k;
+    has[q].push(empty[best]);
+    empty.splice(best, 1);
+  }
+  return extra;
+}
+
+// Scope 'artwork': every bar's current-method line counts (the export's own
+// solve, run with no ink and no window), then one deal for the token.
+function fillPlan(p) {
+  let q = Object.assign({}, p, { window: undefined, census: {}, fillPlan: {}, mixLog: undefined, fillLog: undefined });
+  buildBars(-1, q);
+  let bars = Object.keys(q.census).map(k => q.census[k]);
+  let held = fillHeld(bars);
+  let used = [0, 1, 2, 3].map(f => bars.some(b => b.n[f] > 0));
+  let black = bars.some(b => b.n[4] > 0);
+  let extra = [null, null, null, null];
+  if (held.length === 0) {
+    if (p.fillAchro && black) {
+      extra = [8, 8, 8, 8];
+    }
+  } else {
+    extra = fillDeal(held, [0, 1, 2, 3].filter(f => !used[f]), p);
+  }
+  // An angle only one ink ever hatches at is that ink's for the whole token.
+  let only = [0, 1, 2, 3].map(f => {
+    let ks = [];
+    bars.forEach(b => {
+      if (b.n[f] > 0 && ks.indexOf(b.owner[f]) < 0) {
+        ks.push(b.owner[f]);
+      }
+    });
+    return ks.length === 1 ? ks[0] : null;
+  });
+  if (p.fillScope === 'artwork') {
+    extra = extra.map((k, f) => k === null ? only[f] : k);
+  }
+  return { extra: extra, used: used, only: only, held: held.map(x => ({ k: x.k, lines: x.lines, slots: x.slots.slice() })) };
+}
+
 // Ink k's plot file (k = 0 is ink1 Red), or '' when the token does not use
 // that ink: Mechanical Drawings' buildSVG(). One layer per slot angle, drawn
 // serpentine, written turned into the document.
@@ -662,11 +867,14 @@ function plotSettings(opts) {
     gap: 0,
     inset: 0.225,
     // Hatch angle by slot: a ramp's start anchor owns slots 1-2, its end 3-4.
-    // Slot 5 is black, for now perpendicular to the bars: 0 across vertical
-    // bars, 90 across horizontal ones.
-    angles: [22.5, 67.5, 112.5, 157.5, o === 0 ? 0 : 90],
+    // Slot 5 is black, at 45 across either bar axis (Jeff, 2026-09-29).
+    angles: [22.5, 67.5, 112.5, 157.5, 45],
     // A bar of ink share W prints at W * target; 0.95 is this project's 100%.
     target: 0.95,
+    // Black curve a: black's weight w plots at w - a w^2 (1 - w) (Jeff, 2026-09-29).
+    blackCubic: 1.2,
+    // Mix ease b: a bar's target becomes target * (1 - b X), X its mix index (Jeff, 2026-09-29).
+    mixEase: 0.1,
     // Weights below this are float dust, not a pen.
     eps: 0.001,
     // Time estimate only, fitted on the 2026-09-02 calibration plot: mm/s
@@ -675,6 +883,15 @@ function plotSettings(opts) {
     vtravel: 133.3,
     tseg: 0.13
   };
+  // Fork options start from the export as it stood before the program took
+  // Jeff's constants (black perpendicular to the bars, no cubic, no mix ease):
+  // methods 1-6 were defined and measured on that, and the program-default
+  // preset passes all three itself. No opts is the program as it is.
+  if (opts) {
+    p.angles[4] = o === 0 ? 0 : 90;
+    delete p.blackCubic;
+    delete p.mixEase;
+  }
   // Screen-model fork: opts = { mode: 'current' | 'screen', blackAngle,
   // window: { x, y, w, h } in composition mm }. No opts is the pushed export.
   let mode = 'current';
@@ -709,6 +926,14 @@ function plotSettings(opts) {
   // black grid; black takes each shaded anchor's share of its own grids' lines.
   if (opts && opts.blackSlots) {
     p.blackSlots = true;
+  }
+  // Slot fill (2026-09-29): opts.slotFill = true, current mode only;
+  // opts.fillScope 'artwork' (default), 'unused' or 'bar'; opts.fillAchro (default true)
+  // hands black all four slot angles where there is no color line.
+  if (opts && opts.slotFill) {
+    p.slotFill = true;
+    p.fillScope = opts.fillScope === 'bar' || opts.fillScope === 'unused' ? opts.fillScope : 'artwork';
+    p.fillAchro = opts.fillAchro !== false;
   }
   // Even-screen fork: opts.mode = 'even', opts.bias 0..1 (0 = even screen).
   if (opts && opts.bias !== undefined && opts.bias !== null) {
@@ -794,6 +1019,9 @@ function buildSVG(k, opts) {
     }
     if (p.mixEase) {
       extra += '\n     data-mix-ease="target * (1 - ' + p.mixEase + ' * X)"';
+    }
+    if (p.slotFill && !p.blackSlots) {
+      extra += '\n     data-slot-fill="scope ' + p.fillScope + ': empty color slots to the densest inks, one each, round robin; achromatic black on the four slot angles: ' + p.fillAchro + '"';
     }
     if (p.blackCurve && k === 8) {
       extra += '\n     data-black-curve="' + p.blackCurve.a + ' * (1 - exp(-' + p.blackCurve.k + ' * w / ' + p.blackCurve.a + ')) / ' + p.blackCurve.k + '"';

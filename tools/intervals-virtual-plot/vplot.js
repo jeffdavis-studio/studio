@@ -12,8 +12,14 @@
     { id: 3, key: 'slots', name: 'black in the slots', opts: () => ({ mode: 'current', blackSlots: true }) },
     { id: 4, key: 'screen', name: 'screen, round robin', opts: () => ({ mode: 'screen' }) },
     { id: 5, key: 'even', name: 'screen EVEN', opts: () => ({ mode: 'even', bias: 0 }) },
-    { id: 6, key: 'bias', name: 'screen EVEN + bias', opts: (b) => ({ mode: 'even', bias: b }) }
+    { id: 6, key: 'bias', name: 'screen EVEN + bias', opts: (b) => ({ mode: 'even', bias: b }) },
+    // Slot fill (Jeff, 2026-09-29): the program default with empty color slots
+    // handed to the densest inks (slotFill() in the fork). fill = { scope:
+    // 'artwork' | 'bar' ('unused', the literal never-used-angles reading, for measurement only), achro: black takes the four slot angles where no color
+    // ink is }; the page rides it on the curve box, so a and b can move too.
+    { id: 7, key: 'fill', name: 'slot fill', opts: (b, fill) => fillOpts(programOpts(), fill) }
   ];
+  const fillOpts = (base, fill) => Object.assign({}, base, { slotFill: true, fillScope: fill && (fill.scope === 'bar' || fill.scope === 'unused') ? fill.scope : 'artwork', fillAchro: !(fill && fill.achro === false) });
 
   // Black curves for the current family (2026-09-29): black's applied weight
   // into the density solve for shade share x. none = current; exp = the 1.85
@@ -49,6 +55,16 @@
     return PROGRAM;
   }
   const programOpts = () => Object.assign(curveOpts('cubic', PROGRAM.a, PROGRAM.b), { blackAngle: PROGRAM.angle });
+
+  // Slot fill per bar for opts: { n: { owner, n, before: { owner, n }, changed } },
+  // five slots each (angles in angles), and the token's plan under scope artwork.
+  function fillInfo(opts) {
+    if (!opts || !opts.slotFill) return null;
+    const p = plotSettings(opts);
+    p.fillLog = {};
+    buildBars(-1, p);
+    return { bars: p.fillLog, angles: p.angles.slice(), plan: p.fillPlan || null, scope: p.fillScope };
+  }
 
   // Every bar's mix index X and coverage target for opts (current family): the
   // export's own solve, run with no ink so no lines are built. { n: { X, target, W } }.
@@ -254,5 +270,5 @@
   // CIE L* of linear luminance Y (white = 1).
   const Lstar = Y => { const f = Y > 0.008856 ? Math.cbrt(Y) : 7.787 * Y + 16 / 116; return 116 * f - 16; };
 
-  window.VP = { PAPER, NIB, METHODS, CURVES, PROGRAM, loadProgram, programOpts, applied, curveOpts, curveLabel, loadToken, lines, paint, paintDigital, hexRGB, hsbOf, measure, lumOf, hexOf, Lstar, mixInfo };
+  window.VP = { PAPER, NIB, METHODS, CURVES, PROGRAM, loadProgram, programOpts, applied, curveOpts, curveLabel, loadToken, lines, paint, paintDigital, hexRGB, hsbOf, measure, lumOf, hexOf, Lstar, mixInfo, fillOpts, fillInfo };
 })();
