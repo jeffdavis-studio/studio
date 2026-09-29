@@ -88,11 +88,11 @@
     </details>
   </div>
 
-  <footer title="engine @c5facda · built 2026-09-29">Unison engine, jeffdavis-studio/unison-engine. Page monitor gain +6 dB over the song's strip input. Hover for build provenance.</footer>
+  <footer title="engine @a1f963f · built 2026-09-29">Unison engine, jeffdavis-studio/unison-engine. Page monitor gain +6 dB over the song's strip input. Hover for build provenance.</footer>
 </div>
 
 <script>
-/* ===== src/core/mix.js @ c5facda — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/mix.js @ a1f963f — verbatim from jeffdavis-studio/unison-engine ===== */
 // mix.js — the fan-in ≤2 summing rule, as a primitive.
 //
 // Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
@@ -130,7 +130,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/obxa.js @ c5facda — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/obxa.js @ a1f963f — verbatim from jeffdavis-studio/unison-engine ===== */
 // obxa.js — Oberheim OB-Xa-lineage poly voice, zero dependencies.
 //
 // THE BRASS/PAD POLY LANE (build order 808 → Juno → Minimoog → OB-Xa → …).
@@ -364,7 +364,11 @@
       let s = 0;
       if (cfg[0]) s += 2 * ph - 1 - blep(ph, dt);
       if (cfg[1]) {
-        let v = (ph < pw ? 1 : -1) + blep(ph, dt);
+        // minus the pulse's DC (2·pw − 1): the OB-Xa's VCO outputs are AC
+        // coupled. Found 2026-09-29 by the trim measurement — with PWM the DC
+        // swings at the LFO rate, and the pad read 4.8 dB louder in plain RMS
+        // than K-weighted: a sub-audio thump, energy under 38 Hz.
+        let v = (ph < pw ? 1 : -1) + blep(ph, dt) - (2 * pw - 1);
         let q = ph - pw; if (q < 0) q += 1;
         s += v - blep(q, dt);
       }
@@ -500,7 +504,7 @@ window.FIT_POS = {"cutoff":0.5,"pole":0.5,"fA":0.5,"envAmt":0.5,"fD":0.5,"res":0
 // and the whole point of declining a knob on the record is that the decline is
 // visible where the instrument is.
 window.FIT_WHY = {"cutoff":"Every cutoff reading in the pack is a player's knob position (Analogist, zenobic), not a machine property; copying one over a lane voicing is the Juno open-filter trap. Recorded for the next pass: closed pad 00 reads best at 679 Hz (4-pole) / 339 Hz (2-pole); the detuned chord 08 at 1920 Hz (2-pole).","pole":"Row A (pole order; the probe attributes our own 2-pole@700 and 4-pole@500 correctly) finds the same player using BOTH modes: closed pad 00 and single note 07 read 4-pole (residual 1.88 vs 4.63 dB; 3 vs 5.23 dB), the detuned chord 08 reads 2-pole (1.19 vs 3.77 dB). So the switch is a patch choice on this machine, not a lineage trait: 2-pole stays the default (the SEM-derived character) and 4-pole is on the panel. The open chord 01 fits neither (6.99 / 6.29 dB): its band profile is flatter than a filtered saw on those notes, a voicing the pack does not explain.","fA":"Row C traces the brass-swell reference 02 on a test patch: residual 1.286 -> 0.562 octaves RMS, but the best point sits at the grid bounds (env amount 5.2 oct, decay 3 s), which this rig reads as \"could not reach\", not as a value. 02 comes from a recording titled \"Filter Chords\" that showcases the filter; a 0.8 s swell to its peak is a pad-speed gesture, and the \"Jump\" brass this patch is for is quicker. Not applied.","envAmt":"Degenerate with cutoff in the only envelope references (02, 03), and at the top of its search range in row C. A player's setting; not applied.","fD":"Row D (stab decay, shape only; the probe recovers a known 0.32 s) on the stab reference 03 improves monotonically toward the search bound (0.2 s residual 1.066 -> 0.8 s 0.774) with no interior minimum: 03 closes over its whole 0.9 s, slower than a stab. Declined; a stab that slow is a comp.","res":"No reference shows a resonant peak (every band profile falls monotonically), so resonance is not measurable from this pack.","kbd":"One held single note at a usable register (07, A#3); 06 at F#1 is too low for the band probe. Tracking needs the same patch at two registers, which the pack does not have.","pwmDepth":"Not separable from detune and slop in split-peak reads on chords; the pad's PWM is a voicing.","a":"Amp envelopes in the pack are performances (overlapping chords); no clean onset-to-sustain read. Voicing.","r":"Chord releases overlap the next chord in every performance excerpt. Voicing.","slop":"The per-card spread is inside the split-peak reads (slop 1 adds about +1.5 to 2.7c to a read) but one row cannot separate it from detune; held at 1 (pitch ±3c, cutoff ±6%, env ±8%)."};
-/* WHERE THE KNOBS OPEN @ c5facda, built 2026-09-29.
+/* WHERE THE KNOBS OPEN @ a1f963f, built 2026-09-29.
 
    Every knob apply-fit moved opens at CENTRE, because after the apply the
    centre IS the fit. Only the knobs it measured and did not move are here, and
