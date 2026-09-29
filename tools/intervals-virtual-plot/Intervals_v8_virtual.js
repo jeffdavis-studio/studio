@@ -635,7 +635,8 @@ function plotSettings(opts) {
   if (opts && opts.blackCurve) {
     p.blackCurve = opts.blackCurve;
   }
-  // Black cubic (2026-09-29): opts.blackCubic = a in 0..1, current mode only.
+  // Black cubic (2026-09-29): opts.blackCubic = a in 0..3, current mode only
+  // (3 is the monotonic limit: the slope reaches 0 at w = 1/3).
   // Black's weight into the solve becomes s - a s^2 (1 - s); a = 0 is current.
   if (opts && opts.blackCubic !== undefined && opts.blackCubic !== null) {
     p.blackCubic = opts.blackCubic;
