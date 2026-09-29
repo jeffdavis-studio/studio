@@ -126,7 +126,7 @@ try {
   const want = {
     imgw: '355.6', imgh: '279.4', docw: String(DOC_W), doch: String(DOC_H), spacing: '0.45', lw: '0.45',
     gap: '0', inset: '0.225', angles: '[22.5, 67.5, 112.5, 157.5, 45]', target: '0.95', eps: '0.001',
-    blackCubic: '1.2', mixEase: '0.1', vdraw: '66.7', vtravel: '133.3', tseg: '0.13'
+    blackCubic: '1.2', blackCubicAchromatic: '0', mixEase: '0.1', vdraw: '66.7', vtravel: '133.3', tseg: '0.13'
   };
   for (const name of Object.keys(want)) {
     check(local(name) === want[name], 'buildSVG() declares ' + name + ' = ' + want[name] + ' (got ' + local(name) + ')');

@@ -422,10 +422,12 @@ function betterLerp(col1, col2, t) {
 // of ink's active slots becomes a hatch at that slot's angle. p is the plot
 // settings, from buildSVG().
 // Black's applied weight for shade share w, the cubic w - a w^2 (1 - w) with
-// a = p.blackCubic: 0 at 0, 1 at 1, lighter between. Only black's line count
-// reads it; m and the colors are untouched.
+// a = p.blackCubic (p.blackCubicAchromatic on achromatic tokens): 0 at 0, 1 at
+// 1, lighter between. Only black's line count reads it; m and the colors are
+// untouched.
 function blackApplied(w, p) {
-  return w - p.blackCubic * w * w * (1 - w);
+  let a = vtype === 'achromatic' ? p.blackCubicAchromatic : p.blackCubic;
+  return w - a * w * w * (1 - w);
 }
 
 // Mix index X of a bar, 0..1: the share of the bar's footprint that is two
@@ -619,6 +621,9 @@ function buildSVG(k) {
     target: 0.95,
     // Black curve a: black's weight w plots at w - a w^2 (1 - w) (Jeff, 2026-09-29).
     blackCubic: 1.2,
+    // Achromatic a: the paper is already lighter than the screen at the dark end
+    // there, so black gets no cut (Jeff, 2026-09-29).
+    blackCubicAchromatic: 0,
     // Mix ease b: a bar's target becomes target * (1 - b X), X its mix index (Jeff, 2026-09-29).
     mixEase: 0.1,
     // Weights below this are float dust, not a pen.
