@@ -411,6 +411,43 @@ function betterLerp(col1, col2, t) {
 // anchor, and black (ink9, pens[8]) lerped between the anchors' shades. Each
 // of ink's active slots becomes a hatch at that slot's angle. p is the plot
 // settings, from buildSVG().
+// Black's applied weight for shade share w, the cubic w - a w^2 (1 - w) with
+// a = p.blackCubic: 0 at 0, 1 at 1, lighter between. Only black's line count
+// reads it; m and the colors are untouched.
+function blackApplied(w, p) {
+  return w - p.blackCubic * w * w * (1 - w);
+}
+
+// Mix index X of a bar, 0..1: the share of the bar's footprint that is two
+// different color inks crossing. Color slot f (0-3) lays a grid of coverage
+// c_f = min(1, w_f m); two grids of different inks cross on c_f c_g of the
+// bar, weighted by |sin| of the angle between them:
+//   P = sum over color-slot pairs f < g with different inks of c_f c_g |sin(a_f - a_g)|
+//   X = min(1, P / (F Z)), F = the bar's footprint (W * target),
+// with Z = P / F for a balanced four-ink bar at full tone (c = 1 - 0.05^(1/4)
+// on each of the four color grids, Z = 1.412), so that bar is X = 1 and a
+// one-ink bar is 0. Black (slot 5) is left out, and two slots of the same ink
+// never count.
+function mixIndex(weights, owner, m, F, p) {
+  let P = 0;
+  let zs = 0;
+  for (let f = 0; f < 4; f++) {
+    for (let g = f + 1; g < 4; g++) {
+      let sn = abs(sin((p.angles[f] - p.angles[g]) * PI / 180));
+      zs += sn;
+      if (weights[f] > p.eps && weights[g] > p.eps && owner[f] !== owner[g]) {
+        P += min(1, weights[f] * m) * min(1, weights[g] * m) * sn;
+      }
+    }
+  }
+  if (P <= 0 || F <= 0) {
+    return 0;
+  }
+  let cb = 1 - pow(1 - p.target, 0.25);
+  let Z = cb * cb * zs / p.target;
+  return min(1, P / (F * Z));
+}
+
 function buildBars(ink, p) {
   let slots = [[], [], [], [], []];
   for (let i = 0; i < s; i++) {
@@ -472,6 +509,28 @@ function buildBars(ink, p) {
         }
       }
       let m = (mlo + mhi) / 2;
+      // Mix ease: the bar's coverage target becomes target * (1 - mixEase * X),
+      // X its mix index, and m is solved again on it. Pure-ink and achromatic
+      // bars have X = 0 and keep the full target.
+      let X = mixIndex(weights, owner, m, sum * p.target, p);
+      if (p.mixEase > 0 && X > 0) {
+        let tgt = p.target * (1 - p.mixEase * X);
+        mlo = 0;
+        mhi = 64;
+        for (let k = 0; k < 50; k++) {
+          let mid = (mlo + mhi) / 2;
+          let clear = 1;
+          for (let f = 0; f < raw.length; f++) {
+            clear *= 1 - min(1, raw[f] * mid);
+          }
+          if (1 - clear < sum * tgt) {
+            mlo = mid;
+          } else {
+            mhi = mid;
+          }
+        }
+        m = (mlo + mhi) / 2;
+      }
       // Mechanical Drawings' line grid at the slot's angle, clipped. The grid
       // is solved on the whole box and only its drawn extent is clipped, so the
       // clip never changes ink per unit area.
@@ -486,7 +545,7 @@ function buildBars(ink, p) {
           let d3 = -(box.x + box.w) * sa + (box.y + box.h) * ca;
           let dmin = min(d0, d1, d2, d3);
           let pspan = max(d0, d1, d2, d3) - dmin;
-          let nlines = round(weights[f] * m * pspan / p.spacing);
+          let nlines = round((f === 4 ? blackApplied(weights[f], p) : weights[f]) * m * pspan / p.spacing);
           let step = pspan / nlines;
           let xmin = clip.x;
           let xmax = clip.x + clip.w;
@@ -544,11 +603,14 @@ function buildSVG(k) {
     gap: 0,
     inset: 0.225,
     // Hatch angle by slot: a ramp's start anchor owns slots 1-2, its end 3-4.
-    // Slot 5 is black, for now perpendicular to the bars: 0 across vertical
-    // bars, 90 across horizontal ones.
-    angles: [22.5, 67.5, 112.5, 157.5, o === 0 ? 0 : 90],
+    // Slot 5 is black, at 45 across either bar axis (Jeff, 2026-09-29).
+    angles: [22.5, 67.5, 112.5, 157.5, 45],
     // A bar of ink share W prints at W * target; 0.95 is this project's 100%.
     target: 0.95,
+    // Black curve a: black's weight w plots at w - a w^2 (1 - w) (Jeff, 2026-09-29).
+    blackCubic: 1.2,
+    // Mix ease b: a bar's target becomes target * (1 - b X), X its mix index (Jeff, 2026-09-29).
+    mixEase: 0.1,
     // Weights below this are float dust, not a pen.
     eps: 0.001,
     // Time estimate only, fitted on the 2026-09-02 calibration plot: mm/s
