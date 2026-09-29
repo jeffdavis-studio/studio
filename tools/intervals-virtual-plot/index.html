@@ -27,10 +27,18 @@
   #thumb { width: 356px; height: 279px; flex: 0 0 356px; cursor: crosshair; border: 1px solid var(--line); background: var(--paper); }
   #tokinfo { font-size: 12.5px; color: var(--mute); max-width: 520px; flex: 1 1 300px; }
   #status { padding: 6px 16px; font-size: 12.5px; color: var(--mute); min-height: 26px; }
-  #stage { display: flex; flex-wrap: wrap; gap: 20px; padding: 6px 16px 40px; align-items: flex-start; }
-  .panel { flex: 0 0 auto; max-width: calc(100vw - 32px); display: flex; flex-direction: column; gap: 6px; }
-  .panel h2 { font-size: 13.5px; margin: 0; }
-  .panel canvas { display: block; background: var(--paper); box-shadow: 0 0 0 1px var(--line); }
+  #stage { padding: 6px 16px 40px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 22px; align-items: center; margin-bottom: 8px; font-size: 13.5px; }
+  .legend .lg { display: flex; gap: 8px; align-items: center; flex: 0 0 auto; max-width: calc(100vw - 32px); }
+  .legend .key { color: var(--mute); font-size: 12px; flex: 0 0 auto; }
+  .renders { display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-start; }
+  .slot { flex: 0 0 auto; display: flex; flex-direction: column; gap: 3px; }
+  .slot .tag { height: 16px; flex: 0 0 16px; font-size: 11.5px; font-weight: 600; color: var(--mute); white-space: nowrap; overflow: hidden; }
+  .frame { position: relative; flex: 0 0 auto; background: var(--paper); box-shadow: 0 0 0 1px var(--line); }
+  .frame canvas { position: absolute; left: 0; top: 0; display: block; }
+  .reads { display: flex; flex-wrap: wrap; gap: 14px 28px; margin-top: 12px; align-items: flex-start; }
+  .readout { flex: 0 0 auto; max-width: calc(100vw - 32px); display: flex; flex-direction: column; gap: 6px; }
+  .readout h2 { font-size: 13.5px; margin: 0; }
   table.read { border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
   table.read td, table.read th { padding: 2px 8px 2px 0; text-align: left; vertical-align: top; }
   table.read th { color: var(--mute); font-weight: 500; }
@@ -106,6 +114,7 @@
     <li><b>screen EVEN + bias.</b> The same stride rule with the grids' pitches free. Bias 0 is method 5; bias 1 puts each pen on as few grids as the pen count allows (four pens: one grid each, the overprint; one pen: four grids; black shares the grids its shaded anchor's inks hold).</li>
   </ol>
   <p><b>Quantization rule (5 and 6).</b> A grid's lines are split among its pens by one of eleven exact covers: 1; ½ ½; ½ ¼ ¼; ⅓ ⅓ ⅓; ¼ ¼ ¼ ¼; ½ ¼ ⅛ ⅛; ⅓ ⅓ ⅙ ⅙; ½ ⅙ ⅙ ⅙; ¼ ¼ ¼ ⅛ ⅛; ½ ⅛ ⅛ ⅛ ⅛; ⅓ ⅙ ⅙ ⅙ ⅙. A pen with share 1/s takes lines r, r+s, r+2s… The grid's line count is nudged to the nearest multiple of its largest stride so every class has exactly n/s lines. A pen's strides on its grids must divide one another (pitch P, 2P, 4P, never 2P against 3P). Per bar, the layout is the one with the smallest squared share error, then, by bias, the most spread (bias 0) or the most concentrated (bias 1); sparse strides cost a little. At bias 0 all four grids share one pitch, so the share error is the price: up to about 0.06 on a bar. As bias rises the grid weights float and the error falls to about 0.015 on five-pen bars and 0 on bars of four pens or fewer.</p>
+  <p><b>digital.</b> The artwork's own screen render for the hash: the flat bars draw() fills, in the same color (betterLerp, p5's rounded levels), laid into the same composition millimeters as the plot, so at every zoom, in the whole-token view and on any bar crop it is the same pixel size and position as the plot beside it. Pick it for either side, or press ⇄ digital (key d for side A, shift-d for side B) to flip a plot side to the digital render in place and back. Under it: each picked bar's HSB (p5's 0–360 / 0–100 / 0–100), hex and RGB.</p>
   <p><b>Evenness.</b> The bar alone at 20 px/mm; 1 mm tiles of linear luminance (whole mm across the bar, 1 mm dropped at each end); sd and the 5–95 spread over the tiles, the black-angles sheet's measure. Lower is more even. On light bars the line pitch is near 1 mm, so a tile holds one line or two by phase and the number runs high for every method; compare methods on the same bar, not bars with each other.</p>
   <p><b>Can't show.</b> Pen blot at each line's start and stop, paper bleed and feathering, a pen crossing its own lines (drawn as one path, so it never darkens itself; real ink does a little), ink colors beyond the pen table's hex, nib wear, and plotter backlash. Tone is the rendered coverage; the artwork's color is a Lab lerp, so the L* pair shows how far the plot sits from the screen image, not an error in the plot.</p>
 </details>
@@ -119,7 +128,7 @@
   const $ = id => document.getElementById(id);
   const DEF = '0x8e98544e589386e90f68a7e9d95fe7bba8ea580bfa3a9cd5ec1822d0d40a7ef1';
   const MAXAREA = 16e6, MAXSIDE = 16000;
-  let T = null, zoom = 1, lastCanvases = [];
+  let T = null, zoom = 1, view = 'bars';
   const ua = navigator.userAgent;
   const guessPPI = /iPhone/.test(ua) ? 153 : (/iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) ? 132 : 127;
   let ppi = +(localStorage.getItem('vplot-ppi') || guessPPI);
@@ -134,12 +143,17 @@
   const PRESETS = { '1': ['none', null], '2': ['exp', null], 'c1': ['cubic', 1], 'c06': ['cubic', 0.6], 'c': ['cubic', null] };
   const side = { A: { curve: 'none', a: 1 }, B: { curve: 'none', a: 1 } };
   const isCur = S => $('m' + S).value in PRESETS;
+  const isDig = S => $('m' + S).value === 'd';
   const active = () => ['A', 'B'].filter(S => $('m' + S).value !== '0');
+  // Flip: a plot side shown as the digital render in the same place.
+  const flip = { A: false, B: false };
+  const DIGNAME = 'digital — the artwork on screen';
   function methodOpts(S) {
     if (isCur(S)) return VP.curveOpts(side[S].curve, side[S].a);
     const m = VP.METHODS.find(x => x.id === +$('m' + S).value); return m.opts(+$('bias').value);
   }
   function methodName(S) {
+    if (isDig(S)) return DIGNAME;
     if (isCur(S)) { const c = side[S]; return c.curve === 'none' ? '1. current, black 45' : c.curve === 'exp' ? '2. current + curve 1.85' : 'current + ' + VP.curveLabel('cubic', c.a); }
     const m = VP.METHODS.find(x => x.id === +$('m' + S).value); return m.id + '. ' + m.name + (m.id === 6 ? ' (bias ' + (+$('bias').value).toFixed(2) + ')' : '');
   }
@@ -155,6 +169,7 @@
           sel.add(new Option('cubic, a on the slider', 'c'));
         }
       }
+      sel.add(new Option(DIGNAME, 'd'));
     }
     $('mA').value = '1'; $('mB').value = 'c1';
   }
@@ -270,6 +285,7 @@
   }
 
   function layoutRows(id, bar) {
+    if (isDig(id)) return '';
     const o = methodOpts(id);
     if (o.mode !== 'even' && o.mode !== 'screen') return '';
     const p = plotSettings(o);
@@ -288,8 +304,86 @@
     return `<tr><th>shares</th><td>${sh}</td></tr><tr><th>grids</th><td>${gr}</td></tr>`;
   }
 
+  // The stage: a legend row (each side's name and its flip button), the renders
+  // side by side in fixed-size frames, top edges aligned, then the readouts.
+  // Every frame for a view has the same size, so a plot and the digital render
+  // sit at the same pixel size edge to edge. A flipped side keeps its plot
+  // canvas and lays the digital render over it in the same frame.
+  let slots = [];
+  function stageStart(ids) {
+    const stage = $('stage'); stage.innerHTML = ''; slots = [];
+    const legend = document.createElement('div'); legend.className = 'legend';
+    const renders = document.createElement('div'); renders.className = 'renders';
+    const reads = document.createElement('div'); reads.className = 'reads';
+    stage.append(legend, renders, reads);
+    return { legend, renders, reads };
+  }
+  function addSlot(parts, id, cw, ch, cssW, cssH, plotCv, plotRead, digRead, paintDig) {
+    const slot = { id, plotCv, digCv: null, paintDig, cw, ch, cssW, cssH };
+    const lg = document.createElement('div'); lg.className = 'lg';
+    lg.innerHTML = `<b>${id}</b><span class="nm"></span>`;
+    if (plotCv) {
+      const bt = document.createElement('button'); bt.textContent = '⇄ digital'; bt.title = 'show the digital render here in place (key ' + (id === 'A' ? 'd' : 'shift-d') + ')';
+      bt.onclick = () => toggleFlip(id); lg.appendChild(bt); slot.btn = bt;
+    }
+    parts.legend.appendChild(lg); slot.nm = lg.querySelector('.nm');
+    const el = document.createElement('div'); el.className = 'slot';
+    el.style.width = cssW + 'px'; el.style.flex = `0 0 ${cssW}px`;
+    const tag = document.createElement('div'); tag.className = 'tag'; tag.textContent = id;
+    const fr = document.createElement('div'); fr.className = 'frame';
+    fr.style.width = cssW + 'px'; fr.style.height = cssH + 'px'; fr.style.flex = `0 0 ${cssH}px`;
+    el.append(tag, fr); parts.renders.appendChild(el); slot.frame = fr; slot.tag = tag;
+    const rd = document.createElement('div'); rd.className = 'readout';
+    rd.innerHTML = `<h2></h2><div class="rp">${plotRead || ''}</div><div class="rd">${digRead}</div>`;
+    parts.reads.appendChild(rd); slot.rd = rd;
+    const place = cv => { cv.style.width = cssW + 'px'; cv.style.height = cssH + 'px'; fr.appendChild(cv); };
+    slot.place = place;
+    if (plotCv) place(plotCv); else { slot.digCv = newDig(slot); place(slot.digCv); }
+    slots.push(slot);
+    showSlot(slot);
+    return slot;
+  }
+  function newDig(slot) {
+    const cv = document.createElement('canvas'); cv.width = slot.cw; cv.height = slot.ch;
+    slot.paintDig(cv.getContext('2d')); return cv;
+  }
+  function showSlot(slot) {
+    const dig = !slot.plotCv || flip[slot.id];
+    if (slot.plotCv) {
+      if (dig && !slot.digCv) { slot.digCv = newDig(slot); slot.place(slot.digCv); }
+      if (!dig && slot.digCv) { slot.digCv.remove(); slot.digCv.width = 0; slot.digCv.height = 0; slot.digCv = null; }
+      slot.btn.classList.toggle('on', dig);
+    }
+    const name = dig ? DIGNAME + (slot.plotCv ? ' (flipped from ' + methodName(slot.id) + ')' : '') : methodName(slot.id);
+    slot.nm.textContent = name;
+    slot.tag.textContent = slot.id + (dig ? ' · digital' : '');
+    slot.rd.querySelector('h2').textContent = slot.id + ' · ' + name;
+    slot.rd.querySelector('.rp').style.display = dig ? 'none' : '';
+    slot.rd.querySelector('.rd').style.display = dig ? '' : 'none';
+  }
+  function toggleFlip(id) {
+    const slot = slots.find(q => q.id === id);
+    if (!slot || !slot.plotCv) return;
+    flip[id] = !flip[id];
+    showSlot(slot);
+  }
+  const visibleCanvas = slot => slot.digCv || slot.plotCv;
+
+  // Under the digital render: each picked bar's color as the artwork draws it.
+  function digitalRows() {
+    let rows = '<tr><th></th><th>HSB</th><th>hex</th><th>RGB</th><th>black · tint</th></tr>';
+    for (const b of selBars()) {
+      const [h, sa, br] = VP.hsbOf(b.rgb);
+      rows += `<tr><td><span class="sw" style="background:${VP.hexRGB(b.rgb)}"></span><b>bar ${b.n}</b></td>` +
+        `<td>${h.toFixed(1)}° · ${sa.toFixed(1)} · ${br.toFixed(1)}</td><td><b>${VP.hexRGB(b.rgb)}</b></td>` +
+        `<td>${b.rgb.map(v => Math.round(v)).join(', ')}</td><td>${b.black.toFixed(3)} · ${b.tint.toFixed(3)}</td></tr>`;
+    }
+    return `<table class="read">${rows}</table><div class="note">The artwork's flat bar color (betterLerp, as draw() fills it). L* ${selBars().map(b => Lstar(VP.lumOf(b.rgb)).toFixed(0)).join(' / ')}.</div>`;
+  }
+
   async function renderBars() {
     if (!T) return;
+    view = 'bars';
     const ids = active();
     const t0 = performance.now();
     status('Building lines…'); await tick();
@@ -304,16 +398,18 @@
       crop = ` Cut to ${maxLen} mm along the bar to fit the canvas limit at this zoom.`;
     }
     drawThumb();
-    const stage = $('stage'); stage.innerHTML = ''; lastCanvases = [];
+    const parts = stageStart(ids);
+    const cw = Math.round(reg.w * S), ch = Math.round(reg.h * S);
+    const cssW = +(cw / S * css).toFixed(1), cssH = +(ch / S * css).toFixed(1);
+    const dig = digitalRows();
+    const paintDig = ctx => VP.paintDigital(ctx, T, reg, S);
     for (const id of ids) {
+      if (isDig(id)) { addSlot(parts, id, cw, ch, cssW, cssH, null, '', dig, paintDig); await tick(); continue; }
       const o = methodOpts(id);
       const pl = VP.lines(o, reg);
-      const panel = document.createElement('div'); panel.className = 'panel';
       const cv = document.createElement('canvas');
-      cv.width = Math.round(reg.w * S); cv.height = Math.round(reg.h * S);
-      cv.style.width = (cv.width / S * css).toFixed(1) + 'px'; cv.style.height = (cv.height / S * css).toFixed(1) + 'px';
+      cv.width = cw; cv.height = ch;
       VP.paint(cv.getContext('2d'), pl, reg, S);
-      lastCanvases.push({ cv, name: methodName(id) });
       // Readout per bar: evenness over the whole bar, tone, segments in view.
       let rows = '';
       for (const b of selBars()) {
@@ -327,48 +423,50 @@
       }
       const bar = T.bars[Math.min(Math.max(1, +$('bar').value), T.bars.length) - 1];
       const lay = layoutRows(id, bar);
-      panel.innerHTML = `<h2>${methodName(id)}</h2><table class="read">${rows}</table>` +
+      const read = `<table class="read">${rows}</table>` +
         (lay ? `<table class="read"><tr><th colspan=2>bar ${bar.n} layout</th></tr>${lay}</table>` : '') +
         `<div class="note">${penList(pl)}</div>`;
-      panel.appendChild(cv);
-      stage.appendChild(panel);
+      addSlot(parts, id, cw, ch, cssW, cssH, cv, read, dig, paintDig);
       await tick();
     }
     const mm = T.o === 0 ? reg.h : reg.w;
-    status(`Rendered ${mm.toFixed(0)} mm of bar${selBars().length > 1 ? 's' : ''} ${selBars().map(b => b.n).join(', ')} at ${zoom === 1 ? '1:1' : zoom + '×'} (${ppi} px/in, ${S.toFixed(1)} device px/mm) in ${((performance.now() - t0) / 1000).toFixed(1)} s.${crop}`);
+    status(`Rendered ${mm.toFixed(0)} mm of bar${selBars().length > 1 ? 's' : ''} ${selBars().map(b => b.n).join(', ')} at ${zoom === 1 ? '1:1' : zoom + '×'} (${ppi} px/in, ${S.toFixed(1)} device px/mm, ${cw} × ${ch} px per render) in ${((performance.now() - t0) / 1000).toFixed(1)} s.${crop}`);
   }
 
   async function renderWhole() {
     if (!T) return;
+    view = 'whole';
     const ids = active();
-    const stage = $('stage'); stage.innerHTML = ''; lastCanvases = [];
+    const parts = stageStart(ids);
     const dpr = window.devicePixelRatio || 1;
     const avail = Math.max(320, (ids.length > 1 && window.innerWidth > 1300 ? (window.innerWidth - 60) / 2 : window.innerWidth - 40));
     const cssPerMm = avail / T.imgw;
     // At least 8 px/mm so a pinch or browser zoom still resolves lines; 12 caps the canvas.
     const S = Math.min(12, Math.max(8, cssPerMm * dpr));
     const reg = { x: 0, y: 0, w: T.imgw, h: T.imgh };
+    const cw = Math.round(T.imgw * S), ch = Math.round(T.imgh * S);
+    const cssW = Math.round(T.imgw * cssPerMm), cssH = Math.round(T.imgh * cssPerMm);
+    const dig = digitalRows();
+    const paintDig = ctx => VP.paintDigital(ctx, T, reg, S);
     const t0 = performance.now();
     for (const id of ids) {
+      if (isDig(id)) { addSlot(parts, id, cw, ch, cssW, cssH, null, '', dig, paintDig); await tick(); continue; }
       status(`Whole token, ${methodName(id)}: building lines…`); await tick();
       const pl = VP.lines(methodOpts(id), null);
       status(`Whole token, ${methodName(id)}: painting ${pl.reduce((a, p) => a + p.lines.length, 0).toLocaleString()} lines…`); await tick();
       const cv = document.createElement('canvas');
-      cv.width = Math.round(T.imgw * S); cv.height = Math.round(T.imgh * S);
-      cv.style.width = (T.imgw * cssPerMm).toFixed(0) + 'px'; cv.style.height = (T.imgh * cssPerMm).toFixed(0) + 'px';
+      cv.width = cw; cv.height = ch;
       VP.paint(cv.getContext('2d'), pl, reg, S);
-      const panel = document.createElement('div'); panel.className = 'panel';
-      panel.innerHTML = `<h2>${methodName(id)} — whole token</h2><div class="note">${penList(pl)}</div>`;
-      panel.appendChild(cv); stage.appendChild(panel);
-      lastCanvases.push({ cv, name: methodName(id) + ' whole' });
+      addSlot(parts, id, cw, ch, cssW, cssH, cv, `<div class="note">whole token · ${penList(pl)}</div>`, dig, paintDig);
       await tick();
     }
-    status(`Whole token at ${S.toFixed(1)} device px/mm, an overview: below about 10 px/mm the 0.45 mm lines blur, so judge hatching in the bar view. ${((performance.now() - t0) / 1000).toFixed(1)} s.`);
+    status(`Whole token at ${S.toFixed(1)} device px/mm (${cw} × ${ch} px per render), an overview: below about 10 px/mm the 0.45 mm lines blur, so judge hatching in the bar view. ${((performance.now() - t0) / 1000).toFixed(1)} s.`);
   }
 
   async function measureAll() {
     if (!T) return;
-    const ids = active();
+    const ids = active().filter(S => !isDig(S));
+    if (!ids.length) { status('Measure all needs a plot method on one side; digital has no lines to measure.'); return; }
     const res = {};
     for (const id of ids) {
       res[id] = [];
@@ -386,7 +484,8 @@
   }
 
   function savePNG() {
-    for (const { cv, name } of lastCanvases) {
+    for (const sl of slots) {
+      const cv = visibleCanvas(sl), name = (sl.digCv ? 'digital' : methodName(sl.id)) + (view === 'whole' ? ' whole' : '');
       const a = document.createElement('a');
       a.download = `intervals-${T.hash.slice(2, 10)}-${name.replace(/[^a-z0-9]+/gi, '-')}.png`;
       a.href = cv.toDataURL('image/png'); document.body.appendChild(a); a.click(); a.remove();
@@ -427,6 +526,11 @@
       const b = T.bars.find(b => x >= b.box.x && x < b.box.x + b.box.w && y >= b.box.y && y < b.box.y + b.box.h);
       if (b) { $('bar').value = b.n; drawThumb(); drawCurveBox('A'); drawCurveBox('B'); renderBars(); }
     };
+    // d flips side A between its plot and the digital render in place; shift-d flips B.
+    document.addEventListener('keydown', e => {
+      if (e.metaKey || e.ctrlKey || e.altKey || /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
+      if (e.key === 'd') toggleFlip('A'); else if (e.key === 'D') toggleFlip('B');
+    });
     showPPI();
     $('biasV').textContent = (+$('bias').value).toFixed(2);
   }
@@ -450,6 +554,8 @@
       if (v !== null && isFinite(+v)) { side[S].a = Math.min(1, Math.max(0, Math.round(+v * 20) / 20)); if (side[S].curve === 'cubic') toSelect(S); }
       drawCurveBox(S);
     }
+    // flip=a / flip=b / flip=ab: start with that side flipped to digital.
+    for (const S of ['A', 'B']) flip[S] = (q.get('flip') || '').toLowerCase().includes(S.toLowerCase());
     if (q.get('bias')) { $('bias').value = q.get('bias'); $('biasV').textContent = (+$('bias').value).toFixed(2); }
     drawThumb();
     renderBars();

@@ -182,8 +182,37 @@
     return { tiles: tiles.length, lum: mean, sd, spread: p95 - p5_, rgb: [R / np, G / np, B / np], blackFoot };
   }
 
+  // The artwork's own screen render of region (composition mm) at S px/mm:
+  // draw()'s flat bars in the same betterLerp color p5 fills with (its levels
+  // are rounded), edges snapped to whole pixels so neighbors never seam. The
+  // bars tile the composition, so no paper shows.
+  function paintDigital(ctx, T, region, S) {
+    const W = ctx.canvas.width, H = ctx.canvas.height;
+    const X = v => Math.round((v - region.x) * S), Y = v => Math.round((v - region.y) * S);
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = PAPER; ctx.fillRect(0, 0, W, H);
+    for (const b of T.bars) {
+      const x0 = Math.max(0, X(b.box.x)), x1 = Math.min(W, X(b.box.x + b.box.w));
+      const y0 = Math.max(0, Y(b.box.y)), y1 = Math.min(H, Y(b.box.y + b.box.h));
+      if (x1 <= x0 || y1 <= y0) continue;
+      ctx.fillStyle = hexRGB(b.rgb);
+      ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+    }
+    ctx.restore();
+  }
+  const hexRGB = rgb => '#' + rgb.map(v => Math.round(v).toString(16).padStart(2, '0')).join('');
+  // p5's HSB for a bar's color: hue 0-360, saturation and brightness 0-100.
+  function hsbOf(rgb) {
+    const [r, g, b] = rgb.map(v => Math.round(v) / 255);
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+    let h = 0;
+    if (d > 0) h = mx === r ? ((g - b) / d + 6) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    return [h * 60, mx ? d / mx * 100 : 0, mx * 100];
+  }
+
   // Linear luminance of an sRGB triple, for the artwork's own bar color.
   const lumOf = rgb => 0.2126 * lin(rgb[0]) + 0.7152 * lin(rgb[1]) + 0.0722 * lin(rgb[2]);
 
-  window.VP = { PAPER, NIB, METHODS, CURVES, applied, curveOpts, curveLabel, loadToken, lines, paint, measure, lumOf, hexOf };
+  window.VP = { PAPER, NIB, METHODS, CURVES, applied, curveOpts, curveLabel, loadToken, lines, paint, paintDigital, hexRGB, hsbOf, measure, lumOf, hexOf };
 })();
