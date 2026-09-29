@@ -1,5 +1,5 @@
 // VIRTUAL-PLOTTER FORK of intervals/Intervals_v8.js. Tracks the program at
-// jeffdavis-studio/studio 2cbcf11 (band floor 84cebc4, plot constants 097ff88).
+// jeffdavis-studio/studio fed1550 (band floor 84cebc4, plot constants 097ff88, achromatic a = 0).
 // With no opts it draws what the program draws, byte for byte; everything
 // else here is opts plumbing and the tool's methods. Re-sync: see README.md.
 let R, w, h, o, s, vtype, ltype, amin, amax, pwhite, adir, aend, bx, bw, c, inks, inkh;
@@ -426,14 +426,16 @@ function betterLerp(col1, col2, t) {
 // of ink's active slots becomes a hatch at that slot's angle. p is the plot
 // settings, from buildSVG().
 // Black's applied weight for shade share w: the share itself (current), the
-// black-curve fork's a(1 - exp(-k w / a)) / k, or the cubic w - a w^2 (1 - w).
+// black-curve fork's a(1 - exp(-k w / a)) / k, or the cubic w - a w^2 (1 - w)
+// with a = p.blackCubic (p.blackCubicAchromatic on achromatic tokens, where set).
 // m and the colors are untouched; only black's line count reads this.
 function blackApplied(w, p) {
   if (p.blackCurve) {
     return p.blackCurve.a * (1 - exp(-p.blackCurve.k * w / p.blackCurve.a)) / p.blackCurve.k;
   }
   if (p.blackCubic !== undefined) {
-    return w - p.blackCubic * w * w * (1 - w);
+    let a = vtype === 'achromatic' && p.blackCubicAchromatic !== undefined ? p.blackCubicAchromatic : p.blackCubic;
+    return w - a * w * w * (1 - w);
   }
   return w;
 }
@@ -873,6 +875,9 @@ function plotSettings(opts) {
     target: 0.95,
     // Black curve a: black's weight w plots at w - a w^2 (1 - w) (Jeff, 2026-09-29).
     blackCubic: 1.2,
+    // Achromatic a: the paper is already lighter than the screen at the dark end
+    // there, so black gets no cut (Jeff, 2026-09-29).
+    blackCubicAchromatic: 0,
     // Mix ease b: a bar's target becomes target * (1 - b X), X its mix index (Jeff, 2026-09-29).
     mixEase: 0.1,
     // Weights below this are float dust, not a pen.
@@ -890,6 +895,7 @@ function plotSettings(opts) {
   if (opts) {
     p.angles[4] = o === 0 ? 0 : 90;
     delete p.blackCubic;
+    delete p.blackCubicAchromatic;
     delete p.mixEase;
   }
   // Screen-model fork: opts = { mode: 'current' | 'screen', blackAngle,
@@ -916,6 +922,11 @@ function plotSettings(opts) {
   // Black's weight into the solve becomes s - a s^2 (1 - s); a = 0 is current.
   if (opts && opts.blackCubic !== undefined && opts.blackCubic !== null) {
     p.blackCubic = opts.blackCubic;
+  }
+  // Achromatic cubic (2026-09-29): opts.blackCubicAchromatic replaces a on
+  // achromatic tokens; the program-default preset passes the program's.
+  if (opts && opts.blackCubicAchromatic !== undefined && opts.blackCubicAchromatic !== null) {
+    p.blackCubicAchromatic = opts.blackCubicAchromatic;
   }
   // Mix ease (2026-09-29): opts.mixEase = b in 0..1, current mode only. A
   // bar's coverage target becomes target * (1 - b X), X its mix index.
@@ -1015,7 +1026,7 @@ function buildSVG(k, opts) {
       extra += '\n     data-phase="' + p.phase + '"';
     }
     if (p.blackCubic !== undefined && k === 8) {
-      extra += '\n     data-black-cubic="w - ' + p.blackCubic + ' * w^2 * (1 - w)"';
+      extra += '\n     data-black-cubic="w - ' + (vtype === 'achromatic' && p.blackCubicAchromatic !== undefined ? p.blackCubicAchromatic : p.blackCubic) + ' * w^2 * (1 - w)"';
     }
     if (p.mixEase) {
       extra += '\n     data-mix-ease="target * (1 - ' + p.mixEase + ' * X)"';
