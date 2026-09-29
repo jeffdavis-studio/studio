@@ -174,6 +174,13 @@ every record before 09-22 use the old ids.
   placeholders. draw() and
   the plot both read bx / bw, each band's start and width as fractions of a
   step. `$features` reports it as Layout.
+- Band floor (09-29): no plotted band is narrower than 3.88 mm, the largest
+  floor every even layout clears (279.4 / 24 steps / 3, from plotter day
+  09-25). `wmax`, the side the steps divide over s over 3.88 rounded down, is
+  the largest width sum a step can carry; varied re-draws until its widths sum
+  to at most wmax, and where wmax is under 4 (20H, 24H, 24V) the token is
+  even. So 10H and 12V stop at sum 7, 12H at 6, 16V at 5, 16H and 20V keep
+  only 1:1:2; 8 steps or fewer are unchanged.
 - Hue variants (09-25, 3% each for now): analogous (a 60-degree band running
   either way from the first anchor's hue; one random anchor pinned to the far
   end and the rest free inside, so the spread is always exactly 60, which

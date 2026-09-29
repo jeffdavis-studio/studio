@@ -85,6 +85,14 @@ function setup() {
     }
     l -= layouts[i].p;
   }
+  // wmax is the largest width sum a step can carry over the 3.88 mm band floor
+  // from plotter day 2026-09-25, the largest floor every even layout clears
+  // (279.4 / 24 / 3). Under 4 no varied ratio fits, so the token is even.
+  let wmax = floor((o === 0 ? 355.6 : 279.4) / s / 3.88);
+  if (wmax < 4) {
+    ltype = 'even';
+    ranges = [[1, 1], [1, 1], [1, 1]];
+  }
   print('variant: ' + vtype);
   print('layout: ' + ltype);
   print('bars: ' + 3 * s);
@@ -127,8 +135,10 @@ function setup() {
   for (let j = 0; j < 3; j++) {
     widths[j] = R.random_int(ranges[j][0], ranges[j][1]);
   }
-  // Varied: at least one band is 1, and the bands are not all the same.
-  while (ltype === 'varied' && (min(widths) > 1 || (widths[0] === widths[1] && widths[1] === widths[2]))) {
+  // Varied: at least one band is 1, the bands are not all the same, and they
+  // sum to at most wmax.
+  while (ltype === 'varied' && (min(widths) > 1 || (widths[0] === widths[1] && widths[1] === widths[2]) ||
+    widths[0] + widths[1] + widths[2] > wmax)) {
     for (let j = 0; j < 3; j++) {
       widths[j] = R.random_int(ranges[j][0], ranges[j][1]);
     }
