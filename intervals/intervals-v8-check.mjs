@@ -125,8 +125,8 @@ try {
   }));
   const want = {
     imgw: '355.6', imgh: '279.4', docw: String(DOC_W), doch: String(DOC_H), spacing: '0.45', lw: '0.45',
-    gap: '0', inset: '0.225', angles: '[22.5, 67.5, 112.5, 157.5, o === 0 ? 0 : 90]', target: '0.95', eps: '0.001',
-    vdraw: '66.7', vtravel: '133.3', tseg: '0.13'
+    gap: '0', inset: '0.225', angles: '[22.5, 67.5, 112.5, 157.5, 45]', target: '0.95', eps: '0.001',
+    blackCubic: '1.2', mixEase: '0.1', vdraw: '66.7', vtravel: '133.3', tseg: '0.13'
   };
   for (const name of Object.keys(want)) {
     check(local(name) === want[name], 'buildSVG() declares ' + name + ' = ' + want[name] + ' (got ' + local(name) + ')');
@@ -183,8 +183,8 @@ try {
     check(black.length === 1 && attr(black[0].content, 'data-pen') === 'Black',
       'the token has black, and ink9 is the Black pen');
     if (black.length) {
-      check(attr(black[0].content, 'data-angles') === String(o0 === 0 ? 0 : 90),
-        'black hatches perpendicular to the bars (' + (o0 === 0 ? '0 across vertical bars' : '90 across horizontal bars') + ')');
+      check(attr(black[0].content, 'data-angles') === '45',
+        'black hatches at 45 across ' + (o0 === 0 ? 'vertical' : 'horizontal') + ' bars (Jeff, 2026-09-29)');
     }
   }
   check(files.every(f => new RegExp('<g stroke="' + STROKES[f.ink] + '" stroke-width="0.45" stroke-linecap="butt">', 'i').test(f.content)),
