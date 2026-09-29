@@ -1,3 +1,7 @@
+// VIRTUAL-PLOTTER FORK of intervals/Intervals_v8.js. Tracks the program at
+// jeffdavis-studio/studio 2cbcf11 (band floor 84cebc4, plot constants 097ff88).
+// With no opts it draws what the program draws, byte for byte; everything
+// else here is opts plumbing and the tool's methods. Re-sync: see README.md.
 let R, w, h, o, s, vtype, ltype, amin, amax, pwhite, adir, aend, bx, bw, c, inks, inkh;
 let lmin = 5;
 let aspan = 75;
@@ -85,6 +89,14 @@ function setup() {
     }
     l -= layouts[i].p;
   }
+  // wmax is the largest width sum a step can carry over the 3.88 mm band floor
+  // from plotter day 2026-09-25, the largest floor every even layout clears
+  // (279.4 / 24 / 3). Under 4 no varied ratio fits, so the token is even.
+  let wmax = floor((o === 0 ? 355.6 : 279.4) / s / 3.88);
+  if (wmax < 4) {
+    ltype = 'even';
+    ranges = [[1, 1], [1, 1], [1, 1]];
+  }
   print('variant: ' + vtype);
   print('layout: ' + ltype);
   print('bars: ' + 3 * s);
@@ -127,8 +139,10 @@ function setup() {
   for (let j = 0; j < 3; j++) {
     widths[j] = R.random_int(ranges[j][0], ranges[j][1]);
   }
-  // Varied: at least one band is 1, and the bands are not all the same.
-  while (ltype === 'varied' && (min(widths) > 1 || (widths[0] === widths[1] && widths[1] === widths[2]))) {
+  // Varied: at least one band is 1, the bands are not all the same, and they
+  // sum to at most wmax.
+  while (ltype === 'varied' && (min(widths) > 1 || (widths[0] === widths[1] && widths[1] === widths[2]) ||
+    widths[0] + widths[1] + widths[2] > wmax)) {
     for (let j = 0; j < 3; j++) {
       widths[j] = R.random_int(ranges[j][0], ranges[j][1]);
     }
@@ -853,11 +867,14 @@ function plotSettings(opts) {
     gap: 0,
     inset: 0.225,
     // Hatch angle by slot: a ramp's start anchor owns slots 1-2, its end 3-4.
-    // Slot 5 is black, for now perpendicular to the bars: 0 across vertical
-    // bars, 90 across horizontal ones.
-    angles: [22.5, 67.5, 112.5, 157.5, o === 0 ? 0 : 90],
+    // Slot 5 is black, at 45 across either bar axis (Jeff, 2026-09-29).
+    angles: [22.5, 67.5, 112.5, 157.5, 45],
     // A bar of ink share W prints at W * target; 0.95 is this project's 100%.
     target: 0.95,
+    // Black curve a: black's weight w plots at w - a w^2 (1 - w) (Jeff, 2026-09-29).
+    blackCubic: 1.2,
+    // Mix ease b: a bar's target becomes target * (1 - b X), X its mix index (Jeff, 2026-09-29).
+    mixEase: 0.1,
     // Weights below this are float dust, not a pen.
     eps: 0.001,
     // Time estimate only, fitted on the 2026-09-02 calibration plot: mm/s
@@ -866,6 +883,15 @@ function plotSettings(opts) {
     vtravel: 133.3,
     tseg: 0.13
   };
+  // Fork options start from the export as it stood before the program took
+  // Jeff's constants (black perpendicular to the bars, no cubic, no mix ease):
+  // methods 1-6 were defined and measured on that, and the program-default
+  // preset passes all three itself. No opts is the program as it is.
+  if (opts) {
+    p.angles[4] = o === 0 ? 0 : 90;
+    delete p.blackCubic;
+    delete p.mixEase;
+  }
   // Screen-model fork: opts = { mode: 'current' | 'screen', blackAngle,
   // window: { x, y, w, h } in composition mm }. No opts is the pushed export.
   let mode = 'current';
