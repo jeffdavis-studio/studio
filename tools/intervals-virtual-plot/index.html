@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Intervals v8 — virtual plotter</title>
+<style>
+  :root { --paper: #f7f5ef; --ink: #1d1d1b; --mute: #6b6a66; --line: #d9d6cc; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #ecebe6; color: var(--ink); font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif; }
+  .p5Canvas, main { display: none !important; }
+  header { padding: 12px 16px 6px; }
+  h1 { font-size: 17px; margin: 0 0 2px; }
+  .sub { color: var(--mute); font-size: 12.5px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: flex-end; padding: 8px 16px 12px; border-bottom: 1px solid var(--line); background: #f4f3ee; }
+  .ctl { display: flex; flex-direction: column; gap: 3px; flex: 0 0 auto; }
+  .ctl label { font-size: 11.5px; color: var(--mute); text-transform: uppercase; letter-spacing: .04em; }
+  .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; flex: 0 0 auto; max-width: calc(100vw - 32px); }
+  input[type=text] { width: 250px; max-width: 58vw; font: 12px ui-monospace, Menlo, monospace; padding: 5px 6px; border: 1px solid #bbb; border-radius: 4px; }
+  input[type=number] { width: 58px; padding: 4px 5px; border: 1px solid #bbb; border-radius: 4px; }
+  select { padding: 4px 5px; border: 1px solid #bbb; border-radius: 4px; background: #fff; font-size: 13px; }
+  button { padding: 5px 10px; border: 1px solid #aaa; border-radius: 4px; background: #fff; font-size: 13px; cursor: pointer; }
+  button.primary { background: #1d1d1b; color: #fff; border-color: #1d1d1b; }
+  button.on { background: #1d1d1b; color: #fff; }
+  input[type=range] { width: 150px; }
+  #thumbWrap { padding: 10px 16px 0; display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+  #thumb { width: 356px; height: 279px; flex: 0 0 356px; cursor: crosshair; border: 1px solid var(--line); background: var(--paper); }
+  #tokinfo { font-size: 12.5px; color: var(--mute); max-width: 520px; flex: 1 1 300px; }
+  #status { padding: 6px 16px; font-size: 12.5px; color: var(--mute); min-height: 26px; }
+  #stage { display: flex; flex-wrap: wrap; gap: 20px; padding: 6px 16px 40px; align-items: flex-start; }
+  .panel { flex: 0 0 auto; display: flex; flex-direction: column; gap: 6px; }
+  .panel h2 { font-size: 13.5px; margin: 0; }
+  .panel canvas { display: block; background: var(--paper); box-shadow: 0 0 0 1px var(--line); }
+  table.read { border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
+  table.read td, table.read th { padding: 2px 8px 2px 0; text-align: left; vertical-align: top; }
+  table.read th { color: var(--mute); font-weight: 500; }
+  .sw { display: inline-block; width: 11px; height: 11px; vertical-align: -1px; border: 1px solid rgba(0,0,0,.15); margin-right: 3px; }
+  .note { font-size: 12px; color: var(--mute); max-width: 720px; }
+  #calib { display: none; position: fixed; left: 50%; top: 80px; transform: translateX(-50%); background: #fff; border: 1px solid #999; border-radius: 6px; padding: 14px 16px; z-index: 5; width: 520px; box-shadow: 0 6px 30px rgba(0,0,0,.2); }
+  #card { height: 54px; background: #c9d6e8; border: 1px solid #6b7fa0; border-radius: 4px; margin: 10px 0; }
+  details { padding: 0 16px 30px; max-width: 900px; }
+  details p, details li { font-size: 13px; }
+  #alltable { padding: 0 16px 30px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Intervals v8 — virtual plotter</h1>
+  <div class="sub">The export's own lines, drawn the way the pen lays them: 0.45 mm nib, round caps, inks multiplied over paper #f7f5ef. Render a bar, compare two methods, read the evenness numbers. Nothing here changes the artwork.</div>
+</header>
+
+<div class="controls">
+  <div class="ctl"><label>Token hash</label>
+    <div class="row"><input type="text" id="hash" spellcheck="false"><button id="rand">Random</button><button id="cmp">8e98544e</button></div></div>
+  <div class="ctl"><label>Method</label>
+    <div class="row"><select id="mA"></select></div></div>
+  <div class="ctl"><label>Side by side with</label>
+    <div class="row"><select id="mB"></select></div></div>
+  <div class="ctl" id="biasCtl"><label>Bias (method 6): <span id="biasV">0.50</span></label>
+    <div class="row"><span class="sub">even</span><input type="range" id="bias" min="0" max="1" step="0.05" value="0.5"><span class="sub">concentrated</span></div></div>
+  <div class="ctl"><label>Bars</label>
+    <div class="row">bar <input type="number" id="bar" min="1" value="36"> ± <select id="nb"><option>0</option><option selected>1</option><option>2</option><option>3</option></select></div></div>
+  <div class="ctl"><label>Length along the bar</label>
+    <div class="row"><select id="len"><option value="0">whole</option><option value="120">120 mm</option><option value="60" selected>60 mm</option><option value="30">30 mm</option></select>
+    <input type="range" id="pos" min="0" max="1" step="0.01" value="0.5" title="where along the bar"></div></div>
+  <div class="ctl"><label>Zoom (physical)</label>
+    <div class="row"><button class="z on" data-z="1">1:1</button><button class="z" data-z="2">2×</button><button class="z" data-z="4">4×</button>
+    <span class="sub" id="ppiLabel"></span><button id="calBtn">calibrate</button></div></div>
+  <div class="ctl"><label>&nbsp;</label>
+    <div class="row"><button class="primary" id="go">Render bars</button><button id="whole">Whole token</button><button id="all">Measure all bars</button><button id="save">Save PNG</button></div></div>
+</div>
+
+<div id="thumbWrap"><canvas id="thumb" width="712" height="558" title="click a bar"></canvas><div id="tokinfo"></div></div>
+<div id="status"></div>
+<div id="stage"></div>
+<div id="alltable"></div>
+
+<div id="calib">
+  <b>Calibrate 1:1</b>
+  <div class="note">Hold a credit card (85.6 mm wide) against the screen and nudge until the blue bar matches its width. Saved on this device.</div>
+  <div id="card"></div>
+  <div class="row"><button id="ppiM5">−5</button><button id="ppiM">−1</button><span id="ppiNow"></span><button id="ppiP">+1</button><button id="ppiP5">+5</button><button id="calDone" class="primary">Done</button></div>
+</div>
+
+<details>
+  <summary><b>The six methods, the quantization rule, and what this can't show</b></summary>
+  <ol>
+    <li><b>current, black 45.</b> The pushed export: each anchor's two inks on their own grids at 22.5 / 67.5 (start anchor) and 112.5 / 157.5 (end anchor), densities solved so the bar lands on its tone; black on its own grid, turned to 45.</li>
+    <li><b>current + black curve 1.85.</b> Same, with black's line count thinned to a footprint of 1 − exp(−1.85 × share), because 0.45 mm black lines cover about 1.85× their share. Only black changes.</li>
+    <li><b>black in the slots.</b> No black grid. Each shaded anchor's two grids are solved on its whole inked share, and black takes the anchor's shade fraction of those grids' lines as a Euclidean rhythm.</li>
+    <li><b>screen, round robin.</b> The 9/26 screen model Jeff saw: four equal grids per bar, every pen spread over all four by a smooth weighted round robin. Shares are right on average, but a pen's lines on a grid are unevenly spaced.</li>
+    <li><b>screen EVEN.</b> Four grids at one pitch, and every pen on a grid takes one residue class of one stride (every s-th line), so its lines are always exactly evenly spaced. Shares are quantized to what the stride layouts can make.</li>
+    <li><b>screen EVEN + bias.</b> The same stride rule with the grids' pitches free. Bias 0 is method 5; bias 1 puts each pen on as few grids as the pen count allows (four pens: one grid each, the overprint; one pen: four grids; black shares the grids its shaded anchor's inks hold).</li>
+  </ol>
+  <p><b>Quantization rule (5 and 6).</b> A grid's lines are split among its pens by one of eleven exact covers: 1; ½ ½; ½ ¼ ¼; ⅓ ⅓ ⅓; ¼ ¼ ¼ ¼; ½ ¼ ⅛ ⅛; ⅓ ⅓ ⅙ ⅙; ½ ⅙ ⅙ ⅙; ¼ ¼ ¼ ⅛ ⅛; ½ ⅛ ⅛ ⅛ ⅛; ⅓ ⅙ ⅙ ⅙ ⅙. A pen with share 1/s takes lines r, r+s, r+2s… The grid's line count is nudged to the nearest multiple of its largest stride so every class has exactly n/s lines. A pen's strides on its grids must divide one another (pitch P, 2P, 4P, never 2P against 3P). Per bar, the layout is the one with the smallest squared share error, then, by bias, the most spread (bias 0) or the most concentrated (bias 1); sparse strides cost a little. At bias 0 all four grids share one pitch, so the share error is the price: up to about 0.06 on a bar. As bias rises the grid weights float and the error falls to about 0.015 on five-pen bars and 0 on bars of four pens or fewer.</p>
+  <p><b>Evenness.</b> The bar alone at 20 px/mm; 1 mm tiles of linear luminance (whole mm across the bar, 1 mm dropped at each end); sd and the 5–95 spread over the tiles, the black-angles sheet's measure. Lower is more even. On light bars the line pitch is near 1 mm, so a tile holds one line or two by phase and the number runs high for every method; compare methods on the same bar, not bars with each other.</p>
+  <p><b>Can't show.</b> Pen blot at each line's start and stop, paper bleed and feathering, a pen crossing its own lines (drawn as one path, so it never darkens itself; real ink does a little), ink colors beyond the pen table's hex, nib wear, and plotter backlash. Tone is the rendered coverage; the artwork's color is a Lab lerp, so the L* pair shows how far the plot sits from the screen image, not an error in the plot.</p>
+</details>
+
+<script>let tokenData = { hash: '0x8e98544e589386e90f68a7e9d95fe7bba8ea580bfa3a9cd5ec1822d0d40a7ef1', tokenId: '4' };</script>
+<script src="p5.min.js"></script>
+<script src="Intervals_v8_virtual.js"></script>
+<script src="vplot.js"></script>
+<script>
+(function () {
+  const $ = id => document.getElementById(id);
+  const DEF = '0x8e98544e589386e90f68a7e9d95fe7bba8ea580bfa3a9cd5ec1822d0d40a7ef1';
+  const MAXAREA = 16e6, MAXSIDE = 16000;
+  let T = null, zoom = 1, lastCanvases = [];
+  const ua = navigator.userAgent;
+  const guessPPI = /iPhone/.test(ua) ? 153 : (/iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) ? 132 : 127;
+  let ppi = +(localStorage.getItem('vplot-ppi') || guessPPI);
+  const status = t => { $('status').textContent = t; };
+  const tick = () => new Promise(r => setTimeout(r, 0));
+  const Lstar = Y => { const f = Y > 0.008856 ? Math.cbrt(Y) : 7.787 * Y + 16 / 116; return 116 * f - 16; };
+  const lin = v => { v /= 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+  const rgbCss = a => `rgb(${a.map(v => Math.round(v)).join(',')})`;
+
+  function methodOpts(id) { const m = VP.METHODS.find(x => x.id === +id); return m.opts(+$('bias').value); }
+  function methodName(id) { const m = VP.METHODS.find(x => x.id === +id); return m.id + '. ' + m.name + (m.id === 6 ? ' (bias ' + (+$('bias').value).toFixed(2) + ')' : ''); }
+
+  function fillSelects() {
+    for (const sel of [$('mA'), $('mB')]) {
+      if (sel === $('mB')) sel.add(new Option('— none —', '0'));
+      for (const m of VP.METHODS) sel.add(new Option(m.id + '. ' + m.name, m.id));
+    }
+    $('mA').value = '4'; $('mB').value = '5';
+  }
+
+  function drawThumb() {
+    const cv = $('thumb'), g = cv.getContext('2d'), k = cv.width / T.imgw;
+    g.fillStyle = VP.PAPER; g.fillRect(0, 0, cv.width, cv.height);
+    for (const b of T.bars) { g.fillStyle = rgbCss(b.rgb); g.fillRect(b.box.x * k, b.box.y * k, b.box.w * k + 0.5, b.box.h * k + 0.5); }
+    const sel = selBars();
+    g.strokeStyle = '#d0021b'; g.lineWidth = 3;
+    const r = unionBox(sel);
+    g.strokeRect(r.x * k + 1.5, r.y * k + 1.5, r.w * k - 3, r.h * k - 3);
+    const reg = region();
+    if (reg) { g.strokeStyle = '#fff'; g.lineWidth = 2; g.setLineDash([6, 4]); g.strokeRect(reg.x * k, reg.y * k, reg.w * k, reg.h * k); g.setLineDash([]); }
+  }
+
+  function loadHash(h) {
+    if (!/^0x[0-9a-fA-F]{64}$/.test(h)) { status('That is not a 0x + 64 hex hash.'); return false; }
+    T = VP.loadToken(h.toLowerCase(), 1);
+    $('hash').value = h.toLowerCase();
+    $('bar').max = T.bars.length;
+    if (+$('bar').value > T.bars.length) $('bar').value = T.bars.length;
+    $('tokinfo').innerHTML = `<b>${h.slice(0, 10)}</b> · ${T.vtype} · ${T.ltype} · ${T.o === 0 ? 'vertical' : 'horizontal'} bars · ${T.bars.length} bars, numbered 1–${T.bars.length} ${T.o === 0 ? 'left to right' : 'top to bottom'} as viewed. Click a bar in the thumbnail to pick it.`;
+    drawThumb();
+    return true;
+  }
+
+  function selBars() {
+    const n = Math.min(Math.max(1, +$('bar').value || 1), T.bars.length), k = +$('nb').value;
+    return T.bars.filter(b => b.n >= n - k && b.n <= n + k);
+  }
+  function unionBox(bs) {
+    const x0 = Math.min(...bs.map(b => b.box.x)), y0 = Math.min(...bs.map(b => b.box.y));
+    const x1 = Math.max(...bs.map(b => b.box.x + b.box.w)), y1 = Math.max(...bs.map(b => b.box.y + b.box.h));
+    return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+  }
+  // The rendered stretch, composition mm: the picked bars, cut along their length.
+  function region(maxLen) {
+    const r = unionBox(selBars());
+    let len = +$('len').value || (T.o === 0 ? r.h : r.w);
+    if (maxLen) len = Math.min(len, maxLen);
+    const full = T.o === 0 ? r.h : r.w;
+    len = Math.min(len, full);
+    const at = (full - len) * +$('pos').value;
+    return T.o === 0 ? { x: r.x, y: r.y + at, w: r.w, h: len } : { x: r.x + at, y: r.y, w: len, h: r.h };
+  }
+
+  function sizeFor(reg) {
+    const dpr = window.devicePixelRatio || 1;
+    const css = ppi / 25.4 * zoom;
+    return { css, S: css * dpr, dpr };
+  }
+
+  function penList(pl) {
+    return pl.map(p => `<span class="sw" style="background:${p.hex}"></span>${p.name}`).join(' &nbsp;');
+  }
+
+  function layoutRows(id, bar) {
+    const o = methodOpts(id);
+    if (o.mode !== 'even' && o.mode !== 'screen') return '';
+    const p = plotSettings(o);
+    const plan = o.mode === 'even' ? evenPlan(p) : screenPlan(p);
+    const b = plan.find(x => 3 * x.i + x.j + 1 === bar.n);
+    if (!b || !b.pens.length) return '';
+    const nm = b.pens.map(k => pens[k].name);
+    let sh = nm.map((n, q) => `${n} ${b.share[q].toFixed(2)}${b.got && b.got.length ? '→' + b.got[q].toFixed(2) : ''}`).join(', ');
+    let gr = '';
+    if (o.mode === 'even') {
+      const frac = s => ({ 1: '1', 2: '½', 3: '⅓', 4: '¼', 6: '⅙', 8: '⅛' })[s];
+      gr = b.grids.slice().sort((a, c) => a.angle - c.angle).map(g => `${g.angle}°: n ${g.n} — ` + g.stride.map((s, q) => s ? `${nm[q]} ${frac(s)}` : '').filter(Boolean).join(', ')).join('<br>');
+    } else {
+      gr = b.grids.map(g => `${g.angle}°: n ${g.n}`).join(' · ');
+    }
+    return `<tr><th>shares</th><td>${sh}</td></tr><tr><th>grids</th><td>${gr}</td></tr>`;
+  }
+
+  async function renderBars() {
+    if (!T) return;
+    const ids = [$('mA').value, $('mB').value].filter(v => +v > 0);
+    const t0 = performance.now();
+    status('Building lines…'); await tick();
+    let reg = region();
+    let { css, S } = sizeFor(reg);
+    let crop = '';
+    const fits = r => r.w * S * r.h * S <= MAXAREA && Math.max(r.w, r.h) * S <= MAXSIDE;
+    if (!fits(reg)) {
+      const across = T.o === 0 ? reg.w : reg.h;
+      const maxLen = Math.floor(Math.min(MAXAREA / (S * S * across), MAXSIDE / S));
+      reg = region(maxLen);
+      crop = ` Cut to ${maxLen} mm along the bar to fit the canvas limit at this zoom.`;
+    }
+    drawThumb();
+    const stage = $('stage'); stage.innerHTML = ''; lastCanvases = [];
+    for (const id of ids) {
+      const o = methodOpts(id);
+      const pl = VP.lines(o, reg);
+      const panel = document.createElement('div'); panel.className = 'panel';
+      const cv = document.createElement('canvas');
+      cv.width = Math.round(reg.w * S); cv.height = Math.round(reg.h * S);
+      cv.style.width = (cv.width / S * css).toFixed(1) + 'px'; cv.style.height = (cv.height / S * css).toFixed(1) + 'px';
+      VP.paint(cv.getContext('2d'), pl, reg, S);
+      lastCanvases.push({ cv, name: methodName(id) });
+      // Readout per bar: evenness over the whole bar, tone, segments in view.
+      let rows = '';
+      for (const b of selBars()) {
+        const me = VP.measure(b, o, null);
+        const segs = pl.reduce((a, p) => a + (p.perBar[b.n] || 0), 0);
+        rows += `<tr><td><span class="sw" style="background:${rgbCss(b.rgb)}"></span><b>bar ${b.n}</b></td>` +
+          (me ? `<td>sd <b>${me.sd.toFixed(3)}</b></td><td>5–95 <b>${me.spread.toFixed(3)}</b></td><td>L* plot ${Lstar(me.lum).toFixed(0)} · art ${Lstar(VP.lumOf(b.rgb)).toFixed(0)}</td>` : '<td colspan=3>too small to tile</td>') +
+          `<td>${segs} lines in view</td></tr>`;
+      }
+      const bar = T.bars[Math.min(Math.max(1, +$('bar').value), T.bars.length) - 1];
+      const lay = layoutRows(id, bar);
+      panel.innerHTML = `<h2>${methodName(id)}</h2><table class="read">${rows}</table>` +
+        (lay ? `<table class="read"><tr><th colspan=2>bar ${bar.n} layout</th></tr>${lay}</table>` : '') +
+        `<div class="note">${penList(pl)}</div>`;
+      panel.appendChild(cv);
+      stage.appendChild(panel);
+      await tick();
+    }
+    const mm = T.o === 0 ? reg.h : reg.w;
+    status(`Rendered ${mm.toFixed(0)} mm of bar${selBars().length > 1 ? 's' : ''} ${selBars().map(b => b.n).join(', ')} at ${zoom === 1 ? '1:1' : zoom + '×'} (${ppi} px/in, ${S.toFixed(1)} device px/mm) in ${((performance.now() - t0) / 1000).toFixed(1)} s.${crop}`);
+  }
+
+  async function renderWhole() {
+    if (!T) return;
+    const ids = [$('mA').value, $('mB').value].filter(v => +v > 0);
+    const stage = $('stage'); stage.innerHTML = ''; lastCanvases = [];
+    const dpr = window.devicePixelRatio || 1;
+    const avail = Math.max(320, (ids.length > 1 && window.innerWidth > 1300 ? (window.innerWidth - 60) / 2 : window.innerWidth - 40));
+    const cssPerMm = avail / T.imgw;
+    // At least 8 px/mm so a pinch or browser zoom still resolves lines; 12 caps the canvas.
+    const S = Math.min(12, Math.max(8, cssPerMm * dpr));
+    const reg = { x: 0, y: 0, w: T.imgw, h: T.imgh };
+    const t0 = performance.now();
+    for (const id of ids) {
+      status(`Whole token, ${methodName(id)}: building lines…`); await tick();
+      const pl = VP.lines(methodOpts(id), null);
+      status(`Whole token, ${methodName(id)}: painting ${pl.reduce((a, p) => a + p.lines.length, 0).toLocaleString()} lines…`); await tick();
+      const cv = document.createElement('canvas');
+      cv.width = Math.round(T.imgw * S); cv.height = Math.round(T.imgh * S);
+      cv.style.width = (T.imgw * cssPerMm).toFixed(0) + 'px'; cv.style.height = (T.imgh * cssPerMm).toFixed(0) + 'px';
+      VP.paint(cv.getContext('2d'), pl, reg, S);
+      const panel = document.createElement('div'); panel.className = 'panel';
+      panel.innerHTML = `<h2>${methodName(id)} — whole token</h2><div class="note">${penList(pl)}</div>`;
+      panel.appendChild(cv); stage.appendChild(panel);
+      lastCanvases.push({ cv, name: methodName(id) + ' whole' });
+      await tick();
+    }
+    status(`Whole token at ${S.toFixed(1)} device px/mm, an overview: below about 10 px/mm the 0.45 mm lines blur, so judge hatching in the bar view. ${((performance.now() - t0) / 1000).toFixed(1)} s.`);
+  }
+
+  async function measureAll() {
+    if (!T) return;
+    const ids = [$('mA').value, $('mB').value].filter(v => +v > 0);
+    const res = {};
+    for (const id of ids) {
+      res[id] = [];
+      for (const b of T.bars) {
+        if (b.n % 6 === 1) { status(`Measuring ${methodName(id)}: bar ${b.n} of ${T.bars.length}…`); await tick(); }
+        res[id].push(VP.measure(b, methodOpts(id), null));
+      }
+    }
+    const med = a => { const s = a.filter(v => v != null).sort((x, y) => x - y); return s[Math.floor(s.length / 2)]; };
+    let h = `<table class="read"><tr><th>bar</th><th></th>${ids.map(id => `<th colspan=2>${methodName(id)}</th>`).join('')}</tr><tr><th></th><th></th>${ids.map(() => '<th>sd</th><th>5–95</th>').join('')}</tr>`;
+    h += `<tr><td><b>median</b></td><td></td>${ids.map(id => `<td><b>${med(res[id].map(m => m && m.sd)).toFixed(3)}</b></td><td><b>${med(res[id].map(m => m && m.spread)).toFixed(3)}</b></td>`).join('')}</tr>`;
+    for (const b of T.bars) h += `<tr><td>${b.n}</td><td><span class="sw" style="background:${rgbCss(b.rgb)}"></span></td>${ids.map(id => { const m = res[id][b.n - 1]; return m ? `<td>${m.sd.toFixed(3)}</td><td>${m.spread.toFixed(3)}</td>` : '<td>–</td><td>–</td>'; }).join('')}</tr>`;
+    $('alltable').innerHTML = `<h2 style="font-size:14px">Evenness, every bar (${T.hash.slice(0, 10)})</h2>` + h + '</table>';
+    status('Measured every bar. The table is below the render.');
+  }
+
+  function savePNG() {
+    for (const { cv, name } of lastCanvases) {
+      const a = document.createElement('a');
+      a.download = `intervals-${T.hash.slice(2, 10)}-${name.replace(/[^a-z0-9]+/gi, '-')}.png`;
+      a.href = cv.toDataURL('image/png'); document.body.appendChild(a); a.click(); a.remove();
+    }
+  }
+
+  function showPPI() {
+    $('ppiLabel').textContent = ppi + ' px/in';
+    $('ppiNow').textContent = ' ' + ppi + ' px/in ';
+    $('card').style.width = (85.6 / 25.4 * ppi).toFixed(1) + 'px';
+  }
+
+  let deb = null;
+  const soon = () => { clearTimeout(deb); deb = setTimeout(renderBars, 250); };
+
+  function wire() {
+    fillSelects();
+    $('hash').value = DEF;
+    $('rand').onclick = () => { const h = '0x' + Array.from(crypto.getRandomValues(new Uint8Array(32)), b => b.toString(16).padStart(2, '0')).join(''); if (loadHash(h)) renderBars(); };
+    $('cmp').onclick = () => { if (loadHash(DEF)) renderBars(); };
+    $('hash').onchange = () => { if (loadHash($('hash').value.trim())) renderBars(); };
+    for (const id of ['mA', 'mB', 'nb', 'len', 'bar']) $(id).onchange = () => { drawThumb(); soon(); };
+    $('pos').oninput = () => { drawThumb(); soon(); };
+    $('bias').oninput = () => { $('biasV').textContent = (+$('bias').value).toFixed(2); soon(); };
+    document.querySelectorAll('button.z').forEach(b => b.onclick = () => { document.querySelectorAll('button.z').forEach(x => x.classList.remove('on')); b.classList.add('on'); zoom = +b.dataset.z; renderBars(); });
+    $('go').onclick = renderBars; $('whole').onclick = renderWhole; $('all').onclick = measureAll; $('save').onclick = savePNG;
+    $('calBtn').onclick = () => { $('calib').style.display = 'block'; showPPI(); };
+    const setP = d => { ppi = Math.max(60, Math.min(600, ppi + d)); localStorage.setItem('vplot-ppi', ppi); showPPI(); };
+    $('ppiM').onclick = () => setP(-1); $('ppiP').onclick = () => setP(1); $('ppiM5').onclick = () => setP(-5); $('ppiP5').onclick = () => setP(5);
+    $('calDone').onclick = () => { $('calib').style.display = 'none'; renderBars(); };
+    $('thumb').onclick = e => {
+      const r = $('thumb').getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width * T.imgw, y = (e.clientY - r.top) / r.height * T.imgh;
+      const b = T.bars.find(b => x >= b.box.x && x < b.box.x + b.box.w && y >= b.box.y && y < b.box.y + b.box.h);
+      if (b) { $('bar').value = b.n; drawThumb(); renderBars(); }
+    };
+    showPPI();
+    $('biasV').textContent = (+$('bias').value).toFixed(2);
+  }
+
+  // p5 runs setup() on load; start once the artwork has a token.
+  function ready() {
+    if (typeof s !== 'number') { setTimeout(ready, 30); return; }
+    window.keyPressed = undefined;
+    window.print = () => {};
+    wire();
+    const q = new URLSearchParams(location.search);
+    const h = q.get('hash');
+    loadHash(h && /^0x[0-9a-fA-F]{64}$/.test(h) ? h : DEF);
+    if (q.get('bar')) $('bar').value = q.get('bar');
+    if (q.get('a')) $('mA').value = q.get('a');
+    if (q.get('b')) $('mB').value = q.get('b');
+    if (q.get('bias')) { $('bias').value = q.get('bias'); $('biasV').textContent = (+$('bias').value).toFixed(2); }
+    drawThumb();
+    renderBars();
+  }
+  window.addEventListener('load', ready);
+})();
+</script>
+</body>
+</html>
