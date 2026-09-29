@@ -191,6 +191,8 @@ every record before 09-22 use the old ids.
   anchor's and re-draw them on every draw, so a lightness re-draw can move.
 - Achromatic (09-25, 3%): no ink; each anchor is a gray, a black share from
   0.10 to 0.90 over paper, so the token plots with the black pen alone.
+- Achromatic black cubic (09-29): a = 0 there, 1.2 elsewhere. The paper already
+  plots lighter than the screen at the dark end (be9246d1 median +12.4 L*).
 - Candidate variants, none built: black bar, eliminate tints.
 
 ## Plot order and time

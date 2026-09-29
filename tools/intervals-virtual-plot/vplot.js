@@ -36,9 +36,9 @@
   const curveLabel = (curve, a, b) => (curve === 'none' ? 'current, black 45' : curve === 'exp' ? 'curve 1.85' : 'cubic a=' + String(+(+a).toFixed(2))) + (b > 0 ? ' + mix ease ' + String(+(+b).toFixed(2)) : '');
 
   // The main program's plot constants (2026-09-29), read from intervals/Intervals_v8.js
-  // itself (buildSVG's blackCubic, mixEase and black's slot angle), so the
+  // itself (buildSVG's blackCubic, blackCubicAchromatic, mixEase and black's slot angle), so the
   // program-default preset draws what the program plots and the two cannot drift.
-  const PROGRAM = { ok: false, a: null, b: null, angle: null };
+  const PROGRAM = { ok: false, a: null, aAchro: null, b: null, angle: null };
   async function loadProgram(url) {
     try {
       const src = await (await fetch(url, { cache: 'no-cache' })).text();
@@ -46,15 +46,16 @@
       const num = name => { const m = new RegExp('^\\s+' + name + ': ([\\d.]+),?$', 'm').exec(plot); return m ? +m[1] : null; };
       const ang = /^\s+angles: \[([^\]]+)\],?$/m.exec(plot);
       PROGRAM.a = num('blackCubic');
+      PROGRAM.aAchro = num('blackCubicAchromatic');
       PROGRAM.b = num('mixEase');
       PROGRAM.angle = ang ? +ang[1].split(',')[4] : null;
-      PROGRAM.ok = [PROGRAM.a, PROGRAM.b, PROGRAM.angle].every(v => v !== null && isFinite(v));
+      PROGRAM.ok = [PROGRAM.a, PROGRAM.aAchro, PROGRAM.b, PROGRAM.angle].every(v => v !== null && isFinite(v));
     } catch (e) {
       PROGRAM.ok = false;
     }
     return PROGRAM;
   }
-  const programOpts = () => Object.assign(curveOpts('cubic', PROGRAM.a, PROGRAM.b), { blackAngle: PROGRAM.angle });
+  const programOpts = () => Object.assign(curveOpts('cubic', PROGRAM.a, PROGRAM.b), { blackCubicAchromatic: PROGRAM.aAchro, blackAngle: PROGRAM.angle });
 
   // Slot fill per bar for opts: { n: { owner, n, before: { owner, n }, changed } },
   // five slots each (angles in angles), and the token's plan under scope artwork.

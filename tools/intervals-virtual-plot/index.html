@@ -118,7 +118,7 @@
 
 <details>
   <summary><b>The methods, the quantization rule, and what this can't show</b></summary>
-  <p><b>0. program default.</b> What the main program, <code>intervals/Intervals_v8.js</code>, plots: current with its black cubic a, mix ease b and black angle, read from that file's plot settings when this page loads (Jeff's 9/29 values: a = 1.2, b = 0.1, black 45). Change them in the program and this preset follows. The side's boxes show it as cubic + mix ease; moving a slider leaves the preset. URL: <code>?a=p</code>.</p>
+  <p><b>0. program default.</b> What the main program, <code>intervals/Intervals_v8.js</code>, plots: current with its black cubic a (and its achromatic a), mix ease b and black angle, read from that file's plot settings when this page loads (Jeff's 9/29 values: a = 1.2, a = 0 on achromatic tokens, b = 0.1, black 45). Change them in the program and this preset follows. The side's boxes show it as cubic + mix ease; moving a slider leaves the preset. URL: <code>?a=p</code>.</p>
   <ol>
     <li><b>current, black 45.</b> The pushed export: each anchor's two inks on their own grids at 22.5 / 67.5 (start anchor) and 112.5 / 157.5 (end anchor), densities solved so the bar lands on its tone; black on its own grid, turned to 45.</li>
     <li><b>current + black curve 1.85.</b> Same, with black's line count thinned to a footprint of 1 − exp(−1.85 × share), because 0.45 mm black lines cover about 1.85× their share. Only black changes.</li>
@@ -173,7 +173,7 @@
   // Program default (2026-09-29): the constants Intervals_v8.js plots with, read from it at load.
   const P = () => VP.PROGRAM;
   const isProg = S => P().ok && side[S].curve === 'cubic' && Math.abs(side[S].a - P().a) < 1e-9 && Math.abs(side[S].b - P().b) < 1e-9;
-  const progLabel = () => P().ok ? `program default (cubic a=${P().a}, mix ease ${P().b}, black ${P().angle})` : "program default (couldn't read Intervals_v8.js)";
+  const progLabel = () => P().ok ? `program default (cubic a=${P().a}, a=${P().aAchro} on achromatic, mix ease ${P().b}, black ${P().angle})` : "program default (couldn't read Intervals_v8.js)";
   const isDig = S => $('m' + S).value === 'd';
   const active = () => ['A', 'B'].filter(S => $('m' + S).value !== '0');
   // Flip: a plot side shown as the digital render in the same place.
