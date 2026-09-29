@@ -18,15 +18,26 @@
   // Black curves for the current family (2026-09-29): black's applied weight
   // into the density solve for shade share x. none = current; exp = the 1.85
   // fork, (1 - e^(-1.85 x)) / 1.85, a footprint of 1 - e^(-1.85 x); cubic =
-  // x - a x^2 (1 - x), a in 0..1, which is current at a = 0 and 1 at x = 1.
+  // x - a x^2 (1 - x), a in 0..3, which is current at a = 0 and 1 at x = 1.
   const CURVES = {
     none: { name: 'none (current)', f: x => x, opts: () => ({}) },
     exp: { name: '1 − e^(−1.85 s)', f: x => (1 - Math.exp(-1.85 * x)) / 1.85, opts: () => ({ blackCurve: { k: 1.85, a: 1 } }) },
     cubic: { name: 'cubic', f: (x, a) => x - a * x * x * (1 - x), opts: a => ({ blackCubic: a }) }
   };
   const applied = (curve, a, x) => CURVES[curve].f(x, a);
-  const curveOpts = (curve, a) => Object.assign({ mode: 'current', blackAngle: 45 }, CURVES[curve].opts(a));
-  const curveLabel = (curve, a) => curve === 'none' ? 'current, black 45' : curve === 'exp' ? 'curve 1.85' : 'cubic a=' + String(+(+a).toFixed(2));
+  // Mix ease b (2026-09-29) rides on any curve: opts.mixEase, 0 = off.
+  const curveOpts = (curve, a, b) => Object.assign({ mode: 'current', blackAngle: 45 }, CURVES[curve].opts(a), b > 0 ? { mixEase: b } : {});
+  const curveLabel = (curve, a, b) => (curve === 'none' ? 'current, black 45' : curve === 'exp' ? 'curve 1.85' : 'cubic a=' + String(+(+a).toFixed(2))) + (b > 0 ? ' + mix ease ' + String(+(+b).toFixed(2)) : '');
+
+  // Every bar's mix index X and coverage target for opts (current family): the
+  // export's own solve, run with no ink so no lines are built. { n: { X, target, W } }.
+  function mixInfo(opts) {
+    const p = plotSettings(opts);
+    if (p.mode !== 'current') return null;
+    p.mixLog = {};
+    buildBars(-1, p);
+    return p.mixLog;
+  }
 
   function hexOf(k) {
     const pen = pens[k];
@@ -179,7 +190,13 @@
     const mean = tiles.reduce((a, b) => a + b, 0) / tiles.length;
     const sd = Math.sqrt(tiles.reduce((a, b) => a + (b - mean) * (b - mean), 0) / tiles.length);
     const p5_ = tiles[Math.floor(0.05 * tiles.length)], p95 = tiles[Math.min(tiles.length - 1, Math.floor(0.95 * tiles.length))];
-    return { tiles: tiles.length, lum: mean, sd, spread: p95 - p5_, rgb: [R / np, G / np, B / np], blackFoot };
+    // Luminance pair (2026-09-29): the plot's mean linear luminance over the
+    // tiled pixels as L*, against the digital render's L* over the same pixels.
+    // The tiles sit inside one bar, whose digital render is one flat color (p5's
+    // rounded levels), so that average is the color's own L*. delta = plot -
+    // digital; negative = paper darker.
+    const Lp = Lstar(Lsum / np), Ld = Lstar(lumOf(bar.rgb.map(Math.round)));
+    return { tiles: tiles.length, lum: mean, sd, spread: p95 - p5_, rgb: [R / np, G / np, B / np], blackFoot, Lp, Ld, dL: Lp - Ld };
   }
 
   // The artwork's own screen render of region (composition mm) at S px/mm:
@@ -213,6 +230,8 @@
 
   // Linear luminance of an sRGB triple, for the artwork's own bar color.
   const lumOf = rgb => 0.2126 * lin(rgb[0]) + 0.7152 * lin(rgb[1]) + 0.0722 * lin(rgb[2]);
+  // CIE L* of linear luminance Y (white = 1).
+  const Lstar = Y => { const f = Y > 0.008856 ? Math.cbrt(Y) : 7.787 * Y + 16 / 116; return 116 * f - 16; };
 
-  window.VP = { PAPER, NIB, METHODS, CURVES, applied, curveOpts, curveLabel, loadToken, lines, paint, paintDigital, hexRGB, hsbOf, measure, lumOf, hexOf };
+  window.VP = { PAPER, NIB, METHODS, CURVES, applied, curveOpts, curveLabel, loadToken, lines, paint, paintDigital, hexRGB, hsbOf, measure, lumOf, hexOf, Lstar, mixInfo };
 })();

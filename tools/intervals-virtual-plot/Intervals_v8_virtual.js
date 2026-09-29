@@ -424,6 +424,37 @@ function blackApplied(w, p) {
   return w;
 }
 
+// Mix index X of a bar (2026-09-29), 0..1: the share of the bar's footprint
+// that is two different color inks crossing. Color slot f (0-3) lays a grid of
+// coverage c_f = min(1, w_f m); two grids of different inks cross on
+// c_f c_g of the bar, weighted by |sin| of the angle between them:
+//   P = sum over color-slot pairs f < g with different inks of c_f c_g |sin(a_f - a_g)|
+//   X = min(1, P / (F Z)), F = the bar's footprint (W * target),
+// with Z = P / F for a balanced four-ink bar at full tone (c = 1 - 0.05^(1/4)
+// on each of the four color grids, Z = 1.412), so that bar is X = 1 and a
+// one-ink bar is 0. Black (slot 5) is left out: its crossings are the black
+// curve's to handle. Two slots of the same ink never count (a pen does not
+// darken itself).
+function mixIndex(weights, owner, m, F, p) {
+  let P = 0;
+  let zs = 0;
+  for (let f = 0; f < 4; f++) {
+    for (let g = f + 1; g < 4; g++) {
+      let sn = abs(sin((p.angles[f] - p.angles[g]) * PI / 180));
+      zs += sn;
+      if (weights[f] > p.eps && weights[g] > p.eps && owner[f] !== owner[g]) {
+        P += min(1, weights[f] * m) * min(1, weights[g] * m) * sn;
+      }
+    }
+  }
+  if (P <= 0 || F <= 0) {
+    return 0;
+  }
+  let cb = 1 - pow(1 - p.target, 0.25);
+  let Z = cb * cb * zs / p.target;
+  return min(1, P / (F * Z));
+}
+
 function buildBars(ink, p) {
   let slots = [[], [], [], [], []];
   for (let i = 0; i < s; i++) {
@@ -506,6 +537,34 @@ function buildBars(ink, p) {
         }
       }
       let m = (mlo + mhi) / 2;
+      // Mix ease (2026-09-29): X is how much of the bar is two different color
+      // inks crossing (mixIndex, below); the bar's coverage target becomes
+      // target * (1 - mixEase * X), and m is solved again on it. Pure-ink and
+      // achromatic bars have X = 0 and are untouched; mixEase 0 is current.
+      // p.mixLog, when the virtual plotter sets it, records X and the target.
+      let X = mixIndex(weights, owner, m, sum * p.target, p);
+      let tgt = p.target;
+      if (p.mixEase > 0 && X > 0) {
+        tgt = p.target * (1 - p.mixEase * X);
+        mlo = 0;
+        mhi = 64;
+        for (let k = 0; k < 50; k++) {
+          let mid = (mlo + mhi) / 2;
+          let clear = 1;
+          for (let f = 0; f < raw.length; f++) {
+            clear *= 1 - min(1, raw[f] * mid);
+          }
+          if (1 - clear < sum * tgt) {
+            mlo = mid;
+          } else {
+            mhi = mid;
+          }
+        }
+        m = (mlo + mhi) / 2;
+      }
+      if (p.mixLog) {
+        p.mixLog[3 * i + j + 1] = { X: X, target: tgt, W: sum };
+      }
       // Mechanical Drawings' line grid at the slot's angle, clipped. The grid
       // is solved on the whole box and only its drawn extent is clipped, so the
       // clip never changes ink per unit area.
@@ -641,6 +700,11 @@ function plotSettings(opts) {
   if (opts && opts.blackCubic !== undefined && opts.blackCubic !== null) {
     p.blackCubic = opts.blackCubic;
   }
+  // Mix ease (2026-09-29): opts.mixEase = b in 0..1, current mode only. A
+  // bar's coverage target becomes target * (1 - b X), X its mix index.
+  if (opts && opts.mixEase) {
+    p.mixEase = opts.mixEase;
+  }
   // Black-in-the-slots fork: opts.blackSlots = true, current mode only. No
   // black grid; black takes each shaded anchor's share of its own grids' lines.
   if (opts && opts.blackSlots) {
@@ -727,6 +791,9 @@ function buildSVG(k, opts) {
     }
     if (p.blackCubic !== undefined && k === 8) {
       extra += '\n     data-black-cubic="w - ' + p.blackCubic + ' * w^2 * (1 - w)"';
+    }
+    if (p.mixEase) {
+      extra += '\n     data-mix-ease="target * (1 - ' + p.mixEase + ' * X)"';
     }
     if (p.blackCurve && k === 8) {
       extra += '\n     data-black-curve="' + p.blackCurve.a + ' * (1 - exp(-' + p.blackCurve.k + ' * w / ' + p.blackCurve.a + ')) / ' + p.blackCurve.k + '"';
