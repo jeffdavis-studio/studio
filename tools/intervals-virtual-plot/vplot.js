@@ -15,6 +15,19 @@
     { id: 6, key: 'bias', name: 'screen EVEN + bias', opts: (b) => ({ mode: 'even', bias: b }) }
   ];
 
+  // Black curves for the current family (2026-09-29): black's applied weight
+  // into the density solve for shade share x. none = current; exp = the 1.85
+  // fork, (1 - e^(-1.85 x)) / 1.85, a footprint of 1 - e^(-1.85 x); cubic =
+  // x - a x^2 (1 - x), a in 0..1, which is current at a = 0 and 1 at x = 1.
+  const CURVES = {
+    none: { name: 'none (current)', f: x => x, opts: () => ({}) },
+    exp: { name: '1 − e^(−1.85 s)', f: x => (1 - Math.exp(-1.85 * x)) / 1.85, opts: () => ({ blackCurve: { k: 1.85, a: 1 } }) },
+    cubic: { name: 'cubic', f: (x, a) => x - a * x * x * (1 - x), opts: a => ({ blackCubic: a }) }
+  };
+  const applied = (curve, a, x) => CURVES[curve].f(x, a);
+  const curveOpts = (curve, a) => Object.assign({ mode: 'current', blackAngle: 45 }, CURVES[curve].opts(a));
+  const curveLabel = (curve, a) => curve === 'none' ? 'current, black 45' : curve === 'exp' ? 'curve 1.85' : 'cubic a=' + String(+(+a).toFixed(2));
+
   function hexOf(k) {
     const pen = pens[k];
     colorMode(HSB);
@@ -122,7 +135,27 @@
     const cv = document.createElement('canvas');
     cv.width = nx * S; cv.height = ny * S;
     const ctx = cv.getContext('2d', { willReadFrequently: true });
-    paint(ctx, pensL || lines(opts, reg), reg, S);
+    const pl = pensL || lines(opts, reg);
+    paint(ctx, pl, reg, S);
+    // Black footprint: the share of the tiled area black's own lines cover
+    // (mean alpha of black drawn alone, so antialiased edges count partly).
+    let blackFoot = 0;
+    const bp = pl.find(q => q.k === 8);
+    if (bp) {
+      const bc = document.createElement('canvas');
+      bc.width = cv.width; bc.height = cv.height;
+      const bg = bc.getContext('2d', { willReadFrequently: true });
+      bg.setTransform(S, 0, 0, S, -reg.x * S, -reg.y * S);
+      bg.strokeStyle = '#000'; bg.lineWidth = NIB; bg.lineCap = 'round'; bg.lineJoin = 'round';
+      bg.beginPath();
+      for (const l of bp.lines) { bg.moveTo(l.x1, l.y1); bg.lineTo(l.x2, l.y2); }
+      bg.stroke();
+      const bd = bg.getImageData(0, 0, bc.width, bc.height).data;
+      let asum = 0;
+      for (let i = 3; i < bd.length; i += 4) asum += bd[i];
+      blackFoot = asum / 255 / (bc.width * bc.height);
+      bc.width = 0; bc.height = 0;
+    }
     const d = ctx.getImageData(0, 0, cv.width, cv.height).data;
     const tiles = [];
     let R = 0, G = 0, B = 0, Lsum = 0;
@@ -146,11 +179,11 @@
     const mean = tiles.reduce((a, b) => a + b, 0) / tiles.length;
     const sd = Math.sqrt(tiles.reduce((a, b) => a + (b - mean) * (b - mean), 0) / tiles.length);
     const p5_ = tiles[Math.floor(0.05 * tiles.length)], p95 = tiles[Math.min(tiles.length - 1, Math.floor(0.95 * tiles.length))];
-    return { tiles: tiles.length, lum: mean, sd, spread: p95 - p5_, rgb: [R / np, G / np, B / np] };
+    return { tiles: tiles.length, lum: mean, sd, spread: p95 - p5_, rgb: [R / np, G / np, B / np], blackFoot };
   }
 
   // Linear luminance of an sRGB triple, for the artwork's own bar color.
   const lumOf = rgb => 0.2126 * lin(rgb[0]) + 0.7152 * lin(rgb[1]) + 0.0722 * lin(rgb[2]);
 
-  window.VP = { PAPER, NIB, METHODS, loadToken, lines, paint, measure, lumOf, hexOf };
+  window.VP = { PAPER, NIB, METHODS, CURVES, applied, curveOpts, curveLabel, loadToken, lines, paint, measure, lumOf, hexOf };
 })();

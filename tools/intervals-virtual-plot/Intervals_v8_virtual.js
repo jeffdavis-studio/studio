@@ -411,6 +411,19 @@ function betterLerp(col1, col2, t) {
 // anchor, and black (ink9, pens[8]) lerped between the anchors' shades. Each
 // of ink's active slots becomes a hatch at that slot's angle. p is the plot
 // settings, from buildSVG().
+// Black's applied weight for shade share w: the share itself (current), the
+// black-curve fork's a(1 - exp(-k w / a)) / k, or the cubic w - a w^2 (1 - w).
+// m and the colors are untouched; only black's line count reads this.
+function blackApplied(w, p) {
+  if (p.blackCurve) {
+    return p.blackCurve.a * (1 - exp(-p.blackCurve.k * w / p.blackCurve.a)) / p.blackCurve.k;
+  }
+  if (p.blackCubic !== undefined) {
+    return w - p.blackCubic * w * w * (1 - w);
+  }
+  return w;
+}
+
 function buildBars(ink, p) {
   let slots = [[], [], [], [], []];
   for (let i = 0; i < s; i++) {
@@ -510,7 +523,7 @@ function buildBars(ink, p) {
           // Black-curve fork (2026-09-28): black's footprint is about 1.85 x its
           // weight, so its line weight becomes a(1 - exp(-1.85 w / a)) / 1.85, a
           // footprint of a(1 - exp(-1.85 w / a)); m and the colors are untouched.
-          let nlines = round((f === 4 && p.blackCurve ? p.blackCurve.a * (1 - exp(-p.blackCurve.k * weights[f] / p.blackCurve.a)) / p.blackCurve.k : weights[f]) * m * pspan / p.spacing);
+          let nlines = round((f === 4 ? blackApplied(weights[f], p) : weights[f]) * m * pspan / p.spacing);
           let step = pspan / nlines;
           let xmin = clip.x;
           let xmax = clip.x + clip.w;
@@ -622,6 +635,11 @@ function plotSettings(opts) {
   if (opts && opts.blackCurve) {
     p.blackCurve = opts.blackCurve;
   }
+  // Black cubic (2026-09-29): opts.blackCubic = a in 0..1, current mode only.
+  // Black's weight into the solve becomes s - a s^2 (1 - s); a = 0 is current.
+  if (opts && opts.blackCubic !== undefined && opts.blackCubic !== null) {
+    p.blackCubic = opts.blackCubic;
+  }
   // Black-in-the-slots fork: opts.blackSlots = true, current mode only. No
   // black grid; black takes each shaded anchor's share of its own grids' lines.
   if (opts && opts.blackSlots) {
@@ -705,6 +723,9 @@ function buildSVG(k, opts) {
     }
     if (p.phase) {
       extra += '\n     data-phase="' + p.phase + '"';
+    }
+    if (p.blackCubic !== undefined && k === 8) {
+      extra += '\n     data-black-cubic="w - ' + p.blackCubic + ' * w^2 * (1 - w)"';
     }
     if (p.blackCurve && k === 8) {
       extra += '\n     data-black-curve="' + p.blackCurve.a + ' * (1 - exp(-' + p.blackCurve.k + ' * w / ' + p.blackCurve.a + ')) / ' + p.blackCurve.k + '"';

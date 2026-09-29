@@ -28,7 +28,7 @@
   #tokinfo { font-size: 12.5px; color: var(--mute); max-width: 520px; flex: 1 1 300px; }
   #status { padding: 6px 16px; font-size: 12.5px; color: var(--mute); min-height: 26px; }
   #stage { display: flex; flex-wrap: wrap; gap: 20px; padding: 6px 16px 40px; align-items: flex-start; }
-  .panel { flex: 0 0 auto; display: flex; flex-direction: column; gap: 6px; }
+  .panel { flex: 0 0 auto; max-width: calc(100vw - 32px); display: flex; flex-direction: column; gap: 6px; }
   .panel h2 { font-size: 13.5px; margin: 0; }
   .panel canvas { display: block; background: var(--paper); box-shadow: 0 0 0 1px var(--line); }
   table.read { border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
@@ -41,6 +41,14 @@
   details { padding: 0 16px 30px; max-width: 900px; }
   details p, details li { font-size: 13px; }
   #alltable { padding: 0 16px 30px; }
+  #curves { display: flex; flex-wrap: wrap; gap: 12px 24px; padding: 0 16px; }
+  .curvebox { flex: 0 0 auto; width: 352px; max-width: calc(100vw - 32px); display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; margin-top: 10px; border: 1px solid var(--line); border-radius: 6px; background: #f4f3ee; }
+  .curvebox canvas { flex: 0 0 132px; width: 132px; height: 132px; background: #fff; border: 1px solid var(--line); }
+  .curvebox .cc { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 5px; font-size: 12.5px; }
+  .curvebox .cc label { font-size: 11.5px; color: var(--mute); text-transform: uppercase; letter-spacing: .04em; }
+  .curvebox input[type=range] { width: 120px; flex: 0 0 120px; }
+  .curvebox .fx { font: 12px ui-monospace, Menlo, monospace; }
+  .curvebox .ap { font-variant-numeric: tabular-nums; }
 </style>
 </head>
 <body>
@@ -71,6 +79,10 @@
 </div>
 
 <div id="thumbWrap"><canvas id="thumb" width="712" height="558" title="click a bar"></canvas><div id="tokinfo"></div></div>
+<div id="curves">
+  <div class="curvebox" id="curveA"></div>
+  <div class="curvebox" id="curveB"></div>
+</div>
 <div id="status"></div>
 <div id="stage"></div>
 <div id="alltable"></div>
@@ -87,6 +99,7 @@
   <ol>
     <li><b>current, black 45.</b> The pushed export: each anchor's two inks on their own grids at 22.5 / 67.5 (start anchor) and 112.5 / 157.5 (end anchor), densities solved so the bar lands on its tone; black on its own grid, turned to 45.</li>
     <li><b>current + black curve 1.85.</b> Same, with black's line count thinned to a footprint of 1 − exp(−1.85 × share), because 0.45 mm black lines cover about 1.85× their share. Only black changes.</li>
+    <li><b>cubic a (a black curve on method 1).</b> Black's weight into the density solve becomes s − a·s²·(1 − s) for shade share s; the other inks are untouched, as with the 1.85 curve. a = 0 is current; a = 1 is within about 0.01 of the 1.85 curve up to a share of 0.35, then parts from it: the cubic reaches 1 at share 1, so an all-black bar stays black, while the 1.85 curve's applied weight tops out at 0.46 (a footprint of 0.84). Pick a curve for either side in the box under the thumbnail; the plot shows the chosen curve (solid), the diagonal (current), the 1.85 curve (dashed), the token's shaded-bar range (band) and the picked bar (dot). Footprint under each render is the share of the bar black's own lines cover.</li>
     <li><b>black in the slots.</b> No black grid. Each shaded anchor's two grids are solved on its whole inked share, and black takes the anchor's shade fraction of those grids' lines as a Euclidean rhythm.</li>
     <li><b>screen, round robin.</b> The 9/26 screen model Jeff saw: four equal grids per bar, every pen spread over all four by a smooth weighted round robin. Shares are right on average, but a pen's lines on a grid are unevenly spaced.</li>
     <li><b>screen EVEN.</b> Four grids at one pitch, and every pen on a grid takes one residue class of one stride (every s-th line), so its lines are always exactly evenly spaced. Shares are quantized to what the stride layouts can make.</li>
@@ -116,15 +129,90 @@
   const lin = v => { v /= 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
   const rgbCss = a => `rgb(${a.map(v => Math.round(v)).join(',')})`;
 
-  function methodOpts(id) { const m = VP.METHODS.find(x => x.id === +id); return m.opts(+$('bias').value); }
-  function methodName(id) { const m = VP.METHODS.find(x => x.id === +id); return m.id + '. ' + m.name + (m.id === 6 ? ' (bias ' + (+$('bias').value).toFixed(2) + ')' : ''); }
+  // Each side (A, B) is a method, and for the current family (method 1 and the
+  // curve presets) a black curve: none, exp (1.85) or cubic with its own a.
+  const PRESETS = { '1': ['none', null], '2': ['exp', null], 'c1': ['cubic', 1], 'c06': ['cubic', 0.6], 'c': ['cubic', null] };
+  const side = { A: { curve: 'none', a: 1 }, B: { curve: 'none', a: 1 } };
+  const isCur = S => $('m' + S).value in PRESETS;
+  const active = () => ['A', 'B'].filter(S => $('m' + S).value !== '0');
+  function methodOpts(S) {
+    if (isCur(S)) return VP.curveOpts(side[S].curve, side[S].a);
+    const m = VP.METHODS.find(x => x.id === +$('m' + S).value); return m.opts(+$('bias').value);
+  }
+  function methodName(S) {
+    if (isCur(S)) { const c = side[S]; return c.curve === 'none' ? '1. current, black 45' : c.curve === 'exp' ? '2. current + curve 1.85' : 'current + ' + VP.curveLabel('cubic', c.a); }
+    const m = VP.METHODS.find(x => x.id === +$('m' + S).value); return m.id + '. ' + m.name + (m.id === 6 ? ' (bias ' + (+$('bias').value).toFixed(2) + ')' : '');
+  }
 
   function fillSelects() {
     for (const sel of [$('mA'), $('mB')]) {
       if (sel === $('mB')) sel.add(new Option('— none —', '0'));
-      for (const m of VP.METHODS) sel.add(new Option(m.id + '. ' + m.name, m.id));
+      for (const m of VP.METHODS) {
+        sel.add(new Option(m.id === 1 ? '1. current' : m.id === 2 ? '2. curve 1.85' : m.id + '. ' + m.name, m.id));
+        if (m.id === 2) {
+          sel.add(new Option('cubic a=1', 'c1'));
+          sel.add(new Option('cubic a=0.6', 'c06'));
+          sel.add(new Option('cubic, a on the slider', 'c'));
+        }
+      }
     }
-    $('mA').value = '4'; $('mB').value = '5';
+    $('mA').value = '1'; $('mB').value = 'c1';
+  }
+
+  // A preset picked in the method list sets that side's curve.
+  function fromSelect(S) {
+    const v = $('m' + S).value;
+    if (v in PRESETS) { const [c, a] = PRESETS[v]; side[S].curve = c; if (a !== null) side[S].a = a; }
+    drawCurveBox(S);
+  }
+  // The curve box's own controls move the method list to the matching entry.
+  function toSelect(S) {
+    const c = side[S];
+    $('m' + S).value = c.curve === 'none' ? '1' : c.curve === 'exp' ? '2' : c.a === 1 ? 'c1' : Math.abs(c.a - 0.6) < 1e-9 ? 'c06' : 'c';
+  }
+  function curBar() { return T.bars[Math.min(Math.max(1, +$('bar').value || 1), T.bars.length) - 1]; }
+
+  function buildCurveBox(S) {
+    const box = $('curve' + S);
+    box.innerHTML = `<canvas id="cplot${S}" title="share (x) against applied black (y)"></canvas>
+      <div class="cc"><label>Black curve, side ${S}</label>
+      <select id="csel${S}"><option value="none">none (current)</option><option value="exp">saturating 1.85</option><option value="cubic">cubic</option></select>
+      <div class="row"><span>a <b id="cav${S}">1.00</b></span><input type="range" id="ca${S}" min="0" max="1" step="0.05" value="1"></div>
+      <div class="fx" id="cfx${S}"></div><div class="ap" id="cap${S}"></div></div>`;
+    $('csel' + S).onchange = () => { side[S].curve = $('csel' + S).value; toSelect(S); drawCurveBox(S); soon(); };
+    $('ca' + S).oninput = () => { side[S].a = Math.round(+$('ca' + S).value * 20) / 20; side[S].curve = 'cubic'; toSelect(S); drawCurveBox(S); soon(); };
+  }
+
+  function drawCurveBox(S) {
+    const box = $('curve' + S);
+    const on = $('m' + S).value in PRESETS;
+    box.style.display = on ? 'flex' : 'none';
+    if (!on || !T) return;
+    const c = side[S];
+    $('csel' + S).value = c.curve;
+    $('ca' + S).value = c.a; $('cav' + S).textContent = c.a.toFixed(2);
+    $('ca' + S).style.opacity = c.curve === 'cubic' ? 1 : 0.4;
+    $('cfx' + S).innerHTML = c.curve === 'none' ? 'applied = s' : c.curve === 'exp' ? 'applied = (1 − e<sup>−1.85 s</sup>) / 1.85<br><span class="sub">footprint 1 − e<sup>−1.85 s</sup></span>' : `applied = s − ${c.a.toFixed(2)} · s² · (1 − s)`;
+    const b = curBar();
+    const ap = VP.applied(c.curve, c.a, b.black);
+    $('cap' + S).innerHTML = `bar ${b.n}: share <b>${b.black.toFixed(3)}</b> → applied <b>${ap.toFixed(3)}</b>` + (b.black > 0 ? ` <span class="sub">(${(ap / b.black * 100).toFixed(0)}%)</span>` : '');
+    // The plot: share 0..1 on x, applied 0..1 on y.
+    const cv = $('cplot' + S), dpr = window.devicePixelRatio || 1, P = 132;
+    cv.width = Math.round(P * dpr); cv.height = Math.round(P * dpr);
+    const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const m = 12, w = P - 2 * m, X = x => m + x * w, Y = y => P - m - y * w;
+    g.fillStyle = '#fff'; g.fillRect(0, 0, P, P);
+    // The token's shaded bars, as a band on x.
+    const sh = T.bars.map(q => q.black).filter(v => v > 1e-6);
+    if (sh.length) { g.fillStyle = 'rgba(208,2,27,.08)'; g.fillRect(X(Math.min(...sh)), m, X(Math.max(...sh)) - X(Math.min(...sh)), w); }
+    g.strokeStyle = '#ccc'; g.lineWidth = 1; g.strokeRect(X(0), Y(1), w, w);
+    const plot = (f, style, lw, dash) => { g.strokeStyle = style; g.lineWidth = lw; g.setLineDash(dash || []); g.beginPath(); for (let i = 0; i <= 100; i++) { const x = i / 100; i ? g.lineTo(X(x), Y(f(x))) : g.moveTo(X(x), Y(f(x))); } g.stroke(); g.setLineDash([]); };
+    plot(x => x, '#aaa', 1);
+    plot(x => VP.applied('exp', 0, x), '#555', 1.2, [4, 3]);
+    plot(x => VP.applied(c.curve, c.a, x), '#1d1d1b', 2);
+    g.fillStyle = '#d0021b'; g.beginPath(); g.arc(X(b.black), Y(ap), 3.5, 0, 2 * Math.PI); g.fill();
+    g.fillStyle = '#6b6a66'; g.font = '9px -apple-system, Helvetica, sans-serif';
+    g.fillText('share →', X(0.4), P - 2); g.fillText('applied', 2, 9); g.fillText('0', X(0) - 2, P - 2); g.fillText('1', X(1) - 3, P - 2);
   }
 
   function drawThumb() {
@@ -147,6 +235,7 @@
     if (+$('bar').value > T.bars.length) $('bar').value = T.bars.length;
     $('tokinfo').innerHTML = `<b>${h.slice(0, 10)}</b> · ${T.vtype} · ${T.ltype} · ${T.o === 0 ? 'vertical' : 'horizontal'} bars · ${T.bars.length} bars, numbered 1–${T.bars.length} ${T.o === 0 ? 'left to right' : 'top to bottom'} as viewed. Click a bar in the thumbnail to pick it.`;
     drawThumb();
+    drawCurveBox('A'); drawCurveBox('B');
     return true;
   }
 
@@ -201,7 +290,7 @@
 
   async function renderBars() {
     if (!T) return;
-    const ids = [$('mA').value, $('mB').value].filter(v => +v > 0);
+    const ids = active();
     const t0 = performance.now();
     status('Building lines…'); await tick();
     let reg = region();
@@ -230,9 +319,11 @@
       for (const b of selBars()) {
         const me = VP.measure(b, o, null);
         const segs = pl.reduce((a, p) => a + (p.perBar[b.n] || 0), 0);
+        const ap = isCur(id) && b.black > 1e-6 ? ` → applied <b>${VP.applied(side[id].curve, side[id].a, b.black).toFixed(3)}</b>` : '';
         rows += `<tr><td><span class="sw" style="background:${rgbCss(b.rgb)}"></span><b>bar ${b.n}</b></td>` +
           (me ? `<td>sd <b>${me.sd.toFixed(3)}</b></td><td>5–95 <b>${me.spread.toFixed(3)}</b></td><td>L* plot ${Lstar(me.lum).toFixed(0)} · art ${Lstar(VP.lumOf(b.rgb)).toFixed(0)}</td>` : '<td colspan=3>too small to tile</td>') +
-          `<td>${segs} lines in view</td></tr>`;
+          `<td>${segs} lines in view</td></tr>` +
+          (b.black > 1e-6 ? `<tr><td></td><td colspan=4>black share ${b.black.toFixed(3)}${ap} · footprint <b>${me ? me.blackFoot.toFixed(3) : '–'}</b></td></tr>` : '');
       }
       const bar = T.bars[Math.min(Math.max(1, +$('bar').value), T.bars.length) - 1];
       const lay = layoutRows(id, bar);
@@ -249,7 +340,7 @@
 
   async function renderWhole() {
     if (!T) return;
-    const ids = [$('mA').value, $('mB').value].filter(v => +v > 0);
+    const ids = active();
     const stage = $('stage'); stage.innerHTML = ''; lastCanvases = [];
     const dpr = window.devicePixelRatio || 1;
     const avail = Math.max(320, (ids.length > 1 && window.innerWidth > 1300 ? (window.innerWidth - 60) / 2 : window.innerWidth - 40));
@@ -277,7 +368,7 @@
 
   async function measureAll() {
     if (!T) return;
-    const ids = [$('mA').value, $('mB').value].filter(v => +v > 0);
+    const ids = active();
     const res = {};
     for (const id of ids) {
       res[id] = [];
@@ -317,7 +408,11 @@
     $('rand').onclick = () => { const h = '0x' + Array.from(crypto.getRandomValues(new Uint8Array(32)), b => b.toString(16).padStart(2, '0')).join(''); if (loadHash(h)) renderBars(); };
     $('cmp').onclick = () => { if (loadHash(DEF)) renderBars(); };
     $('hash').onchange = () => { if (loadHash($('hash').value.trim())) renderBars(); };
-    for (const id of ['mA', 'mB', 'nb', 'len', 'bar']) $(id).onchange = () => { drawThumb(); soon(); };
+    buildCurveBox('A'); buildCurveBox('B');
+    $('mA').onchange = () => { fromSelect('A'); drawThumb(); soon(); };
+    $('mB').onchange = () => { fromSelect('B'); drawThumb(); soon(); };
+    $('bar').onchange = () => { drawThumb(); drawCurveBox('A'); drawCurveBox('B'); soon(); };
+    for (const id of ['nb', 'len']) $(id).onchange = () => { drawThumb(); soon(); };
     $('pos').oninput = () => { drawThumb(); soon(); };
     $('bias').oninput = () => { $('biasV').textContent = (+$('bias').value).toFixed(2); soon(); };
     document.querySelectorAll('button.z').forEach(b => b.onclick = () => { document.querySelectorAll('button.z').forEach(x => x.classList.remove('on')); b.classList.add('on'); zoom = +b.dataset.z; renderBars(); });
@@ -330,7 +425,7 @@
       const r = $('thumb').getBoundingClientRect();
       const x = (e.clientX - r.left) / r.width * T.imgw, y = (e.clientY - r.top) / r.height * T.imgh;
       const b = T.bars.find(b => x >= b.box.x && x < b.box.x + b.box.w && y >= b.box.y && y < b.box.y + b.box.h);
-      if (b) { $('bar').value = b.n; drawThumb(); renderBars(); }
+      if (b) { $('bar').value = b.n; drawThumb(); drawCurveBox('A'); drawCurveBox('B'); renderBars(); }
     };
     showPPI();
     $('biasV').textContent = (+$('bias').value).toFixed(2);
@@ -348,6 +443,13 @@
     if (q.get('bar')) $('bar').value = q.get('bar');
     if (q.get('a')) $('mA').value = q.get('a');
     if (q.get('b')) $('mB').value = q.get('b');
+    // aa / ab: side A / B's cubic a (with a=c or b=c).
+    for (const S of ['A', 'B']) {
+      fromSelect(S);
+      const v = q.get('a' + S.toLowerCase());
+      if (v !== null && isFinite(+v)) { side[S].a = Math.min(1, Math.max(0, Math.round(+v * 20) / 20)); if (side[S].curve === 'cubic') toSelect(S); }
+      drawCurveBox(S);
+    }
     if (q.get('bias')) { $('bias').value = q.get('bias'); $('biasV').textContent = (+$('bias').value).toFixed(2); }
     drawThumb();
     renderBars();
