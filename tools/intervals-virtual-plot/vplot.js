@@ -15,7 +15,7 @@
     { id: 6, key: 'bias', name: 'screen EVEN + bias', opts: (b) => ({ mode: 'even', bias: b }) },
     // Slot fill (Jeff, 2026-09-29): the program default with empty color slots
     // handed to the densest inks (slotFill() in the fork). fill = { scope:
-    // 'artwork' | 'unused' | 'bar', achro: black takes the four slot angles where no color
+    // 'artwork' | 'bar' ('unused', the literal never-used-angles reading, for measurement only), achro: black takes the four slot angles where no color
     // ink is }; the page rides it on the curve box, so a and b can move too.
     { id: 7, key: 'fill', name: 'slot fill', opts: (b, fill) => fillOpts(programOpts(), fill) }
   ];
