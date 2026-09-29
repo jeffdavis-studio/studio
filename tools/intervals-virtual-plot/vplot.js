@@ -29,6 +29,27 @@
   const curveOpts = (curve, a, b) => Object.assign({ mode: 'current', blackAngle: 45 }, CURVES[curve].opts(a), b > 0 ? { mixEase: b } : {});
   const curveLabel = (curve, a, b) => (curve === 'none' ? 'current, black 45' : curve === 'exp' ? 'curve 1.85' : 'cubic a=' + String(+(+a).toFixed(2))) + (b > 0 ? ' + mix ease ' + String(+(+b).toFixed(2)) : '');
 
+  // The main program's plot constants (2026-09-29), read from intervals/Intervals_v8.js
+  // itself (buildSVG's blackCubic, mixEase and black's slot angle), so the
+  // program-default preset draws what the program plots and the two cannot drift.
+  const PROGRAM = { ok: false, a: null, b: null, angle: null };
+  async function loadProgram(url) {
+    try {
+      const src = await (await fetch(url, { cache: 'no-cache' })).text();
+      const plot = src.slice(src.indexOf('function buildSVG('), src.indexOf('function order('));
+      const num = name => { const m = new RegExp('^\\s+' + name + ': ([\\d.]+),?$', 'm').exec(plot); return m ? +m[1] : null; };
+      const ang = /^\s+angles: \[([^\]]+)\],?$/m.exec(plot);
+      PROGRAM.a = num('blackCubic');
+      PROGRAM.b = num('mixEase');
+      PROGRAM.angle = ang ? +ang[1].split(',')[4] : null;
+      PROGRAM.ok = [PROGRAM.a, PROGRAM.b, PROGRAM.angle].every(v => v !== null && isFinite(v));
+    } catch (e) {
+      PROGRAM.ok = false;
+    }
+    return PROGRAM;
+  }
+  const programOpts = () => Object.assign(curveOpts('cubic', PROGRAM.a, PROGRAM.b), { blackAngle: PROGRAM.angle });
+
   // Every bar's mix index X and coverage target for opts (current family): the
   // export's own solve, run with no ink so no lines are built. { n: { X, target, W } }.
   function mixInfo(opts) {
@@ -233,5 +254,5 @@
   // CIE L* of linear luminance Y (white = 1).
   const Lstar = Y => { const f = Y > 0.008856 ? Math.cbrt(Y) : 7.787 * Y + 16 / 116; return 116 * f - 16; };
 
-  window.VP = { PAPER, NIB, METHODS, CURVES, applied, curveOpts, curveLabel, loadToken, lines, paint, paintDigital, hexRGB, hsbOf, measure, lumOf, hexOf, Lstar, mixInfo };
+  window.VP = { PAPER, NIB, METHODS, CURVES, PROGRAM, loadProgram, programOpts, applied, curveOpts, curveLabel, loadToken, lines, paint, paintDigital, hexRGB, hsbOf, measure, lumOf, hexOf, Lstar, mixInfo };
 })();

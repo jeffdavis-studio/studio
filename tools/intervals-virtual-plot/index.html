@@ -114,6 +114,7 @@
 
 <details>
   <summary><b>The six methods, the quantization rule, and what this can't show</b></summary>
+  <p><b>0. program default.</b> What the main program, <code>intervals/Intervals_v8.js</code>, plots: current with its black cubic a, mix ease b and black angle, read from that file's plot settings when this page loads (Jeff's 9/29 values: a = 1.2, b = 0.1, black 45). Change them in the program and this preset follows. The side's boxes show it as cubic + mix ease; moving a slider leaves the preset. URL: <code>?a=p</code>.</p>
   <ol>
     <li><b>current, black 45.</b> The pushed export: each anchor's two inks on their own grids at 22.5 / 67.5 (start anchor) and 112.5 / 157.5 (end anchor), densities solved so the bar lands on its tone; black on its own grid, turned to 45.</li>
     <li><b>current + black curve 1.85.</b> Same, with black's line count thinned to a footprint of 1 − exp(−1.85 × share), because 0.45 mm black lines cover about 1.85× their share. Only black changes.</li>
@@ -157,18 +158,24 @@
   // Mix ease presets (2026-09-29) set the side's b and keep its curve.
   const MIXP = { 'm03': 0.3, 'm06': 0.6, 'mx': null };
   const side = { A: { curve: 'none', a: 1, b: 0 }, B: { curve: 'none', a: 1, b: 0 } };
-  const isCur = S => $('m' + S).value in PRESETS || $('m' + S).value in MIXP;
+  const isCur = S => $('m' + S).value in PRESETS || $('m' + S).value in MIXP || $('m' + S).value === 'p';
+  // Program default (2026-09-29): the constants Intervals_v8.js plots with, read from it at load.
+  const P = () => VP.PROGRAM;
+  const isProg = S => P().ok && side[S].curve === 'cubic' && Math.abs(side[S].a - P().a) < 1e-9 && Math.abs(side[S].b - P().b) < 1e-9;
+  const progLabel = () => P().ok ? `program default (cubic a=${P().a}, mix ease ${P().b}, black ${P().angle})` : "program default (couldn't read Intervals_v8.js)";
   const isDig = S => $('m' + S).value === 'd';
   const active = () => ['A', 'B'].filter(S => $('m' + S).value !== '0');
   // Flip: a plot side shown as the digital render in the same place.
   const flip = { A: false, B: false };
   const DIGNAME = 'digital — the artwork on screen';
   function methodOpts(S) {
+    if (isCur(S) && isProg(S)) return VP.programOpts();
     if (isCur(S)) return VP.curveOpts(side[S].curve, side[S].a, side[S].b);
     const m = VP.METHODS.find(x => x.id === +$('m' + S).value); return m.opts(+$('bias').value);
   }
   function methodName(S) {
     if (isDig(S)) return DIGNAME;
+    if (isCur(S) && isProg(S)) return '0. ' + progLabel() + ', what Intervals_v8.js plots';
     if (isCur(S)) { const c = side[S]; return (c.curve === 'none' ? '1. current, black 45' : c.curve === 'exp' ? '2. current + curve 1.85' : 'current + ' + VP.curveLabel('cubic', c.a)) + (c.b > 0 ? ' + mix ease ' + c.b.toFixed(2) : ''); }
     const m = VP.METHODS.find(x => x.id === +$('m' + S).value); return m.id + '. ' + m.name + (m.id === 6 ? ' (bias ' + (+$('bias').value).toFixed(2) + ')' : '');
   }
@@ -176,6 +183,9 @@
   function fillSelects() {
     for (const sel of [$('mA'), $('mB')]) {
       if (sel === $('mB')) sel.add(new Option('— none —', '0'));
+      const po = new Option('0. ' + progLabel(), 'p');
+      po.disabled = !P().ok;
+      sel.add(po);
       for (const m of VP.METHODS) {
         sel.add(new Option(m.id === 1 ? '1. current' : m.id === 2 ? '2. curve 1.85' : m.id + '. ' + m.name, m.id));
         if (m.id === 2) {
@@ -191,12 +201,13 @@
       }
       sel.add(new Option(DIGNAME, 'd'));
     }
-    $('mA').value = '1'; $('mB').value = 'c1';
+    if (P().ok) { $('mA').value = 'p'; $('mB').value = '1'; } else { $('mA').value = '1'; $('mB').value = 'c1'; }
   }
 
   // A preset picked in the method list sets that side's curve.
   function fromSelect(S) {
     const v = $('m' + S).value;
+    if (v === 'p' && P().ok) { side[S].curve = 'cubic'; side[S].a = P().a; side[S].b = P().b; }
     if (v in PRESETS) { const [c, a] = PRESETS[v]; side[S].curve = c; if (a !== null) side[S].a = a; }
     if (v in MIXP && MIXP[v] !== null) side[S].b = MIXP[v];
     drawCurveBox(S);
@@ -205,11 +216,13 @@
   // The mix slider moves it to the mix entry (or back to the curve's at b = 0).
   function toSelectMix(S) {
     const b = side[S].b;
+    if (isProg(S)) { $('m' + S).value = 'p'; return; }
     if (b === 0) return toSelect(S);
     $('m' + S).value = Math.abs(b - 0.3) < 1e-9 ? 'm03' : Math.abs(b - 0.6) < 1e-9 ? 'm06' : 'mx';
   }
   function toSelect(S) {
     const c = side[S];
+    if (isProg(S)) { $('m' + S).value = 'p'; return; }
     $('m' + S).value = c.curve === 'none' ? '1' : c.curve === 'exp' ? '2' : c.a === 1 ? 'c1' : c.a === 2 ? 'c2' : c.a === 3 ? 'c3' : Math.abs(c.a - 0.6) < 1e-9 ? 'c06' : 'c';
   }
   function curBar() { return T.bars[Math.min(Math.max(1, +$('bar').value || 1), T.bars.length) - 1]; }
@@ -632,8 +645,9 @@
   }
 
   // p5 runs setup() on load; start once the artwork has a token.
-  function ready() {
+  async function ready() {
     if (typeof s !== 'number') { setTimeout(ready, 30); return; }
+    await VP.loadProgram('../../intervals/Intervals_v8.js');
     window.keyPressed = undefined;
     window.print = () => {};
     wire();
