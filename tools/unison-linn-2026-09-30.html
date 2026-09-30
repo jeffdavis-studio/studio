@@ -204,7 +204,7 @@
 
   <!-- Provenance lives in the tooltip, not in the layout. Nothing that measures
        the sound appears on this screen. -->
-  <footer title="engine @7cbef9f · built 2026-09-30">
+  <footer title="engine @7b6aeac · built 2026-09-30">
     <span><kbd>1</kbd>–<kbd>0</kbd>, <kbd>q</kbd>–<kbd>t</kbd> play a voice &nbsp;·&nbsp; <kbd>space</kbd> start / stop</span>
     <span class="sp"></span>
     <span>Nothing is sampled. Every hit is synthesized in the browser by the engine's own code, live off the knobs.</span>
@@ -215,7 +215,7 @@
 
 <!-- ===================== inlined engine (verbatim, private repo) ===================== -->
 <script type="text/plain" id="src-engine">
-/* ===== src/core/prng.js @ 7cbef9f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/prng.js @ 7b6aeac — verbatim from jeffdavis-studio/unison-engine ===== */
 // prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
 // token hash, consumed in canonical draw order (Technical Architecture v1.2).
 //
@@ -262,7 +262,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/core/mix.js @ 7cbef9f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/mix.js @ 7b6aeac — verbatim from jeffdavis-studio/unison-engine ===== */
 // mix.js — the fan-in ≤2 summing rule, as a primitive.
 //
 // Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
@@ -300,7 +300,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drums.js @ 7cbef9f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drums.js @ 7b6aeac — verbatim from jeffdavis-studio/unison-engine ===== */
 // drums.js — the drum machine: 808/LM-1-flavor voices, synthesized at runtime
 // into short AudioBuffers, played back as one-shots.
 //
@@ -644,7 +644,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/linn.js @ 7cbef9f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/linn.js @ 7b6aeac — verbatim from jeffdavis-studio/unison-engine ===== */
 // linn.js — THE STUDIO MACHINE. A Linn-family (LM-1 / LinnDrum lineage)
 // drum computer: the new wave / synth-pop / 80s R&B kit.
 //
@@ -1087,13 +1087,15 @@
   }
 
   // 4b: THE VCF. The kick, toms and congas leave the DAC through a voltage-
-  // controlled low-pass (a CEM3320 on the real board, trimmed per voice), whose
-  // cutoff falls over the hit: the stick's top end passes, then the filter
-  // closes on the tail. Found 2026-09-30 from Jeff's "noisy/staticy": our tom
+  // controlled low-pass (a CEM3320 on both the LM-1 and the LinnDrum, wired
+  // 4-pole with no resonance, trimmed per voice), its CV shaped so the
+  // transient passes and the filter then closes on the tail. Found 2026-09-30 from Jeff's "noisy/staticy": our tom
   // tails carried the 8-bit quantiser's grit at a constant ~40 dB under the
-  // drum all the way down, where the LM-1's toms lose their top end 12 dB per
-  // 100 ms faster than their body, which a fixed filter cannot do and a
-  // closing one does. Four poles, no resonance; cutoff f1 + (f0 - f1)e^(-t/tau),
+  // drum all the way down, where the reference toms lose their top end 8-16 dB
+  // per 100 ms faster than their body, which a fixed filter cannot do and a
+  // closing one does. (The "LM-1" pack turned out to be LinnDrum recordings,
+  // 11 of 12 files; the lossless LinnDrum originals show the same signature,
+  // so it is the machine's and not the pack's MP3 decode.) Four poles, no resonance; cutoff f1 + (f0 - f1)e^(-t/tau),
   // fixed while TUNE moves the clock (the filter is after the DAC).
   function vcf(y, p) {
     if (!CIRCUIT.vcf || !p) return y;
@@ -1129,12 +1131,16 @@
   // One voice alone (the fitter renders one voice thousands of times).
   U.buildLinnVoice = function (panel, v) { return voice(panel || U.panelLinnFromPos({}), v); };
   // THE PERCUSSION GROUP'S LEVEL against the main voices (kick, snare, clap,
-  // hats, toms). Set 2026-09-30 from the LM-1 pack's own balance (one
-  // recording gain, so its relative loudness is usable): K-weighted, the
-  // percussion pads sat 3.5 dB louder against the main voices than the
-  // LM-1's do (analysis/linn/pad-levels.mjs; Jeff, first listen: "a touch
-  // loud in comparison"). Congas, cowbell, clave, tambourine, cabasa and the
-  // side stick move together.
+  // hats, toms), 2026-09-30. Jeff, first listen: percussion "a touch loud in
+  // comparison". The machine's own mix balance is NOT recoverable from the
+  // reference pack: every hit in it is normalised to full scale (as an EPROM
+  // chip's contents are), so the pack gives each voice's loudness at equal
+  // peak, not the machine's mixer. Against that equal-peak reference our
+  // percussion pads sat 3.5 dB louder relative to the main voices
+  // (analysis/linn/pad-levels.mjs), the same direction and size Jeff heard,
+  // so the group comes down by that much; it is his ear sized by an
+  // equal-peak comparison, not a measured machine balance. Congas, cowbell,
+  // clave, tambourine, cabasa and the side stick move together.
   const PERC_GROUP = Math.pow(10, -3.5 / 20);
   function voice(p, v) {
     const R = roms();
@@ -1174,7 +1180,7 @@ window.FIT_POS = {"kickTune":0.5,"snareTune":0.5,"hatTune":0.5,"tomHiTune":0.5,"
 // and the whole point of declining a knob on the record is that the decline is
 // visible where the instrument is.
 window.FIT_WHY = {"kickTune":"The recordings hold each drum at one tuning, so they can place this knob but not span it. Each drum is built at its recording's own pitch, which puts the recording exactly at center. How far the knob turns each way is by reasoning, not measurement.","snareTune":"The recordings hold each drum at one tuning, so they can place this knob but not span it. Each drum is built at its recording's own pitch, which puts the recording exactly at center. How far the knob turns each way is by reasoning, not measurement.","hatTune":"The recordings hold each drum at one tuning, so they can place this knob but not span it. Each drum is built at its recording's own pitch, which puts the recording exactly at center. How far the knob turns each way is by reasoning, not measurement.","tomHiTune":"The recordings hold each drum at one tuning, so they can place this knob but not span it. Each drum is built at its recording's own pitch, which puts the recording exactly at center. How far the knob turns each way is by reasoning, not measurement.","tomMidTune":"The recordings hold each drum at one tuning, so they can place this knob but not span it. Each drum is built at its recording's own pitch, which puts the recording exactly at center. How far the knob turns each way is by reasoning, not measurement.","tomLoTune":"The recordings hold each drum at one tuning, so they can place this knob but not span it. Each drum is built at its recording's own pitch, which puts the recording exactly at center. How far the knob turns each way is by reasoning, not measurement.","congaTune":"The recordings hold each drum at one tuning, so they can place this knob but not span it. Each drum is built at its recording's own pitch, which puts the recording exactly at center. How far the knob turns each way is by reasoning, not measurement.","kickLevel":"The recordings' levels are whoever recorded them, not the machine's mix, so they say nothing about this knob. It stays at center; in the songs the kit is balanced by measuring it against the kit it replaces.","snareLevel":"The recordings' levels are whoever recorded them, not the machine's mix, so they say nothing about this knob. It stays at center; in the songs the kit is balanced by measuring it against the kit it replaces.","rimLevel":"The recordings' levels are whoever recorded them, not the machine's mix, so they say nothing about this knob. It stays at center; in the songs the kit is balanced by measuring it against the kit it replaces.","clapLevel":"The recordings' levels are whoever recorded them, not the machine's mix, so they say nothing about this knob. It stays at center; in the songs the kit is balanced by measuring it against the kit it replaces.","hatLevel":"The recordings' levels are whoever recorded them, not the machine's mix, so they say nothing about this knob. It stays at center; in the songs the kit is balanced by measuring it against the kit it replaces.","tomLevel":"The recordings' levels are whoever recorded them, not the machine's mix, so they say nothing about this knob. It stays at center; in the songs the kit is balanced by measuring it against the kit it replaces.","percLevel":"The recordings' levels are whoever recorded them, not the machine's mix, so they say nothing about this knob. It stays at center; in the songs the kit is balanced by measuring it against the kit it replaces.","hatDecay":"The recorded open hat runs out of chip while it is still ringing, so past a short setting this knob barely changes what you hear before the sound stops, and the measurement could not see it move. It stays at center, which is where the fit's own best guess landed anyway."};
-/* WHERE THE KNOBS OPEN @ 7cbef9f, built 2026-09-30.
+/* WHERE THE KNOBS OPEN @ 7b6aeac, built 2026-09-30.
 
    Every knob apply-fit moved opens at CENTRE, because after the apply the
    centre IS the fit. Only the knobs it measured and did not move are here, and
