@@ -1,0 +1,1696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unison studio machine</title>
+<style>
+  :root{
+    --bg:#0f1012; --panel:#191b1e; --panel2:#212428; --line:#33383e;
+    --ink:#eceef0; --dim:#868c95; --hot:#e8a33d; --acc:#e0574f; --go:#5fbf7a;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:var(--bg);color:var(--ink);overflow:hidden;
+    font:13px/1.35 ui-sans-serif,-apple-system,"Helvetica Neue",Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;user-select:none
+  }
+  #app{display:grid;grid-template-rows:auto minmax(0,1fr) auto;height:100dvh;overflow:hidden}
+
+  /* ---------------- transport ---------------- */
+  header{
+    display:flex;align-items:center;gap:16px;padding:9px 16px;
+    background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:nowrap
+  }
+  header h1{margin:0;font-size:13px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;white-space:nowrap}
+  header h1 span{color:var(--dim);font-weight:400;letter-spacing:.04em;text-transform:none}
+  .tbtn{
+    font:inherit;font-size:12px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;
+    padding:8px 16px;border-radius:8px;cursor:pointer;
+    background:var(--panel2);color:var(--ink);border:1px solid var(--line);white-space:nowrap
+  }
+  .tbtn:hover{border-color:#4c535b}
+  #play.on{background:var(--go);color:#08170e;border-color:var(--go)}
+  .tgroup{display:flex;align-items:center;gap:7px;white-space:nowrap}
+  .tgroup label{font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--dim)}
+  .tgroup input[type=range]{width:88px}
+  #bpmv{font-variant-numeric:tabular-nums;color:var(--ink);width:26px;text-align:right;font-size:12px}
+  header .sp{margin-left:auto}
+  #work{width:9px;height:9px;border-radius:50%;background:#2c3036;transition:background .1s;flex:0 0 auto}
+  #work.on{background:var(--hot)}
+
+  /* ---------------- main ---------------- */
+  main{
+    display:grid;grid-template-columns:minmax(0,1fr) minmax(430px,.86fr);
+    gap:12px;padding:12px 16px;min-height:0;overflow:hidden
+  }
+  .col{display:flex;flex-direction:column;gap:12px;min-height:0}
+  .card{
+    background:var(--panel);border:1px solid var(--line);border-radius:11px;
+    padding:11px 13px;min-height:0;display:flex;flex-direction:column;overflow:hidden
+  }
+  .card h2{
+    margin:0 0 9px;font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--dim);font-weight:700;display:flex;align-items:center;gap:10px;flex:0 0 auto
+  }
+  .card h2 .sp{margin-left:auto}
+  .rowbtn{
+    font:inherit;font-size:10px;letter-spacing:.10em;text-transform:uppercase;
+    background:var(--panel2);border:1px solid var(--line);color:var(--dim);cursor:pointer;
+    padding:4px 10px;border-radius:6px
+  }
+  .rowbtn:hover{color:var(--ink);border-color:#4c535b}
+
+  /* ---------------- the machine: pads + steps ---------------- */
+  /* The lanes FILL the card rather than sitting in the middle of it: a pad you
+     play wants to be a big target, and a 900px laptop has the room. */
+  #grid{flex:1 1 auto;display:flex;flex-direction:column;gap:5px;min-height:0}
+  .lane{display:grid;grid-template-columns:112px 22px minmax(0,1fr);gap:6px;align-items:stretch;flex:1 1 0;min-height:0}
+  .pad{
+    font:inherit;font-size:12px;font-weight:600;letter-spacing:.05em;
+    padding:0 9px;border-radius:8px;cursor:pointer;text-align:left;
+    background:var(--panel2);border:1px solid var(--line);color:var(--ink);
+    display:flex;align-items:center;gap:7px;overflow:hidden;white-space:nowrap
+  }
+  .pad kbd{
+    font:inherit;font-size:9px;color:#5c626a;border:1px solid #383e45;border-radius:3px;
+    padding:0 4px;flex:0 0 auto
+  }
+  .pad:hover{border-color:#4c535b}
+  .pad.lit{background:var(--hot);border-color:var(--hot);color:#1a1005}
+  .mute{
+    font:inherit;font-size:10px;cursor:pointer;border-radius:5px;padding:0;
+    background:var(--panel2);border:1px solid var(--line);color:#4b5158;text-align:center
+  }
+  .mute.on{color:var(--go);border-color:#3c5a45}
+  .steps{display:grid;grid-template-columns:repeat(16,minmax(0,1fr));gap:3px;min-height:0}
+  .st{
+    height:100%;min-height:0;border-radius:5px;cursor:pointer;padding:0;
+    background:#191c20;border:1px solid #2b3037
+  }
+  .st.q{background:#1e2228}
+  .st:hover{border-color:#4c535b}
+  .st.on{background:var(--ink);border-color:var(--ink)}
+  .st.on.q{background:var(--ink)}
+  .st.now{box-shadow:0 0 0 2px var(--hot) inset}
+  #ruler{display:grid;grid-template-columns:112px 22px minmax(0,1fr);gap:6px;flex:0 0 auto;margin-bottom:2px}
+  #ruler div:last-child{display:grid;grid-template-columns:repeat(16,minmax(0,1fr));gap:3px}
+  #ruler b{
+    font-weight:400;font-size:9px;color:#4b5158;text-align:center;letter-spacing:.06em
+  }
+  .lane.acc .pad{color:var(--acc);border-color:#4a2b28;background:#20191a}
+  .lane.acc .st.on{background:var(--acc);border-color:var(--acc)}
+
+  /* ---------------- knob rack ---------------- */
+  #rack{
+    flex:1 1 auto;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:0 18px;min-height:0;overflow:hidden
+  }
+  .rcol{display:flex;flex-direction:column;gap:16px;min-width:0}
+  .grp{display:flex;flex-direction:column;gap:9px}
+  .grp>h3{
+    margin:2px 0 0;font-size:9px;letter-spacing:.16em;text-transform:uppercase;
+    color:#5c626a;font-weight:700;border-bottom:1px solid #262a2f;padding-bottom:3px
+  }
+  .knob{display:flex;flex-direction:column;gap:1px}
+  .knob label{font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--dim)}
+  .knob .ends{display:flex;justify-content:space-between;font-size:9px;color:#4b5158;margin-top:-2px}
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;width:100%;height:16px;background:transparent;
+    margin:0;padding:0;border:0;cursor:pointer
+  }
+  input[type=range]::-webkit-slider-runnable-track{
+    height:4px;background:#15171a;border-radius:2px;border:1px solid var(--line)
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:12px;height:16px;border-radius:4px;background:var(--ink);
+    margin-top:-7px;border:1px solid #000
+  }
+  input[type=range]::-moz-range-track{height:4px;background:#15171a;border-radius:2px;border:1px solid var(--line)}
+  input[type=range]::-moz-range-thumb{width:12px;height:16px;border-radius:4px;background:var(--ink);border:1px solid #000}
+  .knob.moved label{color:var(--ink)}
+
+  /* ---------------- footer ---------------- */
+  footer{
+    display:flex;align-items:center;gap:16px;padding:8px 16px;
+    background:var(--panel);border-top:1px solid var(--line);color:var(--dim);font-size:11px
+  }
+  footer .sp{margin-left:auto}
+  footer kbd{
+    font:inherit;font-size:10px;color:var(--dim);border:1px solid #383e45;border-radius:3px;padding:0 4px
+  }
+  #boot{
+    position:fixed;inset:0;background:rgba(10,11,13,.94);display:flex;align-items:center;
+    justify-content:center;z-index:30;cursor:pointer;flex-direction:column;gap:12px
+  }
+  #boot.off{display:none}
+  #boot b{font-size:20px;letter-spacing:.16em;text-transform:uppercase}
+  #boot span{color:var(--dim);font-size:13px}
+  #whybox{flex:0 0 auto;margin-top:8px;color:var(--dim);font-size:11px;max-height:34vh;overflow:auto}
+  #whybox summary{cursor:pointer;letter-spacing:.08em;text-transform:uppercase;font-size:10px}
+  .declined{margin:6px 0 0;padding-left:10px;border-left:2px solid var(--line)}
+  .declined b{color:var(--ink)}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <h1>Unison <span>· studio machine</span></h1>
+    <button class="tbtn" id="play">play</button>
+    <div class="tgroup">
+      <label for="bpm">tempo</label>
+      <input type="range" id="bpm" min="60" max="180" step="1" value="112">
+      <span id="bpmv">112</span>
+    </div>
+    <div class="tgroup">
+      <label for="swing">swing</label>
+      <input type="range" id="swing" min="0" max="0.6" step="0.01" value="0">
+    </div>
+    <div class="tgroup">
+      <label for="vol">volume</label>
+      <input type="range" id="vol" min="0" max="1" step="0.01" value="0.8">
+    </div>
+    <span class="sp"></span>
+    <button class="tbtn" id="draw">draw a panel</button>
+    <button class="tbtn" id="reset">reset</button>
+    <span id="work" title="building the kit"></span>
+  </header>
+
+  <main>
+    <!-- ============ left: the machine ============ -->
+    <div class="col">
+      <div class="card" style="flex:1 1 auto">
+        <h2>the kit
+          <span class="sp"></span>
+          <button class="rowbtn" id="patClear">clear</button>
+          <button class="rowbtn" id="patInit">pattern</button>
+        </h2>
+        <div id="ruler"><b></b><b></b><div id="rulerSteps"></div></div>
+        <div id="grid"></div>
+      </div>
+    </div>
+
+    <!-- ============ right: every knob ============ -->
+    <div class="col">
+      <div class="card" style="flex:1 1 auto">
+        <h2>the panel <span class="sp"></span><span style="color:#4b5158;letter-spacing:.06em">every knob, live</span></h2>
+        <div id="rack"></div>
+        <details id="whybox"><summary>why these knobs sit where they do</summary><div id="declined"></div></details>
+      </div>
+    </div>
+  </main>
+
+  <!-- Provenance lives in the tooltip, not in the layout. Nothing that measures
+       the sound appears on this screen. -->
+  <footer title="engine @7cbef9f · built 2026-09-30">
+    <span><kbd>1</kbd>–<kbd>0</kbd>, <kbd>q</kbd>–<kbd>t</kbd> play a voice &nbsp;·&nbsp; <kbd>space</kbd> start / stop</span>
+    <span class="sp"></span>
+    <span>Nothing is sampled. Every hit is synthesized in the browser by the engine's own code, live off the knobs.</span>
+  </footer>
+</div>
+
+<div id="boot"><b>Unison studio machine</b><span>click anywhere to start the audio</span></div>
+
+<!-- ===================== inlined engine (verbatim, private repo) ===================== -->
+<script type="text/plain" id="src-engine">
+/* ===== src/core/prng.js @ 7cbef9f — verbatim from jeffdavis-studio/unison-engine ===== */
+// prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
+// token hash, consumed in canonical draw order (Technical Architecture v1.2).
+//
+// Discipline: every module draws from the same stream, in a documented, fixed
+// order. Never draw conditionally in a way that changes how many draws happen
+// for the same hash (draw first, discard if unused). Reordering draws is a
+// breaking change to every existing output.
+(function (g) {
+  "use strict";
+  const U = (g.U = g.U || {});
+
+  // sfc32 — small fast counter PRNG, 128-bit state, well-tested for this use.
+  // Seeded from the last 32 hex chars (four 32-bit words) of the token hash.
+  // XOR constants keep degenerate hashes (all zeros) from collapsing the state.
+  U.makePrng = function (hash) {
+    let h = String(hash).replace(/^0x/i, "").toLowerCase();
+    if (!/^[0-9a-f]*$/.test(h)) throw new Error("makePrng: non-hex hash");
+    h = h.padStart(32, "0");
+    const word = (i) => parseInt(h.slice(h.length - 8 * (i + 1), h.length - 8 * i), 16) >>> 0;
+    let a = (word(3) ^ 0x9e3779b9) >>> 0;
+    let b = (word(2) ^ 0x243f6a88) >>> 0;
+    let c = (word(1) ^ 0xb7e15162) >>> 0;
+    let d = (word(0) ^ 0x8aed2a6b) >>> 0;
+
+    function r() {
+      a >>>= 0; b >>>= 0; c >>>= 0; d >>>= 0;
+      const t = (a + b) | 0;
+      a = b ^ (b >>> 9);
+      b = (c + (c << 3)) | 0;
+      c = (c << 21) | (c >>> 11);
+      d = (d + 1) | 0;
+      const out = (t + d) | 0;
+      c = (c + out) | 0;
+      return (out >>> 0) / 4294967296;
+    }
+    for (let i = 0; i < 15; i++) r(); // warm-up: decorrelate from raw seed words
+
+    return {
+      r,                                                        // [0,1)
+      ri: (lo, hi) => lo + Math.floor(r() * (hi - lo + 1)),     // int, inclusive
+      pick: (arr) => arr[Math.floor(r() * arr.length)],
+      chance: (p) => r() < p,
+    };
+  };
+})(typeof window !== "undefined" ? window : globalThis);
+
+/* ===== src/core/mix.js @ 7cbef9f — verbatim from jeffdavis-studio/unison-engine ===== */
+// mix.js — the fan-in ≤2 summing rule, as a primitive.
+//
+// Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
+// audio renders are NOT bit-reproducible wherever a node sums 3+ inputs —
+// float addition isn't associative and the browser doesn't fix the summation
+// order. Chain-mixing every summing point at fan-in ≤2 makes renders
+// bit-identical (SHA-256-equal) across pages and loads. Tone.js cannot adopt
+// this fix; it is why the engine is raw Web Audio.
+//
+// RULE: no AudioNode in this engine may ever receive more than two .connect()s.
+// Anywhere three or more signals meet, they meet through U.chainMixer.
+(function (g) {
+  "use strict";
+  const U = (g.U = g.U || {});
+
+  // Serial chain of 2-input gains. add() splices a fresh gain between the
+  // accumulator and `out`, so every summing node sums exactly two signals in a
+  // fixed order. Order of add() calls is part of the deterministic contract.
+  U.chainMixer = function (ctx, out) {
+    let acc = null;
+    let count = 0;
+    return {
+      add(node) {
+        count++;
+        if (!acc) { acc = ctx.createGain(); node.connect(acc); acc.connect(out); return; }
+        const link = ctx.createGain();
+        acc.disconnect(out);
+        acc.connect(link);
+        node.connect(link);
+        link.connect(out);
+        acc = link;
+      },
+      get count() { return count; },
+    };
+  };
+})(typeof window !== "undefined" ? window : globalThis);
+
+/* ===== src/instruments/drums.js @ 7cbef9f — verbatim from jeffdavis-studio/unison-engine ===== */
+// drums.js — the drum machine: 808/LM-1-flavor voices, synthesized at runtime
+// into short AudioBuffers, played back as one-shots.
+//
+// WHY BUFFERS AND NOT OSCILLATOR GRAPHS. A 40-bar song asks for ~1,500 drum
+// hits. Building each hit as an oscillator + filter + envelope graph is ~5
+// AudioNodes per hit and puts every one of them through the fan-in ≤2 chain
+// mixer, which is both slow to render and enormous in memory. Synthesizing each
+// voice ONCE into a Float32Array and triggering it as an AudioBufferSourceNode
+// is 2 nodes per hit and sounds the same — a drum machine playing back its own
+// voices, which is literally what the 1982 desk in front of us is.
+//
+// This is still synthesis, not sampling: every buffer below is computed from
+// math at load time, nothing is a recording, and no audio ships with the piece.
+// The project's "no samples ever" rule is intact.
+//
+// DETERMINISM. Buffers are built from a FIXED seed (DRUM_SEED), never from the
+// song's PRNG stream, so voice construction consumes no draws and can't shift
+// the canonical draw order. Note the honest caveat: this code leans on Math.sin
+// /Math.exp, whose last-bit results are engine-defined — the same class of
+// exposure the engine already carries through Web Audio's own oscillators and
+// filters. The verified contract is bit-identical renders across pages and
+// loads in one browser; cross-browser is an open item (see README).
+(function (g) {
+  "use strict";
+  const U = (g.U = g.U || {});
+
+  const DRUM_SEED = "d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0";
+  const SR = 44100; // buffers are built at this rate and resampled if ctx differs
+
+  // ---- small DSP helpers (pure JS, operate on Float32Array in place) ----
+
+  function onePoleHP(x, hz, rate) {
+    const a = Math.exp((-2 * Math.PI * hz) / rate);
+    let yPrev = 0, xPrev = 0;
+    for (let i = 0; i < x.length; i++) {
+      const xi = x[i];
+      const y = a * (yPrev + xi - xPrev);
+      x[i] = y; yPrev = y; xPrev = xi;
+    }
+    return x;
+  }
+
+  function onePoleLP(x, hz, rate) {
+    const a = 1 - Math.exp((-2 * Math.PI * hz) / rate);
+    let y = 0;
+    for (let i = 0; i < x.length; i++) { y += a * (x[i] - y); x[i] = y; }
+    return x;
+  }
+
+  // 2-pole resonant bandpass (transposed direct form), used for clap/cowbell body
+  function bandpass(x, hz, q, rate) {
+    const w = (2 * Math.PI * hz) / rate;
+    const alpha = Math.sin(w) / (2 * q);
+    const cw = Math.cos(w);
+    const b0 = alpha, b1 = 0, b2 = -alpha;
+    const a0 = 1 + alpha, a1 = -2 * cw, a2 = 1 - alpha;
+    let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+    for (let i = 0; i < x.length; i++) {
+      const xi = x[i];
+      const y = (b0 * xi + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2) / a0;
+      x2 = x1; x1 = xi; y2 = y1; y1 = y;
+      x[i] = y;
+    }
+    return x;
+  }
+
+  function normalize(x, target) {
+    let peak = 0;
+    for (let i = 0; i < x.length; i++) { const a = Math.abs(x[i]); if (a > peak) peak = a; }
+    if (peak < 1e-9) return x;
+    const k = target / peak;
+    for (let i = 0; i < x.length; i++) x[i] *= k;
+    return x;
+  }
+
+  // short fade-out on the last 2ms so a truncated buffer can't click
+  function deClick(x, rate) {
+    const n = Math.min(x.length, Math.round(0.002 * rate));
+    for (let i = 0; i < n; i++) x[x.length - 1 - i] *= i / n;
+    return x;
+  }
+
+  const alloc = (sec) => new Float32Array(Math.max(1, Math.round(sec * SR)));
+
+  // ---- the voices ----
+
+  // 808-lineage kick: sine with a fast downward pitch sweep, long body.
+  // `punch` shortens the decay and raises the start pitch toward an LM-1 feel.
+  function kick(decay, startHz, endHz, clickAmt, rnd) {
+    const x = alloc(decay + 0.05);
+    let phase = 0;
+    for (let i = 0; i < x.length; i++) {
+      const t = i / SR;
+      const f = endHz + (startHz - endHz) * Math.exp(-t / 0.024);
+      phase += (2 * Math.PI * f) / SR;
+      const env = Math.exp(-t / (decay / 4.2));
+      x[i] = Math.sin(phase) * env;
+    }
+    if (clickAmt > 0) {
+      const cn = Math.round(0.004 * SR);
+      const click = new Float32Array(cn);
+      for (let i = 0; i < cn; i++) click[i] = (rnd() * 2 - 1) * Math.exp(-i / (0.0006 * SR));
+      onePoleHP(click, 900, SR);
+      for (let i = 0; i < cn; i++) x[i] += click[i] * clickAmt;
+    }
+    return deClick(normalize(x, 0.98), SR);
+  }
+
+  // Snare: two detuned body tones + a noise layer, mixed.
+  function snare(decay, toneHz, noiseAmt, rnd) {
+    const x = alloc(decay + 0.05);
+    const noise = new Float32Array(x.length);
+    for (let i = 0; i < x.length; i++) noise[i] = rnd() * 2 - 1;
+    onePoleHP(noise, 1400, SR);
+    let p1 = 0, p2 = 0;
+    for (let i = 0; i < x.length; i++) {
+      const t = i / SR;
+      p1 += (2 * Math.PI * toneHz) / SR;
+      p2 += (2 * Math.PI * toneHz * 1.78) / SR;
+      const tone = (Math.sin(p1) + 0.7 * Math.sin(p2)) * Math.exp(-t / (decay / 6));
+      const nz = noise[i] * Math.exp(-t / (decay / 3.4));
+      x[i] = tone * (1 - noiseAmt) + nz * noiseAmt;
+    }
+    return deClick(normalize(x, 0.95), SR);
+  }
+
+  // Machine clap: three tight noise bursts, then a bandpassed tail.
+  function clap(rnd) {
+    const x = alloc(0.22);
+    const gaps = [0, 0.009, 0.018];
+    for (const gTime of gaps) {
+      const off = Math.round(gTime * SR);
+      const bn = Math.round(0.008 * SR);
+      for (let i = 0; i < bn && off + i < x.length; i++) {
+        x[off + i] += (rnd() * 2 - 1) * Math.exp(-i / (0.0016 * SR));
+      }
+    }
+    const tOff = Math.round(0.026 * SR);
+    for (let i = 0; tOff + i < x.length; i++) {
+      x[tOff + i] += (rnd() * 2 - 1) * Math.exp(-i / (0.028 * SR)) * 0.8;
+    }
+    bandpass(x, 1150, 1.1, SR);
+    onePoleHP(x, 600, SR);
+    return deClick(normalize(x, 0.9), SR);
+  }
+
+  // 808-lineage hat: six inharmonic squares through a highpass, enveloped.
+  const HAT_PARTIALS = [263, 400, 421, 474, 587, 845];
+  function hat(decay) {
+    const x = alloc(decay + 0.03);
+    const ph = HAT_PARTIALS.map(() => 0);
+    for (let i = 0; i < x.length; i++) {
+      const t = i / SR;
+      let s = 0;
+      for (let k = 0; k < HAT_PARTIALS.length; k++) {
+        ph[k] += (2 * Math.PI * HAT_PARTIALS[k]) / SR;
+        s += Math.sin(ph[k]) >= 0 ? 1 : -1; // square
+      }
+      x[i] = (s / HAT_PARTIALS.length) * Math.exp(-t / (decay / 4));
+    }
+    onePoleHP(x, 6200, SR);
+    onePoleHP(x, 6200, SR);
+    return deClick(normalize(x, 0.62), SR);
+  }
+
+  // Tuned tom / conga: sine with a modest pitch drop.
+  function tom(hz, decay) {
+    const x = alloc(decay + 0.05);
+    let phase = 0;
+    for (let i = 0; i < x.length; i++) {
+      const t = i / SR;
+      const f = hz * (1 + 0.28 * Math.exp(-t / 0.05));
+      phase += (2 * Math.PI * f) / SR;
+      x[i] = Math.sin(phase) * Math.exp(-t / (decay / 4));
+    }
+    return deClick(normalize(x, 0.9), SR);
+  }
+
+  // Cowbell: two squares into a narrow band.
+  function cowbell() {
+    const x = alloc(0.3);
+    let p1 = 0, p2 = 0;
+    for (let i = 0; i < x.length; i++) {
+      const t = i / SR;
+      p1 += (2 * Math.PI * 540) / SR;
+      p2 += (2 * Math.PI * 845) / SR;
+      const s = (Math.sin(p1) >= 0 ? 1 : -1) + (Math.sin(p2) >= 0 ? 1 : -1);
+      x[i] = (s / 2) * Math.exp(-t / 0.055);
+    }
+    bandpass(x, 2400, 2.2, SR);
+    return deClick(normalize(x, 0.7), SR);
+  }
+
+  // Rimshot/side-stick — the quiet backbeat alternative.
+  function rim(rnd) {
+    const x = alloc(0.09);
+    let phase = 0;
+    for (let i = 0; i < x.length; i++) {
+      const t = i / SR;
+      phase += (2 * Math.PI * 1700) / SR;
+      x[i] = (Math.sin(phase) * 0.6 + (rnd() * 2 - 1) * 0.4) * Math.exp(-t / 0.011);
+    }
+    bandpass(x, 1900, 1.4, SR);
+    return deClick(normalize(x, 0.8), SR);
+  }
+
+  // ---- kit assembly ----
+
+  // Two kit flavors. `machine` = 808 lineage (long sub kick, synthetic snare) for
+  // the hip-hop / funk end; `studio` = LM-1 lineage (short punchy kick, fatter
+  // snare) for the new wave / synth pop / R&B end. Same voice set, different tuning.
+  function buildBuffers(flavor) {
+    const R = U.makePrng(DRUM_SEED);
+    const rnd = R.r;
+    const machine = flavor === "machine";
+    return {
+      kick: machine ? kick(0.95, 118, 44, 0.10, rnd) : kick(0.34, 155, 52, 0.30, rnd),
+      snare: machine ? snare(0.20, 190, 0.62, rnd) : snare(0.26, 205, 0.72, rnd),
+      clap: clap(rnd),
+      rim: rim(rnd),
+      hatClosed: hat(machine ? 0.055 : 0.070),
+      hatOpen: hat(machine ? 0.36 : 0.30),
+      tomHi: tom(220, 0.34),
+      tomMid: tom(165, 0.38),
+      tomLo: tom(110, 0.44),
+      cowbell: cowbell(),
+      congaHi: tom(310, 0.20),
+      congaLo: tom(205, 0.24),
+    };
+  }
+
+  function toAudioBuffer(ctx, data) {
+    // Buffers are authored at 44.1k. If the context runs at another rate we
+    // resample linearly here rather than letting playbackRate do it, so the
+    // sound is identical to the authored voice.
+    if (ctx.sampleRate === SR) {
+      const b = ctx.createBuffer(1, data.length, SR);
+      b.getChannelData(0).set(data);
+      return b;
+    }
+    const ratio = ctx.sampleRate / SR;
+    const n = Math.max(1, Math.round(data.length * ratio));
+    const b = ctx.createBuffer(1, n, ctx.sampleRate);
+    const out = b.getChannelData(0);
+    for (let i = 0; i < n; i++) {
+      const s = i / ratio;
+      const i0 = Math.floor(s), frac = s - i0;
+      const a = data[i0] || 0, bb = data[i0 + 1] || 0;
+      out[i] = a + (bb - a) * frac;
+    }
+    return b;
+  }
+
+  // strips: { kick, snare, hats, tomsFills, ePerc, percTime, percAccent } desk strips.
+  // Each strip gets one voice bus; hits chain-mix into it (fan-in ≤2 preserved).
+  //
+  // `panel` (optional, 2026-08-10) is a drawn 808 front panel. When present the
+  // machine's own voices come from instruments/tr808.js instead of the constants
+  // above, and the kit gains the machine's two scheduling behaviours: ACCENT and
+  // the hat CHOKE group. No panel = the generic kit exactly as it was, which is
+  // what the `studio` / Linn-lineage flavour still uses and what the A/B
+  // listening renders compare against.
+  //
+  // ALL NINE SINCE 2026-08-18. It was the four core voices only, which left a
+  // machine-flavour song playing tr808's kick and snare over drums.js's generic
+  // clap, rim and toms — half a TR-808 and half something else, and the exact
+  // gap the 08-10 note named ("clap/rim/cowbell/congas/toms are still generic").
+  // tr808.js now carries five more voices synthesised from the real circuits, so
+  // the machine flavour takes them. COWBELL AND THE CONGAS STAY GENERIC: the
+  // machine has those circuits and we have not written them, and a named gap
+  // beats a silent one.
+  const PANEL_VOICES = ["kick", "snare", "hatClosed", "hatOpen",
+    "clap", "rim", "tomLo", "tomMid", "tomHi"];
+  //
+  // A LINN PANEL (2026-09-29, instruments/linn.js; `panel.machine === "linn"`)
+  // swaps in the studio machine instead: every voice the generic kit has, plus
+  // clave, tamb and cabasa, from the Linn's own data path, and the same hat
+  // choke (its closed and open hats are one sample through one VCA). No
+  // accent: the kit's per-step dynamics are not modelled, so an accented step
+  // plays at the level the generic kit always gave it.
+  U.createDrumKit = function (ctx, strips, flavor, panel) {
+    const raw = buildBuffers(flavor);
+    const linn = !!(panel && panel.machine === "linn" && U.buildLinn);
+    if (linn) {
+      const v = U.buildLinn(panel);
+      for (const k in v) raw[k] = v[k];
+    } else if (panel && U.build808) {
+      const v = U.build808(panel);
+      for (const k of PANEL_VOICES) if (v[k]) raw[k] = v[k];
+    }
+    const acc = panel && !linn && U.accent808 ? U.accent808(panel) : { hit: 1, rest: 1 };
+    const bufs = {};
+    for (const k in raw) bufs[k] = toAudioBuffer(ctx, raw[k]);
+
+    const buses = {};
+    for (const id in strips) {
+      const bus = ctx.createGain();
+      strips[id].input.add(bus);
+      buses[id] = { node: bus, mix: U.chainMixer(ctx, bus) };
+    }
+
+    // See the matching note in juno.js: references to every created node are
+    // held so Chrome never disposes a finished source mid-render. GC timing is
+    // the one thing in this engine that isn't a function of the token hash.
+    const held = [];
+
+    // Hat choke, per strip. On the machine the closed and open hat share one
+    // VCA, so any hat cuts a ringing open hat dead. Implemented as a 4ms ramp
+    // to zero on the open hat's own gain node at the moment the next hat is
+    // scheduled — the whole song is scheduled up front in bar order, so this
+    // is a function of the schedule and never of wall clock. A hard stop()
+    // would click; the ramp is the VCA closing.
+    const openHat = {};   // stripId -> { g, gain, end }
+
+    function fire(stripId, bufName, t, gain, accent) {
+      const bus = buses[stripId];
+      if (!bus) return;
+      const src = ctx.createBufferSource();
+      src.buffer = bufs[bufName];
+      const g = ctx.createGain();
+      const level = gain * (accent ? acc.hit : acc.rest);
+      g.gain.value = level;
+      if (panel && (bufName === "hatClosed" || bufName === "hatOpen")) {
+        const pending = openHat[stripId];
+        if (pending && t > pending.t && t < pending.end) {
+          pending.g.gain.setValueAtTime(pending.gain, t);
+          pending.g.gain.linearRampToValueAtTime(0, t + 0.004);
+          openHat[stripId] = null;
+        }
+        if (bufName === "hatOpen") {
+          openHat[stripId] = { g, gain: level, t, end: t + bufs.hatOpen.duration };
+        }
+      }
+      src.connect(g);
+      bus.mix.add(g);
+      src.start(t);
+      held.push(src, g);
+    }
+
+    return { fire, buffers: bufs, held, panel: panel || null };
+  };
+})(typeof window !== "undefined" ? window : globalThis);
+
+/* ===== src/instruments/linn.js @ 7cbef9f — verbatim from jeffdavis-studio/unison-engine ===== */
+// linn.js — THE STUDIO MACHINE. A Linn-family (LM-1 / LinnDrum lineage)
+// drum computer: the new wave / synth-pop / 80s R&B kit.
+//
+// Homage, not trademark: nothing user-facing names a model number.
+//
+// WHAT IS DIFFERENT ABOUT THIS MACHINE. The 808 synthesises its drums from
+// circuits. This machine PLAYED BACK short recordings of acoustic drums from
+// EPROMs. Unison ships no samples, ever, so the "recordings" here are
+// synthesised at build time from math (an acoustic-ish source per voice) and
+// then run through the machine's own DATA PATH, which is where its character
+// lives. That path is this file's circuit model, in the order a hit takes it:
+//
+//   1. THE EPROM. The source is resampled to the machine's native sample clock
+//      (EPROM_HZ) behind a gentle anti-alias pole, then quantised to 8 bits
+//      through a mu-law COMPANDER: coarse steps at the top of the range, fine
+//      ones near zero, so the body of a hit is gritty and the tail is clean
+//      until it falls into the last few codes. The EPROM also has a LENGTH
+//      (CAP per voice): a sample that is still ringing when its chip runs out
+//      simply stops. The machine's open hat is exactly that.
+//   2. THE CLOCK. Each voice has its own playback clock and TUNE is that
+//      clock's rate. A tape-speed control, not a pitch-shifter: pitch and
+//      length move together, and the whole spectrum (noise included) moves.
+//   3. THE DAC. Zero-order hold at the clock rate — the stepped output a
+//      sample-and-hold DAC gives — so the images of the clock sit above the
+//      band and move with TUNE.
+//   4. THE OUTPUT FILTER. A fixed two-pole reconstruction low-pass (RECON_HZ),
+//      fixed while the clock moves, so a voice tuned up gets brighter images
+//      and a voice tuned down gets duller — the machine's own tuning colour.
+//   5. THE HAT VCA. The hats are ONE sample; closed and open differ only in a
+//      VCA decay after the DAC, which is the machine's hat DECAY trim. So the
+//      closed hat is the open hat choked by its own envelope, and any hat cuts
+//      a ringing open hat (the kit's choke group, drums.js `fire`).
+//   6. THE LEVEL TRIMS, per voice, on the mixer.
+//
+// The SOURCES, the "acoustic drums" the chips hold, are fitted by measurement
+// against a verified LM-1 reference pack where the pack has the voice
+// (analysis/fit-linn.mjs, analysis/fits/linn-*.json) and voiced by written
+// reasoning where it does not (sidestick, cabasa, the middle tom). No crash or
+// ride: the pack holds neither, and the lanes never ask for one.
+//
+// DETERMINISM. One fixed-seed noise stream (NOISE_SEED), consumed in a fixed
+// voice order — new voices go on the END. No Math.random, no song draws
+// consumed by construction; the panel is the only per-song input.
+(function (g) {
+  "use strict";
+  const U = (g.U = g.U || {});
+
+  const SR = 44100;
+  const NOISE_SEED = "11a911a911a911a911a911a911a911a9";
+  const EPROM_HZ = 28000;  // native sample clock
+  const RECON_HZ = 11500;  // fixed output reconstruction filter corner
+  const MU = 255;          // compander law
+
+  // ---- the panel ------------------------------------------------------------
+  // TUNE is a clock-rate ratio (1 = the EPROM's own pitch), spanning about
+  // +-4 semitones geometric; LEVEL is a gain trim. hatDecay is the hat VCA's
+  // open-hat time constant in seconds (geometric). Centres are where the page
+  // opens and where a drawn panel is pulled; fitted centres come from
+  // analysis/fits/linn-*.json (see the fit notes beside each voice).
+  const RANGE = {
+    kickTune:  [0.80, 1.25],  kickLevel:  [0.86, 1.14],
+    snareTune: [0.80, 1.25],  snareLevel: [0.86, 1.14],
+    rimLevel:  [0.80, 1.20],  clapLevel:  [0.84, 1.16],
+    hatTune:   [0.84, 1.19],  hatDecay:   [0.06, 0.60],  hatLevel: [0.82, 1.18],
+    tomHiTune: [0.80, 1.25],  tomMidTune: [0.80, 1.25],  tomLoTune: [0.80, 1.25],
+    tomLevel:  [0.84, 1.16],
+    congaTune: [0.80, 1.25],  percLevel:  [0.80, 1.20],
+  };
+  const GEOMETRIC = { kickTune: 1, snareTune: 1, hatTune: 1, hatDecay: 1, tomHiTune: 1, tomMidTune: 1, tomLoTune: 1, congaTune: 1 };
+  U.PANEL_LINN_RANGES = RANGE;
+  U.PANEL_LINN_KEYS = Object.keys(RANGE);
+
+  const span = (k, t) => {
+    const r = RANGE[k];
+    return GEOMETRIC[k] ? r[0] * Math.pow(r[1] / r[0], t) : r[0] + (r[1] - r[0]) * t;
+  };
+  // Position that lands a geometric knob on value v (the page and the fitter
+  // use it to open at a fitted centre).
+  U.linnPosFor = function (k, v) {
+    const r = RANGE[k];
+    return GEOMETRIC[k] ? Math.log(v / r[0]) / Math.log(r[1] / r[0]) : (v - r[0]) / (r[1] - r[0]);
+  };
+
+  // Fitted panel centres, as positions. A knob not listed sits at 0.5.
+  // hatDecay 0.5 -> 0.19 s. Set by the apply-fit step (analysis/fit-linn.mjs).
+  const CENTRE = {};
+  U.LINN_CENTRE = CENTRE;
+
+  U.panelLinnFromPos = function (pos) {
+    const v = {}, at = {};
+    for (const k in RANGE) {
+      const d = CENTRE[k] === undefined ? 0.5 : CENTRE[k];
+      const t = pos && pos[k] !== undefined ? Math.max(0, Math.min(1, pos[k])) : d;
+      at[k] = t;
+      v[k] = span(k, t);
+    }
+    v.pos = at;
+    v.machine = "linn";   // how drums.js createDrumKit tells this panel from an 808's
+    return v;
+  };
+
+  // Same centre-biased shape as the 808's panel draw (exponent below 1 pulls a
+  // uniform draw toward the middle), around the fitted centre: the lower half
+  // of the unit maps to [0, centre], the upper to [centre, 1].
+  const K = 0.62;
+  function centred(t, c) {
+    const u = t < 0.5 ? 0.5 * Math.pow(2 * t, K) : 1 - 0.5 * Math.pow(2 - 2 * t, K);
+    return u < 0.5 ? 2 * u * c : c + (2 * u - 1) * (1 - c);
+  }
+  // EXACTLY 15 draws (one per RANGE key, in RANGE order), always.
+  U.drawLinnPanel = function (R) {
+    const pos = {};
+    for (const k of U.PANEL_LINN_KEYS) pos[k] = centred(R.r(), CENTRE[k] === undefined ? 0.5 : CENTRE[k]);
+    return U.panelLinnFromPos(pos);
+  };
+
+  U.describeLinn = function (p) {
+    const st = (r) => (12 * Math.log2(r) >= 0 ? "+" : "") + (12 * Math.log2(r)).toFixed(1);
+    return "BD " + st(p.kickTune) + "st | SD " + st(p.snareTune) + "st | HH " + st(p.hatTune) +
+      "st d" + Math.round(p.hatDecay * 1000) + "ms | TOM " + st(p.tomHiTune) + "/" + st(p.tomMidTune) + "/" + st(p.tomLoTune);
+  };
+
+  // ---- DSP helpers (private, same primitives as drums.js / tr808.js) -------
+  const alloc = (sec) => new Float32Array(Math.max(1, Math.round(sec * SR)));
+  function onePoleHP(x, hz, rate) {
+    const a = Math.exp((-2 * Math.PI * hz) / rate);
+    let y = 0, xp = 0;
+    for (let i = 0; i < x.length; i++) { const xi = x[i]; y = a * (y + xi - xp); x[i] = y; xp = xi; }
+    return x;
+  }
+  function onePoleLP(x, hz, rate) {
+    const a = 1 - Math.exp((-2 * Math.PI * hz) / rate);
+    let y = 0;
+    for (let i = 0; i < x.length; i++) { y += a * (x[i] - y); x[i] = y; }
+    return x;
+  }
+  function biquad(x, type, hz, q, rate) {
+    const w = (2 * Math.PI * hz) / rate, al = Math.sin(w) / (2 * q), cw = Math.cos(w);
+    let b0, b1, b2;
+    if (type === "bp") { b0 = al; b1 = 0; b2 = -al; }
+    else if (type === "lp") { b0 = (1 - cw) / 2; b1 = 1 - cw; b2 = (1 - cw) / 2; }
+    else { b0 = (1 + cw) / 2; b1 = -(1 + cw); b2 = (1 + cw) / 2; }
+    const a0 = 1 + al, a1 = -2 * cw, a2 = 1 - al;
+    let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+    for (let i = 0; i < x.length; i++) {
+      const xi = x[i], y = (b0 * xi + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2) / a0;
+      x2 = x1; x1 = xi; y2 = y1; y1 = y; x[i] = y;
+    }
+    return x;
+  }
+  function normalize(x, target) {
+    let pk = 0; for (let i = 0; i < x.length; i++) pk = Math.max(pk, Math.abs(x[i]));
+    if (pk < 1e-9) return x;
+    const k = target / pk; for (let i = 0; i < x.length; i++) x[i] *= k;
+    return x;
+  }
+  function noise(n, rnd) { const x = new Float32Array(n); for (let i = 0; i < n; i++) x[i] = rnd() * 2 - 1; return x; }
+
+  // ---- 1-4: the data path ---------------------------------------------------
+  // `CIRCUIT` is exported so the fitter and the selftest can switch single
+  // stages off and measure what each one does.
+  const CIRCUIT = { compand: true, bits: 8, zoh: true, recon: true, antiAlias: true, fade: 0.4, dacOS: 4, vcf: true };
+  U.CIRCUIT_LINN = CIRCUIT;
+
+  function mulawQ(v) {
+    const L = (1 << (CIRCUIT.bits - 1)) - 1;
+    if (!CIRCUIT.compand) return Math.round(v * L) / L;
+    const s = v < 0 ? -1 : 1, a = Math.min(1, Math.abs(v));
+    const y = Math.round((Math.log(1 + MU * a) / Math.log(1 + MU)) * L) / L;
+    return s * (Math.pow(1 + MU, y) - 1) / MU;
+  }
+  // source (Float32 at SR, peak ~0.95) -> EPROM contents (Float32 at EPROM_HZ)
+  function burn(src, capSec) {
+    const x = Float32Array.from(src);
+    if (CIRCUIT.antiAlias) { onePoleLP(x, EPROM_HZ * 0.45, SR); }
+    const n = Math.min(Math.round(capSec * EPROM_HZ), Math.floor((x.length - 1) * EPROM_HZ / SR));
+    const rom = new Float32Array(Math.max(1, n));
+    // THE FADE: a sample longer than its chip was faded out over the last
+    // `fade` of the chip before burning (the fade is in the data, so it is
+    // quantised like everything else). Found 2026-09-29: the LM-1 snare and
+    // kick reach -20 dB on time and then fall to -40 dB far faster than any
+    // single decay can, which is what a faded chip does.
+    const f0 = Math.round(rom.length * (1 - CIRCUIT.fade));
+    for (let i = 0; i < rom.length; i++) {
+      const s = i * SR / EPROM_HZ, i0 = Math.floor(s), f = s - i0;
+      const g = i < f0 ? 1 : 1 - (i - f0) / (rom.length - f0);
+      rom[i] = mulawQ((x[i0] + (x[i0 + 1] - x[i0]) * f) * g);
+    }
+    return rom;
+  }
+  // EPROM played at clock EPROM_HZ*tune -> output at SR
+  function play(rom, tune) {
+    if (CIRCUIT.dacOS > 1) return playOS(rom, tune, CIRCUIT.dacOS);
+    const step = (EPROM_HZ * tune) / SR;
+    const n = Math.max(1, Math.floor(rom.length / step));
+    const y = new Float32Array(n + Math.round(0.004 * SR));
+    for (let i = 0; i < n; i++) {
+      const s = i * step;
+      if (CIRCUIT.zoh) y[i] = rom[Math.floor(s)];
+      else { const i0 = Math.floor(s), f = s - i0; y[i] = rom[i0] + ((rom[i0 + 1] || 0) - rom[i0]) * f; }
+    }
+    if (CIRCUIT.recon) { biquad(y, "lp", RECON_HZ, 0.707, SR); }
+    return y;
+  }
+
+  // The DAC and output filter are ANALOG: the staircase and its images exist
+  // at every frequency, and the output filter works on them before anything
+  // is sampled. So the staircase is built at dacOS x the output rate, the
+  // reconstruction filter runs there, and the result reaches 44.1 kHz through
+  // a steep anti-alias decimator (the recording chain's converter). Stepping a
+  // 28 kHz staircase straight at 44.1 kHz instead lands each step edge on the
+  // nearest output sample: the clock images fold back into the band as an
+  // inharmonic hiss that rides every hit (measured 2026-09-30).
+  const decimCache = {};
+  function decimKernel(os) {
+    if (decimCache[os]) return decimCache[os];
+    const taps = 16 * os + 1, c = (taps - 1) / 2, fc = 0.46 / os, h = new Float64Array(taps);
+    let sum = 0;
+    for (let k = 0; k < taps; k++) {
+      const m = k - c, sinc = m === 0 ? 2 * fc : Math.sin(2 * Math.PI * fc * m) / (Math.PI * m);
+      const w = 0.42 - 0.5 * Math.cos((2 * Math.PI * k) / (taps - 1)) + 0.08 * Math.cos((4 * Math.PI * k) / (taps - 1));
+      h[k] = sinc * w; sum += h[k];
+    }
+    for (let k = 0; k < taps; k++) h[k] /= sum;
+    return (decimCache[os] = h);
+  }
+  function playOS(rom, tune, os) {
+    const R = SR * os, step = (EPROM_HZ * tune) / R;
+    const nh = Math.max(1, Math.floor(rom.length / step)), pad = Math.round(0.004 * R);
+    const hi = new Float32Array(nh + pad);
+    for (let i = 0; i < nh; i++) hi[i] = rom[Math.floor(i * step)];
+    if (CIRCUIT.recon) biquad(hi, "lp", RECON_HZ, 0.707, R);
+    const h = decimKernel(os), c = (h.length - 1) >> 1, n = Math.floor(hi.length / os);
+    const y = new Float32Array(n);
+    for (let j = 0; j < n; j++) {
+      const at = j * os; let s = 0;
+      const k0 = Math.max(0, at + c - (hi.length - 1)), k1 = Math.min(h.length - 1, at + c);
+      for (let k = k0; k <= k1; k++) s += h[k] * hi[at + c - k];
+      y[j] = s;
+    }
+    return y;
+  }
+
+  // ---- the sources: the "recordings" the chips hold -------------------------
+  // Every constant below is either FITTED (named in analysis/fits/linn-fit.json
+  // with the reference it came from) or VOICED (reasoning in the comment).
+  const V = {
+    // kick: sine at f with a fast downward sweep from f*sweep, amplitude decay
+    // tau, a beater click. BLOOM is the body's rise time: the recorded drum
+    // reaches its loudest ~15 ms in (the head's first excursions build the
+    // shell resonance), where a synthesised kick peaks at once. Added
+    // 2026-09-29 when the first fit found attack a term no knob moved.
+    // Fitted to the LM-1 kick (61 Hz, t40 72 ms); bloom and click are voiced
+    // (the probe check could not see them).
+    kick:    { f: 61, sweep: 1.2, sweepTau: 0.00877, tau: 0.01897, bloom: 0.006, click: 0.35, cap: 0.203, vcf: { f0: 16000, f1: 1560, tau: 0.064 } },
+    // snare: shell tone (f and 1.62f, the drum's first two modes) + wire noise
+    // (band-limited, its own decay). Fitted to the LM-1 snare.
+    snare:   { f: 154, tauBody: 0.06658, tauWire: 0.03801, wire: 0.62, wireHP: 1368, wireLP: 9000, cap: 0.140 },
+    // clap: n bursts of one band-passed noise, then a tail. Fitted to the LM-1
+    // clap (6 bursts in 40 ms, centroid 1359 Hz).
+    clap:    { n: 4.275, gap: 0.004, bp: 700, q: 1.138, tau: 0.03557, cap: 0.191 },
+    // clave: one damped mode. Fitted to the LM-1 clave (2449 Hz, 16 ms file).
+    clave:   { f: 2449, tau: 0.01295, cap: 0.0163 },
+    // sidestick (the rim role): VOICED, no reference. A stick across the rim
+    // is a hard click into the shell's upper modes: short noise transient plus
+    // two damped modes, woody not metallic, ~40 ms. Between the clave (too
+    // pitched) and the snare (too much wire).
+    rim:     { f1: 420, f2: 1650, tau: 0.018, click: 0.6, cap: 0.08 },
+    // hat: ONE sample. Metallic noise (inharmonic square bank + white noise)
+    // through a high-pass with a resonance where the LM-1 hat peaks (5 kHz).
+    // Its chip runs out at `cap`; the VCA (hatDecay) shapes it after the DAC.
+    hat:     { hp: 3846, res: 5000, resQ: 3, resAmt: 0.5, ring: 0.6072, tau: 0.25, bloom: 0.00253, cap: 0.318, closedTau: 0.03077 },
+    // toms: sine with a small downward pitch settle + a stick transient + skin
+    // noise, then the VCF. Fitted to LM-1 tom hi (161 Hz) and lo (109 Hz); on
+    // 2026-09-30 refitted with the whole-hit tonal and grit probes (skin and
+    // the VCF). The middle tom is VOICED: pitch the geometric mean of the two
+    // (132 Hz), every other constant between (geometric) their fitted values.
+    tomHi:   { f: 161, drop: 0.0464, tau: 0.09122, bloom: 0.004, stick: 0.1976, skin: 0.5253, cap: 0.408, vcf: { f0: 16000, f1: 1897, tau: 0.08997 } },
+    tomMid:  { f: 132, drop: 0.045, tau: 0.098, bloom: 0.0126, stick: 0.22, skin: 0.505, cap: 0.51, vcf: { f0: 16000, f1: 2700, tau: 0.095 } },
+    tomLo:   { f: 109, drop: 0.04462, tau: 0.105, bloom: 0.04, stick: 0.25, skin: 0.4857, cap: 0.620, vcf: { f0: 16000, f1: 3840, tau: 0.1012 } },
+    // congas: a tighter membrane, a slap transient, then the VCF. Fitted to
+    // LM-1 conga hi (232 Hz) and lo (154 Hz); conga lo's source held at its
+    // 9/29 fit and only its VCF fitted on 9/30.
+    congaHi: { f: 232, drop: 0.02, tau: 0.06402, bloom: 0.00115, stick: 0.07901, skin: 0.3036, cap: 0.275, vcf: { f0: 16000, f1: 5060, tau: 0.02312 } },
+    congaLo: { f: 154, drop: 0.02, tau: 0.0703, bloom: 0.003, stick: 0.35, skin: 0.3414, cap: 0.456, vcf: { f0: 16000, f1: 3750, tau: 0.01625 } },
+    // cowbell: two partials at the LM-1's measured 506 + 1087 Hz (ratio 2.15),
+    // a fast strike decay into a slower ring. Fitted.
+    cowbell: { f1: 506, f2: 1087, a2: 0.35, tauFast: 0.010, tauSlow: 0.01758, mixSlow: 0.896, attack: 0.003, cap: 0.175 },
+    // tambourine: jingles — noise through a bank of narrow high resonances
+    // (the jingle discs) plus a broadband shake. Fitted to the LM-1 tamb.
+    tamb:    { res: [3580, 5400, 7300, 9100], resScale: 0.7873, q: 14, ring: 0.95, tau: 0.04001, attack: 0.00116, cap: 0.156 },
+    // cabasa: VOICED, no reference. Beads on a steel sleeve: high-passed noise,
+    // a slightly soft 4 ms front (the beads scrape, they do not strike), 60 ms.
+    cabasa:  { hp: 5000, tau: 0.02, attack: 0.004, cap: 0.10 },
+  };
+  U.LINN_VOICING = V;
+
+  function kickSrc(p, rnd) {
+    const x = alloc(p.cap + 0.02);
+    let ph = 0;
+    for (let i = 0; i < x.length; i++) {
+      const t = i / SR, f = p.f * (1 + (p.sweep - 1) * Math.exp(-t / p.sweepTau));
+      ph += (2 * Math.PI * f) / SR;
+      x[i] = Math.sin(ph) * Math.exp(-t / p.tau) * (1 - Math.exp(-t / p.bloom));
+    }
+    const c = noise(Math.round(0.006 * SR), rnd); onePoleHP(c, 1200, SR);
+    for (let i = 0; i < c.length; i++) x[i] += c[i] * p.click * Math.exp(-i / (0.0012 * SR));
+    for (let i = 0; i < x.length; i++) x[i] = Math.tanh(1.4 * x[i]);
+    return normalize(x, 0.95);
+  }
+  function snareSrc(p, rnd) {
+    const x = alloc(p.cap + 0.02), w = noise(x.length, rnd);
+    onePoleHP(w, p.wireHP, SR); onePoleHP(w, p.wireHP, SR); onePoleLP(w, p.wireLP, SR);
+    normalize(w, 1);
+    let p1 = 0, p2 = 0;
+    for (let i = 0; i < x.length; i++) {
+      const t = i / SR;
+      p1 += (2 * Math.PI * p.f) / SR; p2 += (2 * Math.PI * p.f * 1.62) / SR;
+      const body = (Math.sin(p1) + 0.5 * Math.sin(p2)) * Math.exp(-t / p.tauBody);
+      x[i] = body * (1 - p.wire) + w[i] * p.wire * Math.exp(-t / p.tauWire);
+    }
+    return normalize(x, 0.95);
+  }
+  function clapSrc(p, rnd) {
+    const x = alloc(p.cap + 0.02), nz = noise(x.length, rnd);
+    for (let i = 0; i < x.length; i++) {
+      const t = i / SR, k = Math.floor(t / p.gap);
+      let e;
+      if (k < p.n - 1) e = Math.exp(-(t - k * p.gap) / 0.0018);
+      else e = Math.exp(-(t - (p.n - 1) * p.gap) / p.tau);
+      x[i] = nz[i] * e;
+    }
+    biquad(x, "bp", p.bp, p.q, SR);
+    return normalize(x, 0.95);
+  }
+  function modeSrc(f, tau, cap) {
+    const x = alloc(cap);
+    for (let i = 0; i < x.length; i++) x[i] = Math.sin((2 * Math.PI * f * i) / SR) * Math.exp(-i / SR / tau);
+    return x;
+  }
+  function claveSrc(p) { return normalize(modeSrc(p.f, p.tau, p.cap), 0.95); }
+  function rimSrc(p, rnd) {
+    const a = modeSrc(p.f1, p.tau, p.cap), b = modeSrc(p.f2, p.tau * 0.6, p.cap);
+    const c = noise(a.length, rnd); onePoleHP(c, 2500, SR);
+    for (let i = 0; i < a.length; i++) a[i] = 0.6 * a[i] + 0.5 * b[i] + p.click * c[i] * Math.exp(-i / (0.0015 * SR));
+    return normalize(a, 0.95);
+  }
+  const HAT_OSC = [317, 452, 571, 689, 823, 1043];
+  // Plate modes: narrow partials where a recorded hat rings (the LM-1's
+  // strongest is 5.0 kHz; the rest inharmonic above it). `ring` is their level
+  // against the noise — what the tonal-fraction probe reads (0.30 on the LM-1).
+  const HAT_MODES = [4999, 6127, 7392, 8231, 9564, 11210];
+  function hatSrc(p, rnd) {
+    const x = alloc(p.cap + 0.02), nz = noise(x.length, rnd), ph = HAT_OSC.map(() => 0);
+    for (let i = 0; i < x.length; i++) {
+      let s = 0;
+      for (let k = 0; k < HAT_OSC.length; k++) { ph[k] += HAT_OSC[k] / SR; s += (ph[k] % 1) < 0.5 ? 1 : -1; }
+      // BLOOM: the recorded cymbal reaches its loudest ~7 ms in (the stick,
+      // then the plate's modes building), 2026-09-29 fit.
+      x[i] = (0.5 * s / HAT_OSC.length + 0.8 * nz[i]) * Math.exp(-i / SR / p.tau) * (1 - Math.exp(-i / SR / p.bloom));
+    }
+    for (let i = 0; i < x.length; i++) {
+      const t = i / SR; let m = 0;
+      for (let k = 0; k < HAT_MODES.length; k++) m += Math.sin(2 * Math.PI * HAT_MODES[k] * t) / (1 + 0.3 * k);
+      x[i] += p.ring * m * 0.25 * Math.exp(-t / p.tau) * (1 - Math.exp(-t / p.bloom));
+    }
+    onePoleHP(x, p.hp, SR); onePoleHP(x, p.hp, SR);
+    const r = Float32Array.from(x); biquad(r, "bp", p.res, p.resQ, SR);
+    for (let i = 0; i < x.length; i++) x[i] += p.resAmt * r[i];
+    return normalize(x, 0.95);
+  }
+  function drumSrc(p, rnd) {
+    const x = alloc(p.cap + 0.02);
+    let ph = 0;
+    for (let i = 0; i < x.length; i++) {
+      const t = i / SR, f = p.f * (1 + p.drop * Math.exp(-t / 0.03));
+      ph += (2 * Math.PI * f) / SR;
+      x[i] = Math.sin(ph) * Math.exp(-t / p.tau) * (1 - Math.exp(-t / p.bloom));
+    }
+    // SKIN: the head's own noise riding the body envelope (low-passed, not a
+    // transient): a recorded tom is 90-95% tonal over its first 40 ms, a pure
+    // sine is 100%. Added 2026-09-29 when the fit found tonal fraction a term
+    // no knob moved.
+    const sk = noise(x.length, rnd); onePoleLP(sk, 2500, SR); onePoleHP(sk, 200, SR); normalize(sk, 1);
+    for (let i = 0; i < x.length; i++) x[i] += p.skin * sk[i] * Math.exp(-i / SR / (p.tau * 0.6));
+    const c = noise(Math.round(0.01 * SR), rnd); onePoleHP(c, 800, SR);
+    for (let i = 0; i < c.length; i++) x[i] += p.stick * c[i] * Math.exp(-i / (0.002 * SR));
+    return normalize(x, 0.95);
+  }
+  function cowbellSrc(p) {
+    const x = alloc(p.cap);
+    for (let i = 0; i < x.length; i++) {
+      const t = i / SR;
+      const s = Math.sin(2 * Math.PI * p.f1 * t) + p.a2 * Math.sin(2 * Math.PI * p.f2 * t);
+      x[i] = s * ((1 - p.mixSlow) * Math.exp(-t / p.tauFast) + p.mixSlow * Math.exp(-t / p.tauSlow)) * (1 - Math.exp(-t / p.attack));
+    }
+    return normalize(x, 0.95);
+  }
+  function tambSrc(p, rnd) {
+    const x = alloc(p.cap + 0.02), nz = noise(x.length, rnd);
+    for (let i = 0; i < x.length; i++) { const t = i / SR; nz[i] *= Math.min(1, t / p.attack) * Math.exp(-t / p.tau); }
+    const y = Float32Array.from(nz); onePoleHP(y, 4000, SR);
+    for (const f of p.res) { const r = Float32Array.from(nz); biquad(r, "bp", Math.min(0.45 * SR, f * p.resScale), p.q, SR); for (let i = 0; i < x.length; i++) x[i] += p.ring * r[i]; }
+    for (let i = 0; i < x.length; i++) x[i] += (1 - p.ring) * y[i];
+    return normalize(x, 0.95);
+  }
+  function cabasaSrc(p, rnd) {
+    const x = noise(Math.round((p.cap + 0.02) * SR), rnd);
+    onePoleHP(x, p.hp, SR); onePoleHP(x, p.hp, SR);
+    for (let i = 0; i < x.length; i++) { const t = i / SR; x[i] *= Math.min(1, t / p.attack) * Math.exp(-t / p.tau); }
+    return normalize(x, 0.95);
+  }
+
+  // The chips: every source burned once per voicing. Cached by the voicing
+  // table's JSON so a song, the fitter and the page never burn twice.
+  // ORDER IS PART OF THE CONTRACT: one noise stream, voices in this order.
+  let romCache = null, romKey = "";
+  function roms() {
+    const key = JSON.stringify(V, (k, v) => (k === "vcf" ? undefined : v)) + JSON.stringify(CIRCUIT);  // the VCF is after the chip
+    if (romCache && romKey === key) return romCache;
+    const rnd = U.makePrng(NOISE_SEED).r;
+    romCache = {
+      kick: burn(kickSrc(V.kick, rnd), V.kick.cap),
+      snare: burn(snareSrc(V.snare, rnd), V.snare.cap),
+      clap: burn(clapSrc(V.clap, rnd), V.clap.cap),
+      clave: burn(claveSrc(V.clave), V.clave.cap),
+      rim: burn(rimSrc(V.rim, rnd), V.rim.cap),
+      hat: burn(hatSrc(V.hat, rnd), V.hat.cap),
+      tomHi: burn(drumSrc(V.tomHi, rnd), V.tomHi.cap),
+      tomMid: burn(drumSrc(V.tomMid, rnd), V.tomMid.cap),
+      tomLo: burn(drumSrc(V.tomLo, rnd), V.tomLo.cap),
+      congaHi: burn(drumSrc(V.congaHi, rnd), V.congaHi.cap),
+      congaLo: burn(drumSrc(V.congaLo, rnd), V.congaLo.cap),
+      cowbell: burn(cowbellSrc(V.cowbell), V.cowbell.cap),
+      tamb: burn(tambSrc(V.tamb, rnd), V.tamb.cap),
+      cabasa: burn(cabasaSrc(V.cabasa, rnd), V.cabasa.cap),
+    };
+    romKey = key;
+    return romCache;
+  }
+
+  // 4b: THE VCF. The kick, toms and congas leave the DAC through a voltage-
+  // controlled low-pass (a CEM3320 on the real board, trimmed per voice), whose
+  // cutoff falls over the hit: the stick's top end passes, then the filter
+  // closes on the tail. Found 2026-09-30 from Jeff's "noisy/staticy": our tom
+  // tails carried the 8-bit quantiser's grit at a constant ~40 dB under the
+  // drum all the way down, where the LM-1's toms lose their top end 12 dB per
+  // 100 ms faster than their body, which a fixed filter cannot do and a
+  // closing one does. Four poles, no resonance; cutoff f1 + (f0 - f1)e^(-t/tau),
+  // fixed while TUNE moves the clock (the filter is after the DAC).
+  function vcf(y, p) {
+    if (!CIRCUIT.vcf || !p) return y;
+    const s = [0, 0, 0, 0], k = Math.PI / SR, top = 0.45 * SR;
+    for (let i = 0; i < y.length; i++) {
+      const fc = Math.min(top, p.f1 + (p.f0 - p.f1) * Math.exp(-i / SR / p.tau));
+      const g = Math.tan(k * fc), G = g / (1 + g);
+      let x = y[i];
+      for (let j = 0; j < 4; j++) { const v = (x - s[j]) * G, o = v + s[j]; s[j] = o + v; x = o; }
+      y[i] = x;
+    }
+    return y;
+  }
+
+  // 5: the hat VCA, after the DAC
+  function vca(y, tau) {
+    const out = Float32Array.from(y);
+    for (let i = 0; i < out.length; i++) out[i] *= Math.exp(-i / SR / tau);
+    const tail = Math.round(0.002 * SR);
+    for (let i = 0; i < tail && i < out.length; i++) out[out.length - 1 - i] *= i / tail;
+    return out;
+  }
+  const scale = (y, g) => { for (let i = 0; i < y.length; i++) y[i] *= g; return y; };
+
+  // THE KIT: panel -> { voice: Float32Array at 44.1 kHz }. Voice names are the
+  // generic kit's (drums.js), so the Linn fires wherever that kit fires, plus
+  // clave, tamb and cabasa. 6: level trims applied here.
+  U.buildLinn = function (panel) {
+    const p = panel || U.panelLinnFromPos({}), out = {};
+    for (const v of U.LINN_VOICES) out[v] = voice(p, v);
+    return out;
+  };
+  // One voice alone (the fitter renders one voice thousands of times).
+  U.buildLinnVoice = function (panel, v) { return voice(panel || U.panelLinnFromPos({}), v); };
+  // THE PERCUSSION GROUP'S LEVEL against the main voices (kick, snare, clap,
+  // hats, toms). Set 2026-09-30 from the LM-1 pack's own balance (one
+  // recording gain, so its relative loudness is usable): K-weighted, the
+  // percussion pads sat 3.5 dB louder against the main voices than the
+  // LM-1's do (analysis/linn/pad-levels.mjs; Jeff, first listen: "a touch
+  // loud in comparison"). Congas, cowbell, clave, tambourine, cabasa and the
+  // side stick move together.
+  const PERC_GROUP = Math.pow(10, -3.5 / 20);
+  function voice(p, v) {
+    const R = roms();
+    switch (v) {
+      case "kick": return scale(vcf(play(R.kick, p.kickTune), V.kick.vcf), 0.84 * p.kickLevel);
+      case "snare": return scale(play(R.snare, p.snareTune), 0.82 * p.snareLevel);
+      case "clap": return scale(play(R.clap, 1), 0.80 * p.clapLevel);
+      case "rim": return scale(play(R.rim, 1), 0.72 * PERC_GROUP * p.rimLevel);
+      case "hatClosed": return scale(vca(play(R.hat, p.hatTune), V.hat.closedTau), 0.60 * p.hatLevel);
+      case "hatOpen": return scale(vca(play(R.hat, p.hatTune), p.hatDecay), 0.60 * p.hatLevel);
+      case "tomHi": return scale(vcf(play(R.tomHi, p.tomHiTune), V.tomHi.vcf), 0.80 * p.tomLevel);
+      case "tomMid": return scale(vcf(play(R.tomMid, p.tomMidTune), V.tomMid.vcf), 0.80 * p.tomLevel);
+      case "tomLo": return scale(vcf(play(R.tomLo, p.tomLoTune), V.tomLo.vcf), 0.80 * p.tomLevel);
+      case "congaHi": return scale(vcf(play(R.congaHi, p.congaTune), V.congaHi.vcf), 0.76 * PERC_GROUP * p.percLevel);
+      case "congaLo": return scale(vcf(play(R.congaLo, p.congaTune), V.congaLo.vcf), 0.76 * PERC_GROUP * p.percLevel);
+      case "cowbell": return scale(play(R.cowbell, 1), 0.64 * PERC_GROUP * p.percLevel);
+      case "clave": return scale(play(R.clave, 1), 0.64 * PERC_GROUP * p.percLevel);
+      case "tamb": return scale(play(R.tamb, 1), 0.56 * PERC_GROUP * p.percLevel);
+      case "cabasa": return scale(play(R.cabasa, 1), 0.50 * PERC_GROUP * p.percLevel);
+    }
+    throw new Error("linn: no voice " + v);
+  }
+  U.LINN_VOICES = ["kick", "snare", "clap", "rim", "hatClosed", "hatOpen", "tomHi", "tomMid", "tomLo",
+    "congaHi", "congaLo", "cowbell", "clave", "tamb", "cabasa"];
+
+  // Internal hooks for the fitter/selftest (burn/play one source directly).
+  U._linn = { burn, play, vca, roms, V, EPROM_HZ, RECON_HZ, SR };
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+
+<!-- ===================== fitted panel positions ===================== -->
+<script>
+window.FIT_POS = {"kickTune":0.5,"snareTune":0.5,"hatTune":0.5,"tomHiTune":0.5,"tomMidTune":0.5,"tomLoTune":0.5,"congaTune":0.5,"kickLevel":0.5,"snareLevel":0.5,"rimLevel":0.5,"clapLevel":0.5,"hatLevel":0.5,"tomLevel":0.5,"percLevel":0.5,"hatDecay":0.5};
+// The REASON each declined knob was declined, carried onto the page itself. A
+// notApplied block that only lives in the repo is a record Jeff cannot read,
+// and the whole point of declining a knob on the record is that the decline is
+// visible where the instrument is.
+window.FIT_WHY = {"kickTune":"The recordings hold each drum at one tuning, so they can place this knob but not span it. Each drum is built at its recording's own pitch, which puts the recording exactly at center. How far the knob turns each way is by reasoning, not measurement.","snareTune":"The recordings hold each drum at one tuning, so they can place this knob but not span it. Each drum is built at its recording's own pitch, which puts the recording exactly at center. How far the knob turns each way is by reasoning, not measurement.","hatTune":"The recordings hold each drum at one tuning, so they can place this knob but not span it. Each drum is built at its recording's own pitch, which puts the recording exactly at center. How far the knob turns each way is by reasoning, not measurement.","tomHiTune":"The recordings hold each drum at one tuning, so they can place this knob but not span it. Each drum is built at its recording's own pitch, which puts the recording exactly at center. How far the knob turns each way is by reasoning, not measurement.","tomMidTune":"The recordings hold each drum at one tuning, so they can place this knob but not span it. Each drum is built at its recording's own pitch, which puts the recording exactly at center. How far the knob turns each way is by reasoning, not measurement.","tomLoTune":"The recordings hold each drum at one tuning, so they can place this knob but not span it. Each drum is built at its recording's own pitch, which puts the recording exactly at center. How far the knob turns each way is by reasoning, not measurement.","congaTune":"The recordings hold each drum at one tuning, so they can place this knob but not span it. Each drum is built at its recording's own pitch, which puts the recording exactly at center. How far the knob turns each way is by reasoning, not measurement.","kickLevel":"The recordings' levels are whoever recorded them, not the machine's mix, so they say nothing about this knob. It stays at center; in the songs the kit is balanced by measuring it against the kit it replaces.","snareLevel":"The recordings' levels are whoever recorded them, not the machine's mix, so they say nothing about this knob. It stays at center; in the songs the kit is balanced by measuring it against the kit it replaces.","rimLevel":"The recordings' levels are whoever recorded them, not the machine's mix, so they say nothing about this knob. It stays at center; in the songs the kit is balanced by measuring it against the kit it replaces.","clapLevel":"The recordings' levels are whoever recorded them, not the machine's mix, so they say nothing about this knob. It stays at center; in the songs the kit is balanced by measuring it against the kit it replaces.","hatLevel":"The recordings' levels are whoever recorded them, not the machine's mix, so they say nothing about this knob. It stays at center; in the songs the kit is balanced by measuring it against the kit it replaces.","tomLevel":"The recordings' levels are whoever recorded them, not the machine's mix, so they say nothing about this knob. It stays at center; in the songs the kit is balanced by measuring it against the kit it replaces.","percLevel":"The recordings' levels are whoever recorded them, not the machine's mix, so they say nothing about this knob. It stays at center; in the songs the kit is balanced by measuring it against the kit it replaces.","hatDecay":"The recorded open hat runs out of chip while it is still ringing, so past a short setting this knob barely changes what you hear before the sound stops, and the measurement could not see it move. It stays at center, which is where the fit's own best guess landed anyway."};
+/* WHERE THE KNOBS OPEN @ 7cbef9f, built 2026-09-30.
+
+   Every knob apply-fit moved opens at CENTRE, because after the apply the
+   centre IS the fit. Only the knobs it measured and did not move are here, and
+   each one is here because a fit record says so:
+
+     kickTune     <- linn (all voices)
+       The recordings hold each drum at one tuning, so they can place this knob but not span it. Each drum is built at its recording's own pitch, which puts the recording exactly at center. How far the knob turns each way is by reasoning, not measurement.
+     snareTune    <- linn (all voices)
+       The recordings hold each drum at one tuning, so they can place this knob but not span it. Each drum is built at its recording's own pitch, which puts the recording exactly at center. How far the knob turns each way is by reasoning, not measurement.
+     hatTune      <- linn (all voices)
+       The recordings hold each drum at one tuning, so they can place this knob but not span it. Each drum is built at its recording's own pitch, which puts the recording exactly at center. How far the knob turns each way is by reasoning, not measurement.
+     tomHiTune    <- linn (all voices)
+       The recordings hold each drum at one tuning, so they can place this knob but not span it. Each drum is built at its recording's own pitch, which puts the recording exactly at center. How far the knob turns each way is by reasoning, not measurement.
+     tomMidTune   <- linn (all voices)
+       The recordings hold each drum at one tuning, so they can place this knob but not span it. Each drum is built at its recording's own pitch, which puts the recording exactly at center. How far the knob turns each way is by reasoning, not measurement.
+     tomLoTune    <- linn (all voices)
+       The recordings hold each drum at one tuning, so they can place this knob but not span it. Each drum is built at its recording's own pitch, which puts the recording exactly at center. How far the knob turns each way is by reasoning, not measurement.
+     congaTune    <- linn (all voices)
+       The recordings hold each drum at one tuning, so they can place this knob but not span it. Each drum is built at its recording's own pitch, which puts the recording exactly at center. How far the knob turns each way is by reasoning, not measurement.
+     kickLevel    <- linn (all voices)
+       The recordings' levels are whoever recorded them, not the machine's mix, so they say nothing about this knob. It stays at center; in the songs the kit is balanced by measuring it against the kit it replaces.
+     snareLevel   <- linn (all voices)
+       The recordings' levels are whoever recorded them, not the machine's mix, so they say nothing about this knob. It stays at center; in the songs the kit is balanced by measuring it against the kit it replaces.
+     rimLevel     <- linn (all voices)
+       The recordings' levels are whoever recorded them, not the machine's mix, so they say nothing about this knob. It stays at center; in the songs the kit is balanced by measuring it against the kit it replaces.
+     clapLevel    <- linn (all voices)
+       The recordings' levels are whoever recorded them, not the machine's mix, so they say nothing about this knob. It stays at center; in the songs the kit is balanced by measuring it against the kit it replaces.
+     hatLevel     <- linn (all voices)
+       The recordings' levels are whoever recorded them, not the machine's mix, so they say nothing about this knob. It stays at center; in the songs the kit is balanced by measuring it against the kit it replaces.
+     tomLevel     <- linn (all voices)
+       The recordings' levels are whoever recorded them, not the machine's mix, so they say nothing about this knob. It stays at center; in the songs the kit is balanced by measuring it against the kit it replaces.
+     percLevel    <- linn (all voices)
+       The recordings' levels are whoever recorded them, not the machine's mix, so they say nothing about this knob. It stays at center; in the songs the kit is balanced by measuring it against the kit it replaces.
+     hatDecay     <- linn (all voices)
+       The recorded open hat runs out of chip while it is still ringing, so past a short setting this knob barely changes what you hear before the sound stops, and the measurement could not see it move. It stays at center, which is where the fit's own best guess landed anyway. */
+</script>
+
+<script>
+"use strict";
+/* =========================================================================
+   UNISON STUDIO MACHINE — THE INSTRUMENT (the Linn-family kit, linn.js)
+
+   WHAT THIS IS. The whole machine, to play. All fifteen voices are hittable,
+   all fifteen panel knobs are on screen, and a sixteen-step pattern runs
+   underneath through the kit's own schedule path (drums.js createDrumKit ->
+   fire, hat choke included), the one the songs use. Every sound is
+   synthesized here, now, from the engine's own linn.js: a synthesized
+   "recording" per drum, run through the machine's data path (8-bit chip,
+   per-voice clock, stepped DAC, output filter, hat VCA). There are no samples
+   anywhere in this page and there never will be.
+
+   WHAT THIS ISN'T. Not a bench, and not an A/B. There is deliberately NOT ONE
+   MEASUREMENT on this screen. Tempo is a musical control, not a measurement,
+   which is why it is the one number allowed.
+
+   WHERE IT OPENS. At CENTRE for every knob a fit moved, because the centre now
+   IS the fit — opening at a fitted position would apply it twice and give you a
+   machine no token can draw. The knobs that were measured and DECLINED open at
+   the shipped value, since nothing moved the centre onto those. Every one of
+   them, and why, is in analysis/fits/. See analysis/build-instrument-page.mjs.
+
+   ONE HARD RULE, same as the listening page: this page never writes anything.
+   It reads no network, uploads nothing, and stores nothing.
+   ========================================================================= */
+
+var SR = 44100;
+var NSTEP = 16;
+
+var ENGINE_SRC = document.getElementById("src-engine").textContent;
+(new Function(ENGINE_SRC))();
+var U = window.U;
+var RL = U.PANEL_LINN_RANGES;
+var MASTER_STRIP = null;   // the one strip the kit plays into (built in audio())
+
+/* =========================================================================
+   THE VOICES — every one buildLinn returns, kit order first, percussion after.
+   The roster is written here rather than derived, because the LABELS and the
+   keyboard order are a human decision; but it is checked against the engine at
+   boot, so a voice added to linn.js can never go quietly missing from Jeff's
+   instrument the way it did from render-voice.mjs.
+   ========================================================================= */
+var VOICES = [
+  { id: "kick",      label: "kick",        key: "1" },
+  { id: "snare",     label: "snare",       key: "2" },
+  { id: "rim",       label: "side stick",  key: "3" },
+  { id: "clap",      label: "claps",       key: "4" },
+  { id: "hatClosed", label: "closed hat",  key: "5" },
+  { id: "hatOpen",   label: "open hat",    key: "6" },
+  { id: "tomHi",     label: "high tom",    key: "7" },
+  { id: "tomMid",    label: "mid tom",     key: "8" },
+  { id: "tomLo",     label: "low tom",     key: "9" },
+  { id: "congaHi",   label: "high conga",  key: "0" },
+  { id: "congaLo",   label: "low conga",   key: "q" },
+  { id: "cowbell",   label: "cowbell",     key: "w" },
+  { id: "clave",     label: "clave",       key: "e" },
+  { id: "tamb",      label: "tambourine",  key: "r" },
+  { id: "cabasa",    label: "cabasa",      key: "t" }
+];
+
+/* THE RACK — every panel knob, grouped the way the machine's trims are.
+   Ends named in words, never in units. */
+var RACK = [
+  [ { title: "kick", knobs: [
+        { key: "kickTune",  label: "tune",  lo: "low",   hi: "high" },
+        { key: "kickLevel", label: "level", lo: "back",  hi: "front" } ] },
+    { title: "snare", knobs: [
+        { key: "snareTune",  label: "tune",  lo: "low",  hi: "high" },
+        { key: "snareLevel", label: "level", lo: "back", hi: "front" } ] },
+    { title: "stick + claps", knobs: [
+        { key: "rimLevel",  label: "stick level", lo: "back", hi: "front" },
+        { key: "clapLevel", label: "clap level",  lo: "back", hi: "front" } ] } ],
+
+  [ { title: "hi-hat", knobs: [
+        { key: "hatTune",  label: "tune",  lo: "low",   hi: "high" },
+        { key: "hatDecay", label: "decay", lo: "tight", hi: "loose" },
+        { key: "hatLevel", label: "level", lo: "back",  hi: "front" } ] },
+    { title: "percussion", knobs: [
+        { key: "congaTune", label: "conga tune", lo: "low",  hi: "high" },
+        { key: "percLevel", label: "level",      lo: "back", hi: "front" } ] } ],
+
+  [ { title: "toms", knobs: [
+        { key: "tomHiTune",  label: "high tune", lo: "low",  hi: "high" },
+        { key: "tomMidTune", label: "mid tune",  lo: "low",  hi: "high" },
+        { key: "tomLoTune",  label: "low tune",  lo: "low",  hi: "high" },
+        { key: "tomLevel",   label: "level",     lo: "back", hi: "front" } ] } ]
+];
+var LABEL = {};
+RACK.forEach(function (c) { c.forEach(function (g) { g.knobs.forEach(function (k) { LABEL[k.key] = g.title + " " + k.label; }); }); });
+
+/* =========================================================================
+   PANEL STATE — positions, 0..1, because positions are what the engine's own
+   fit records are written in and what several knobs (pitch sweep, hat detune,
+   snare tone) actually read.
+   ========================================================================= */
+function centrePos() {
+  var p = {};
+  for (var k in RL) p[k] = (U.LINN_CENTRE[k] === undefined ? 0.5 : U.LINN_CENTRE[k]);
+  return p;
+}
+function fittedPos() {
+  var p = centrePos(), f = window.FIT_POS || {};
+  for (var k in f) if (k in p) p[k] = f[k];
+  return p;
+}
+// The engine owns the position -> value map, curves and all. Asking it is the
+// only way this page cannot drift from the renderer: a second copy here was
+// exactly the bug render-voice.mjs shipped with, harmless while every range was
+// linear and silently wrong the moment one carried a curve.
+function panelFrom(pos) { return U.panelLinnFromPos(pos); }
+
+var state = {
+  pos: fittedPos(),
+  voices: null,                   // id -> Float32Array, the built kit
+  buffers: {},                    // id -> AudioBuffer
+  pattern: {},                    // id -> [16] booleans
+  mutes: {},                      // id -> true when muted
+  playing: false,
+  step: 0,
+  bpm: 112,
+  swing: 0,
+  vol: 0.8,
+  moved: {}                       // knobs the hand has touched, for the label tint
+};
+
+/* THE PATTERN it opens on. Every one of the fifteen voices appears in it, so a
+   silent voice is audible as such within a bar. A synth-pop bar: kick on the
+   quarters' frame, snare and claps on the backbeat, tambourine and cabasa
+   riding, the toms walking down at the end. */
+var INIT_PATTERN = {
+  kick:      [0, 6, 8],
+  snare:     [4, 12],
+  rim:       [10],
+  clap:      [12],
+  hatClosed: [0, 2, 4, 6, 8, 10],
+  hatOpen:   [14],
+  tomHi:     [13],
+  tomMid:    [14],
+  tomLo:     [15],
+  congaHi:   [3],
+  congaLo:   [7],
+  cowbell:   [11],
+  clave:     [5],
+  tamb:      [4, 12],
+  cabasa:    [1, 3, 5, 7, 9, 11, 13, 15]
+};
+function blankPattern() {
+  var p = {}, i;
+  var ids = VOICES.map(function (v) { return v.id; });
+  ids.forEach(function (id) {
+    p[id] = [];
+    for (i = 0; i < NSTEP; i++) p[id].push(false);
+  });
+  return p;
+}
+function initPattern() {
+  var p = blankPattern();
+  for (var id in INIT_PATTERN) INIT_PATTERN[id].forEach(function (s) { p[id][s] = true; });
+  return p;
+}
+state.pattern = initPattern();
+
+var el = {};
+["play", "bpm", "bpmv", "swing", "vol", "draw", "reset", "work", "grid", "rack",
+ "ruler", "rulerSteps", "patClear", "patInit", "boot"]
+  .forEach(function (id) { el[id] = document.getElementById(id); });
+
+/* =========================================================================
+   BUILDING THE KIT — through drums.js createDrumKit with a Linn panel, the
+   exact constructor the songs call. The chips are burned once (the first
+   build, a fraction of a second); a knob move only re-clocks them, which is
+   quick enough to do on the spot. A knob drag is coalesced to one build per
+   animation frame.
+   ========================================================================= */
+var kit = null, buildReq = 0;
+function requestBuild(pos) {
+  el.work.className = "on";
+  if (buildReq) return;
+  buildReq = requestAnimationFrame(function () {
+    buildReq = 0;
+    if (actx) buildKit();
+    el.work.className = "";
+  });
+}
+function buildKit() {
+  var old = kit;
+  kit = U.createDrumKit(actx, { kit: MASTER_STRIP }, "studio", panelFrom(state.pos));
+  if (old) old.held.length = 0;
+}
+
+/* =========================================================================
+   AUDIO
+   ========================================================================= */
+var actx = null, master = null;
+function audio() {
+  if (!actx) {
+    actx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: SR });
+    master = actx.createGain();
+    master.gain.value = state.vol;
+    master.connect(actx.destination);
+    MASTER_STRIP = { input: { add: function (n) { n.connect(master); } } };
+    buildKit();
+  }
+  if (actx.state === "suspended") actx.resume();
+  return actx;
+}
+// Every hit goes through the kit's own fire(): the songs' schedule path, choke
+// group and all. The page only adds the pad flash.
+function fire(id, at) {
+  var ctx = audio();
+  var t = at == null ? ctx.currentTime + 0.001 : at;
+  kit.fire("kit", id, t, 1, false);
+  flash(id, t - ctx.currentTime);
+}
+function flash(id, delay) {
+  setTimeout(function () {
+    var pad = document.querySelector('.pad[data-v="' + id + '"]');
+    if (!pad) return;
+    pad.classList.add("lit");
+    setTimeout(function () { pad.classList.remove("lit"); }, 90);
+  }, Math.max(0, delay * 1000));
+}
+
+/* =========================================================================
+   THE SEQUENCER — lookahead scheduling, because setTimeout is not a clock.
+   Steps are placed on the AudioContext's own timeline ahead of time; the timer
+   only decides WHICH steps to place, so a busy main thread (a knob drag, a
+   rebuild landing) cannot make the groove stumble.
+   ========================================================================= */
+var LOOKAHEAD = 0.12, TICK = 25;
+var nextTime = 0, nextStep = 0, ticker = null;
+
+function stepDur() { return 60 / state.bpm / 4; }
+function stepOffset(i) {
+  // Swing delays the off-eighths, the way a drum machine's shuffle does.
+  return (i % 2 === 1) ? state.swing * 0.5 * stepDur() : 0;
+}
+function scheduleAhead() {
+  var ctx = audio();
+  while (nextTime < ctx.currentTime + LOOKAHEAD) {
+    var i = nextStep;
+    var at = nextTime + stepOffset(i);
+    for (var v = 0; v < VOICES.length; v++) {
+      var id = VOICES[v].id;
+      if (state.mutes[id]) continue;
+      if (state.pattern[id][i]) fire(id, at);
+    }
+    // the page can run for an hour; the kit's node list is for offline
+    // renders, so the live page lets finished hits go once a bar
+    if (i === 0 && kit) kit.held.length = 0;
+    paintNow(i, at - ctx.currentTime);
+    nextTime += stepDur();
+    nextStep = (nextStep + 1) % NSTEP;
+  }
+}
+function start() {
+  audio();
+  state.playing = true;
+  el.play.className = "tbtn on";
+  el.play.textContent = "stop";
+  nextStep = 0;
+  nextTime = actx.currentTime + 0.06;
+  scheduleAhead();
+  ticker = setInterval(scheduleAhead, TICK);
+}
+function stop() {
+  state.playing = false;
+  el.play.className = "tbtn";
+  el.play.textContent = "play";
+  if (ticker) clearInterval(ticker);
+  ticker = null;
+  paintNow(-1, 0);
+}
+function paintNow(i, delay) {
+  setTimeout(function () {
+    var olds = document.querySelectorAll(".st.now");
+    for (var k = 0; k < olds.length; k++) olds[k].classList.remove("now");
+    if (i < 0) return;
+    var cur = document.querySelectorAll('.st[data-s="' + i + '"]');
+    for (var j = 0; j < cur.length; j++) cur[j].classList.add("now");
+  }, Math.max(0, delay * 1000));
+}
+
+/* =========================================================================
+   THE GRID
+   ========================================================================= */
+function buildGrid() {
+  el.rulerSteps.innerHTML = "";
+  for (var i = 0; i < NSTEP; i++) {
+    var b = document.createElement("b");
+    b.textContent = (i % 4 === 0) ? String(i / 4 + 1) : "";
+    el.rulerSteps.appendChild(b);
+  }
+  el.grid.innerHTML = "";
+  var rows = VOICES.map(function (v) { return { id: v.id, label: v.label, key: v.key, acc: false }; });
+  rows.forEach(function (row) {
+    var lane = document.createElement("div");
+    lane.className = "lane" + (row.acc ? " acc" : "");
+
+    var pad = document.createElement("button");
+    pad.className = "pad";
+    pad.dataset.v = row.id;
+    pad.innerHTML = (row.key ? '<kbd>' + row.key + "</kbd>" : "<kbd>·</kbd>") +
+      "<span>" + row.label + "</span>";
+    if (!row.acc) pad.addEventListener("pointerdown", function () { fire(row.id, null); });
+    else pad.disabled = true;
+    lane.appendChild(pad);
+
+    var mute = document.createElement("button");
+    mute.className = "mute" + (row.acc ? "" : " on");
+    mute.textContent = row.acc ? "" : "●";
+    mute.title = "mute this voice in the pattern";
+    if (row.acc) { mute.style.visibility = "hidden"; }
+    else mute.addEventListener("click", function () {
+      state.mutes[row.id] = !state.mutes[row.id];
+      mute.className = "mute" + (state.mutes[row.id] ? "" : " on");
+    });
+    lane.appendChild(mute);
+
+    var steps = document.createElement("div");
+    steps.className = "steps";
+    for (var i = 0; i < NSTEP; i++) {
+      var s = document.createElement("button");
+      s.className = "st" + (Math.floor(i / 4) % 2 === 0 ? " q" : "") +
+        (state.pattern[row.id][i] ? " on" : "");
+      s.dataset.s = i;
+      s.dataset.v = row.id;
+      steps.appendChild(s);
+    }
+    steps.addEventListener("click", function (e) {
+      var s = e.target.closest(".st");
+      if (!s) return;
+      var i = +s.dataset.s, id = s.dataset.v;
+      state.pattern[id][i] = !state.pattern[id][i];
+      s.classList.toggle("on", state.pattern[id][i]);
+      if (!state.playing && state.pattern[id][i]) fire(id, null);
+    });
+    lane.appendChild(steps);
+    el.grid.appendChild(lane);
+  });
+}
+
+/* =========================================================================
+   THE RACK
+   ========================================================================= */
+function buildRack() {
+  el.rack.innerHTML = "";
+  RACK.forEach(function (col) {
+    var c = document.createElement("div");
+    c.className = "rcol";
+    col.forEach(function (grp) {
+      var g = document.createElement("div");
+      g.className = "grp";
+      var h = document.createElement("h3");
+      h.textContent = grp.title;
+      g.appendChild(h);
+      grp.knobs.forEach(function (kn) {
+        var row = document.createElement("div");
+        row.className = "knob" + (state.moved[kn.key] ? " moved" : "");
+        row.innerHTML = '<label>' + kn.label + "</label>" +
+          '<input type="range" data-k="' + kn.key + '" min="0" max="1" step="0.002">' +
+          '<div class="ends"><span>' + kn.lo + "</span><span>" + kn.hi + "</span></div>";
+        var input = row.querySelector("input");
+        input.value = state.pos[kn.key];
+        input.addEventListener("input", function () {
+          state.pos[kn.key] = parseFloat(input.value);
+          state.moved[kn.key] = true;
+          row.className = "knob moved";
+          requestBuild(state.pos);
+        });
+        // Not playing? A knob you turn in silence still has to speak, or the
+        // instrument only works while the pattern runs.
+        input.addEventListener("change", function () {
+          if (!state.playing) setTimeout(function () { fire(voiceOfKnob(kn.key), null); }, 60);
+        });
+        g.appendChild(row);
+      });
+      c.appendChild(g);
+    });
+    el.rack.appendChild(c);
+  });
+}
+function paintRack() {
+  var inputs = el.rack.querySelectorAll("input[type=range]");
+  for (var i = 0; i < inputs.length; i++) inputs[i].value = state.pos[inputs[i].dataset.k];
+}
+var KNOB_VOICE = {
+  kickTune: "kick", kickLevel: "kick", snareTune: "snare", snareLevel: "snare",
+  rimLevel: "rim", clapLevel: "clap", hatTune: "hatOpen", hatDecay: "hatOpen", hatLevel: "hatClosed",
+  tomHiTune: "tomHi", tomMidTune: "tomMid", tomLoTune: "tomLo", tomLevel: "tomMid",
+  congaTune: "congaHi", percLevel: "cowbell"
+};
+function voiceOfKnob(k) { return KNOB_VOICE[k] || "kick"; }
+
+/* =========================================================================
+   WIRING
+   ========================================================================= */
+el.play.addEventListener("click", function () { state.playing ? stop() : start(); });
+el.bpm.addEventListener("input", function () {
+  state.bpm = +el.bpm.value;
+  el.bpmv.textContent = state.bpm;
+});
+el.swing.addEventListener("input", function () { state.swing = +el.swing.value; });
+el.vol.addEventListener("input", function () {
+  state.vol = +el.vol.value;
+  if (master) master.gain.value = state.vol;
+});
+el.reset.addEventListener("click", function () {
+  state.pos = fittedPos();
+  state.moved = {};
+  buildRack();
+  requestBuild(state.pos);
+});
+// A DRAWN panel — the machine a song actually gets. Every hash pulls a different
+// machine out of the same chips, and hearing that spread is half of knowing
+// whether the instrument is any good.
+el.draw.addEventListener("click", function () {
+  var hex = "0x" + Array.from({ length: 64 }, function () {
+    return "0123456789abcdef"[Math.floor(Math.random() * 16)];
+  }).join("");
+  var p = U.drawLinnPanel(U.makePrng(hex));
+  for (var k in state.pos) if (p.pos && k in p.pos) state.pos[k] = p.pos[k];
+  state.moved = {};
+  buildRack();
+  requestBuild(state.pos);
+});
+el.patClear.addEventListener("click", function () { state.pattern = blankPattern(); buildGrid(); });
+el.patInit.addEventListener("click", function () { state.pattern = initPattern(); buildGrid(); });
+
+document.addEventListener("keydown", function (e) {
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.key === " " || e.code === "Space") { e.preventDefault(); state.playing ? stop() : start(); return; }
+  var key = e.key.toLowerCase();
+  for (var n = 0; n < VOICES.length; n++) if (VOICES[n].key === key) { e.preventDefault(); fire(VOICES[n].id, null); return; }
+});
+el.boot.addEventListener("click", function () {
+  audio();
+  el.boot.className = "off";
+});
+
+/* =========================================================================
+   BOOT
+   ========================================================================= */
+// The roster is a human list; the engine is the authority. If linn.js grows a
+// tenth voice, say so loudly rather than shipping an instrument that is missing
+// it — that exact silence is what render-voice.mjs did for a day.
+(function checkRoster() {
+  var built = U.buildLinn(panelFrom(centrePos()));
+  var have = Object.keys(built), listed = VOICES.map(function (v) { return v.id; });
+  var missing = have.filter(function (k) { return listed.indexOf(k) < 0; });
+  if (missing.length) console.error("VOICES is missing engine voices:", missing.join(", "));
+})();
+
+// The declined knobs and why, in words. Nothing measured is shown.
+(function declined() {
+  var d = document.getElementById("declined"), WHY = window.FIT_WHY || {}, seen = {};
+  Object.keys(WHY).forEach(function (k) {
+    var w = WHY[k];
+    if (seen[w]) { seen[w].names.push(LABEL[k] || k); return; }
+    var p = document.createElement("p");
+    p.className = "declined";
+    seen[w] = { p: p, names: [LABEL[k] || k] };
+    d.appendChild(p);
+  });
+  Object.keys(seen).forEach(function (w) { seen[w].p.innerHTML = "<b>" + seen[w].names.join(", ") + "</b>: " + w; });
+})();
+
+buildGrid();
+buildRack();
+
+// Headless verification hooks only — nothing in the UI reads these.
+window.__inst = state;
+window.__kit = function () { return kit; };
+window.__fire = fire;
+window.__start = start;
+window.__stop = stop;
+</script>
+</body>
+</html>
