@@ -297,11 +297,12 @@ function gcol(j, pinned) {
     edge = color(255, 255, 255);
   }
   let col = betterLerp(betterLerp(inks[i], inks[k], mix), edge, amount);
-  // Achromatic: no ink, just a gray of black (shade) over paper (tint).
+  // Achromatic: no ink, just a gray of black (shade) over paper (tint). A full
+  // single hatch of the black pen reads #333 on paper, so that is the dark end.
   if (vtype === 'achromatic') {
     tint = 1 - amount;
     shade = amount;
-    col = betterLerp(color(255, 255, 255), color(0, 0, 0), amount);
+    col = betterLerp(color(255, 255, 255), color(51, 51, 51), amount);
   }
   return { col: col, light: rgbToLab(col)[0], hue: hs, ink: i, ink2: k, mix: mix, tint: tint, shade: shade };
 }
