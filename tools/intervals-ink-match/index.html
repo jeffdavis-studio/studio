@@ -82,26 +82,34 @@
     flex: 1 1 auto;
     min-height: 0;
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    grid-template-rows: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
     gap: 7px;
   }
   .card {
     min-height: 0;
     min-width: 0;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     border-radius: 7px;
     overflow: hidden;
     background: var(--chrome);
     border: 1px solid rgba(0,0,0,.18);
+  }
+  .side {
+    flex: 0 0 236px;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 6px 0;
   }
   .chead {
     flex: 0 0 auto;
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 4px 8px;
+    padding: 0 8px 4px;
     height: 23px;
   }
   .cname { font-size: 12px; font-weight: 600; }
@@ -116,15 +124,16 @@
   .frame {
     flex: 1 1 auto;
     min-height: 0;
+    min-width: 0;
     background: var(--surround);
-    padding: 13px 16px 9px;
+    padding: 11px 13px 9px;
     display: flex;
     flex-direction: column;
     gap: 7px;
   }
   .swatch {
     flex: 1 1 auto;
-    min-height: 190px;
+    min-height: 0;
     border-radius: 3px;
     box-shadow: inset 0 0 0 1px rgba(0,0,0,.10);
   }
@@ -172,7 +181,7 @@
   /* ---------- controls ---------- */
   .ctl {
     flex: 0 0 auto;
-    padding: 5px 8px 7px;
+    padding: 3px 8px 4px;
     display: flex;
     flex-direction: column;
     gap: 3px;
@@ -181,7 +190,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    height: 21px;
+    height: 24px;
   }
   .row > .k {
     width: 11px;
@@ -210,7 +219,7 @@
     padding: 2px 4px;
     text-align: center;
   }
-  input[type=number] { width: 42px; flex: 0 0 auto; }
+  input[type=number] { width: 46px; flex: 0 0 auto; }
   input[type=number]::-webkit-inner-spin-button { opacity: .35; }
   .hexrow { height: 23px; margin-top: 2px; }
   .hexrow .k { width: auto; }
@@ -228,6 +237,14 @@
     color: var(--dim);
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
+  }
+
+  .note {
+    flex: 0 0 auto;
+    margin: 4px 8px 0;
+    font-size: 10.5px;
+    line-height: 1.35;
+    color: var(--dim);
   }
 
   /* ---------- footnote ---------- */
@@ -289,7 +306,7 @@
 <body>
 
 <div id="bar">
-  <h1>Intervals — ink match <span>&middot; eight Sakura Pigma Micron pens</span></h1>
+  <h1>Intervals — ink match <span>&middot; eight Sakura Pigma Micron colors + black</span></h1>
   <div class="spacer"></div>
   <div class="grp">
     <label>Surround</label>
@@ -311,8 +328,7 @@
 <div id="grid"></div>
 
 <div id="foot">
-  <span>Values are HSB exactly as <code>Intervals_v5.js</code> stores them — <code>ink1 = color(H, S, B)</code>.</span>
-  <span>ink7 (Purple) is deliberately skipped: Jeff cut it from the set on 2026-09-10. The code ids stay as they are so the wheel order does not shift.</span>
+  <span>Values are HSB exactly as the pens table in <code>Intervals_v8.js</code> stores them — <code>{ hsb: [H, S, B] }</code>. Ids and order are v8's: ink1 is pens[0] (Red) … ink9 is pens[8] (Black).</span>
   <span class="spacer"></span>
   <span>Changes save automatically.</span>
 </div>
@@ -321,12 +337,12 @@
   <h2>How to use this</h2>
   <ol>
     <li>Hold the plotted swatch sheet next to the screen, in the light you normally judge in.</li>
-    <li>For each pen, move H / S / B until the block on screen matches the ink on the paper. Paper white is the default surround; switch to mid gray if you need to judge saturation.</li>
-    <li>The thin strip under each block is the old placeholder on the left, your value on the right, with the &Delta;E between them.</li>
-    <li>When all eight look right, hit <strong>Copy all</strong> and text it to Morgan. (Or <strong>Download JSON</strong> if you would rather send a file.)</li>
+    <li>For each pen, move H / S / B until the block on screen matches the ink on the paper. For Black, match the 9/25 sheet's black 1.00 swatch. Paper white is the default surround; switch to mid gray if you need to judge saturation.</li>
+    <li>The thin strip under each block is the value in <code>Intervals_v8.js</code> on the left, your value on the right, with the &Delta;E between them.</li>
+    <li>When all nine look right, hit <strong>Copy all</strong> and text it to Morgan. (Or <strong>Download JSON</strong> if you would rather send a file.)</li>
   </ol>
-  <p>Sliders are HSB, so hue 0 is red and runs the way you read a colour wheel. The numbers are exactly what goes into <code>color(H, S, B)</code> in the generator — no conversion in between.</p>
-  <p>Everything saves as you go, so you can close the lid and come back. <strong>Reset</strong> on a card, or <strong>Reset all</strong>, puts the placeholders back.</p>
+  <p>Sliders are HSB, so hue 0 is red and runs the way you read a colour wheel. The numbers are exactly what goes into the pens table in <code>Intervals_v8.js</code> — no conversion in between.</p>
+  <p>Everything saves as you go, so you can close the lid and come back. <strong>Reset</strong> on a card, or <strong>Reset all</strong>, puts the program's values back.</p>
   <p style="margin-bottom:0"><em>Click anywhere to close.</em></p>
 </div></div>
 
@@ -335,28 +351,30 @@
 <script>
 "use strict";
 
-// ---- the eight inks. The starting values are read verbatim from
-// Intervals_v5.js setup(): colorMode(HSB) then ink1..ink9 = color(H, S, B).
-// ink7 (Purple) is omitted on purpose — Jeff cut it from the set 2026-09-10.
+// ---- the nine pens, read from the pens table in Intervals_v8.js
+// (2026-09-29): ink1 is pens[0] ... ink9 is pens[8], in the table's order. The
+// eight colors are Jeff's by-eye matches from 2026-09-11; Black is still the
+// table's 0 0 0, and this page is where he matches it.
 //
-// THESE ARE JEFF'S OWN VALUES NOW (2026-09-11). They were the §3.6 hexes, and
-// he replaced all eight by eye on this page against the plotted swatches at 95%
-// coverage: "the parent colors that we work with on the digital side." Every
-// hue moved, Fresh Green by 34 degrees. So the was/now strip on each card now
-// compares against what the artwork actually draws, and ΔE 0 means a card is
-// where he left it — not where the old placeholder was.
+// Black is drawn on the 9/25 one sheet as a single hatch at 45 degrees, 0.45 mm
+// lines at a 0.4754 mm pitch (black 1.00), so its hatch preview is that one
+// family at 0.947 coverage rather than the color inks' four directions.
 const INKS = [
-  { id: "ink1", name: "Orange",      hsb: [ 18, 69, 97] },
-  { id: "ink2", name: "Yellow",      hsb: [ 44, 62, 98] },
-  { id: "ink3", name: "Fresh Green", hsb: [135, 55, 80] },
-  { id: "ink4", name: "Green",       hsb: [172, 90, 66] },
-  { id: "ink5", name: "Blue",        hsb: [214, 90, 78] },
-  { id: "ink6", name: "Royal Blue",  hsb: [235, 61, 57] },
+  { id: "ink1", name: "Red",         hsb: [  6, 74, 87] },
+  { id: "ink2", name: "Orange",      hsb: [ 18, 69, 97] },
+  { id: "ink3", name: "Yellow",      hsb: [ 44, 62, 98] },
+  { id: "ink4", name: "Fresh Green", hsb: [135, 55, 80] },
+  { id: "ink5", name: "Green",       hsb: [172, 90, 66] },
+  { id: "ink6", name: "Blue",        hsb: [214, 90, 78] },
+  { id: "ink7", name: "Royal Blue",  hsb: [235, 61, 57] },
   { id: "ink8", name: "Rose",        hsb: [329, 57, 78] },
-  { id: "ink9", name: "Red",         hsb: [  6, 74, 87] }
+  { id: "ink9", name: "Black",       hsb: [  0,  0,  0], pen: "pens[8]",
+    hatch: { angles: [45], cover: 0.45 / 0.4754 },
+    note: "Match this to the 9/25 sheet's black 1.00 swatch (single hatch at 45°), which is black as v8 draws it." }
 ];
 
-const STORE = "intervals-ink-match-v1";
+// v2: the id order changed with v8, so a v1 store (the 9/10 order) is not read.
+const STORE = "intervals-ink-match-v2";
 
 // ---- colour maths -----------------------------------------------------
 function hsbToRgb(h, s, v) {
@@ -411,10 +429,12 @@ function deltaE76(rgbA, rgbB) {
 const HATCH_ANGLES = [22.5, 67.5, 112.5, 157.5];
 const HATCH_PERIOD = 9;                                  // px between lines
 const HATCH_INK = HATCH_PERIOD * (1 - Math.pow(0.05, 0.25)); // px of ink per period
-function hatchCss(hex) {
-  return HATCH_ANGLES.map(a =>
-    `repeating-linear-gradient(${a}deg, ${hex} 0 ${HATCH_INK.toFixed(2)}px, ` +
-    `rgba(0,0,0,0) ${HATCH_INK.toFixed(2)}px ${HATCH_PERIOD}px)`
+function hatchCss(hex, spec) {
+  const angles = spec ? spec.angles : HATCH_ANGLES;
+  const ink = spec ? HATCH_PERIOD * spec.cover : HATCH_INK;
+  return angles.map(a =>
+    `repeating-linear-gradient(${a}deg, ${hex} 0 ${ink.toFixed(2)}px, ` +
+    `rgba(0,0,0,0) ${ink.toFixed(2)}px ${HATCH_PERIOD}px)`
   ).join(", ");
 }
 
@@ -452,12 +472,6 @@ const cards = INKS.map((ink, i) => {
   const el = document.createElement("div");
   el.className = "card";
   el.innerHTML = `
-    <div class="chead">
-      <span class="cname">${ink.name}</span>
-      <span class="cid">${ink.id}</span>
-      <span class="spacer"></span>
-      <button class="reset" title="Back to the placeholder">reset</button>
-    </div>
     <div class="frame">
       <div class="swatch"></div>
       <div class="strip">
@@ -465,6 +479,13 @@ const cards = INKS.map((ink, i) => {
         <div class="cur"><span class="tag">now</span></div>
         <span class="lbl"></span>
       </div>
+    </div>
+    <div class="side">
+    <div class="chead">
+      <span class="cname">${ink.name}</span>
+      <span class="cid">${ink.id}${ink.pen ? ", " + ink.pen : ""}</span>
+      <span class="spacer"></span>
+      <button class="reset" title="Back to the value in Intervals_v8.js">reset</button>
     </div>
     <div class="ctl">
       <div class="row"><span class="k">H</span><input type="range" min="0" max="360" step="1"><input type="number" min="0" max="360" step="1"></div>
@@ -474,6 +495,8 @@ const cards = INKS.map((ink, i) => {
         <input type="text" class="hex" spellcheck="false" autocomplete="off">
         <span class="hsbout"></span>
       </div>
+    </div>
+    ${ink.note ? `<div class="note">${ink.note}</div>` : ""}
     </div>`;
   grid.appendChild(el);
 
@@ -528,7 +551,7 @@ function paint(i, opts) {
   const origHex = hsbToHex(ink.hsb);
 
   if (hatchOn) {
-    c.swatch.style.background = hatchCss(hex);
+    c.swatch.style.background = hatchCss(hex, ink.hatch);
     c.swatch.style.backgroundColor = surround;
   } else {
     c.swatch.style.background = hex;
@@ -537,11 +560,12 @@ function paint(i, opts) {
   c.cur.style.background = hex;
 
   const dE = deltaE76(hsbToRgb(...ink.hsb), hsbToRgb(...hsb));
-  c.lbl.textContent = dE < 0.5 ? "placeholder" : "ΔE " + dE.toFixed(1);
+  c.lbl.textContent = dE < 0.5 ? "as in v8" : "ΔE " + dE.toFixed(1);
 
-  c.ranges.forEach((r, j) => { if (r.value != hsb[j]) r.value = hsb[j]; });
+  // String compare: with loose != an empty box equals 0, so Black's 0 0 0 never showed.
+  c.ranges.forEach((r, j) => { if (r.value !== String(hsb[j])) r.value = hsb[j]; });
   c.nums.forEach((n, j) => {
-    if (document.activeElement !== n && n.value != hsb[j]) n.value = hsb[j];
+    if (document.activeElement !== n && n.value !== String(hsb[j])) n.value = hsb[j];
   });
   if (!opts.skipHex && document.activeElement !== c.hexIn) c.hexIn.value = hex.toUpperCase();
   c.hsbout.textContent = `HSB ${hsb[0]} ${hsb[1]} ${hsb[2]}`;
@@ -586,7 +610,7 @@ document.getElementById("copy").addEventListener("click", async () => {
   const text = lines();
   try {
     await navigator.clipboard.writeText(text);
-    toast("Copied eight lines");
+    toast("Copied nine lines");
   } catch (e) {
     // clipboard API needs a secure context / permission — fall back to a select-all textarea
     const ta = document.createElement("textarea");
@@ -596,14 +620,14 @@ document.getElementById("copy").addEventListener("click", async () => {
     ta.select();
     const ok = document.execCommand("copy");
     ta.remove();
-    toast(ok ? "Copied eight lines" : "Copy failed — use Download JSON");
+    toast(ok ? "Copied nine lines" : "Copy failed — use Download JSON");
   }
 });
 
 document.getElementById("json").addEventListener("click", () => {
   const payload = {
     tool: "intervals-ink-match",
-    note: "HSB as Intervals_v5.js stores it: colorMode(HSB); inkN = color(H, S, B). ink7 (Purple) is out of the set as of 2026-09-10; Intervals_v5 sorts the eight ascending by hue, so array order is not id order.",
+    note: "HSB as the pens table in Intervals_v8.js stores it: { hsb: [H, S, B] }. ink1..ink9 are pens[0]..pens[8], in the table's order; ink9 is Black. placeholder_* is the table's value on 2026-09-29.",
     timestamp: new Date().toISOString(),
     inks: INKS.map((ink, i) => ({
       id: ink.id,
@@ -627,7 +651,7 @@ document.getElementById("json").addEventListener("click", () => {
 document.getElementById("resetall").addEventListener("click", () => {
   state = INKS.map(k => k.hsb.slice());
   paintAll(); save();
-  toast("All eight back to placeholders");
+  toast("All nine back to the program's values");
 });
 
 const help = document.getElementById("help");
