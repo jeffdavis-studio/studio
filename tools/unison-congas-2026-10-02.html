@@ -112,11 +112,11 @@
     </details>
   </div>
 
-  <footer title="engine @7a0c5c9 · built 2026-10-02">Unison engine, jeffdavis-studio/unison-engine. Page monitor gain +6 dB over the song's strip input. Hover for build provenance.</footer>
+  <footer title="engine @fff9ccd · built 2026-10-02">Unison engine, jeffdavis-studio/unison-engine. Page monitor gain +6 dB over the song's strip input. Hover for build provenance.</footer>
 </div>
 
 <script>
-/* ===== src/core/prng.js @ 7a0c5c9 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/prng.js @ fff9ccd — verbatim from jeffdavis-studio/unison-engine ===== */
 // prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
 // token hash, consumed in canonical draw order (Technical Architecture v1.2).
 //
@@ -185,7 +185,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/core/mix.js @ 7a0c5c9 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/mix.js @ fff9ccd — verbatim from jeffdavis-studio/unison-engine ===== */
 // mix.js — the fan-in ≤2 summing rule, as a primitive.
 //
 // Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
@@ -223,7 +223,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/congas.js @ 7a0c5c9 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/congas.js @ fff9ccd — verbatim from jeffdavis-studio/unison-engine ===== */
 // congas.js — hand drums (congas, bongos), the third stop of the human rack
 // (Rack 2), zero dependencies.
 //
@@ -553,7 +553,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/congaplayer.js @ 7a0c5c9 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/congaplayer.js @ fff9ccd — verbatim from jeffdavis-studio/unison-engine ===== */
 // congaplayer.js — the PERFORMANCE half of the congas/bongos: a session
 // percussionist on the percAccent strip.
 //
@@ -581,7 +581,8 @@
 //   push      ms, + = behind the beat (drag), − = ahead (push)
 //   jitter    ms, per-stroke spread around the push (triangular); ghosts 1.5×
 //   ghost     the chance per empty 8th (not next to a written hit) of a ghost
-//             TOUCH (heel or tip) on the high drum; the lane sets the centre:
+//             TOUCH (heel or tip) on the high drum (× 0.35 on the single hit,
+//             × 0.5 on the phrase ending); the lane sets the centre:
 //             most in funk and synth R&B, fewer in synth-pop and new wave,
 //             rare in early hip-hop. A soft bias, not a rule.
 //   ghostVel  the ghost touches' velocity
@@ -614,9 +615,9 @@
     newWave: { push: -2, ghost: 0.15, acc: 0.14 },
     earlyHipHop: { push: 2, ghost: 0.06, acc: 0.15 },
   };
-  U.CONGA_PLAYER_CENTRE = { push: 0, jitter: 0, ghost: 0, ghostVel: 0.3, accDepth: 0, velSpread: 0, varP: 0, slapOpen: 0, drift: 0, bongoR: 0, seed: 1 };
+  U.CONGA_PLAYER_CENTRE = { push: 0, jitter: 0, ghost: 0, ghostVel: 0.3, accDepth: 0, velSpread: 0, varP: 0, slapOpen: 0, drift: 0, seed: 1 };
 
-  // Eleven draws from the fork, always all eleven, in this order.
+  // Ten draws from the fork, always all ten, in this order.
   U.drawCongaPlayer = function (hash, lane) {
     const R = U.forkPrng(hash, "congaPlayer");
     const L = U.CONGA_PLAYER_LANE[lane] || U.CONGA_PLAYER_LANE.synthPop;
@@ -629,9 +630,8 @@
     const varP = +(0.05 + R.r() * 0.15).toFixed(3);
     const slapOpen = R.r() < 0.5 ? 1 : 0;
     const drift = +(0.06 + R.r() * 0.10).toFixed(3);
-    const bongoR = +R.r().toFixed(4);
     const seed = R.ri(1, 2147483646);
-    return { lane, push, jitter, ghost, ghostVel, accDepth, velSpread, varP, slapOpen, drift, bongoR, seed };
+    return { lane, push, jitter, ghost, ghostVel, accDepth, velSpread, varP, slapOpen, drift, seed };
   };
 
   function driftAt(rec, bar) {
@@ -670,7 +670,10 @@
     const dr = 1 + driftAt(rec, c.bar);
     // the bar's ghost touches: empty 8ths not next to a written hit
     const used = {}; for (const e of evs) used[e.i] = 1;
-    const gp = c.pattern === "phrase_end" ? rec.ghost * 0.5 : rec.ghost;
+    // the single hit and the phrase ending are sparse parts by design: fewer
+    // ghosts (the render check's first trim run read 2-4 touches a bar on
+    // funk's single-hit songs, a busier part than the one written)
+    const gp = rec.ghost * (c.pattern === "phrase_end" ? 0.5 : c.pattern === "sparse" ? 0.35 : 1);
     const ghosts = [];
     for (let i = 0; i < 16; i += 2) {
       const roll = R.r();
@@ -719,7 +722,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/books.js @ 7a0c5c9 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/books.js @ fff9ccd — verbatim from jeffdavis-studio/unison-engine ===== */
 // books.js — Pattern Books v1, as data.
 //
 // This file IS the document: "Unison — Pattern Books v1 (draft)" (Morgan,
@@ -1004,6 +1007,17 @@
   U.SHAKERS_SHARE = { funk: 0.50, synthRnB: 0.45, synthPop: 0.35, newWave: 0.25, earlyHipHop: 0.15 };
   U.SHAKERS_NEVER = { "perctime.tamb_backbeat": 1 };
 
+  // The HUMAN CONGAS / BONGOS on the percAccent strip (2026-10-02, Asana
+  // 1219116584702308, instruments/congas.js + session/congaplayer.js). No new
+  // draw: draw 18's walk (the pattern pick over U.PERCACCENT, session.js) is
+  // kept open and its RESIDUAL below U.CONGAS_SHARE[lane] makes the strip a
+  // session percussionist's hand drums instead of the kit's congas (the same
+  // device as the shakers on draw 17). Every song that does not draw them
+  // keeps its kit voice and its audio byte for byte. Shares, the brief's
+  // starting points: funk and synth R&B put a conga player over the machine
+  // on most records, early hip-hop and synth-pop sometimes, new wave least.
+  U.CONGAS_SHARE = { funk: 0.60, synthRnB: 0.55, synthPop: 0.30, newWave: 0.20, earlyHipHop: 0.25 };
+
   U.PERCACCENT = [
     { id: "percaccent.tumbao",     w: 14, p: "..x.x...x.x.x...", kind: "conga" },
     { id: "percaccent.sparse",     w: 12, p: "........x.......", kind: "conga" },
@@ -1248,7 +1262,7 @@ window.FIT_POS = {"rise":0.5,"slapHi":0.5,"slapMs":0.5,"touchLevel":0.5,"velCurv
 // and the whole point of declining a knob on the record is that the decline is
 // visible where the instrument is.
 window.FIT_WHY = {"rise":"Real hand drums do bend up in pitch for an instant when struck hard, but the recordings disagree about which way and how much, some reading sharp and some flat. Kept as voiced.","slapHi":"How bright the slap's crack is barely changes the match to the recordings across the whole range. Kept as voiced.","slapMs":"On the bongos, the length of the slap's crack doesn't change the match. Fitted on the congas only.","touchLevel":"On the bongos the heel-and-tip recording is played full out as part of a rhythm, not as quiet in-between notes, so it can't say how soft a touch is. The congas' touch level is fitted.","velCurve":"How much louder a harder hit is can't be read from recordings that don't say how hard each hit was. Kept as voiced.","muteT60":"No recording of a plain muted tone passed the checks, so how short the mute is was set by ear.","shellG":"The drum's body sound sits below its note, outside what the tone measurement looks at. Kept as voiced."};
-/* WHERE THE KNOBS OPEN @ 7a0c5c9, built 2026-10-02.
+/* WHERE THE KNOBS OPEN @ fff9ccd, built 2026-10-02.
 
    Every knob apply-fit moved opens at CENTRE, because after the apply the
    centre IS the fit. Only the knobs it measured and did not move are here, and
