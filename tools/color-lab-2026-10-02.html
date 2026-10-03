@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Color Lab: graded exercises for Foundations of Color</title>
+<style>
+  :root { --ink:#1d1d1f; --muted:#6b6b70; --line:#d8d8dc; --bg:#f6f6f4; --card:#fff; --ok:#1f7a3a; --bad:#a3271f; --accent:#2b4c7e; }
+  * { box-sizing: border-box; }
+  body { margin:0; font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif; color:var(--ink); background:var(--bg); }
+  header { background:#fff; border-bottom:1px solid var(--line); padding:12px 16px; display:flex; flex-wrap:wrap; gap:10px 16px; align-items:center; }
+  header h1 { font-size:18px; margin:0; flex:1 1 220px; }
+  header h1 small { display:block; font-weight:400; color:var(--muted); font-size:12px; }
+  header label { font-size:13px; color:var(--muted); display:flex; align-items:center; gap:6px; }
+  header input { font:inherit; font-size:14px; padding:5px 8px; border:1px solid var(--line); border-radius:6px; width:130px; }
+  nav { display:flex; gap:6px; flex-wrap:wrap; }
+  nav button, .btn { font:inherit; font-size:14px; padding:7px 12px; border-radius:8px; border:1px solid var(--line); background:#fff; color:var(--ink); cursor:pointer; }
+  nav button.on { background:var(--ink); color:#fff; border-color:var(--ink); }
+  .btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .btn:disabled { opacity:.45; cursor:default; }
+  main { max-width:980px; margin:0 auto; padding:16px; }
+  .layout { display:flex; gap:16px; align-items:flex-start; }
+  .list { flex:0 0 260px; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:6px; }
+  .list button { display:block; width:100%; text-align:left; font:inherit; font-size:14px; padding:8px 10px; border:0; background:none; border-radius:6px; cursor:pointer; color:var(--ink); }
+  .list button.on { background:#eceff5; }
+  .list button .ch { color:var(--muted); font-size:12px; display:block; }
+  .list button .sc { float:right; font-size:12px; color:var(--muted); }
+  .card { flex:1 1 auto; min-width:0; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px 18px; }
+  .card h2 { margin:0 0 2px; font-size:20px; }
+  .meta { color:var(--muted); font-size:13px; margin-bottom:12px; }
+  .prompt { margin:8px 0 14px; }
+  .row { display:flex; flex-wrap:wrap; gap:10px; align-items:flex-start; margin:8px 0; }
+  .sw { width:64px; height:64px; border-radius:6px; border:1px solid rgba(0,0,0,.12); position:relative; cursor:pointer; flex:0 0 auto; }
+  .sw.big { width:120px; height:120px; cursor:default; }
+  .sw.sel { outline:3px solid var(--ink); outline-offset:2px; }
+  .sw .tag { position:absolute; top:4px; left:4px; background:#fff; color:#000; border-radius:10px; min-width:20px; height:20px; font-size:12px; font-weight:600; text-align:center; line-height:20px; padding:0 5px; }
+  .sw .lab { position:absolute; bottom:-18px; left:0; right:0; text-align:center; font-size:11px; color:var(--muted); }
+  .opts { display:flex; flex-wrap:wrap; gap:8px; }
+  .opt { font:inherit; font-size:14px; padding:7px 11px; border-radius:18px; border:1px solid var(--line); background:#fff; cursor:pointer; }
+  .opt.sel { background:var(--ink); color:#fff; border-color:var(--ink); }
+  .opt.right { border-color:var(--ok); box-shadow:0 0 0 2px var(--ok) inset; }
+  .opt.wrong { border-color:var(--bad); box-shadow:0 0 0 2px var(--bad) inset; }
+  .actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:16px; }
+  .feedback { margin-top:12px; padding:10px 12px; border-radius:8px; display:none; font-size:15px; }
+  .feedback.ok { display:block; background:#e8f4ec; color:#123d20; }
+  .feedback.part { display:block; background:#fbf3e2; color:#4d3708; }
+  .feedback.bad { display:block; background:#f8e7e5; color:#4d130e; }
+  .tally { display:flex; gap:18px; flex-wrap:wrap; font-size:13px; color:var(--muted); margin-top:14px; border-top:1px solid var(--line); padding-top:10px; }
+  .tally b { color:var(--ink); }
+  svg.wheel { width:100%; max-width:300px; height:auto; display:block; touch-action:manipulation; }
+  svg.wheel path { cursor:pointer; stroke:#fff; stroke-width:1.5; }
+  svg.wheel path.sel { stroke:#000; stroke-width:4; }
+  svg.wheel path.key { stroke:var(--ok); stroke-width:4; stroke-dasharray:6 3; }
+  .ground { width:150px; height:150px; display:flex; align-items:center; justify-content:center; border-radius:6px; cursor:pointer; position:relative; }
+  .ground .patch { width:46px; height:46px; }
+  .ground.sel { outline:3px solid var(--ink); outline-offset:3px; }
+  .ground .gl { position:absolute; top:6px; left:8px; font-size:13px; font-weight:600; background:#fff; padding:0 6px; border-radius:8px; }
+  .scale { display:flex; gap:0; flex-wrap:nowrap; }
+  .scale .st { flex:1 1 0; min-width:28px; height:54px; display:flex; align-items:flex-end; justify-content:center; font-size:11px; cursor:pointer; border:1px solid transparent; padding-bottom:3px; }
+  .scale .st.sel { outline:3px solid var(--accent); outline-offset:-3px; }
+  .scale .st.key { box-shadow:0 0 0 3px var(--ok) inset; }
+  select { font:inherit; font-size:14px; padding:5px 6px; border-radius:6px; border:1px solid var(--line); background:#fff; }
+  input[type=range] { width:100%; max-width:360px; height:32px; }
+  .slider { margin:6px 0; font-size:14px; }
+  .slider span { display:inline-block; width:92px; color:var(--muted); }
+  table { border-collapse:collapse; width:100%; font-size:14px; }
+  th, td { text-align:left; border-bottom:1px solid var(--line); padding:6px 8px; vertical-align:top; }
+  th { font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
+  .small { font-size:13px; color:var(--muted); }
+  .stage { position:relative; width:300px; max-width:100%; height:200px; border-radius:6px; }
+  .stage div { position:absolute; }
+  .pick { cursor:pointer; }
+  .pick.sel { outline:3px solid var(--ink); outline-offset:3px; }
+  .stripes { width:220px; max-width:100%; height:110px; border-radius:6px; overflow:hidden; display:flex; }
+  .stripes div { flex:1 1 0; }
+  @media (max-width: 700px) {
+    .layout { flex-direction:column; }
+    .list { flex:none; width:100%; display:flex; overflow-x:auto; gap:4px; padding:4px; }
+    .list button { flex:0 0 auto; width:auto; white-space:nowrap; }
+    .list button .ch { display:none; }
+    .list button .sc { float:none; margin-right:6px; }
+    main { padding:10px; }
+    .card { padding:14px 12px; }
+    .sw { width:56px; height:56px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Color Lab<small>Graded exercises keyed to <i>Foundations of Color</i> (Jeff Davis, Tempe Digital). Prototype.</small></h1>
+  <label>Student <input id="student" placeholder="name or ID"></label>
+  <label>Set <input id="seed" placeholder="seed"></label>
+  <nav>
+    <button data-view="ex" class="on">Exercises</button>
+    <button data-view="gb">Gradebook</button>
+    <button data-view="notes">Instructor notes</button>
+  </nav>
+</header>
+<main id="main"></main>
+<script>
+"use strict";
+/* ---------- seeded randomness ---------- */
+function hashStr(s){ let h=1779033703^s.length; for(let i=0;i<s.length;i++){ h=Math.imul(h^s.charCodeAt(i),3432918353); h=h<<13|h>>>19; } return ()=>{ h=Math.imul(h^h>>>16,2246822507); h=Math.imul(h^h>>>13,3266489909); return (h^=h>>>16)>>>0; }; }
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function makeRng(key){ const r=mulberry32(hashStr(key)()); const f=()=>r(); f.int=(a,b)=>a+Math.floor(r()*(b-a+1)); f.pick=a=>a[Math.floor(r()*a.length)]; f.shuffle=a=>{ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(r()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }; f.range=(a,b)=>a+r()*(b-a); return f; }
+
+/* ---------- color math: sRGB, OKLab/OKLCH, CIE L* ---------- */
+const C = {
+  toLin:c=>c<=0.04045?c/12.92:Math.pow((c+0.055)/1.055,2.4),
+  toSrgb:c=>c<=0.0031308?12.92*c:1.055*Math.pow(c,1/2.4)-0.055,
+  hex(rgb){ return '#'+rgb.map(v=>Math.round(Math.min(1,Math.max(0,v))*255).toString(16).padStart(2,'0')).join(''); },
+  fromHex(h){ return [1,3,5].map(i=>parseInt(h.slice(i,i+2),16)/255); },
+  oklab(rgb){ const [r,g,b]=rgb.map(C.toLin);
+    const l=Math.cbrt(0.4122214708*r+0.5363325363*g+0.0514459929*b), m=Math.cbrt(0.2119034982*r+0.6806995451*g+0.1073969566*b), s=Math.cbrt(0.0883024619*r+0.2817188376*g+0.6299787005*b);
+    return [0.2104542553*l+0.7936177850*m-0.0040720468*s, 1.9779984951*l-2.4285922050*m+0.4505937099*s, 0.0259040371*l+0.7827717662*m-0.8086757660*s]; },
+  oklabToLin([L,a,b]){ const l=(L+0.3963377774*a+0.2158037573*b)**3, m=(L-0.1055613458*a-0.0638541728*b)**3, s=(L-0.0894841775*a-1.2914855480*b)**3;
+    return [4.0767416621*l-3.3077115913*m+0.2309699292*s, -1.2684380046*l+2.6097574011*m-0.3413193965*s, -0.0041960863*l-0.7034186147*m+1.7076147010*s]; },
+  inGamut(lin){ return lin.every(v=>v>=-1e-4&&v<=1+1e-4); },
+  /* OKLCH -> sRGB, reducing chroma until it fits the screen gamut */
+  lch(L,Ch,h){ const hr=h*Math.PI/180; let lo=0, hi=Ch;
+    const lab=c=>[L,c*Math.cos(hr),c*Math.sin(hr)];
+    if(C.inGamut(C.oklabToLin(lab(Ch)))) return C.oklabToLin(lab(Ch)).map(C.toSrgb);
+    for(let i=0;i<24;i++){ const mid=(lo+hi)/2; if(C.inGamut(C.oklabToLin(lab(mid)))) lo=mid; else hi=mid; }
+    return C.oklabToLin(lab(lo)).map(v=>C.toSrgb(Math.min(1,Math.max(0,v)))); },
+  maxChroma(L,h){ let lo=0,hi=0.4; const hr=h*Math.PI/180; for(let i=0;i<24;i++){ const mid=(lo+hi)/2; if(C.inGamut(C.oklabToLin([L,mid*Math.cos(hr),mid*Math.sin(hr)]))) lo=mid; else hi=mid; } return lo; },
+  chroma(rgb){ const [,a,b]=C.oklab(rgb); return Math.hypot(a,b); },
+  /* value: CIE L* (0 black .. 100 white), the same number a grayscale conversion keeps */
+  Lstar(rgb){ const [r,g,b]=rgb.map(C.toLin); const Y=0.2126*r+0.7152*g+0.0722*b; return Y>216/24389?116*Math.cbrt(Y)-16:Y*24389/27; },
+  grayL(Ls){ const Y=Ls>8?((Ls+16)/116)**3:Ls*27/24389; const v=C.toSrgb(Y); return [v,v,v]; },
+  hsl(h,s,l){ s/=100; l/=100; const k=n=>(n+h/30)%12, a=s*Math.min(l,1-l); return [0,8,4].map(n=>l-a*Math.max(-1,Math.min(k(n)-3,Math.min(9-k(n),1)))); },
+  mix(c1,c2,t){ return c1.map((v,i)=>v*(1-t)+c2[i]*t); },
+  dE(c1,c2){ const a=C.oklab(c1), b=C.oklab(c2); return 100*Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2]); }
+};
+const hx = rgb => C.hex(rgb);
+
+/* ---------- the two 12-step wheels the book teaches (ch. 5, pp. 33-41) ---------- */
+const WHEELS = {
+  RYB: { label:'RYB wheel (paint)', names:['red','red-orange','orange','yellow-orange','yellow','yellow-green','green','blue-green','blue','blue-violet','violet','red-violet'],
+         hues:[0,18,30,42,56,80,125,172,215,245,275,320] },
+  RGB: { label:'RGB/CMYK wheel (light and ink)', names:['red','orange','yellow','yellow-green','green','cool green','cyan','cool blue','blue','violet','magenta','cool red'],
+         hues:[0,30,60,90,120,150,180,210,240,270,300,330] }
+};
+const wheelColor = (w,i) => C.hsl(WHEELS[w].hues[i], w==='RYB'&&i===4?95:100, w==='RYB'&&(i===8||i===9)?45:50);
+
+function wheelSVG(w, opts={}){
+  const n=12, R=140, r=opts.inner??58, cx=150, cy=150, NS='http://www.w3.org/2000/svg';
+  const svg=document.createElementNS(NS,'svg'); svg.setAttribute('viewBox','0 0 300 300'); svg.setAttribute('class','wheel');
+  const paths=[];
+  for(let i=0;i<n;i++){
+    const a0=(i-0.5)/n*2*Math.PI-Math.PI/2, a1=(i+0.5)/n*2*Math.PI-Math.PI/2;
+    const p=(rad,a)=>`${cx+rad*Math.cos(a)},${cy+rad*Math.sin(a)}`;
+    const path=document.createElementNS(NS,'path');
+    path.setAttribute('d',`M${p(r,a0)} L${p(R,a0)} A${R},${R} 0 0 1 ${p(R,a1)} L${p(r,a1)} A${r},${r} 0 0 0 ${p(r,a0)} Z`);
+    path.setAttribute('fill', opts.gray? '#e4e4e4' : hx(wheelColor(w,i)));
+    path.dataset.i=i; const t=document.createElementNS(NS,'title'); t.textContent=WHEELS[w].names[i]; path.appendChild(t);
+    svg.appendChild(path); paths.push(path);
+  }
+  if(opts.marks) for(const i of opts.marks){ const a=i/n*2*Math.PI-Math.PI/2; const c=document.createElementNS(NS,'circle');
+    c.setAttribute('cx',cx+(R+r)/2*Math.cos(a)); c.setAttribute('cy',cy+(R+r)/2*Math.sin(a)); c.setAttribute('r',9); c.setAttribute('fill','#fff'); c.setAttribute('stroke','#000'); c.setAttribute('stroke-width',2); c.style.pointerEvents='none'; svg.appendChild(c); }
+  return {svg, paths};
+}
+
+/* ---------- small DOM helpers ---------- */
+const el=(tag,attrs={},...kids)=>{ const e=document.createElement(tag); for(const[k,v] of Object.entries(attrs)){ if(k==='style'&&typeof v==='object') Object.assign(e.style,v); else if(k.startsWith('on')) e.addEventListener(k.slice(2),v); else if(v!==undefined&&v!==null) e.setAttribute(k,v); } for(const k of kids.flat()) if(k!=null) e.append(k.nodeType?k:document.createTextNode(String(k))); return e; };
+const sw=(rgb,cls='sw')=>el('div',{class:cls,style:{background:hx(rgb)},'data-hex':hx(rgb)});
+
+/* choice control: options -> buttons; returns {node,get,set,reveal} */
+function choice(options, labelOf=o=>o){
+  let val=null; const btns=options.map(o=>el('button',{class:'opt',type:'button','data-v':String(o),onclick:()=>set(o)},labelOf(o)));
+  function set(o){ val=o; btns.forEach((b,i)=>b.classList.toggle('sel',options[i]===o)); }
+  return { node:el('div',{class:'opts'},btns), get:()=>val, set,
+    reveal(key){ btns.forEach((b,i)=>{ if(options[i]===key) b.classList.add('right'); else if(options[i]===val) b.classList.add('wrong'); }); } };
+}
+/* tap-in-order control for ordering tasks */
+function orderer(colors, labels){
+  let seq=[]; const tiles=colors.map((c,i)=>{ const t=sw(c); t.dataset.i=i; if(labels) t.append(el('span',{class:'lab'},labels[i])); t.onclick=()=>{ if(seq.includes(i)) seq=seq.filter(x=>x!==i); else seq.push(i); draw(); }; return t; });
+  function draw(){ tiles.forEach((t,i)=>{ t.querySelector('.tag')?.remove(); const k=seq.indexOf(i); t.classList.toggle('sel',k>=0); if(k>=0) t.prepend(el('span',{class:'tag'},k+1)); }); }
+  const reset=el('button',{class:'btn',type:'button',onclick:()=>{ seq=[]; draw(); }},'Clear order');
+  return { node:el('div',{},el('div',{class:'row',style:{marginBottom:labels?'22px':'8px'}},tiles),reset), get:()=>seq.length===colors.length?seq.slice():null, set:s=>{ seq=s.slice(); draw(); } };
+}
+/* fraction of pairs placed in the right relative order */
+function pairScore(resp,key){ const pos={}; resp.forEach((v,i)=>pos[v]=i); let ok=0,n=0; for(let i=0;i<key.length;i++) for(let j=i+1;j<key.length;j++){ n++; if(pos[key[i]]<pos[key[j]]) ok++; } return ok/n; }
+
+/* ---------- the exercise types ---------- */
+const EX = [];
+const add = x => EX.push(x);
+
+/* 1. Hue on the wheel — ch. 2 */
+add({ id:'hue-wheel', title:'Find the hue', ch:2, chTitle:'Hue', pages:'8-9',
+  measures:'Separating hue from value and saturation: a tint, shade or tone still sits at its parent hue on the wheel.',
+  gen(r){ const i=r.int(0,11), h=WHEELS.RGB.hues[i]+r.range(-6,6); const pure=C.hsl((h+360)%360,100,50);
+    const kind=r.pick(['white','black','gray']); const t=r.range(0.35,0.6); const other=kind==='white'?[1,1,1]:kind==='black'?[0,0,0]:C.grayL(r.range(35,70));
+    return { key:i, color:C.mix(pure,other,t), kind }; },
+  render(it,box){ box.append(el('p',{class:'prompt'},'This color has been lightened, darkened or dulled. Tap the wedge on the RGB/CMYK wheel that holds its hue.'), el('div',{class:'row'},sw(it.color,'sw big')));
+    const {svg,paths}=wheelSVG('RGB'); let v=null; const set=i=>{ v=i; paths.forEach((p,k)=>p.classList.toggle('sel',k===i)); }; paths.forEach((p,k)=>p.onclick=()=>set(k)); box.append(svg);
+    return { get:()=>v, set, reveal:()=>paths[it.key].classList.add('key') }; },
+  solve:it=>it.key,
+  score(it,v){ const d=Math.min(Math.abs(v-it.key),12-Math.abs(v-it.key)); return { s:d===0?1:d===1?0.5:0, msg:`The hue is ${WHEELS.RGB.names[it.key]}. The swatch is that hue mixed with ${it.kind}, which changes its value and saturation but not its hue.${d===1?' One wedge off earns half credit.':''}` }; } });
+
+/* 2. Temperature — ch. 2 */
+add({ id:'temperature', title:'Warm to cool', ch:2, chTitle:'Hue', pages:'11-13',
+  measures:'Hue temperature as distance from red-orange (warmest) toward blue-green (coolest) on the RYB wheel.',
+  gen(r){ // RYB indices grouped by steps from red-orange; yellow-green and violet left out (the text calls them ambiguous)
+    const byDist=[[1],[0,2],[3,11],[4],[9],[6,8],[7]];
+    const ds=r.shuffle([0,1,2,3,4,5,6]).slice(0,4); const idx=ds.map(d=>r.pick(byDist[d]));
+    const key=ds.map((d,k)=>[d,k]).sort((a,b)=>a[0]-b[0]).map(x=>x[1]); return { idx, key }; },
+  render(it,box){ box.append(el('p',{class:'prompt'},'Tap these four hues in order from warmest to coolest.'));
+    const o=orderer(it.idx.map(i=>wheelColor('RYB',i)), it.idx.map(i=>WHEELS.RYB.names[i])); box.append(o.node); return o; },
+  solve:it=>it.key,
+  score(it,v){ const s=pairScore(v,it.key); return { s, msg:`Warmest to coolest: ${it.key.map(k=>WHEELS.RYB.names[it.idx[k]]).join(', ')}. The closer a hue sits to red-orange, the warmer; the closer to blue-green, the cooler.` }; } });
+
+/* 3. Value order — ch. 3 */
+add({ id:'value-order', title:'Light to dark', ch:3, chTitle:'Value', pages:'16-20',
+  measures:'Reading value across different hues and saturations, where hue tends to distract (the grayscale test).',
+  gen(r){ for(let tries=0;tries<50;tries++){ const Ls=r.shuffle([0.42,0.5,0.58,0.66,0.74,0.82,0.9]).slice(0,5);
+      const cols=Ls.map(L=>C.lch(L,r.range(0.06,0.2),r.range(0,360))); const vs=cols.map(C.Lstar); const sorted=vs.slice().sort((a,b)=>b-a);
+      if(sorted.every((v,i)=>i===0||sorted[i-1]-v>=6)) return { cols, vs, key:vs.map((v,i)=>[v,i]).sort((a,b)=>b[0]-a[0]).map(x=>x[1]) }; }
+  },
+  render(it,box){ box.append(el('p',{class:'prompt'},'Tap these five colors in order from lightest value to darkest value.')); const o=orderer(it.cols); box.append(o.node);
+    o.reveal=()=>box.append(el('p',{class:'small'},'In grayscale:'),el('div',{class:'row'},it.key.map(k=>sw(C.grayL(it.vs[k]))))); return o; },
+  solve:it=>it.key, score:(it,v)=>({ s:pairScore(v,it.key), msg:'The grayscale row shows the correct order, lightest first.' }) });
+
+/* 4. Value scale — ch. 3 */
+const SCALE = Array.from({length:9},(_,i)=>100-i*12.5);
+add({ id:'value-scale', title:'Match the value scale', ch:3, chTitle:'Value', pages:'17-18',
+  measures:'Comparing a chromatic color against a stepped value scale to find its closest value.',
+  gen(r){ for(let t=0;t<80;t++){ const h=r.range(0,360), ch=r.range(0.08,0.2), L=r.range(0.3,0.92); const c=C.lch(L,ch,h); const v=C.Lstar(c);
+      const k=SCALE.map((s,i)=>[Math.abs(s-v),i]).sort((a,b)=>a[0]-b[0]); if(k[0][0]<=3.5&&k[0][1]>0&&k[0][1]<8) return { color:c, v, key:k[0][1] }; } },
+  render(it,box){ box.append(el('p',{class:'prompt'},'Which step of the nine-step value scale is closest in value to this color?'), el('div',{class:'row'},sw(it.color,'sw big')));
+    let v=null; const steps=SCALE.map((s,i)=>el('div',{class:'st',style:{background:hx(C.grayL(s)),color:s>50?'#000':'#fff'},'data-i':i,onclick:()=>set(i)},i+1));
+    const set=i=>{ v=i; steps.forEach((x,k)=>x.classList.toggle('sel',k===i)); }; box.append(el('div',{class:'scale'},steps));
+    return { get:()=>v, set, reveal:()=>{ steps[it.key].classList.add('key'); box.append(el('div',{class:'row'},sw(it.color),sw(C.grayL(it.v)))); } }; },
+  solve:it=>it.key,
+  score(it,v){ const d=Math.abs(v-it.key); return { s:d===0?1:d===1?0.5:0, msg:`Step ${it.key+1} is closest (the color converts to the gray shown beside it).${d===1?' One step off earns half credit.':''}` }; } });
+
+/* 5. Saturation order — ch. 4 */
+add({ id:'saturation-order', title:'Strong to weak', ch:4, chTitle:'Saturation', pages:'24-26',
+  measures:'Seeing saturation apart from hue and value: same hue, nearly the same value, different strength.',
+  gen(r){ const h=r.range(0,360), L=r.range(0.55,0.75), max=C.maxChroma(L,h); const fr=r.shuffle([1,0.68,0.4,0.12]);
+    const cols=fr.map(f=>C.lch(L,max*f,h)); return { cols, key:fr.map((f,i)=>[f,i]).sort((a,b)=>b[0]-a[0]).map(x=>x[1]) }; },
+  render(it,box){ box.append(el('p',{class:'prompt'},'Tap these four colors in order from the most saturated to the least saturated.')); const o=orderer(it.cols); box.append(o.node);
+    o.reveal=()=>box.append(el('p',{class:'small'},'Correct order:'),el('div',{class:'row'},it.key.map(k=>sw(it.cols[k])))); return o; },
+  solve:it=>it.key,
+  score:(it,v)=>({ s:pairScore(v,it.key), msg:'The row below runs from most to least saturated. The weakest is close to neutral, so its hue is hard to name.' }) });
+
+/* 6. Tint, shade, tone — ch. 4 */
+add({ id:'tint-shade-tone', title:'Tint, shade or tone', ch:4, chTitle:'Saturation', pages:'28-30',
+  measures:'What adding white, black or a gray of equal value does to a pure hue.',
+  gen(r){ const h=r.pick(WHEELS.RGB.hues), pure=C.hsl(h,100,50), t=r.range(0.4,0.55);
+    const kinds=r.shuffle(['tint','shade','tone']);
+    const make=k=>k==='tint'?C.mix(pure,[1,1,1],t):k==='shade'?C.mix(pure,[0,0,0],t):C.mix(pure,C.grayL(C.Lstar(pure)),t+0.1);
+    return { pure, kinds, cols:kinds.map(make) }; },
+  render(it,box){ box.append(el('p',{class:'prompt'},'The large swatch is a pure hue. Each small swatch is that hue mixed with white, black, or a gray of the same value. Label each one.'), el('div',{class:'row'},sw(it.pure,'sw big')));
+    const sels=it.cols.map((c,i)=>{ const s=el('select',{'data-i':i},el('option',{value:''},'choose…'),['tint','shade','tone'].map(k=>el('option',{value:k},k))); return s; });
+    box.append(el('div',{class:'row'},it.cols.map((c,i)=>el('div',{style:{textAlign:'center'}},sw(c),el('div',{},sels[i])))));
+    return { get:()=>sels.every(s=>s.value)?sels.map(s=>s.value):null, set:v=>sels.forEach((s,i)=>s.value=v[i]) }; },
+  solve:it=>it.kinds.slice(),
+  score(it,v){ const ok=v.filter((x,i)=>x===it.kinds[i]).length; return { s:ok/3, msg:`Left to right: ${it.kinds.join(', ')}. White lightens (tint), black darkens (shade), and a gray of equal value dulls without changing value (tone).` }; } });
+
+/* 7. Mixing in three systems — ch. 5 */
+const MIX = {
+  RYB:{ model:'subtractive', prim:['red','yellow','blue'], sec:{'red+yellow':'orange','yellow+blue':'green','blue+red':'violet'},
+        ter:{'red+orange':'red-orange','yellow+orange':'yellow-orange','yellow+green':'yellow-green','blue+green':'blue-green','blue+violet':'blue-violet','red+violet':'red-violet'} },
+  RGB:{ model:'additive', prim:['red','green','blue'], sec:{'red+green':'yellow','green+blue':'cyan','blue+red':'magenta'},
+        ter:{'red+yellow':'orange','green+yellow':'yellow-green','green+cyan':'cool green','blue+cyan':'cool blue','blue+magenta':'violet','red+magenta':'cool red'} },
+  CMYK:{ model:'subtractive', prim:['cyan','magenta','yellow'], sec:{'cyan+magenta':'blue','magenta+yellow':'red','yellow+cyan':'green'},
+        ter:{'cyan+blue':'cool blue','magenta+blue':'violet','magenta+red':'cool red','yellow+red':'orange','yellow+green':'yellow-green','cyan+green':'cool green'} }
+};
+const SYS_LABEL={RYB:'paint (RYB)',RGB:'light (RGB)',CMYK:'printing ink (CMYK)'};
+add({ id:'mixing', title:'Mix in three systems', ch:5, chTitle:'Color Systems', pages:'32-41',
+  measures:'Primary, secondary and tertiary mixtures in RYB, RGB and CMYK, and whether a system mixes toward white or black.',
+  gen(r){ const sys=r.pick(['RYB','RGB','CMYK']), lvl=r.pick(['sec','ter']); const pair=r.pick(Object.keys(MIX[sys][lvl])); const [a,b]=pair.split('+');
+    const all=[...new Set(Object.values(MIX.RYB.sec).concat(Object.values(MIX.RYB.ter),Object.values(MIX.RGB.sec),Object.values(MIX.RGB.ter)))];
+    const ans=MIX[sys][lvl][pair]; const opts=r.shuffle([ans,...r.shuffle(all.filter(x=>x!==ans)).slice(0,5)]);
+    return { sys, a, b, ans, opts, light:MIX[sys].model==='additive'?'lighter':'darker' }; },
+  render(it,box){ box.append(el('p',{class:'prompt'},`In ${SYS_LABEL[it.sys]}, equal parts of ${it.a} and ${it.b} are mixed. What hue results?`));
+    const c1=choice(it.opts); box.append(c1.node, el('p',{class:'prompt'},'Compared with what went in, does the mixture get lighter or darker?'));
+    const c2=choice(['lighter','darker']); box.append(c2.node);
+    return { get:()=>c1.get()&&c2.get()?[c1.get(),c2.get()]:null, set:v=>{ c1.set(v[0]); c2.set(v[1]); }, reveal:()=>{ c1.reveal(it.ans); c2.reveal(it.light); } }; },
+  solve:it=>[it.ans,it.light],
+  score(it,v){ const s=(v[0]===it.ans?0.5:0)+(v[1]===it.light?0.5:0); return { s, msg:`${it.a} + ${it.b} = ${it.ans} in ${it.sys}. ${it.sys} is ${MIX[it.sys].model}, so mixing moves toward ${it.light==='lighter'?'white':'black'}.` }; } });
+
+/* 8. Hue relationships — ch. 6 */
+const REL = { monochromatic:[0], analogous:[0,1,2], complementary:[0,6], 'split-complementary':[0,5,7], 'double-complementary':[0,1,6,7], triad:[0,4,8], tetrad:[0,3,6,9] };
+add({ id:'hue-relationship', title:'Name the hue relationship', ch:6, chTitle:'Color Schemes', pages:'44-53',
+  measures:'Recognizing monochromatic, analogous, complementary, split-, double-complementary, triad and tetrad relationships by wheel position.',
+  gen(r){ const rel=r.pick(Object.keys(REL)), w=r.pick(['RYB','RGB']), base=r.int(0,11); const idx=REL[rel].map(o=>(base+o)%12);
+    const cols = rel==='monochromatic' ? [0.25,0,-0.3].map(t=>t>0?C.mix(wheelColor(w,base),[1,1,1],t):t<0?C.mix(wheelColor(w,base),[0,0,0],-t):wheelColor(w,base)) : r.shuffle(idx).map(i=>wheelColor(w,i));
+    return { rel, w, idx, cols }; },
+  render(it,box){ box.append(el('p',{class:'prompt'},`This palette was built on the ${WHEELS[it.w].label}. Which hue relationship is it?`), el('div',{class:'row'},it.cols.map(c=>sw(c))));
+    const {svg,paths}=wheelSVG(it.w,{inner:70}); svg.style.maxWidth='220px'; paths.forEach(p=>p.style.cursor='default'); box.append(svg);
+    const c=choice(Object.keys(REL)); box.append(c.node); return { get:c.get, set:c.set, reveal:()=>{ c.reveal(it.rel); it.idx.forEach(i=>paths[i].classList.add('key')); } }; },
+  solve:it=>it.rel,
+  score:(it,v)=>({ s:v===it.rel?1:0, msg:`It is ${it.rel}: ${it.idx.map(i=>WHEELS[it.w].names[i]).filter((x,i,a)=>a.indexOf(x)===i).join(', ')} on the ${it.w==='RYB'?'RYB':'RGB/CMYK'} wheel (outlined).` }) });
+
+/* 9. Complements on two wheels — ch. 6 with ch. 5 */
+add({ id:'complement', title:'Find the complement', ch:6, chTitle:'Color Schemes', pages:'33-41, 48',
+  measures:'Locating the complement, and seeing that it depends on the wheel: red pairs with green in paint and with cyan in light.',
+  gen(r){ const w=r.pick(['RYB','RGB']), i=r.int(0,11); return { w, i, key:(i+6)%12 }; },
+  render(it,box){ box.append(el('p',{class:'prompt'},`On the ${WHEELS[it.w].label}, the marked wedge is ${WHEELS[it.w].names[it.i]}. Tap its complement.`));
+    const {svg,paths}=wheelSVG(it.w,{marks:[it.i]}); let v=null; const set=k=>{ v=k; paths.forEach((p,j)=>p.classList.toggle('sel',j===k)); }; paths.forEach((p,k)=>p.onclick=()=>set(k)); box.append(svg);
+    return { get:()=>v, set, reveal:()=>paths[it.key].classList.add('key') }; },
+  solve:it=>it.key,
+  score(it,v){ const ow=it.w==='RYB'?'RGB':'RYB', nm=WHEELS[it.w].names[it.i], j=WHEELS[ow].names.indexOf(nm);
+    return { s:v===it.key?1:0, msg:`The complement of ${nm} on this wheel is ${WHEELS[it.w].names[it.key]}, directly opposite.`+(j>=0&&WHEELS[ow].names[(j+6)%12]!==WHEELS[it.w].names[it.key]?` On the ${ow==='RYB'?'RYB':'RGB/CMYK'} wheel, ${nm} pairs with ${WHEELS[ow].names[(j+6)%12]} instead.`:'') }; } });
+
+/* 10. Simultaneous contrast — ch. 7 */
+add({ id:'simultaneous-contrast', title:'Simultaneous contrast', ch:7, chTitle:'Color Interaction', pages:'62-64',
+  measures:'Predicting the direction of the shift a ground causes in value, saturation or temperature, then checking it.',
+  gen(r){ const kind=r.pick(['value','saturation','temperature']); const flip=r()<0.5;
+    let patch, g1, g2, q, key;
+    if(kind==='value'){ patch=C.grayL(r.range(45,60)); g1=C.grayL(r.range(8,18)); g2=C.grayL(r.range(85,95)); q='Which center square looks lighter?'; key=0; }
+    else if(kind==='saturation'){ const h=r.range(0,360); patch=C.lch(0.62,0.08,h); g1=C.lch(0.62,0.02,h); g2=C.lch(0.62,0.3,h); q='Which center square looks more saturated?'; key=0; }
+    else { patch=C.lch(0.66,0.035,r.range(100,140)); g1=C.lch(0.62,0.14,r.range(200,240)); g2=C.lch(0.68,0.15,r.range(35,60)); q='Which center square looks warmer?'; key=0; }
+    let grounds=[g1,g2]; if(flip){ grounds=[g2,g1]; key=1; } return { kind, patch, grounds, q, key }; },
+  render(it,box){ box.append(el('p',{class:'prompt'},'The two center squares are physically identical. '+it.q));
+    let v=null; const gs=it.grounds.map((g,i)=>el('div',{class:'ground',style:{background:hx(g)},onclick:()=>set(i)},el('span',{class:'gl'},i?'B':'A'),el('div',{class:'patch',style:{background:hx(it.patch)}})));
+    const set=i=>{ v=i; gs.forEach((x,k)=>x.classList.toggle('sel',k===i)); }; box.append(el('div',{class:'row'},gs));
+    return { get:()=>v, set, reveal:()=>box.append(el('p',{class:'small'},'Off the grounds, side by side:'),el('div',{class:'row'},sw(it.patch),sw(it.patch))) }; },
+  solve:it=>it.key,
+  score(it,v){ const why={value:'A dark ground makes a surrounded color look lighter; a light ground makes it look darker.',saturation:'A dull ground makes a surrounded color look brighter; a bright ground makes it look duller.',temperature:'A cool ground makes a surrounded color look warmer; a warm ground makes it look cooler.'}[it.kind];
+    return { s:v===it.key?1:0, msg:`Square ${it.key?'B':'A'}. ${why}` }; } });
+
+/* 11. Vibration or vanishing boundaries — ch. 7 */
+add({ id:'edges', title:'Vibrating or vanishing edges', ch:7, chTitle:'Color Interaction', pages:'66-68',
+  measures:'Predicting edge effects from hue contrast, value similarity and saturation.',
+  gen(r){ const kind=r.pick(['vibration','vanishing boundaries','neither']); const h=r.range(0,360); let a,b;
+    for(let t=0;t<200;t++){
+      if(kind==='vibration'){ a=C.lch(0.66,0.4,h); b=C.lch(0.66,0.4,h+r.range(150,210)); }
+      else if(kind==='vanishing boundaries'){ a=C.lch(0.6,0.12,h); b=C.lch(0.6+r.range(-0.02,0.02),0.12,h+r.range(-15,15)); }
+      else { a=C.lch(0.88,0.12,h); b=C.lch(0.32,0.12,h+r.range(-80,80)); }
+      const dv=Math.abs(C.Lstar(a)-C.Lstar(b)), ca=C.chroma(a), cb=C.chroma(b);
+      if(kind==='vibration'&&dv<6&&ca>0.12&&cb>0.12) break; if(kind==='vanishing boundaries'&&dv<4) break; if(kind==='neither'&&dv>40) break;
+      a=C.lch(0.66,0.4,(h+t*7)%360); }
+    return { kind, a, b }; },
+  render(it,box){ box.append(el('p',{class:'prompt'},'Look at the edges where these two colors meet. Which effect do they set up?'));
+    box.append(el('div',{class:'stripes'},Array.from({length:8},(_,i)=>el('div',{style:{background:hx(i%2?it.b:it.a)}}))));
+    const c=choice(['vibration','vanishing boundaries','neither']); box.append(c.node); return { get:c.get, set:c.set, reveal:()=>c.reveal(it.kind) }; },
+  solve:it=>it.kind,
+  score(it,v){ const why={vibration:'Contrasting hues at similar value and high saturation make the edges shimmer.','vanishing boundaries':'Similar hue and similar value make the edge hard to find.',neither:'The large value contrast keeps the edge crisp and stable.'}[it.kind]; return { s:v===it.kind?1:0, msg:`${it.kind[0].toUpperCase()+it.kind.slice(1)}. ${why}` }; } });
+
+/* 12. Depth and transparency — ch. 8 */
+add({ id:'depth', title:'What comes forward', ch:8, chTitle:'Color Composition', pages:'76-79',
+  measures:'Spatial effects of hue, saturation and contrast, and how a biased overlap color decides which shape sits on top.',
+  gen(r){ const kind=r.pick(['temperature','saturation','contrast','transparency']); const flip=r()<0.5; const ground=C.grayL(55); let A,B,mix=null,key=0;
+    if(kind==='temperature'){ A=C.lch(0.66,0.13,r.range(30,60)); B=C.lch(0.66,0.13,r.range(200,240)); }
+    else if(kind==='saturation'){ const h=r.range(0,360); A=C.lch(0.66,0.2,h); B=C.lch(0.66,0.03,h); }
+    else if(kind==='contrast'){ const h=r.range(0,360); A=C.lch(0.92,0.04,h); B=C.lch(0.6,0.04,h); }
+    else { const h1=r.range(0,360); A=C.lch(0.7,0.14,h1); B=C.lch(0.5,0.14,h1+r.range(100,160)); mix=C.mix(A,B,0.22); }
+    if(flip){ [A,B]=[B,A]; key=1; if(mix) mix=C.mix(B,A,0.22); }
+    return { kind, A, B, mix, ground:kind==='transparency'?C.grayL(96):ground, key }; },
+  render(it,box){ box.append(el('p',{class:'prompt'}, it.kind==='transparency'?'Two overlapping shapes, A and B. Which one appears to sit on top?':'Which shape appears to come forward in space, A or B?'));
+    const st=el('div',{class:'stage',style:{background:hx(it.ground)}}); let v=null; const set=i=>{ v=i; [a,b].forEach((x,k)=>x.classList.toggle('sel',k===i)); };
+    let a,b;
+    if(it.kind==='transparency'){ a=el('div',{class:'pick',style:{left:'30px',top:'30px',width:'150px',height:'110px',background:hx(it.A)},onclick:()=>set(0)}); b=el('div',{class:'pick',style:{left:'120px',top:'70px',width:'150px',height:'110px',background:hx(it.B)},onclick:()=>set(1)});
+      st.append(a,b,el('div',{style:{left:'120px',top:'70px',width:'60px',height:'70px',background:hx(it.mix),pointerEvents:'none'}})); }
+    else { a=el('div',{class:'pick',style:{left:'30px',top:'50px',width:'100px',height:'100px',background:hx(it.A)},onclick:()=>set(0)}); b=el('div',{class:'pick',style:{left:'170px',top:'50px',width:'100px',height:'100px',background:hx(it.B)},onclick:()=>set(1)}); st.append(a,b); }
+    box.append(st); const c=choice(['A','B']); c.node.querySelectorAll('button').forEach((bt,i)=>bt.addEventListener('click',()=>set(i))); box.append(c.node);
+    const set0=set; return { get:()=>v, set:i=>{ set0(i); c.set(i?'B':'A'); } }; },
+  solve:it=>it.key,
+  score(it,v){ const why={temperature:'Warm hues advance and cool hues recede.',saturation:'Bright colors advance and muted colors recede.',contrast:'The shape with more contrast against its ground advances.',transparency:'The overlap color leans toward that shape, so it reads as the one on top.'}[it.kind];
+    return { s:v===it.key?1:0, msg:`${it.key?'B':'A'}. ${why}` }; } });
+
+/* 13. Rebuild the color — chs. 2-4 */
+add({ id:'rebuild', title:'Rebuild the color', ch:'2-4', chTitle:'Hue, Value, Saturation', pages:'8, 16, 24',
+  measures:'Controlling the three defining properties independently to reproduce a target (scored by OKLab color difference).',
+  gen(r){ const t={h:r.int(0,71)*5,s:r.int(4,19)*5,l:r.int(5,16)*5}; return { t, color:C.hsl(t.h,t.s,t.l) }; },
+  render(it,box){ box.append(el('p',{class:'prompt'},'Use the three sliders to rebuild the target color as closely as you can.'));
+    const cur=sw([0.5,0.5,0.5],'sw big'); box.append(el('div',{class:'row'},el('div',{},el('div',{class:'small'},'Target'),sw(it.color,'sw big')),el('div',{},el('div',{class:'small'},'Yours'),cur)));
+    const mk=(name,max,val)=>{ const i=el('input',{type:'range',min:0,max,value:val,'data-k':name}); i.oninput=upd; box.append(el('div',{class:'slider'},el('span',{},name),i)); return i; };
+    const H=mk('hue',359,180), S=mk('saturation',100,50), L=mk('lightness',100,50);
+    function upd(){ cur.style.background=hx(C.hsl(+H.value,+S.value,+L.value)); } upd();
+    return { get:()=>({h:+H.value,s:+S.value,l:+L.value}), set:v=>{ H.value=v.h; S.value=v.s; L.value=v.l; upd(); } }; },
+  solve:it=>({...it.t}),
+  score(it,v){ const d=C.dE(it.color,C.hsl(v.h,v.s,v.l)); const s=d<=3?1:d<=6?0.75:d<=10?0.5:d<=15?0.25:0;
+    return { s, msg:`Difference ${d.toFixed(1)} (OKLab ΔE ×100; 3 or less is full credit). Target: hue ${it.t.h}°, saturation ${it.t.s}%, lightness ${it.t.l}%.` }; } });
+
+/* 14. Key and contrast of a value scheme — ch. 6 */
+add({ id:'value-key', title:'Key and contrast', ch:6, chTitle:'Color Schemes', pages:'53-55',
+  measures:'Classifying a scheme by value key (high, intermediate, low) and by value range (high or low contrast).',
+  gen(r){ const key=r.pick(['high-key','intermediate-key','low-key']); const band={'high-key':[72,98],'intermediate-key':[36,64],'low-key':[3,30]}[key];
+    const contrast=r.pick(['high contrast','low contrast']); let vs;
+    if(contrast==='low contrast'){ const c=r.range(band[0]+5,band[1]-5); vs=[c-5,c-1.5,c+1.5,c+5]; }
+    else { vs=[band[0],band[0]+(band[1]-band[0])/3,band[0]+2*(band[1]-band[0])/3,band[1]]; }
+    const h=r.range(0,360); const cols=r.shuffle(vs).map(v=>{ const g=C.grayL(v); return r()<0.5?g:C.mix(g,C.lch(C.oklab(g)[0],0.05,h),1); });
+    return { key, contrast, cols }; },
+  render(it,box){ box.append(el('p',{class:'prompt'},'Classify this scheme by its value key and by its value contrast.'), el('div',{class:'row'},it.cols.map(c=>sw(c))));
+    const a=choice(['high-key','intermediate-key','low-key']), b=choice(['high contrast','low contrast']); box.append(a.node, el('div',{style:{height:'8px'}}), b.node);
+    return { get:()=>a.get()&&b.get()?[a.get(),b.get()]:null, set:v=>{ a.set(v[0]); b.set(v[1]); }, reveal:()=>{ a.reveal(it.key); b.reveal(it.contrast); } }; },
+  solve:it=>[it.key,it.contrast],
+  score:(it,v)=>({ s:(v[0]===it.key?0.5:0)+(v[1]===it.contrast?0.5:0), msg:`${it.key}, ${it.contrast}. Key is where the values sit on the scale; contrast is how far apart they spread within it.` }) });
+
+/* ---------- app state, gradebook ---------- */
+const LS='colorlab.v1';
+const store={ load(){ try{ return JSON.parse(localStorage.getItem(LS))||{records:[]}; }catch(e){ return {records:[]}; } }, save(d){ localStorage.setItem(LS,JSON.stringify(d)); } };
+const params=new URLSearchParams(location.search);
+const state={ view:'ex', ex:EX[0].id, n:{}, session:{}, current:null };
+const $student=document.getElementById('student'), $seed=document.getElementById('seed');
+$seed.value=params.get('seed')||localStorage.getItem(LS+'.seed')||'fall-2026'; $student.value=localStorage.getItem(LS+'.student')||'';
+$seed.onchange=()=>{ localStorage.setItem(LS+'.seed',$seed.value); state.n={}; render(); };
+$student.onchange=()=>localStorage.setItem(LS+'.student',$student.value.trim());
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{ state.view=b.dataset.view; document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b)); render(); });
+
+function itemFor(ex,n){ return ex.gen(makeRng(`${$seed.value}|${ex.id}|${n}`)); }
+function sessionTotals(){ let pts=0,n=0; for(const v of Object.values(state.session)){ pts+=v.pts; n+=v.n; } return {pts,n}; }
+
+function renderExercises(main){
+  const list=el('div',{class:'list'}, EX.map(ex=>{ const s=state.session[ex.id]; return el('button',{class:ex.id===state.ex?'on':'','data-ex':ex.id,onclick:()=>{ state.ex=ex.id; render(); }}, s?el('span',{class:'sc'},`${Math.round(100*s.pts/s.n)}% · ${s.n}`):null, ex.title, el('span',{class:'ch'},`Ch. ${ex.ch} ${ex.chTitle}`)); }));
+  const ex=EX.find(e=>e.id===state.ex); const n=state.n[ex.id]||0; const it=itemFor(ex,n);
+  const card=el('div',{class:'card'}); card.append(el('h2',{},ex.title), el('div',{class:'meta'},`Chapter ${ex.ch}, ${ex.chTitle} · item ${n+1} · set “${$seed.value}”`));
+  const box=el('div',{}); card.append(box); const ctl=ex.render(it,box);
+  const fb=el('div',{class:'feedback',role:'status'}); const submit=el('button',{class:'btn primary',type:'button',id:'submit'},'Check answer'); const next=el('button',{class:'btn',type:'button',id:'next',disabled:''},'Next item');
+  submit.onclick=()=>{ const v=ctl.get(); if(v==null){ fb.className='feedback part'; fb.textContent='Finish your answer first.'; return; }
+    const res=ex.score(it,v); state.current={ex:ex.id,res};
+    const s=state.session[ex.id]||(state.session[ex.id]={pts:0,n:0}); s.pts+=res.s; s.n+=1;
+    const d=store.load(); d.records.push({student:$student.value.trim()||'(no name)', exercise:ex.id, title:ex.title, chapter:String(ex.ch), set:$seed.value, item:n+1, score:Math.round(res.s*100), ts:new Date().toISOString()}); store.save(d);
+    fb.className='feedback '+(res.s>=1?'ok':res.s>0?'part':'bad'); fb.textContent=`${res.s>=1?'Correct':res.s>0?'Partly right':'Not quite'} (${Math.round(res.s*100)}%). ${res.msg}`;
+    if(ctl.reveal) ctl.reveal(); submit.disabled=true; next.disabled=false; box.style.pointerEvents='none'; updTally(); };
+  next.onclick=()=>{ state.n[ex.id]=n+1; render(); };
+  const tally=el('div',{class:'tally'}); function updTally(){ const s=state.session[ex.id]; const t=sessionTotals(); tally.innerHTML=''; tally.append(el('span',{},'This exercise: ',el('b',{},s?`${Math.round(100*s.pts/s.n)}% over ${s.n}`:'—')), el('span',{},'Session total: ',el('b',{},t.n?`${Math.round(100*t.pts/t.n)}% over ${t.n} items`:'—'))); }
+  updTally(); card.append(el('div',{class:'actions'},submit,next), fb, tally);
+  main.append(el('div',{class:'layout'},list,card));
+  const on=list.querySelector('button.on'); if(on&&list.scrollWidth>list.clientWidth) list.scrollLeft=on.offsetLeft-8;
+  state.ctl=ctl; state.item=it;
+}
+
+function aggregate(){ const d=store.load(); const m=new Map();
+  for(const r of d.records){ const k=r.student+'\u0000'+r.exercise; const a=m.get(k)||{student:r.student,exercise:r.exercise,chapter:r.chapter,attempts:0,sum:0,timestamp:r.ts}; a.attempts++; a.sum+=r.score; if(r.ts>a.timestamp) a.timestamp=r.ts; m.set(k,a); }
+  return [...m.values()].map(a=>({student:a.student,exercise:a.exercise,chapter:a.chapter,attempts:a.attempts,score:(a.sum/a.attempts).toFixed(1),timestamp:a.timestamp})).sort((x,y)=>x.student.localeCompare(y.student)||x.exercise.localeCompare(y.exercise)); }
+function csv(){ const q=v=>/[",\n]/.test(v)?'"'+String(v).replace(/"/g,'""')+'"':String(v); const rows=aggregate(); return ['student,exercise,chapter,attempts,score,timestamp',...rows.map(r=>[r.student,r.exercise,r.chapter,r.attempts,r.score,r.timestamp].map(q).join(','))].join('\n')+'\n'; }
+
+function renderGradebook(main){ const rows=aggregate(); const card=el('div',{class:'card'});
+  card.append(el('h2',{},'Gradebook'), el('p',{class:'small'},'Scores are kept in this browser only. Score is the average percent across attempts. Export a CSV to hand in or upload to a course gradebook.'));
+  card.append(el('div',{class:'actions'}, el('button',{class:'btn primary',id:'export',onclick:()=>{ const b=new Blob([csv()],{type:'text/csv'}); const a=el('a',{href:URL.createObjectURL(b),download:`color-lab-gradebook-${new Date().toISOString().slice(0,10)}.csv`}); document.body.append(a); a.click(); a.remove(); }},'Export CSV'),
+    el('button',{class:'btn',id:'clear',onclick:()=>{ if(confirm('Delete every score stored in this browser?')){ store.save({records:[]}); render(); } }},'Clear scores')));
+  card.append(rows.length? el('div',{style:{overflowX:'auto'}},el('table',{},el('tr',{},['Student','Exercise','Ch.','Attempts','Score','Last'].map(h=>el('th',{},h))), rows.map(r=>el('tr',{},[r.student,r.exercise,r.chapter,r.attempts,r.score+'%',r.timestamp.replace('T',' ').slice(0,16)].map(v=>el('td',{},v)))))) : el('p',{},'No scores yet.'));
+  main.append(card); }
+
+function renderNotes(main){ const card=el('div',{class:'card'});
+  card.append(el('h2',{},'Instructor notes'), el('p',{class:'small'},'Every item is generated from the set name, so a class that shares a set name sees the same items in the same order. Change the set name for a fresh set. Page numbers refer to Foundations of Color (Tempe Digital, 2015). Exercises test the concepts; they do not replace the reading.'));
+  card.append(el('div',{style:{overflowX:'auto'}},el('table',{},el('tr',{},['Exercise','Chapter','Pages','What it measures','Scoring'].map(h=>el('th',{},h))),
+    EX.map(ex=>el('tr',{},el('td',{},ex.title),el('td',{},`${ex.ch} ${ex.chTitle}`),el('td',{},ex.pages),el('td',{},ex.measures),el('td',{},SCORING[ex.id]||''))))));
+  card.append(el('p',{class:'small'},'Color notes: wheels follow the book’s two systems, RYB for paint and a shared RGB/CMYK wheel for light and ink. Value is CIE L* (what a grayscale conversion keeps). Saturation and color difference use OKLab. Screen color varies by device; items are built with wide margins so that ordinary displays agree on the answer.'));
+  main.append(card); }
+const SCORING={'hue-wheel':'exact wedge 100%, neighbor 50%','temperature':'share of pairs in correct order','value-order':'share of pairs in correct order','value-scale':'exact step 100%, neighbor 50%','saturation-order':'share of pairs in correct order','tint-shade-tone':'one third per label','mixing':'hue 50%, lighter/darker 50%','hue-relationship':'right or wrong','complement':'right or wrong','simultaneous-contrast':'right or wrong, then revealed','edges':'right or wrong','depth':'right or wrong','rebuild':'ΔE ≤3: 100%, ≤6: 75%, ≤10: 50%, ≤15: 25%','value-key':'key 50%, contrast 50%'};
+
+function render(){ const main=document.getElementById('main'); main.innerHTML=''; if(state.view==='ex') renderExercises(main); else if(state.view==='gb') renderGradebook(main); else renderNotes(main); }
+render();
+/* test hook: lets a script answer the current item through the same controls a student uses */
+window.LAB={ EX, state, csv, aggregate, itemFor, answerCurrent(correct=true, wrong){ const ex=EX.find(e=>e.id===state.ex); state.ctl.set(correct?ex.solve(state.item):wrong); document.getElementById('submit').click(); return state.current; } };
+</script>
+</body>
+</html>
