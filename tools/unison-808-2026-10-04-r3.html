@@ -273,7 +273,7 @@
 
   <!-- Provenance lives in the tooltip, not in the layout. Nothing that measures
        the sound appears on this screen. -->
-  <footer title="engine @93fcbcb · built 2026-10-04">
+  <footer title="engine @74f8faf · built 2026-10-04">
     <span><kbd>1</kbd>–<kbd>9</kbd> play a voice &nbsp;·&nbsp; <kbd>space</kbd> start / stop</span>
     <span class="sp"></span>
     <span>Nothing is sampled. Every hit is synthesised in the browser by the engine's own code, live off the knobs.</span>
@@ -284,7 +284,7 @@
 
 <!-- ===================== inlined engine (verbatim, private repo) ===================== -->
 <script type="text/plain" id="src-engine">
-/* ===== src/core/prng.js @ 93fcbcb — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/prng.js @ 74f8faf — verbatim from jeffdavis-studio/unison-engine ===== */
 // prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
 // token hash, consumed in canonical draw order (Technical Architecture v1.2).
 //
@@ -357,7 +357,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/core/mix.js @ 93fcbcb — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/mix.js @ 74f8faf — verbatim from jeffdavis-studio/unison-engine ===== */
 // mix.js — the fan-in ≤2 summing rule, as a primitive.
 //
 // Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
@@ -395,7 +395,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/tr808.js @ 93fcbcb — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/tr808.js @ 74f8faf — verbatim from jeffdavis-studio/unison-engine ===== */
 // tr808.js — THE MACHINE. A TR-808-lineage core voice: bass drum, snare,
 // closed hat, open hat, each with a front panel the token actually turns.
 //
@@ -1556,7 +1556,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drums.js @ 93fcbcb — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drums.js @ 74f8faf — verbatim from jeffdavis-studio/unison-engine ===== */
 // drums.js — the drum machine: 808/LM-1-flavor voices, synthesized at runtime
 // into short AudioBuffers, played back as one-shots.
 //
@@ -1900,7 +1900,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/books.js @ 93fcbcb — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/books.js @ 74f8faf — verbatim from jeffdavis-studio/unison-engine ===== */
 // books.js — Pattern Books v1, as data.
 //
 // This file IS the document: "Unison — Pattern Books v1 (draft)" (Morgan,
@@ -2469,7 +2469,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/session.js @ 93fcbcb — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/session.js @ 74f8faf — verbatim from jeffdavis-studio/unison-engine ===== */
 // session.js — the session sheet and the arrangement realizer.
 //
 // Two tiers, in this order, each on its own stream (core/prng.js):
@@ -3017,9 +3017,11 @@
   //   tomsFills  -7  (89044b8a, five low-tom accents, not audible at -8)
   //   ePerc      -6  (c25b9c95, funk rim clave, not audible at -7; the other
   //                   eight, rim / cowbell / congaRun, pass at -10..-12)
-  //   percAccent -8  (all six pass at -8; 2f2c0285 is the floor)
+  //   percAccent -6  (the six ladder songs pass at -8, but the real-render
+  //                   check found afb28f7f, 44 kit congas, not audible at -8;
+  //                   its rungs on the trimmed song: -7 no, -6 yes, frac 0.0021)
   // Confirmed on real renders with these trims: harness/render-check-kit.mjs.
-  const TRIM_808_PERC_DB = { tomsFills: -7, ePerc: -6, percAccent: -8 };
+  const TRIM_808_PERC_DB = { tomsFills: -7, ePerc: -6, percAccent: -6 };
   U.TRIM_808_PERC_DB = TRIM_808_PERC_DB;
 
   // OB-Xa on the chord strips (sheet.polyVoice === "obxa", draw 31): which
@@ -3720,7 +3722,7 @@ window.FIT_POS = {"ohDecay":0.9844,"bdDecay":0.6641,"sdSnappy":0.7813,"ltTune":0
 // and the whole point of declining a knob on the record is that the decline is
 // visible where the instrument is.
 window.FIT_WHY = {"ohDecay":"warped-geometric, fitted against the machine's five DECAY cells (2026-08-13)","bdDecay":"warped-geometric, fitted against the machine's five DECAY cells (2026-08-13)","sdSnappy":"range chosen by ladder against the machine's five SNAPPY cells (2026-08-13)","ltTune":"excluded from the apply — a range question, task 1217474030433885","mtTune":"excluded from the apply — a range question, task 1217474030433885","htTune":"excluded from the apply — a range question, task 1217474030433885"};
-/* WHERE THE KNOBS OPEN @ 93fcbcb, built 2026-10-04.
+/* WHERE THE KNOBS OPEN @ 74f8faf, built 2026-10-04.
 
    Every knob apply-fit moved opens at CENTRE, because after the apply the
    centre IS the fit. Only the knobs it measured and did not move are here, and

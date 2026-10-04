@@ -52,10 +52,10 @@
 <p class="note">Each song is built here from the engine when you tap play. The strip under it is the form, with a line for where you are.</p>
 <div id="modes"><button data-m="live">live<small>starts in a few seconds</small></button><button data-m="smooth">smooth<small>renders first, tap the strip to jump</small></button></div>
 <div id="list"></div>
-<footer title="engine @93fcbcb · built 2026-10-04">every song is synthesized in this page from the engine at 93fcbcb</footer>
+<footer title="engine @74f8faf · built 2026-10-04">every song is synthesized in this page from the engine at 74f8faf</footer>
 
 <script>
-/* ===== src/core/prng.js @ 93fcbcb — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/prng.js @ 74f8faf — verbatim from jeffdavis-studio/unison-engine ===== */
 // prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
 // token hash, consumed in canonical draw order (Technical Architecture v1.2).
 //
@@ -128,7 +128,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/core/mix.js @ 93fcbcb — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/mix.js @ 74f8faf — verbatim from jeffdavis-studio/unison-engine ===== */
 // mix.js — the fan-in ≤2 summing rule, as a primitive.
 //
 // Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
@@ -166,7 +166,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/desk/desk.js @ 93fcbcb — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/desk/desk.js @ 74f8faf — verbatim from jeffdavis-studio/unison-engine ===== */
 // desk.js — the 24-track desk as a running audio graph.
 //
 // The desk is the data structure, not a metaphor (Composition Brief 2 / Tech
@@ -383,7 +383,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/production.js @ 93fcbcb — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/production.js @ 74f8faf — verbatim from jeffdavis-studio/unison-engine ===== */
 // production.js — the production room, v0.
 //
 // PLACEMENT DECISION (Morgan's call, ratified by Jeff 2026-08-03). Production
@@ -462,7 +462,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/juno.js @ 93fcbcb — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/juno.js @ 74f8faf — verbatim from jeffdavis-studio/unison-engine ===== */
 // juno.js — Juno-60-flavor poly voice, raw Web Audio, zero dependencies.
 // Ported from the 2026-07-21 bake-off winner (voice-raw.js), restructured to
 // live behind a desk strip: U.createJuno(ctx, strip, patchName) builds its own
@@ -649,7 +649,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/minimoog.js @ 93fcbcb — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/minimoog.js @ 74f8faf — verbatim from jeffdavis-studio/unison-engine ===== */
 // minimoog.js — Minimoog Model D-lineage mono voice, zero dependencies.
 //
 // THE MONO BASS LANE (build order 808 → Juno → Minimoog → …; it also absorbs
@@ -954,7 +954,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/obxa.js @ 93fcbcb — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/obxa.js @ 74f8faf — verbatim from jeffdavis-studio/unison-engine ===== */
 // obxa.js — Oberheim OB-Xa-lineage poly voice, zero dependencies.
 //
 // THE BRASS/PAD POLY LANE (build order 808 → Juno → Minimoog → OB-Xa → …).
@@ -1319,7 +1319,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/fm.js @ 93fcbcb — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/fm.js @ 74f8faf — verbatim from jeffdavis-studio/unison-engine ===== */
 // fm.js — six-operator FM keys voice (the DX7 lineage), zero dependencies.
 //
 // THE FM LANE (build order 808 → Juno → Minimoog → OB-Xa → Linn → FM).
@@ -1723,7 +1723,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/bassguitar.js @ 93fcbcb — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/bassguitar.js @ 74f8faf — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassguitar.js — electric bass guitar, the first session player of the human
 // rack (Rack 2), zero dependencies.
 //
@@ -2171,7 +2171,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/shakers.js @ 93fcbcb — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/shakers.js @ 74f8faf — verbatim from jeffdavis-studio/unison-engine ===== */
 // shakers.js — hand-played shakers (shaker, maracas, cabasa), the second
 // stop of the human rack (Rack 2), zero dependencies.
 //
@@ -2465,7 +2465,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/congas.js @ 93fcbcb — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/congas.js @ 74f8faf — verbatim from jeffdavis-studio/unison-engine ===== */
 // congas.js — hand drums (congas, bongos), the third stop of the human rack
 // (Rack 2), zero dependencies.
 //
@@ -2795,7 +2795,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/rhythmguitar.js @ 93fcbcb — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/rhythmguitar.js @ 74f8faf — verbatim from jeffdavis-studio/unison-engine ===== */
 // rhythmguitar.js — clean electric rhythm guitar, the fourth and last stop of
 // the human rack (Rack 2), zero dependencies.
 //
@@ -3349,7 +3349,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/tr808.js @ 93fcbcb — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/tr808.js @ 74f8faf — verbatim from jeffdavis-studio/unison-engine ===== */
 // tr808.js — THE MACHINE. A TR-808-lineage core voice: bass drum, snare,
 // closed hat, open hat, each with a front panel the token actually turns.
 //
@@ -4510,7 +4510,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/linn.js @ 93fcbcb — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/linn.js @ 74f8faf — verbatim from jeffdavis-studio/unison-engine ===== */
 // linn.js — THE STUDIO MACHINE. A Linn-family (LM-1 / LinnDrum lineage)
 // drum computer: the new wave / synth-pop / 80s R&B kit.
 //
@@ -5259,7 +5259,7 @@
   U._linn = { burn, play, vca, roms, V, EPROM_HZ, RECON_HZ, SR, TOM_MID_CLOCK };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drums.js @ 93fcbcb — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drums.js @ 74f8faf — verbatim from jeffdavis-studio/unison-engine ===== */
 // drums.js — the drum machine: 808/LM-1-flavor voices, synthesized at runtime
 // into short AudioBuffers, played back as one-shots.
 //
@@ -5603,7 +5603,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/books.js @ 93fcbcb — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/books.js @ 74f8faf — verbatim from jeffdavis-studio/unison-engine ===== */
 // books.js — Pattern Books v1, as data.
 //
 // This file IS the document: "Unison — Pattern Books v1 (draft)" (Morgan,
@@ -6172,7 +6172,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/bassplayer.js @ 93fcbcb — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/bassplayer.js @ 74f8faf — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassplayer.js — the PERFORMANCE half of the bass guitar: a session player.
 //
 // Rack 2's rule (kb/projects/unison.md, 2026-07-11): every human instrument is
@@ -6299,7 +6299,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/shakerplayer.js @ 93fcbcb — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/shakerplayer.js @ 74f8faf — verbatim from jeffdavis-studio/unison-engine ===== */
 // shakerplayer.js — the PERFORMANCE half of the shakers: a session
 // percussionist on the percTime strip.
 //
@@ -6430,7 +6430,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/congaplayer.js @ 93fcbcb — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/congaplayer.js @ 74f8faf — verbatim from jeffdavis-studio/unison-engine ===== */
 // congaplayer.js — the PERFORMANCE half of the congas/bongos: a session
 // percussionist on the percAccent strip.
 //
@@ -6599,7 +6599,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/gtrplayer.js @ 93fcbcb — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/gtrplayer.js @ 74f8faf — verbatim from jeffdavis-studio/unison-engine ===== */
 // gtrplayer.js — the PERFORMANCE half of the rhythm guitar: a session
 // guitarist on the rhythmGtr strip.
 //
@@ -6768,7 +6768,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/testPhrase.js @ 93fcbcb — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/testPhrase.js @ 74f8faf — verbatim from jeffdavis-studio/unison-engine ===== */
 // testPhrase.js — deterministic 8-bar test phrase, ported from the bake-off
 // (phrase.js) onto the engine's canonical PRNG (core/prng.js).
 //
@@ -6862,7 +6862,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/session.js @ 93fcbcb — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/session.js @ 74f8faf — verbatim from jeffdavis-studio/unison-engine ===== */
 // session.js — the session sheet and the arrangement realizer.
 //
 // Two tiers, in this order, each on its own stream (core/prng.js):
@@ -7410,9 +7410,11 @@
   //   tomsFills  -7  (89044b8a, five low-tom accents, not audible at -8)
   //   ePerc      -6  (c25b9c95, funk rim clave, not audible at -7; the other
   //                   eight, rim / cowbell / congaRun, pass at -10..-12)
-  //   percAccent -8  (all six pass at -8; 2f2c0285 is the floor)
+  //   percAccent -6  (the six ladder songs pass at -8, but the real-render
+  //                   check found afb28f7f, 44 kit congas, not audible at -8;
+  //                   its rungs on the trimmed song: -7 no, -6 yes, frac 0.0021)
   // Confirmed on real renders with these trims: harness/render-check-kit.mjs.
-  const TRIM_808_PERC_DB = { tomsFills: -7, ePerc: -6, percAccent: -8 };
+  const TRIM_808_PERC_DB = { tomsFills: -7, ePerc: -6, percAccent: -6 };
   U.TRIM_808_PERC_DB = TRIM_808_PERC_DB;
 
   // OB-Xa on the chord strips (sheet.polyVoice === "obxa", draw 31): which
@@ -8089,7 +8091,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/render/renderer.js @ 93fcbcb — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/render/renderer.js @ 74f8faf — verbatim from jeffdavis-studio/unison-engine ===== */
 // renderer.js — song assembly + the render pipeline (Technical Architecture
 // v1.2 playback model): live-first, with (a) a cheap analysis pre-render for
 // verification/metrics and (b) an on-demand full OfflineAudioContext render
