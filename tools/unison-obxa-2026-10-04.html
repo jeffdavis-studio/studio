@@ -1,0 +1,801 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unison — the OB-Xa</title>
+<style>
+  :root{
+    --bg:#16161a; --panel:#1f1f25; --edge:#34343d; --ink:#e8e8ec; --dim:#8d8d99;
+    --accent:#c9a15a; --key:#f2f2f0; --keyd:#232329; --lit:#c9a15a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:14px/1.55 ui-sans-serif,-apple-system,"Segoe UI",Inter,sans-serif;
+    -webkit-text-size-adjust:100%;}
+  .wrap{max-width:940px;margin:0 auto;padding:22px 18px 60px}
+  h1{font-size:19px;font-weight:600;margin:0 0 2px;letter-spacing:.01em}
+  .sub{color:var(--dim);font-size:13px;margin:0 0 18px}
+  .card{background:var(--panel);border:1px solid var(--edge);border-radius:10px;padding:16px;margin-bottom:16px}
+  .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  button{font:inherit;color:var(--ink);background:#2a2a32;border:1px solid var(--edge);
+    border-radius:7px;padding:7px 13px;cursor:pointer}
+  button:hover{border-color:var(--accent)}
+  button.on{background:var(--accent);border-color:var(--accent);color:#1a1a1a;font-weight:600}
+  label.k{display:block;font-size:11px;color:var(--dim);letter-spacing:.06em;text-transform:uppercase;margin-bottom:3px}
+  .knobs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:13px 16px}
+  .knob input{width:100%;accent-color:var(--accent)}
+  .val{font-variant-numeric:tabular-nums;font-size:12px;color:var(--ink)}
+  .val .d{color:var(--accent)}
+  #kbd{position:relative;height:132px;margin:4px 0 10px;user-select:none;touch-action:none}
+  .wk{position:absolute;top:0;bottom:0;background:var(--key);border:1px solid #b9b9b4;
+    border-radius:0 0 5px 5px;box-shadow:inset 0 -7px 9px -8px #000}
+  .wk.d{background:var(--lit)}
+  .bk{position:absolute;top:0;height:62%;background:var(--keyd);border:1px solid #000;
+    border-radius:0 0 4px 4px;z-index:2}
+  .bk.d{background:var(--lit)}
+  .kl{position:absolute;bottom:4px;width:100%;text-align:center;font-size:9px;color:#8a8a84;pointer-events:none}
+  .note{color:var(--dim);font-size:12.5px;line-height:1.6}
+  .note b{color:var(--ink);font-weight:600}
+  footer{color:var(--dim);font-size:12px;border-top:1px solid var(--edge);padding-top:12px;margin-top:22px}
+  code{font:12px ui-monospace,Menlo,monospace;color:var(--accent)}
+  details summary{cursor:pointer;color:var(--dim);font-size:12.5px}
+  details[open] summary{margin-bottom:8px}
+  .declined{font-size:12px;color:var(--dim);margin:6px 0 0;padding-left:14px;border-left:2px solid var(--edge)}
+  .declined b{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Unison — the OB-Xa</h1>
+  <p class="sub">The poly voice, synthesized live in your browser from <code>src/instruments/obxa.js</code>, the same file the song render calls. Nothing here is a sample.</p>
+
+  <div class="card">
+    <label class="k">Patch</label>
+    <div class="row" id="patches"></div>
+  </div>
+
+  <div class="card">
+    <label class="k">Play</label>
+    <div id="kbd"></div>
+    <div class="row">
+      <button id="prog">Chord progression</button>
+      <button id="pole">Filter: 2-pole</button>
+      <span class="note" id="oct"></span>
+    </div>
+    <p class="note" style="margin-top:10px">Eight voices. Play chords: click the keys or type <b>A W S E D F T G Y H U J K</b>, several at once; <b>Z</b> / <b>X</b> shift octaves. Each new note goes to the next of the eight voice cards in turn, as on the machine, and every card is slightly different (voice slop). <b>Chord progression</b> plays four bars through the voice's own <code>schedule()</code>, the entry point the song uses. The filter switch is the OB-Xa's 2-pole / 4-pole switch; 2-pole is the Oberheim sound.</p>
+  </div>
+
+  <div class="card">
+    <label class="k">Panel</label>
+    <div class="knobs" id="knobs"></div>
+    <div class="row" style="margin-top:14px">
+      <button id="reset">Back to center</button>
+      <span class="note" id="dirty"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What was measured, what moved, and what the reference pack could not tell us</summary>
+      <p class="note">No freely licensed recording of a real OB-Xa exists, so the reference pack is nine excerpts of its successor, a real Oberheim OB-8 (same voice-card lineage, same filter chip with the 2/4-pole switch), from two players on freesound (CC0 / CC-BY), each checked by measurement before use.</p>
+      <p class="note"><b>Moved, on all four patches: the second oscillator's detune.</b> Every chord in the pack, from both players, has its two oscillators per voice 12 to 19 cents apart, read directly as split peaks in the spectrum. Brass 9 → 17 cents, pad 12 → 18, comp 7 → 11, stab 10 → 15. That is how the machine is played, not one player's patch.</p>
+      <p class="note"><b>The filter:</b> the same player uses both modes (a closed pad and a single note read 4-pole; a detuned chord reads 2-pole), so the switch is a patch choice. 2-pole stays the default.</p>
+      <p class="note" id="opensNote"></p>
+      <p class="note" style="margin-top:10px"><b>Measured and declined.</b> Each knob below was looked at against the pack and not applied, and this is why:</p>
+      <div id="declined"></div>
+    </details>
+  </div>
+
+  <footer title="engine @484850f · built 2026-10-04">Unison engine, jeffdavis-studio/unison-engine. Page monitor gain +6 dB over the song's strip input. Hover for build provenance.</footer>
+</div>
+
+<script>
+/* ===== src/core/mix.js @ 484850f — verbatim from jeffdavis-studio/unison-engine ===== */
+// mix.js — the fan-in ≤2 summing rule, as a primitive.
+//
+// Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
+// audio renders are NOT bit-reproducible wherever a node sums 3+ inputs —
+// float addition isn't associative and the browser doesn't fix the summation
+// order. Chain-mixing every summing point at fan-in ≤2 makes renders
+// bit-identical (SHA-256-equal) across pages and loads. Tone.js cannot adopt
+// this fix; it is why the engine is raw Web Audio.
+//
+// RULE: no AudioNode in this engine may ever receive more than two .connect()s.
+// Anywhere three or more signals meet, they meet through U.chainMixer.
+(function (g) {
+  "use strict";
+  const U = (g.U = g.U || {});
+
+  // Serial chain of 2-input gains. add() splices a fresh gain between the
+  // accumulator and `out`, so every summing node sums exactly two signals in a
+  // fixed order. Order of add() calls is part of the deterministic contract.
+  U.chainMixer = function (ctx, out) {
+    let acc = null;
+    let count = 0;
+    return {
+      add(node) {
+        count++;
+        if (!acc) { acc = ctx.createGain(); node.connect(acc); acc.connect(out); return; }
+        const link = ctx.createGain();
+        acc.disconnect(out);
+        acc.connect(link);
+        node.connect(link);
+        link.connect(out);
+        acc = link;
+      },
+      get count() { return count; },
+    };
+  };
+})(typeof window !== "undefined" ? window : globalThis);
+
+/* ===== src/instruments/obxa.js @ 484850f — verbatim from jeffdavis-studio/unison-engine ===== */
+// obxa.js — Oberheim OB-Xa-lineage poly voice, zero dependencies.
+//
+// THE BRASS/PAD POLY LANE (build order 808 → Juno → Minimoog → OB-Xa → …).
+// Asana 1217198286066699, built 2026-09-29.
+//
+// SHARED CORE OR SEPARATE FILE. The task notes say the OB-Xa "shares the
+// subtractive-poly engine with the Juno voice". Read against juno.js, what they
+// share is the CONVENTIONS — U.createX(ctx, strip, patch), noteOn/schedule,
+// every node held, voices land in strip.input so the desk owns level. What they
+// do not share is the sound path: the Juno is a Web Audio node graph whose
+// filter IS the browser's biquad, and the OB-Xa's character is a state-variable
+// filter with its own saturation, hard sync, PWM, and voice-to-voice slop,
+// none of which a biquad graph can be. Factoring a core out of juno.js would
+// put the Juno's sound at risk for no shared arithmetic. So this is a separate
+// file on the Minimoog's model (buffer synthesis, one pure function shared by
+// the song, the fitter and the page) and juno.js is untouched — its selftest
+// is bit-identical before and after by construction.
+//
+// THE CIRCUIT, as modelled (per voice, up to 8 voices):
+//   VCO 1, 2   each: saw and/or pulse (both switches on = both summed, as on
+//              the OB-Xa's panel), pulse width, PolyBLEP band-limited. VCO 2
+//              has an octave/semitone offset, a DETUNE in cents, and SYNC (VCO 2
+//              hard-synced to VCO 1). One LFO (triangle) can sweep pulse width
+//              (PWM) on both.
+//   NOISE      white, fixed-seed xorshift
+//   VCF        the OB-Xa's filter. The original OB-X used the SEM's discrete
+//              12 dB/oct state-variable; the OB-Xa moved to the Curtis CEM3320
+//              with a panel switch between 2-POLE (12 dB) and 4-POLE (24 dB).
+//              The 12 dB mode is the character everyone means by "Oberheim" —
+//              that is the default here. 4-pole is offered as the switch the
+//              instrument actually has (patch.pole = 4); see the pole-order row
+//              in analysis/fit-obxa.mjs for what the reference pack says.
+//              2-pole: trapezoidal (TPT) SVF, soft saturation in the band-pass
+//              integrator (the OTA's). 4-pole: two cascaded 2-pole sections
+//              sharing one resonance, feedback from the output. 2× oversampled.
+//              Cutoff = cutoff · 2^(kbd·(note−C4)/12 + envAmt·env) · slop
+//   ENVS       filter and amp ADSR. Attack linear-to-target RC like the
+//              Minimoog's; decay/release exponential. The OB-Xa has release
+//              knobs (unlike the Model D), so release is its own time.
+//   SLOP       each of the 8 voice cards is a little different — that is half
+//              the sound. Per voice: VCO 1 and 2 pitch offsets, a cutoff offset,
+//              envelope time scale. Drawn ONCE per instrument from a seeded
+//              PRNG (patch.slop scales them; seed from the caller — the session
+//              passes a draw from the hash PRNG), never Math.random.
+//   ALLOCATION 8 voices, cycling assignment (the OB-Xa's): each new note takes
+//              the next free voice after the last one used, so consecutive
+//              chords land on different cards and pick up different slop. With
+//              all 8 sounding, the oldest note is stolen.
+//
+// Mono output. The OB-Xa's per-voice pan is not modelled: the desk strip is the
+// voice's only route, and a stereo buffer would put the level trims and the
+// K-weighted measurement on a different footing from every other voice.
+//
+// DETERMINISM: no clocks, no Math.random, no node timing. One buffer per
+// flushed line; every node held (see juno.js).
+(function (g) {
+  "use strict";
+  const U = (g.U = g.U || {});
+
+  // Patches are PANEL CENTRES for what a Unison song needs from a poly.
+  //   vco: [saw(0/1), pulse(0/1), pw, level]
+  //
+  // VCO 2 DETUNE — APPLIED 2026-09-29 from analysis/fit-obxa.mjs row B
+  // (record: analysis/fits/obxa-detune.json). Every chord in the verified OB-8
+  // pack, from two players, splits its VCO pairs by 12-19 cents — a property
+  // of how this machine is played, not one player's patch. Read as split
+  // spectral peaks (probe recovers 6/10/15/22/30c exactly at slop 0), with the
+  // voice slop on, median over three slop seeds, against each patch's own kind
+  // of reference: brass 9 → 17c (02, target 18.7c), pad 12 → 18c (00, 18.8c),
+  // comp 7 → 11c (04, 13.1c), stab 10 → 15c (03, 16.7c). Every other knob is
+  // a voicing; why each was declined is in analysis/fits/obxa-lanes.json.
+  U.OBXA_PATCHES = {
+    brass: {
+      // the "Jump" family: two saws, filter closed, a filter envelope with a
+      // short swell carrying it open, sustain partway down. Re-voiced
+      // 2026-09-29 after measuring the first pass: its sustain sat 9-17 dB
+      // under the OB-8 swell reference (02) at 1-2 kHz — a brass that never
+      // opened. Cutoff 260→400, filter sustain 0.45→0.55: 1 kHz band -14 → -9
+      // dB re 250 Hz on a C3-E4 chord. A voicing, not a fit (the pack's cutoffs
+      // are the players'; analysis/fits/obxa-lanes.json).
+      vco1: [1, 0, 0.5, 0.8], vco2: [1, 0, 0.5, 0.8], vco2Semi: 0, detune: 17, sync: 0,
+      noise: 0, pwmRate: 0.8, pwmDepth: 0,
+      cutoff: 400, res: 0.12, kbd: 0.5, envAmt: 3.4, pole: 2,
+      fA: 0.09, fD: 0.55, fS: 0.55, fR: 0.25,
+      a: 0.012, d: 0.4, s: 0.85, r: 0.22,
+      slop: 1, level: 0.30,
+    },
+    pad: {
+      // lush pad: saw + PWM pulse, slow in, slow out, filter low and still
+      vco1: [1, 0, 0.5, 0.7], vco2: [0, 1, 0.5, 0.7], vco2Semi: 0, detune: 18, sync: 0,
+      noise: 0, pwmRate: 0.45, pwmDepth: 0.35,
+      cutoff: 520, res: 0.10, kbd: 0.4, envAmt: 0.9, pole: 2,
+      fA: 0.9, fD: 1.4, fS: 0.6, fR: 1.2,
+      a: 0.55, d: 0.8, s: 0.9, r: 1.1,
+      slop: 1, level: 0.22,
+    },
+    comp: {
+      // bright comp/chord: saw + pulse, filter well open, quick filter blip
+      vco1: [1, 0, 0.5, 0.75], vco2: [1, 1, 0.42, 0.55], vco2Semi: 0, detune: 11, sync: 0,
+      noise: 0, pwmRate: 0.8, pwmDepth: 0,
+      cutoff: 1500, res: 0.15, kbd: 0.6, envAmt: 1.6, pole: 2,
+      fA: 0.002, fD: 0.22, fS: 0.35, fR: 0.18,
+      a: 0.003, d: 0.3, s: 0.65, r: 0.16,
+      slop: 1, level: 0.24,
+    },
+    stab: {
+      // poly stab: instant, bright on the hit and closing fast
+      vco1: [1, 0, 0.5, 0.8], vco2: [1, 0, 0.5, 0.8], vco2Semi: 0, detune: 15, sync: 0,
+      noise: 0, pwmRate: 0.8, pwmDepth: 0,
+      cutoff: 330, res: 0.2, kbd: 0.5, envAmt: 3.6, pole: 2,
+      fA: 0.002, fD: 0.2, fS: 0.12, fR: 0.14,
+      a: 0.002, d: 0.22, s: 0.35, r: 0.14,
+      slop: 1, level: 0.28,
+    },
+  };
+
+  // The panel: every knob the page shows and the fitter may move.
+  U.OBXA_KNOBS = [
+    { key: "cutoff", label: "cutoff", min: 40, max: 8000, log: true, unit: "Hz" },
+    { key: "res", label: "resonance", min: 0, max: 1 },
+    { key: "envAmt", label: "env amt", min: 0, max: 6, unit: "oct" },
+    { key: "kbd", label: "kbd track", min: 0, max: 1 },
+    { key: "pole", label: "2 / 4 pole", min: 2, max: 4, step: 2 },
+    { key: "fA", label: "filter atk", min: 0.001, max: 8, log: true, unit: "s" },
+    { key: "fD", label: "filter dec", min: 0.01, max: 8, log: true, unit: "s" },
+    { key: "fS", label: "filter sus", min: 0, max: 1 },
+    { key: "fR", label: "filter rel", min: 0.01, max: 8, log: true, unit: "s" },
+    { key: "a", label: "amp atk", min: 0.001, max: 8, log: true, unit: "s" },
+    { key: "d", label: "amp dec", min: 0.01, max: 8, log: true, unit: "s" },
+    { key: "s", label: "amp sus", min: 0, max: 1 },
+    { key: "r", label: "amp rel", min: 0.01, max: 8, log: true, unit: "s" },
+    { key: "vco1.3", label: "vco1 level", min: 0, max: 1 },
+    { key: "vco2.3", label: "vco2 level", min: 0, max: 1 },
+    { key: "detune", label: "vco2 detune", min: -50, max: 50, unit: "¢" },
+    { key: "vco2Semi", label: "vco2 semis", min: -12, max: 24, step: 1 },
+    { key: "sync", label: "sync", min: 0, max: 1, step: 1 },
+    { key: "vco2.2", label: "vco2 pw", min: 0.05, max: 0.5 },
+    { key: "pwmDepth", label: "pwm depth", min: 0, max: 0.45 },
+    { key: "pwmRate", label: "lfo rate", min: 0.05, max: 10, log: true, unit: "Hz" },
+    { key: "noise", label: "noise", min: 0, max: 1 },
+    { key: "slop", label: "voice slop", min: 0, max: 3 },
+  ];
+
+  U.obxaGet = function (p, key) {
+    return key.split(".").reduce((o, k) => (o == null ? o : o[k]), p);
+  };
+  U.obxaSet = function (p, key, val) {
+    const q = JSON.parse(JSON.stringify(p));
+    const ks = key.split(".");
+    let o = q;
+    for (let i = 0; i < ks.length - 1; i++) o = o[ks[i]];
+    o[ks[ks.length - 1]] = val;
+    return q;
+  };
+
+  const VOICES = 8;
+  const midiHz = (m) => 440 * Math.pow(2, (m - 69) / 12);
+  const sat = (x) => (x > 3 ? 1 : x < -3 ? -1 : (x * (27 + x * x)) / (27 + 9 * x * x));
+  const blep = (t, dt) => {
+    if (t < dt) { t /= dt; return t + t - t * t - 1; }
+    if (t > 1 - dt) { t = (t - 1) / dt; return t * t + t + t + 1; }
+    return 0;
+  };
+
+  // Voice-card slop, one table per instrument instance. xorshift32 from the
+  // seed; values in [-1, 1). Scaled by patch.slop at render time:
+  //   pitch ±3c per VCO, cutoff ±6%, envelope times ±8%.
+  U.obxaSlop = function (seed) {
+    let s = (seed >>> 0) || 0x2545f491;
+    const r = () => { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; return (s >>> 0) / 4294967296 * 2 - 1; };
+    const t = [];
+    for (let v = 0; v < VOICES; v++) t.push({ p1: r(), p2: r(), fc: r(), env: r() });
+    return t;
+  };
+
+  // ADSR with RC segments. Attack aims at 1.5 and lands on 1 in exactly A
+  // (the Minimoog contour's rule); decay/release reach ~95% in their time.
+  function adsr(A, D, S, R, fs) {
+    const ca = 1 - Math.exp(-Math.log(3) / (Math.max(A, 0.0005) * fs));
+    const cd = 1 - Math.exp(-1 / (Math.max(D, 0.001) * fs / 3));
+    const cr = 1 - Math.exp(-1 / (Math.max(R, 0.001) * fs / 3));
+    return { v: 0, st: 0, ca, cd, cr, S };
+  }
+  function envStep(e) {
+    if (e.st === 1) { e.v += (1.5 - e.v) * e.ca; if (e.v >= 1) { e.v = 1; e.st = 2; } }
+    else if (e.st === 2) e.v += (e.S - e.v) * e.cd;
+    else if (e.st === 3) e.v += (0 - e.v) * e.cr;
+    return e.v;
+  }
+
+  // THE VOICE. events: [{t, midi, vel, dur}] seconds from the buffer start.
+  // seed: the slop table's seed. firstVoice: the card the allocator starts
+  // from (default 0) — the page renders each key on its own and passes the
+  // next card in turn, so its keyboard walks the cards as the machine does.
+  // Pure: same inputs, same samples.
+  U.buildObxaLine = function (p, events, sr, totalSec, seed, firstVoice) {
+    const OS = 2, fs = sr * OS;
+    const evs = events.map((e, i) => Object.assign({ i }, e)).sort((a, b) => a.t - b.t || a.i - b.i);
+    const lastEnd = evs.reduce((m, e) => Math.max(m, e.t + e.dur), 0);
+    const T = totalSec || lastEnd + Math.max(p.r, p.fR) * 3.5 + 0.05;
+    const N = Math.ceil(T * sr);
+    const out = new Float32Array(N);
+    if (!evs.length) return out;
+
+    const slopT = U.obxaSlop(seed == null ? 0x0b8a : seed);
+    const sl = p.slop == null ? 1 : p.slop;
+    const voices = [];
+    for (let v = 0; v < VOICES; v++) {
+      const k = slopT[v];
+      const es = 1 + 0.08 * sl * k.env;
+      voices.push({
+        on: false, midi: 60, vel: 0, age: 0, offAt: -1, ph1: [0.0, 0.13, 0.29, 0.41, 0.57, 0.66, 0.78, 0.9][v], ph2: [0.5, 0.71, 0.07, 0.83, 0.33, 0.21, 0.96, 0.62][v],
+        m1: Math.pow(2, 3 * sl * k.p1 / 1200), m2: Math.pow(2, 3 * sl * k.p2 / 1200), fcm: 1 + 0.06 * sl * k.fc,
+        fe: adsr(p.fA * es, p.fD * es, p.fS, p.fR * es, fs), ae: adsr(p.a * es, p.d * es, p.s, p.r * es, fs),
+        z1: 0, z2: 0, z3: 0, z4: 0, y: 0, dt1: 0, dt2: 0, fcBase: 0, envScale: 1, kc: 0, gg: 0, h: 1,
+      });
+    }
+    const v1 = p.vco1, v2 = p.vco2;
+    const det2 = Math.pow(2, ((p.vco2Semi || 0) * 100 + (p.detune || 0)) / 1200);
+    const res = Math.min(Math.max(p.res, 0), 1);
+    const four = p.pole === 4;
+    // 2-pole: damping 2R from 2 (no resonance) to ~0.02 (self-oscillation edge)
+    const R2 = four ? 1 - 0.99 * Math.pow(res, 0.7) : 1 - 0.99 * res;
+    const kfb = four ? 3.6 * res : 0;
+    const lfoInc = (p.pwmRate || 0) / fs;
+    let lfoPh = 0, noiseState = 0x9e3779b9 | 0, nextV = ((firstVoice | 0) % VOICES + VOICES) % VOICES, clock = 0, nextEv = 0, lp = 0;
+    const startAt = (e) => Math.round(e.t * fs), endAt = (e) => Math.round((e.t + e.dur) * fs);
+    const NS = N * OS;
+
+    function pulseSaw(ph, dt, cfg, pw) {
+      let s = 0;
+      if (cfg[0]) s += 2 * ph - 1 - blep(ph, dt);
+      if (cfg[1]) {
+        // minus the pulse's DC (2·pw − 1): the OB-Xa's VCO outputs are AC
+        // coupled. Found 2026-09-29 by the trim measurement — with PWM the DC
+        // swings at the LFO rate, and the pad read 4.8 dB louder in plain RMS
+        // than K-weighted: a sub-audio thump, energy under 38 Hz.
+        let v = (ph < pw ? 1 : -1) + blep(ph, dt) - (2 * pw - 1);
+        let q = ph - pw; if (q < 0) q += 1;
+        s += v - blep(q, dt);
+      }
+      return s;
+    }
+
+    for (let n = 0; n < NS; n++) {
+      while (nextEv < evs.length && startAt(evs[nextEv]) <= n) {
+        const e = evs[nextEv++];
+        // cycling assignment: next voice after the last used that is not held;
+        // prefer a fully idle one, else the oldest-released, else steal oldest
+        let pick = -1;
+        for (let j = 0; j < VOICES; j++) { const c = (nextV + j) % VOICES; if (!voices[c].on && voices[c].ae.st === 0) { pick = c; break; } }
+        if (pick < 0) for (let j = 0; j < VOICES; j++) { const c = (nextV + j) % VOICES; if (!voices[c].on) { pick = c; break; } }
+        if (pick < 0) { let oa = Infinity; for (let c = 0; c < VOICES; c++) if (voices[c].age < oa) { oa = voices[c].age; pick = c; } }
+        nextV = (pick + 1) % VOICES;
+        const V = voices[pick];
+        V.on = true; V.midi = e.midi; V.vel = e.vel; V.age = clock++; V.offAt = endAt(e);
+        const f0 = midiHz(e.midi);
+        V.dt1 = f0 * V.m1 / fs; V.dt2 = f0 * det2 * V.m2 / fs;
+        V.fcBase = p.cutoff * V.fcm * Math.pow(2, p.kbd * (e.midi - 60) / 12);
+        V.envScale = 0.6 + 0.4 * e.vel;
+        V.kc = 0;
+        V.fe.st = 1; V.ae.st = 1;
+      }
+      let lfo = 0;
+      if (p.pwmDepth > 0) { lfoPh += lfoInc; if (lfoPh >= 1) lfoPh -= 1; lfo = lfoPh < 0.5 ? 4 * lfoPh - 1 : 3 - 4 * lfoPh; }
+      let noise = 0;
+      if (p.noise > 0) {
+        noiseState ^= noiseState << 13; noiseState ^= noiseState >>> 17; noiseState ^= noiseState << 5;
+        noise = p.noise * ((noiseState >>> 0) / 4294967296 * 2 - 1);
+      }
+      const pw1 = Math.min(0.95, Math.max(0.05, v1[2] + p.pwmDepth * lfo));
+      const pw2 = Math.min(0.95, Math.max(0.05, v2[2] + p.pwmDepth * lfo));
+      let sum = 0;
+      for (let c = 0; c < VOICES; c++) {
+        const V = voices[c];
+        if (V.on && n === V.offAt) { V.on = false; V.fe.st = 3; V.ae.st = 3; }
+        if (V.ae.st === 0) continue;
+        const aenv = envStep(V.ae), fenv = envStep(V.fe);
+        if (V.ae.st === 3 && aenv < 1e-5) { V.ae.st = 0; V.ae.v = 0; V.fe.st = 0; V.fe.v = 0; V.z1 = V.z2 = V.z3 = V.z4 = V.y = 0; continue; }
+        const dt1 = V.dt1, dt2 = V.dt2;
+        let ph1 = V.ph1 + dt1, wrapped = false;
+        if (ph1 >= 1) { ph1 -= 1; wrapped = true; }
+        V.ph1 = ph1;
+        let ph2 = V.ph2 + dt2; if (ph2 >= 1) ph2 -= 1;
+        if (p.sync && wrapped) ph2 = ph1 * (dt2 / dt1);   // hard sync: reset with VCO 1, sub-sample aligned
+        V.ph2 = ph2;
+        let x = v1[3] * pulseSaw(ph1, dt1, v1, pw1) + v2[3] * pulseSaw(ph2, dt2, v2, pw2) + noise;
+        x = sat(x * 0.6);
+        // CONTROL RATE: the cutoff (a pow and a tan) is recomputed every 16
+        // oversampled samples (5.5 kHz) and at note-on — envelopes move far
+        // slower than that, and it is what makes a 70 s pad strip affordable.
+        if (V.kc === 0) {
+          let fc = V.fcBase * Math.pow(2, p.envAmt * fenv * V.envScale);
+          if (fc > fs * 0.23) fc = fs * 0.23;
+          V.gg = Math.tan(Math.PI * fc / fs);
+          V.h = 1 / (1 + 2 * (four ? 0.7071 : R2) * V.gg + V.gg * V.gg);
+        }
+        V.kc = (V.kc + 1) & 15;
+        const gg = V.gg, h = V.h;
+        let y;
+        if (!four) {
+          // TPT state-variable, low-pass out; saturation on the band state
+          const hp = (x - (2 * R2 + gg) * V.z1 - V.z2) * h;
+          const bp = gg * hp + V.z1; V.z1 = sat(gg * hp + bp);
+          const lpo = gg * bp + V.z2; V.z2 = gg * bp + lpo;
+          y = lpo;
+        } else {
+          // two cascaded SVF low-pass sections (no internal resonance), global
+          // feedback from the output for the 4-pole's resonance
+          const Rq = 0.7071;
+          const xin = sat(x - kfb * V.y);
+          let hp = (xin - (2 * Rq + gg) * V.z1 - V.z2) * h;
+          let bp = gg * hp + V.z1; V.z1 = gg * hp + bp;
+          let l1 = gg * bp + V.z2; V.z2 = gg * bp + l1;
+          hp = (l1 - (2 * Rq + gg) * V.z3 - V.z4) * h;
+          bp = gg * hp + V.z3; V.z3 = gg * hp + bp;
+          const l2 = gg * bp + V.z4; V.z4 = gg * bp + l2;
+          V.y = l2;
+          y = l2 * (1 + 0.15 * kfb);                    // partial passband make-up
+        }
+        sum += y * aenv * V.vel;
+      }
+      const smp = sum * p.level;
+      if (n & 1) { out[n >> 1] = (lp + smp) * 0.5; } else lp = smp;
+    }
+    return out;
+  };
+
+  // strip: a desk strip from U.createDesk. Same collect-then-flush shape as the
+  // Minimoog: the voice allocator needs the whole line to assign cards, so
+  // noteOn() collects and flush() renders one buffer. schedule() does both.
+  // seed: the voice-card slop seed (the session draws it from the hash PRNG).
+  U.createObxa = function (ctx, strip, patchName, override, seed) {
+    const base = U.OBXA_PATCHES[patchName];
+    if (!base) throw new Error("createObxa: unknown patch " + patchName);
+    const p = override ? Object.assign({}, base, override) : base;
+    const target = ctx.createGain();
+    strip.input.add(target);
+    const held = [target];
+    let pending = [];
+    function flush() {
+      if (!pending.length) return;
+      const evs = pending; pending = [];
+      const t0 = evs.reduce((m, e) => Math.min(m, e.t), Infinity);
+      const rel = evs.map((e) => ({ t: e.t - t0, midi: e.midi, vel: e.vel, dur: e.dur }));
+      const data = U.buildObxaLine(p, rel, ctx.sampleRate, undefined, seed);
+      const buf = ctx.createBuffer(1, data.length, ctx.sampleRate);
+      buf.getChannelData(0).set(data);
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(target);
+      src.start(t0);
+      held.push(src, buf);
+    }
+    return {
+      held,
+      patch: p,
+      noteOn(t, midi, vel, dur) { pending.push({ t, midi, vel, dur }); },
+      schedule(events, t0) { for (const e of events) pending.push({ t: t0 + e.t, midi: e.midi, vel: e.vel, dur: e.dur }); flush(); },
+      flush,
+    };
+  };
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+
+<script>
+window.FIT_POS = {"cutoff":0.5,"pole":0.5,"fA":0.5,"envAmt":0.5,"fD":0.5,"res":0.5,"kbd":0.5,"pwmDepth":0.5,"a":0.5,"r":0.5,"slop":0.5};
+// The REASON each declined knob was declined, carried onto the page itself. A
+// notApplied block that only lives in the repo is a record Jeff cannot read,
+// and the whole point of declining a knob on the record is that the decline is
+// visible where the instrument is.
+window.FIT_WHY = {"cutoff":"Every cutoff reading in the pack is a player's knob position (Analogist, zenobic), not a machine property; copying one over a lane voicing is the Juno open-filter trap. Recorded for the next pass: closed pad 00 reads best at 679 Hz (4-pole) / 339 Hz (2-pole); the detuned chord 08 at 1920 Hz (2-pole).","pole":"Row A (pole order; the probe attributes our own 2-pole@700 and 4-pole@500 correctly) finds the same player using BOTH modes: closed pad 00 and single note 07 read 4-pole (residual 1.88 vs 4.63 dB; 3 vs 5.23 dB), the detuned chord 08 reads 2-pole (1.19 vs 3.77 dB). So the switch is a patch choice on this machine, not a lineage trait: 2-pole stays the default (the SEM-derived character) and 4-pole is on the panel. The open chord 01 fits neither (6.99 / 6.29 dB): its band profile is flatter than a filtered saw on those notes, a voicing the pack does not explain.","fA":"Row C traces the brass-swell reference 02 on a test patch: residual 1.286 -> 0.562 octaves RMS, but the best point sits at the grid bounds (env amount 5.2 oct, decay 3 s), which this rig reads as \"could not reach\", not as a value. 02 comes from a recording titled \"Filter Chords\" that showcases the filter; a 0.8 s swell to its peak is a pad-speed gesture, and the \"Jump\" brass this patch is for is quicker. Not applied.","envAmt":"Degenerate with cutoff in the only envelope references (02, 03), and at the top of its search range in row C. A player's setting; not applied.","fD":"Row D (stab decay, shape only; the probe recovers a known 0.32 s) on the stab reference 03 improves monotonically toward the search bound (0.2 s residual 1.066 -> 0.8 s 0.774) with no interior minimum: 03 closes over its whole 0.9 s, slower than a stab. Declined; a stab that slow is a comp.","res":"No reference shows a resonant peak (every band profile falls monotonically), so resonance is not measurable from this pack.","kbd":"One held single note at a usable register (07, A#3); 06 at F#1 is too low for the band probe. Tracking needs the same patch at two registers, which the pack does not have.","pwmDepth":"Not separable from detune and slop in split-peak reads on chords; the pad's PWM is a voicing.","a":"Amp envelopes in the pack are performances (overlapping chords); no clean onset-to-sustain read. Voicing.","r":"Chord releases overlap the next chord in every performance excerpt. Voicing.","slop":"The per-card spread is inside the split-peak reads (slop 1 adds about +1.5 to 2.7c to a read) but one row cannot separate it from detune; held at 1 (pitch ±3c, cutoff ±6%, env ±8%)."};
+/* WHERE THE KNOBS OPEN @ 484850f, built 2026-10-04.
+
+   Every knob apply-fit moved opens at CENTRE, because after the apply the
+   centre IS the fit. Only the knobs it measured and did not move are here, and
+   each one is here because a fit record says so:
+
+     cutoff       <- obxa (all patches)
+       Every cutoff reading in the pack is a player's knob position (Analogist, zenobic), not a machine property; copying one over a lane voicing is the Juno open-filter trap. Recorded for the next pass: closed pad 00 reads best at 679 Hz (4-pole) / 339 Hz (2-pole); the detuned chord 08 at 1920 Hz (2-pole).
+     pole         <- obxa (all patches)
+       Row A (pole order; the probe attributes our own 2-pole@700 and 4-pole@500 correctly) finds the same player using BOTH modes: closed pad 00 and single note 07 read 4-pole (residual 1.88 vs 4.63 dB; 3 vs 5.23 dB), the detuned chord 08 reads 2-pole (1.19 vs 3.77 dB). So the switch is a patch choice on this machine, not a lineage trait: 2-pole stays the default (the SEM-derived character) and 4-pole is on the panel. The open chord 01 fits neither (6.99 / 6.29 dB): its band profile is flatter than a filtered saw on those notes, a voicing the pack does not explain.
+     fA           <- obxa (all patches)
+       Row C traces the brass-swell reference 02 on a test patch: residual 1.286 -> 0.562 octaves RMS, but the best point sits at the grid bounds (env amount 5.2 oct, decay 3 s), which this rig reads as "could not reach", not as a value. 02 comes from a recording titled "Filter Chords" that showcases the filter; a 0.8 s swell to its peak is a pad-speed gesture, and the "Jump" brass this patch is for is quicker. Not applied.
+     envAmt       <- obxa (all patches)
+       Degenerate with cutoff in the only envelope references (02, 03), and at the top of its search range in row C. A player's setting; not applied.
+     fD           <- obxa (all patches)
+       Row D (stab decay, shape only; the probe recovers a known 0.32 s) on the stab reference 03 improves monotonically toward the search bound (0.2 s residual 1.066 -> 0.8 s 0.774) with no interior minimum: 03 closes over its whole 0.9 s, slower than a stab. Declined; a stab that slow is a comp.
+     res          <- obxa (all patches)
+       No reference shows a resonant peak (every band profile falls monotonically), so resonance is not measurable from this pack.
+     kbd          <- obxa (all patches)
+       One held single note at a usable register (07, A#3); 06 at F#1 is too low for the band probe. Tracking needs the same patch at two registers, which the pack does not have.
+     pwmDepth     <- obxa (all patches)
+       Not separable from detune and slop in split-peak reads on chords; the pad's PWM is a voicing.
+     a            <- obxa (all patches)
+       Amp envelopes in the pack are performances (overlapping chords); no clean onset-to-sustain read. Voicing.
+     r            <- obxa (all patches)
+       Chord releases overlap the next chord in every performance excerpt. Voicing.
+     slop         <- obxa (all patches)
+       The per-card spread is inside the split-peak reads (slop 1 adds about +1.5 to 2.7c to a read) but one row cannot separate it from detune; held at 1 (pitch ±3c, cutoff ±6%, env ±8%). */
+</script>
+
+<script>
+/* ---------------------------------------------------------------------------
+   The page. It owns the UI and nothing else: every sound is made by
+   U.buildObxaLine / U.createObxa out of the engine block above.
+   WHERE IT OPENS. At CENTRE for every knob a fit moved, because the centre now
+   IS the fit — opening at a fitted position would apply it twice and give you a
+   machine no token can draw. The knobs that were measured and DECLINED open at
+   the shipped value, since nothing moved the centre onto those. Every one of
+   them, and why, is in analysis/fits/. See analysis/build-instrument-page.mjs.
+--------------------------------------------------------------------------- */
+(function(){
+  "use strict";
+  const PATCHES = Object.keys(U.OBXA_PATCHES);
+  let patch = "brass";
+  let octave = 4;                 // key "A" = C3 (midi 48), the chord register
+  let cur = null;                 // the patch as the panel has it
+  const held = [];                // anti-GC: every live source stays reachable
+  const SEED = 0x0b8a;            // the voice-card slop table the page plays
+
+  let ctx = null, out = null;
+  function audio(){
+    if (!ctx){
+      ctx = new (window.AudioContext || window.webkitAudioContext)();
+      // +6 dB monitor gain into a gentle limiter: eight voices at full
+      // resonance sum past full scale, as on the machine
+      const lim = ctx.createDynamicsCompressor();
+      lim.threshold.value = -3; lim.knee.value = 0; lim.ratio.value = 20; lim.attack.value = 0.002; lim.release.value = 0.12;
+      out = ctx.createGain(); out.gain.value = 2.0; out.connect(lim).connect(ctx.destination);
+    }
+    if (ctx.state === "suspended") ctx.resume();
+    return ctx;
+  }
+
+  // --- the panel -----------------------------------------------------------
+  // Ranges are U.OBXA_KNOBS, the bounds the fitter searches. Center is the
+  // patch value, which for the applied knob (detune) IS the fit.
+  const KN = U.OBXA_KNOBS.filter(k => k.key !== "pole");
+  const knobsEl = document.getElementById("knobs");
+  const base = () => U.OBXA_PATCHES[patch];
+  const toPos = (k, v) => k.log ? Math.log(v / k.min) / Math.log(k.max / k.min) : (v - k.min) / (k.max - k.min);
+  const fromPos = (k, p) => {
+    let v = k.log ? k.min * Math.pow(k.max / k.min, p) : k.min + p * (k.max - k.min);
+    if (k.step) v = Math.round(v / k.step) * k.step;
+    return v;
+  };
+  function fmt(k, v){
+    if (k.unit === "Hz") return (k.key === "pwmRate" ? (+v).toFixed(2) : Math.round(v)) + " Hz";
+    if (k.unit === "s") return v < 0.1 ? (v * 1000).toFixed(1) + " ms" : v < 1 ? Math.round(v * 1000) + " ms" : v.toFixed(2) + " s";
+    if (k.unit === "¢") return (v >= 0 ? "+" : "") + v.toFixed(1) + "¢";
+    if (k.unit === "oct") return v.toFixed(2) + " oct";
+    if (k.key === "sync") return v >= 0.5 ? "on" : "off";
+    if (k.key === "vco2Semi") return (v >= 0 ? "+" : "") + Math.round(v) + " st";
+    return (+v).toFixed(2);
+  }
+  function buildKnobs(){
+    cur = JSON.parse(JSON.stringify(base()));
+    knobsEl.innerHTML = "";
+    for (const k of KN){
+      const b0 = U.obxaGet(base(), k.key);
+      const wrap = document.createElement("div");
+      wrap.className = "knob";
+      wrap.innerHTML = '<label class="k">' + k.label + '</label>' +
+        '<input type="range" min="0" max="1000" step="1" value="' + Math.round(toPos(k, b0) * 1000) + '">' +
+        '<div class="val"><span class="cur"></span> <span class="d"></span></div>';
+      const inp = wrap.querySelector("input");
+      const cv = wrap.querySelector(".cur"), d = wrap.querySelector(".d");
+      const paint = (v) => {
+        cv.textContent = fmt(k, v);
+        const off = Math.abs(toPos(k, v) - toPos(k, b0)) > 0.004;
+        d.textContent = off ? "(center " + fmt(k, b0) + ")" : "at center";
+        d.style.color = off ? "var(--accent)" : "var(--dim)";
+      };
+      inp.addEventListener("input", () => {
+        const v = fromPos(k, inp.value / 1000);
+        cur = U.obxaSet(cur, k.key, v);
+        paint(v); markDirty();
+      });
+      paint(b0);
+      knobsEl.appendChild(wrap);
+    }
+    paintPole(); markDirty();
+  }
+  function markDirty(){
+    const n = KN.filter(k => Math.abs(toPos(k, U.obxaGet(cur, k.key)) - toPos(k, U.obxaGet(base(), k.key))) > 0.004).length
+      + (cur.pole !== base().pole ? 1 : 0);
+    document.getElementById("dirty").textContent = n ? n + " control" + (n > 1 ? "s" : "") + " off center" : "every knob at center";
+  }
+  const poleBtn = document.getElementById("pole");
+  function paintPole(){ poleBtn.textContent = "Filter: " + cur.pole + "-pole"; poleBtn.className = cur.pole === 4 ? "on" : ""; }
+  poleBtn.onclick = () => { cur = Object.assign({}, cur, { pole: cur.pole === 4 ? 2 : 4 }); paintPole(); markDirty(); };
+  document.getElementById("reset").onclick = () => buildKnobs();
+
+  // --- patch buttons -------------------------------------------------------
+  const pEl = document.getElementById("patches");
+  PATCHES.forEach(p => {
+    const b = document.createElement("button");
+    b.textContent = p; b.dataset.p = p;
+    if (p === patch) b.className = "on";
+    b.onclick = () => {
+      patch = p;
+      [...pEl.children].forEach(c => c.className = c.dataset.p === p ? "on" : "");
+      buildKnobs();
+    };
+    pEl.appendChild(b);
+  });
+
+  // --- the demo: four bars through the voice's own schedule() --------------
+  // I - V - vi - IV in C, voiced in the chord register. Brass and stab play
+  // it as hits (the Jump shape: an anticipated stab and a held chord), pad
+  // and comp as held chords / an eighth-note comp.
+  document.getElementById("prog").onclick = () => {
+    const c = audio();
+    const strip = { input: U.chainMixer(c, out) };
+    const v = U.createObxa(c, strip, patch, cur, SEED);
+    held.push(v); if (held.length > 64) held.splice(0, 16);
+    const beat = 60 / 112;
+    const CH = [[48, 55, 60, 64], [47, 55, 59, 62], [45, 52, 57, 60], [45, 53, 57, 60]];
+    const ev = [];
+    CH.forEach((ch, b) => {
+      const t0 = b * 4 * beat;
+      const hits = patch === "pad" ? [[0, 3.9]]
+        : patch === "comp" ? [[0, 0.4], [1.5, 0.4], [2, 0.4], [3.5, 0.4]]
+        : patch === "stab" ? [[0, 0.25], [1.5, 0.25], [2.5, 0.25]]
+        : [[0, 1.3], [1.5, 0.35], [2.5, 1.3]];
+      for (const [st, len] of hits) for (const m of ch) ev.push({ t: t0 + st * beat, midi: m, vel: st === 0 ? 0.9 : 0.75, dur: len * beat });
+    });
+    v.schedule(ev, c.currentTime + 0.06);
+  };
+
+  // --- the live keyboard: eight voices, one buffer per key -----------------
+  // Each key renders its own note with U.buildObxaLine (the engine's own
+  // renderer) on the next voice card in turn. While the key is down it plays
+  // a long hold; on key-up the note re-renders with its real length and the
+  // page swaps to it AT THE CURRENT PLAY POSITION. The render is
+  // deterministic and the two buffers are sample-identical up to the release,
+  // so the swap is seamless and the release starts on key-up.
+  const HOLD = 6.0;
+  let card = 0;
+  const live = {};            // semi -> { t0, midi, card, src, gain, until }
+  function start(n, dur){
+    const c = audio();
+    const now = c.currentTime + 0.012;
+    const off = Math.max(0, now - n.t0);
+    const data = U.buildObxaLine(cur, [{ t: 0, midi: n.midi, vel: 0.8, dur }], c.sampleRate, undefined, SEED, n.card);
+    const buf = c.createBuffer(1, data.length, c.sampleRate);
+    buf.getChannelData(0).set(data);
+    const src = c.createBufferSource(); src.buffer = buf;
+    const g = c.createGain(); g.gain.value = 1;
+    src.connect(g).connect(out);
+    if (off < buf.duration) src.start(n.t0 > now ? n.t0 : now, off);
+    if (n.src){
+      n.gain.gain.setValueAtTime(1, now);
+      n.gain.gain.linearRampToValueAtTime(0, now + 0.004);
+      n.src.stop(now + 0.01);
+    }
+    n.src = src; n.gain = g;
+    held.push(src, g, buf); if (held.length > 192) held.splice(0, 48);
+  }
+  function keyOn(semi){
+    if (live[semi]) keyOff(semi);
+    const c = audio();
+    const n = { t0: c.currentTime + 0.012, midi: octave * 12 + semi, card: card, src: null, gain: null };
+    card = (card + 1) % 8;
+    live[semi] = n;
+    start(n, HOLD);
+  }
+  function keyOff(semi){
+    const n = live[semi];
+    if (!n) return;
+    delete live[semi];
+    const c = audio();
+    start(n, Math.max(0.01, c.currentTime + 0.012 - n.t0));
+  }
+
+  // --- the keyboard --------------------------------------------------------
+  const WHITE = [0,2,4,5,7,9,11], BLACK = {1:0,3:1,6:3,8:4,10:5};
+  const kbdEl = document.getElementById("kbd");
+  const KEYSEMI = {a:0,w:1,s:2,e:3,d:4,f:5,t:6,g:7,y:8,h:9,u:10,j:11,k:12};
+  let keyEls = {};
+  function buildKbd(){
+    kbdEl.innerHTML = ""; keyEls = {};
+    const OCTS = 2, nWhite = OCTS*7 + 1;
+    const w = 100/nWhite;
+    let wi = 0;
+    for (let o = 0; o < OCTS; o++){
+      for (let i = 0; i < 7; i++){
+        const semi = o*12 + WHITE[i];
+        const el = document.createElement("div");
+        el.className = "wk"; el.style.left = (wi*w)+"%"; el.style.width = w+"%";
+        el.dataset.semi = semi;
+        const lbl = Object.keys(KEYSEMI).find(k => KEYSEMI[k] === semi);
+        if (lbl) el.innerHTML = '<span class="kl">'+lbl.toUpperCase()+'</span>';
+        kbdEl.appendChild(el); keyEls[semi] = el; wi++;
+      }
+    }
+    const last = document.createElement("div");
+    last.className = "wk"; last.style.left = (wi*w)+"%"; last.style.width = w+"%";
+    last.dataset.semi = OCTS*12; kbdEl.appendChild(last); keyEls[OCTS*12] = last;
+    for (let o = 0; o < OCTS; o++){
+      for (const s in BLACK){
+        const semi = o*12 + (+s);
+        const el = document.createElement("div");
+        el.className = "bk";
+        el.style.left = ((o*7 + BLACK[s] + 1)*w - w*0.3) + "%";
+        el.style.width = (w*0.6)+"%";
+        el.dataset.semi = semi;
+        kbdEl.appendChild(el); keyEls[semi] = el;
+      }
+    }
+  }
+  buildKbd();
+  const NAMES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+  function paintOct(){ document.getElementById("oct").textContent = "A = " + NAMES[0] + (octave - 1); }
+  paintOct();
+  const lit = (semi, on) => { const el = keyEls[semi]; if (el) el.classList.toggle("d", on); };
+  const ptr = {};
+  kbdEl.addEventListener("pointerdown", (e) => {
+    const t = e.target.closest("[data-semi]");
+    if (!t) return;
+    e.preventDefault();
+    const semi = +t.dataset.semi;
+    ptr[e.pointerId] = semi; lit(semi, true); keyOn(semi);
+  });
+  const up = (e) => {
+    const semi = ptr[e.pointerId];
+    if (semi == null) return;
+    delete ptr[e.pointerId]; lit(semi, false); keyOff(semi);
+  };
+  window.addEventListener("pointerup", up);
+  window.addEventListener("pointercancel", up);
+  const down = {};
+  window.addEventListener("keydown", (e) => {
+    const k = e.key.toLowerCase();
+    if (e.metaKey || e.ctrlKey) return;
+    if (k === "z"){ octave = Math.max(2, octave - 1); paintOct(); return; }
+    if (k === "x"){ octave = Math.min(6, octave + 1); paintOct(); return; }
+    if (KEYSEMI[k] == null || down[k]) return;
+    down[k] = 1; lit(KEYSEMI[k], true); keyOn(KEYSEMI[k]);
+  });
+  window.addEventListener("keyup", (e) => {
+    const k = e.key.toLowerCase();
+    if (!down[k]) return;
+    delete down[k]; lit(KEYSEMI[k], false); keyOff(KEYSEMI[k]);
+  });
+
+  // --- the record ----------------------------------------------------------
+  document.getElementById("opensNote").textContent =
+    "Every knob opens at CENTER: the patch value, which for the detune knob is the fit. "
+  + "The declined knobs open at the shipped value too, since nothing moved the center onto those.";
+  const dEl = document.getElementById("declined");
+  const WHY = window.FIT_WHY || {};
+  const LABEL = Object.fromEntries(U.OBXA_KNOBS.map(k => [k.key, k.label]));
+  Object.keys(window.FIT_POS || {}).forEach(k => {
+    const p = document.createElement("p");
+    p.className = "declined";
+    p.innerHTML = "<b>" + (LABEL[k] || k) + "</b> — " + (WHY[k] || "measured and declined; see analysis/fits/ in the engine repo.");
+    dEl.appendChild(p);
+  });
+  if (!dEl.children.length) dEl.innerHTML = '<p class="declined">No declined knobs on record.</p>';
+
+  buildKnobs();
+})();
+</script>
+</body>
+</html>

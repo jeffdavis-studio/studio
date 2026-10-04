@@ -1,0 +1,839 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unison — FM keys</title>
+<style>
+  :root{
+    --bg:#16161a; --panel:#1f1f25; --edge:#34343d; --ink:#e8e8ec; --dim:#8d8d99;
+    --accent:#c9a15a; --key:#f2f2f0; --keyd:#232329; --lit:#c9a15a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:14px/1.55 ui-sans-serif,-apple-system,"Segoe UI",Inter,sans-serif;
+    -webkit-text-size-adjust:100%;}
+  .wrap{max-width:940px;margin:0 auto;padding:22px 18px 60px}
+  h1{font-size:19px;font-weight:600;margin:0 0 2px;letter-spacing:.01em}
+  .sub{color:var(--dim);font-size:13px;margin:0 0 18px}
+  .card{background:var(--panel);border:1px solid var(--edge);border-radius:10px;padding:16px;margin-bottom:16px}
+  .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  button{font:inherit;color:var(--ink);background:#2a2a32;border:1px solid var(--edge);
+    border-radius:7px;padding:7px 13px;cursor:pointer}
+  button:hover{border-color:var(--accent)}
+  button.on{background:var(--accent);border-color:var(--accent);color:#1a1a1a;font-weight:600}
+  label.k{display:block;font-size:11px;color:var(--dim);letter-spacing:.06em;text-transform:uppercase;margin-bottom:3px}
+  .knobs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:13px 16px}
+  .knob input{width:100%;accent-color:var(--accent)}
+  .val{font-variant-numeric:tabular-nums;font-size:12px;color:var(--ink)}
+  .val .d{color:var(--accent)}
+  #kbd{position:relative;height:132px;margin:4px 0 10px;user-select:none;touch-action:none}
+  .wk{position:absolute;top:0;bottom:0;background:var(--key);border:1px solid #b9b9b4;
+    border-radius:0 0 5px 5px;box-shadow:inset 0 -7px 9px -8px #000}
+  .wk.d{background:var(--lit)}
+  .bk{position:absolute;top:0;height:62%;background:var(--keyd);border:1px solid #000;
+    border-radius:0 0 4px 4px;z-index:2}
+  .bk.d{background:var(--lit)}
+  .kl{position:absolute;bottom:4px;width:100%;text-align:center;font-size:9px;color:#8a8a84;pointer-events:none}
+  .note{color:var(--dim);font-size:12.5px;line-height:1.6}
+  .note b{color:var(--ink);font-weight:600}
+  footer{color:var(--dim);font-size:12px;border-top:1px solid var(--edge);padding-top:12px;margin-top:22px}
+  code{font:12px ui-monospace,Menlo,monospace;color:var(--accent)}
+  details summary{cursor:pointer;color:var(--dim);font-size:12.5px}
+  details[open] summary{margin-bottom:8px}
+  .declined{font-size:12px;color:var(--dim);margin:6px 0 0;padding-left:14px;border-left:2px solid var(--edge)}
+  .declined b{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Unison — FM keys</h1>
+  <p class="sub">The six-operator FM voice, synthesized live in your browser from <code>src/instruments/fm.js</code>, the same file the song render calls. Nothing here is a sample.</p>
+
+  <div class="card">
+    <label class="k">Patch</label>
+    <div class="row" id="patches"></div>
+  </div>
+
+  <div class="card">
+    <label class="k">Play</label>
+    <div id="kbd"></div>
+    <div class="row">
+      <button id="prog">Chord progression</button>
+      <label class="k" style="margin:0 0 0 10px">Touch</label>
+      <span class="note">soft</span><input id="vel" type="range" min="0" max="1000" value="750" style="width:150px;accent-color:var(--accent)"><span class="note">hard</span>
+      <span class="note" id="oct"></span>
+    </div>
+    <p class="note" style="margin-top:10px">Sixteen voices. Play chords: click the keys or type <b>A W S E D F T G Y H U J K</b>, several at once; <b>Z</b> / <b>X</b> shift octaves. <b>How hard you play matters</b>, most of all on the electric piano: a soft note is round, a hard one barks and rings. Click high on a key for a soft note and low on a key for a hard one; typed notes use the <b>Touch</b> slider. <b>Chord progression</b> plays four bars through the voice's own <code>schedule()</code>, the entry point the song uses.</p>
+  </div>
+
+  <div class="card">
+    <label class="k">Panel</label>
+    <div class="knobs" id="knobs"></div>
+    <div class="row" style="margin-top:14px">
+      <button id="reset">Back to center</button>
+      <span class="note" id="dirty"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What was measured, what moved, and what the reference pack could not tell us</summary>
+      <p class="note">The reference pack is recordings of real Yamaha FM hardware from freesound (CC0 and Sampling Plus): a DX7 electric piano played up the keyboard, DX7 bass notes, and a DX5 (two DX7 engines in one case) played soft to hard and held long. Every file was checked by measurement before use, and three were thrown out for not being what they claimed.</p>
+      <p class="note"><b>Moved, on the electric piano: how much it darkens up the keyboard.</b> The real one keeps more of its brightness in the upper octaves than my first voicing did, so it now darkens much less as you go up, and the tone is a hair brighter.</p>
+      <p class="note"><b>Checked and left alone: the bass.</b> Its brightness already sat where the real DX7 bass notes are.</p>
+      <p class="note"><b>Voiced, not measured: glass and brass.</b> No clean recording of either on real hardware turned up, so these are built from how the instrument works, not fitted.</p>
+      <p class="note" id="opensNote"></p>
+      <p class="note" style="margin-top:10px"><b>Measured and declined.</b> Each knob below was looked at against the pack and not applied, and this is why:</p>
+      <div id="declined"></div>
+    </details>
+  </div>
+
+  <footer title="engine @484850f · built 2026-10-04">Unison engine, jeffdavis-studio/unison-engine. Page monitor gain +6 dB over the song's strip input. Hover for build provenance.</footer>
+</div>
+
+<script>
+/* ===== src/core/mix.js @ 484850f — verbatim from jeffdavis-studio/unison-engine ===== */
+// mix.js — the fan-in ≤2 summing rule, as a primitive.
+//
+// Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
+// audio renders are NOT bit-reproducible wherever a node sums 3+ inputs —
+// float addition isn't associative and the browser doesn't fix the summation
+// order. Chain-mixing every summing point at fan-in ≤2 makes renders
+// bit-identical (SHA-256-equal) across pages and loads. Tone.js cannot adopt
+// this fix; it is why the engine is raw Web Audio.
+//
+// RULE: no AudioNode in this engine may ever receive more than two .connect()s.
+// Anywhere three or more signals meet, they meet through U.chainMixer.
+(function (g) {
+  "use strict";
+  const U = (g.U = g.U || {});
+
+  // Serial chain of 2-input gains. add() splices a fresh gain between the
+  // accumulator and `out`, so every summing node sums exactly two signals in a
+  // fixed order. Order of add() calls is part of the deterministic contract.
+  U.chainMixer = function (ctx, out) {
+    let acc = null;
+    let count = 0;
+    return {
+      add(node) {
+        count++;
+        if (!acc) { acc = ctx.createGain(); node.connect(acc); acc.connect(out); return; }
+        const link = ctx.createGain();
+        acc.disconnect(out);
+        acc.connect(link);
+        node.connect(link);
+        link.connect(out);
+        acc = link;
+      },
+      get count() { return count; },
+    };
+  };
+})(typeof window !== "undefined" ? window : globalThis);
+
+/* ===== src/instruments/fm.js @ 484850f — verbatim from jeffdavis-studio/unison-engine ===== */
+// fm.js — six-operator FM keys voice (the DX7 lineage), zero dependencies.
+//
+// THE FM LANE (build order 808 → Juno → Minimoog → OB-Xa → Linn → FM).
+// Asana 1217198303706671, built 2026-10-01. The sound wanted: the glassy tine
+// electric piano, bell/glass keys and the solid FM bass of 1983-86 synth-pop
+// and synth R&B. Homage, not clone: patches are voiced here, not copied.
+//
+// IMPLEMENTATION ROUTE: BUFFER SYNTHESIS (route a). Web Audio has no phase-
+// modulation operator, and an OscillatorNode FM graph only approximates PM
+// (the index would have to follow the modulator's frequency, feedback is not
+// expressible at all, and six operators × sixteen voices breaks the fan-in
+// rule's chain budget). So, like the Minimoog and the OB-Xa: noteOn() collects
+// the line, flush() renders it in plain JS into one AudioBuffer, and the song,
+// the fitter and the page all call the same pure function, U.buildFmLine.
+// Deterministic by construction (no clocks, no Math.random, no node timing).
+//
+// THE CIRCUIT, as modelled (per voice; 16 voices, oldest stolen):
+//   OPERATORS  six sine operators (a 4096-point sine table, linear
+//              interpolation). PHASE modulation: a modulator's output is added
+//              to its target's PHASE, scaled so a full-level modulator moves
+//              it ±2 cycles = ±4π (MOD_SCALE; msfa's reading of the chip:
+//              level 99 at full envelope is gain 2 in cycles). Frequency = ratio × note (detune in cents)
+//              or a fixed frequency in Hz.
+//   FEEDBACK   on one operator per algorithm: the mean of its last two
+//              outputs, × π·2^(fb−7), back into its own phase (fb 0-7).
+//   ALGORITHMS the routings the shipped patches need, by their DX7 numbers:
+//                5  three two-operator stacks 2→1, 4→3, 6→5 (fb 6) — ep, glass
+//               16  one carrier with three branches 2→1, 4→3→1, 6→5→1 (fb 6)
+//                   — bass
+//               22  2→1, and 6 modulating 3, 4 and 5 together (fb 6) — brass
+//              Others are not modelled; a patch naming one throws.
+//   ENVELOPES  per operator, the four-rate / four-level generator: levels and
+//              motion in the log (dB) domain, 0.75 dB per level step, speed
+//              doubling every 4 "qrates" (qrate = rate·41/64), attacks 4×
+//              faster than decays and jumping up from −48 dB. Key-on starts
+//              from L4; stage 3 holds at L3 until key-off; then R4 to L4.
+//              Rate scaling (0-7) speeds every stage up the keyboard. Updated
+//              every 16 samples, amplitude interpolated across the block.
+//   LEVELS     output level 0-99 at 0.75 dB a step; KEYBOARD LEVEL SCALING
+//              per operator (break point, left/right depth, curve −lin / −exp
+//              / +exp / +lin, in 3-semitone groups) — how a DX7 EP gets darker
+//              above its break point; VELOCITY SENSITIVITY 0-7 per operator
+//              (−24 dB at velocity 0, sensitivity 7) — on a modulator that is
+//              brightness with velocity, the EP's signature.
+//   LFO        one triangle LFO with a delay: pitch depth in cents, amp depth
+//              on operators whose AMS is set.
+//   OUTPUT     the carriers summed (÷ carrier count), then the DAC: a 12-bit
+//              MANTISSA with a per-sample power-of-two exponent (floating-
+//              point DAC — the noise floor rides with the signal, so the grit
+//              is on quiet tails too), then a 2-pole reconstruction low-pass
+//              (dacLP). Synthesized at the song rate, not the DX7's 49.096 kHz,
+//              so its sample-and-hold is the song rate's own; operator aliasing
+//              is the machine's (it had no oversampling either).
+//   NOT MODELLED: the pitch envelope, portamento, the operator-level
+//              non-linearity below level 20, the EGS's exact attack curve.
+//
+// PANEL. The six operators' settings are the VOICING (U.FM_PATCHES). What the
+// page shows and the fitter moves are performance-level macros over them
+// (U.FM_KNOBS): brightness (an offset on every modulator's level), velocity →
+// tone, key scaling depth, feedback, decay and release time, detune spread,
+// the LFO, the DAC. Every macro's centre is a no-op, so the panel at centre IS
+// the voicing.
+(function (g) {
+  "use strict";
+  const U = (g.U = g.U || {});
+
+  // ops[i] (operator i+1):
+  //   r ratio | hz fixed frequency (0 = ratio mode) | det cents
+  //   lvl output level 0-99 | vs velocity sens 0-7 | rs rate scaling 0-7
+  //   eg [R1,R2,R3,R4, L1,L2,L3,L4] (0-99)
+  //   bp break-point midi | ld/rd left/right depth 0-99 | lc/rc curve
+  //   ("-lin" "-exp" "+exp" "+lin") | ams 0-3
+  const OP = (o) => Object.assign({ r: 1, hz: 0, det: 0, lvl: 0, vs: 0, rs: 0, eg: [99, 99, 99, 99, 99, 99, 99, 0], bp: 60, ld: 0, rd: 0, lc: "-lin", rc: "-lin", ams: 0 }, o);
+  const MACROS = { bright: 0, velTone: 1, keyScale: 1, fbAdd: 0, decay: 1, release: 1, spread: 1, lfoRate: 5, lfoDelay: 0.6, vib: 0, trem: 0, dacBits: 12, dacLP: 14000, level: 0.5 };
+
+  U.FM_PATCHES = {
+    // TINE ELECTRIC PIANO. Algorithm 5. 2→1 is the body (a ratio-1 pair,
+    // velocity on the modulator), 4→3 is the TINE (a ratio-14 modulator whose
+    // envelope dies in ~0.1 s: the bright ping on the attack), 6→5 a second
+    // body slightly detuned, with feedback, for the bark when struck hard.
+    // Modulators scaled down to the right of C4 (the brightness falls up the
+    // keyboard); carriers decay faster up the keyboard (rate scaling).
+    // FIT APPLIED 2026-10-01 (analysis/fit-fm.mjs row A, record
+    // analysis/fits/fm-ep.json): against a real DX7 EP's four rungs C3-C6,
+    // body harmonic centroid 1.48/1.85/1.58/1.25 — the machine keeps more of
+    // its brightness up the keyboard than this voicing did. Right-hand key
+    // scaling depths × 0.2 (op2 40→8, op4 50→10, op6 45→9) and the three
+    // modulators +1 level (84→85, 74→75, 74→75). Residual 0.31 → 0.05
+    // harmonics (RMS over the rungs).
+    ep: Object.assign({}, MACROS, {
+      algo: 5, fb: 4, level: 0.35,
+      ops: [
+        OP({ r: 1, det: 0, lvl: 99, vs: 2, rs: 3, eg: [96, 28, 22, 60, 99, 82, 0, 0] }),
+        OP({ r: 1, det: 0, lvl: 85, vs: 6, rs: 3, eg: [95, 42, 30, 60, 99, 88, 0, 0], bp: 60, rd: 8, rc: "-lin" }),
+        OP({ r: 1, det: 4, lvl: 92, vs: 2, rs: 3, eg: [96, 32, 24, 60, 99, 78, 0, 0] }),
+        OP({ r: 14, det: 0, lvl: 75, vs: 7, rs: 4, eg: [97, 62, 40, 70, 99, 20, 0, 0], bp: 64, rd: 10, rc: "-exp" }),
+        OP({ r: 1, det: -4, lvl: 88, vs: 2, rs: 3, eg: [96, 30, 23, 60, 99, 80, 0, 0] }),
+        OP({ r: 1, det: 0, lvl: 75, vs: 7, rs: 3, eg: [95, 48, 32, 60, 99, 84, 0, 0], bp: 60, rd: 9, rc: "-lin" }),
+      ],
+    }),
+    // GLASS / BELL KEYS. Algorithm 5 again: non-integer modulator ratios
+    // (3.5 and 1.41) put the partials off the harmonic series — bell/glass —
+    // while a ratio-2 pair adds the clean octave shimmer. Long ring, quick
+    // bright attack. A VOICING: the pack has no real-hardware bell (the one
+    // candidate failed its claim), see analysis/fits/fm-lanes.json.
+    glass: Object.assign({}, MACROS, {
+      algo: 5, fb: 2, level: 0.5,
+      ops: [
+        OP({ r: 1, lvl: 99, vs: 2, rs: 2, eg: [97, 30, 20, 45, 99, 72, 0, 0] }),
+        OP({ r: 3.5, lvl: 78, vs: 5, rs: 3, eg: [96, 40, 26, 50, 99, 55, 0, 0], bp: 72, rd: 35, rc: "-lin" }),
+        OP({ r: 2, det: 3, lvl: 84, vs: 2, rs: 2, eg: [97, 26, 18, 45, 99, 74, 0, 0] }),
+        OP({ r: 5.19, lvl: 68, vs: 6, rs: 4, eg: [98, 55, 35, 60, 99, 30, 0, 0], bp: 72, rd: 45, rc: "-exp" }),
+        OP({ r: 1, det: -3, lvl: 82, vs: 2, rs: 2, eg: [97, 28, 19, 45, 99, 72, 0, 0] }),
+        OP({ r: 1.41, lvl: 62, vs: 5, rs: 3, eg: [96, 38, 28, 50, 99, 50, 0, 0] }),
+      ],
+    }),
+    // SOLID FM BASS. Algorithm 16: one carrier, three modulator branches —
+    // 2 (ratio 1, the body, held), 4→3 (a ratio-1 pair with a short ratio-7
+    // click on the front), 6→5 (feedback: the growl). Fast attack, a punchy
+    // drop to a held level, short release.
+    bass: Object.assign({}, MACROS, {
+      algo: 16, fb: 5, level: 0.3,
+      ops: [
+        OP({ r: 1, lvl: 99, vs: 2, rs: 1, eg: [99, 40, 30, 72, 99, 92, 80, 0] }),
+        OP({ r: 1, lvl: 86, vs: 5, rs: 1, eg: [99, 55, 35, 70, 99, 74, 62, 0], bp: 48, rd: 30, rc: "-lin" }),
+        OP({ r: 1, lvl: 78, vs: 3, rs: 1, eg: [99, 50, 30, 70, 99, 70, 60, 0] }),
+        OP({ r: 7, lvl: 70, vs: 6, rs: 2, eg: [99, 70, 50, 75, 99, 0, 0, 0] }),
+        OP({ r: 2, lvl: 64, vs: 3, rs: 1, eg: [99, 50, 35, 70, 99, 70, 55, 0] }),
+        OP({ r: 1, lvl: 72, vs: 3, rs: 1, eg: [99, 50, 35, 70, 99, 72, 60, 0] }),
+      ],
+    }),
+    // BRASS. Algorithm 22: 2→1, and one feedback modulator (6) on three
+    // detuned carriers 3/4/5 — the section. Modulators swell in slower than
+    // the carriers (the brass "blat" opening up), a little vibrato after a
+    // delay. A VOICING: no real-hardware brass in the pack.
+    brass: Object.assign({}, MACROS, {
+      algo: 22, fb: 6, level: 0.45, vib: 6, lfoRate: 5.5, lfoDelay: 0.5,
+      ops: [
+        OP({ r: 1, lvl: 96, vs: 1, rs: 2, eg: [72, 60, 30, 62, 99, 92, 88, 0] }),
+        OP({ r: 1, lvl: 84, vs: 4, rs: 2, eg: [55, 50, 30, 60, 99, 84, 78, 0], bp: 60, rd: 30, rc: "-lin" }),
+        OP({ r: 1, det: 5, lvl: 92, vs: 1, rs: 2, eg: [70, 60, 30, 62, 99, 92, 88, 0] }),
+        OP({ r: 1, det: -5, lvl: 92, vs: 1, rs: 2, eg: [70, 60, 30, 62, 99, 92, 88, 0] }),
+        OP({ r: 1, det: 1, lvl: 90, vs: 1, rs: 2, eg: [70, 60, 30, 62, 99, 92, 88, 0] }),
+        OP({ r: 1, lvl: 80, vs: 4, rs: 2, eg: [52, 48, 30, 60, 99, 86, 80, 0], bp: 60, rd: 30, rc: "-lin" }),
+      ],
+    }),
+  };
+
+  // The panel: performance macros (centre = the voicing), shown on the page
+  // and moved by the fitter.
+  U.FM_KNOBS = [
+    { key: "bright", label: "brightness", min: -30, max: 30, step: 1 },
+    { key: "velTone", label: "velocity → tone", min: 0, max: 2 },
+    { key: "keyScale", label: "key scaling", min: 0, max: 2 },
+    { key: "fbAdd", label: "feedback", min: -4, max: 3, step: 1 },
+    { key: "decay", label: "decay", min: 0.25, max: 4, log: true },
+    { key: "release", label: "release", min: 0.25, max: 4, log: true },
+    { key: "spread", label: "detune", min: 0, max: 3 },
+    { key: "vib", label: "vibrato", min: 0, max: 40, unit: "¢" },
+    { key: "trem", label: "tremolo", min: 0, max: 1 },
+    { key: "lfoRate", label: "lfo rate", min: 0.1, max: 12, log: true, unit: "Hz" },
+    { key: "dacBits", label: "dac grit", min: 8, max: 16, step: 1 },
+    { key: "dacLP", label: "output filter", min: 4000, max: 20000, log: true, unit: "Hz" },
+  ];
+
+  U.fmGet = function (p, key) { return key.split(".").reduce((o, k) => (o == null ? o : o[k]), p); };
+  U.fmSet = function (p, key, val) {
+    const q = JSON.parse(JSON.stringify(p));
+    const ks = key.split(".");
+    let o = q;
+    for (let i = 0; i < ks.length - 1; i++) o = o[ks[i]];
+    o[ks[ks.length - 1]] = val;
+    return q;
+  };
+
+  // ALGORITHMS: mods[i] = operators (0-based) modulating operator i;
+  // car = carriers; fbOp = the operator with feedback.
+  const ALGOS = {
+    5: { mods: [[1], [], [3], [], [5], []], car: [0, 2, 4], fbOp: 5 },
+    16: { mods: [[1, 2, 4], [], [3], [], [5], []], car: [0], fbOp: 5 },
+    22: { mods: [[1], [], [5], [5], [5], []], car: [0, 2, 3, 4], fbOp: 5 },
+  };
+  U.FM_ALGOS = ALGOS;
+
+  const VOICES = 16, BLOCK = 16, TAB = 4096;
+  const SIN = new Float64Array(TAB + 1);
+  for (let i = 0; i <= TAB; i++) SIN[i] = Math.sin((2 * Math.PI * i) / TAB);
+  const MOD_SCALE = 2;            // full-level modulator = ±2 cycles (±4π rad)
+  const midiHz = (m) => 440 * Math.pow(2, (m - 69) / 12);
+  const lvlDb = (l) => (l <= 0 ? -96 : (Math.min(l, 127) - 99) * 0.75);
+  const egDb = (l) => (l <= 0 ? -96 : (l - 99) * 0.75);
+  const dbAmp = (d) => (d <= -95.9 ? 0 : Math.pow(10, d / 20));
+  // speed in dB/s for a (fractional) qrate
+  const speed = (q) => 0.25 * Math.pow(2, q / 4);
+
+  // keyboard level scaling, in level units (0.75 dB)
+  function ksLevel(o, midi, scale) {
+    const d = midi - o.bp;
+    if (d === 0) return 0;
+    const depth = (d > 0 ? o.rd : o.ld) * scale, curve = d > 0 ? o.rc : o.lc;
+    const grp = Math.min(31, Math.floor((Math.abs(d) + 2) / 3));
+    const v = curve.slice(1) === "lin" ? (grp * depth) / 12.5 : (depth * (Math.pow(2, grp / 4.5) - 1)) / 16;
+    return curve[0] === "-" ? -v : v;
+  }
+
+  // One note's operator settings resolved for its pitch and velocity.
+  function noteSetup(p, e, sr) {
+    const algo = ALGOS[p.algo];
+    if (!algo) throw new Error("fm: algorithm " + p.algo + " is not modelled");
+    const f0 = midiHz(e.midi);
+    const isCar = [0, 0, 0, 0, 0, 0];
+    for (const c of algo.car) isCar[c] = 1;
+    const rsx = Math.min(31, Math.max(0, e.midi / 3 - 7));
+    const ops = p.ops.map((o, i) => {
+      let L = o.lvl + ksLevel(o, e.midi, p.keyScale) - o.vs * (32 / 7) * (1 - e.vel) * (isCar[i] ? 1 : p.velTone);
+      if (!isCar[i]) L += p.bright;
+      const hz = o.hz > 0 ? o.hz : f0 * o.r * Math.pow(2, (o.det * p.spread) / 1200);
+      const qd = (o.rs * rsx) / 8;
+      const q = (r) => (r * 41) / 64 + qd;
+      return {
+        gain: dbAmp(lvlDb(Math.max(0, L))) * (isCar[i] ? 1 : MOD_SCALE),
+        inc: hz / sr, car: isCar[i], ams: o.ams,
+        // dB/s per stage; decay macro on stages 2-3, release on 4
+        sp: [speed(q(o.eg[0])) * 4, speed(q(o.eg[1])) / p.decay, speed(q(o.eg[2])) / p.decay, speed(q(o.eg[3])) / p.release],
+        lv: [egDb(o.eg[4]), egDb(o.eg[5]), egDb(o.eg[6]), egDb(o.eg[7])],
+      };
+    });
+    return { algo, ops, fbAmt: (() => { const fb = Math.max(0, Math.min(7, p.fb + p.fbAdd)); return fb ? 0.5 * Math.pow(2, fb - 7) : 0; })() };
+  }
+
+  // Envelope step over dt seconds. st: {db, stage}; stage 0-2 key down
+  // (2 holds at L3), 3 released.
+  function envStep(st, op, dt) {
+    let s = st.stage;
+    if (s > 3) return;
+    const target = op.lv[s];
+    if (st.db < target) {
+      if (st.db < -48) st.db = -48;                 // the attack's jump
+      st.db += op.sp[s] * dt;
+      if (st.db >= target) { st.db = target; if (s < 2) st.stage++; }
+    } else if (st.db > target) {
+      st.db -= op.sp[s] * dt;
+      if (st.db <= target) { st.db = target; if (s < 2) st.stage++; }
+    } else if (s < 2) st.stage++;
+    if (st.db < -96) st.db = -96;
+  }
+
+  // Render one note into out (added), from sample s0, key-off at sOff, hard
+  // stop at sStop (a steal: 2 ms fade). Returns the last sample written + 1.
+  // envOnly: run just the envelopes to find where the note dies.
+  function renderNote(p, e, sr, out, s0, sOff, sStop, envOnly) {
+    const S = noteSetup(p, e, sr);
+    const { algo, ops } = S;
+    const mods = algo.mods, fbOp = algo.fbOp, fbAmt = S.fbAmt;
+    const ncar = algo.car.length;
+    const st = ops.map((o, i) => ({ db: p.ops[i].eg[7] > 0 ? egDb(p.ops[i].eg[7]) : -96, stage: 0 }));
+    const ph = [0, 0, 0, 0, 0, 0], y = [0, 0, 0, 0, 0, 0];
+    let fb1 = 0, fb2 = 0;
+    const a0 = [0, 0, 0, 0, 0, 0], a1 = [0, 0, 0, 0, 0, 0];
+    const dt = BLOCK / sr;
+    const lfoInc = p.lfoRate / sr, vib = p.vib, trem = p.trem;
+    const outScale = p.level / ncar;
+    const N = out ? out.length : Infinity;
+    const maxEnd = Math.min(N, sOff + Math.round(10 * sr));
+    const fadeN = Math.round(0.002 * sr);
+    let n = s0, lfoPh = 0;
+    for (let i = 0; i < 6; i++) a1[i] = dbAmp(st[i].db);
+    while (n < maxEnd && n < sStop + fadeN) {
+      // envelopes at block rate
+      const rel = n >= sOff;
+      let alive = false;
+      for (let i = 0; i < 6; i++) {
+        if (rel && st[i].stage < 3) st[i].stage = 3;
+        a0[i] = a1[i];
+        envStep(st[i], ops[i], dt);
+        a1[i] = dbAmp(st[i].db);
+        if (ops[i].car && (st[i].db > -90 || a0[i] > 0)) alive = true;
+      }
+      if (!alive) {
+        // every carrier silent: released → done; held at a zero sustain level
+        // (L3 = 0, the EP's own shape) → nothing more until the end either
+        if (rel) break;
+        let dead = true;
+        for (const c of algo.car) if (!(st[c].stage === 2 && ops[c].lv[2] <= -96)) dead = false;
+        if (dead) break;
+      }
+      if (envOnly) { n += BLOCK; continue; }
+      const nEnd = Math.min(n + BLOCK, maxEnd);
+      for (let k = 0; n < nEnd; n++, k++) {
+        const w = k / BLOCK;
+        // LFO: triangle, delayed fade-in
+        let lfo = 0, pm = 1, am = 0;
+        if (vib > 0 || trem > 0) {
+          lfoPh += lfoInc; if (lfoPh >= 1) lfoPh -= 1;
+          const tri = lfoPh < 0.5 ? 4 * lfoPh - 1 : 3 - 4 * lfoPh;
+          const tn = (n - s0) / sr, fade = p.lfoDelay > 0 ? Math.min(1, tn / p.lfoDelay) : 1;
+          lfo = tri * fade;
+          if (vib > 0) pm = 1 + (vib * lfo * 0.000577623);   // cents → ratio (ln2/1200)
+          am = trem * 0.5 * (lfo + 1) * fade;
+        }
+        let sum = 0;
+        for (let i = 5; i >= 0; i--) {
+          let mod = 0;
+          const m = mods[i];
+          for (let j = 0; j < m.length; j++) mod += y[m[j]];
+          if (i === fbOp && fbAmt) mod += fbAmt * (fb1 + fb2);
+          let x = ph[i] + mod * MOD_SCALE;
+          x -= Math.floor(x);
+          const fi = x * TAB, ii = fi | 0, fr = fi - ii;
+          const s = SIN[ii] + (SIN[ii + 1] - SIN[ii]) * fr;
+          let amp = (a0[i] + (a1[i] - a0[i]) * w) * ops[i].gain;
+          if (ops[i].ams && am) amp *= 1 - am * ops[i].ams / 3;
+          y[i] = s * amp;
+          if (i === fbOp) { fb2 = fb1; fb1 = y[i]; }
+          if (ops[i].car) sum += y[i];
+          ph[i] += ops[i].inc * pm; if (ph[i] >= 1) ph[i] -= 1;
+        }
+        let v = sum * outScale;
+        if (n >= sStop) v *= Math.max(0, 1 - (n - sStop) / fadeN);
+        out[n] += v;
+      }
+    }
+    return n;
+  }
+
+  // floating-point DAC: 12-bit (dacBits) mantissa, power-of-two exponent over
+  // 8 octaves, then the 2-pole reconstruction low-pass.
+  function dac(x, p, sr) {
+    const bits = Math.max(4, Math.min(24, Math.round(p.dacBits)));
+    const q = Math.pow(2, bits - 1);
+    for (let i = 0; i < x.length; i++) {
+      const v = x[i];
+      if (v === 0) continue;
+      let e = 1;
+      const a = Math.abs(v);
+      for (let k = 0; k < 7 && a < e * 0.5; k++) e *= 0.5;
+      x[i] = (Math.round((v / e) * q) / q) * e;
+    }
+    const c = 1 - Math.exp((-2 * Math.PI * Math.min(p.dacLP, sr * 0.45)) / sr);
+    let z1 = 0, z2 = 0;
+    for (let i = 0; i < x.length; i++) { z1 += c * (x[i] - z1); z2 += c * (z1 - z2); x[i] = z2; }
+    return x;
+  }
+
+  // THE VOICE. events: [{t, midi, vel, dur}] seconds from the buffer start.
+  // Pure: same inputs, same samples. 16 voices: the 17th sounding note steals
+  // the oldest (2 ms fade), found from an envelope-only pass.
+  U.buildFmLine = function (patch, events, sr, totalSec) {
+    const p = Object.assign({}, MACROS, patch);
+    const evs = events.map((e, i) => Object.assign({ i }, e)).sort((a, b) => a.t - b.t || a.i - b.i);
+    const lastEnd = evs.reduce((m, e) => Math.max(m, e.t + e.dur), 0);
+    // tail: the slowest carrier release, capped
+    const T = totalSec || lastEnd + Math.min(10, 2.5 * p.release) + 0.05;
+    const N = Math.ceil(T * sr);
+    const out = new Float32Array(N);
+    if (!evs.length) return out;
+    const sOn = evs.map((e) => Math.round(e.t * sr)), sOff = evs.map((e) => Math.round((e.t + e.dur) * sr));
+    const ends = evs.map((e, k) => renderNote(p, e, sr, null, sOn[k], sOff[k], Infinity, true));
+    const stop = ends.map(() => Infinity);
+    const active = [];
+    for (let k = 0; k < evs.length; k++) {
+      for (let j = active.length - 1; j >= 0; j--) if (Math.min(ends[active[j]], stop[active[j]]) <= sOn[k]) active.splice(j, 1);
+      if (active.length >= VOICES) stop[active.shift()] = sOn[k];
+      active.push(k);
+    }
+    for (let k = 0; k < evs.length; k++) renderNote(p, evs[k], sr, out, sOn[k], sOff[k], stop[k], false);
+    return dac(out, p, sr);
+  };
+
+  // strip: a desk strip from U.createDesk. Collect-then-flush, like the
+  // Minimoog and the OB-Xa: the voice allocator needs the whole line.
+  U.createFm = function (ctx, strip, patchName, override) {
+    const base = U.FM_PATCHES[patchName];
+    if (!base) throw new Error("createFm: unknown patch " + patchName);
+    const p = override ? Object.assign({}, base, override) : base;
+    const target = ctx.createGain();
+    strip.input.add(target);
+    const held = [target];
+    let pending = [];
+    function flush() {
+      if (!pending.length) return;
+      const evs = pending; pending = [];
+      const t0 = evs.reduce((m, e) => Math.min(m, e.t), Infinity);
+      const rel = evs.map((e) => ({ t: e.t - t0, midi: e.midi, vel: e.vel, dur: e.dur }));
+      const data = U.buildFmLine(p, rel, ctx.sampleRate);
+      const buf = ctx.createBuffer(1, data.length, ctx.sampleRate);
+      buf.getChannelData(0).set(data);
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(target);
+      src.start(t0);
+      held.push(src, buf);
+    }
+    return {
+      held,
+      patch: p,
+      noteOn(t, midi, vel, dur) { pending.push({ t, midi, vel, dur }); },
+      schedule(events, t0) { for (const e of events) pending.push({ t: t0 + e.t, midi: e.midi, vel: e.vel, dur: e.dur }); flush(); },
+      flush,
+    };
+  };
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+
+<script>
+window.FIT_POS = {"bright":0.5,"velTone":0.5,"keyScale":0.5,"decay":0.5,"release":0.5,"fbAdd":0.5,"spread":0.5,"dacBits":0.5,"dacLP":0.5,"vib":0.5,"trem":0.5,"lfoRate":0.5};
+// The REASON each declined knob was declined, carried onto the page itself. A
+// notApplied block that only lives in the repo is a record Jeff cannot read,
+// and the whole point of declining a knob on the record is that the decline is
+// visible where the instrument is.
+window.FIT_WHY = {"bright":"Fitted on the electric piano (a small brightening, applied) and on the bass, where the voicing already sat at the real DX7 bass's brightness, so nothing moved. Glass and brass have no clean real-hardware recording, so their brightness is voiced.","velTone":"The measurement sees this knob, but no recording of a real DX7 electric piano played soft and hard turned up. The DX5 played soft to hard does get brighter as it gets louder, which confirms the machine works this way, but that is another patch's amount. Kept as voiced.","keyScale":"Applied on the electric piano: the real one keeps more brightness up the keyboard. The other patches have no multi-octave recording to fit against.","decay":"The electric piano recordings are cut short by the uploader, so they show no decay, and the long held notes are other patches.","release":"No recording shows a key being let go on these patches.","fbAdd":"In these recordings feedback and brightness do the same thing to the tone, and nothing separates them.","spread":"Operator detune is a patch choice, and the electric piano notes are too short to hear slow beating.","dacBits":"The measurement sees it, but the recordings' noise floor is the web previews' compression, not the converter's: read literally it would say a far coarser converter than the machine has. Kept at the machine's own.","dacLP":"The previews are compressed, which hides the top octave, so the output filter cannot be seen.","vib":"No recording holds a note with vibrato.","trem":"No recording shows tremolo.","lfoRate":"No recording shows the LFO."};
+/* WHERE THE KNOBS OPEN @ 484850f, built 2026-10-04.
+
+   Every knob apply-fit moved opens at CENTRE, because after the apply the
+   centre IS the fit. Only the knobs it measured and did not move are here, and
+   each one is here because a fit record says so:
+
+     bright       <- fm (all patches)
+       Fitted on the electric piano (a small brightening, applied) and on the bass, where the voicing already sat at the real DX7 bass's brightness, so nothing moved. Glass and brass have no clean real-hardware recording, so their brightness is voiced.
+     velTone      <- fm (all patches)
+       The measurement sees this knob, but no recording of a real DX7 electric piano played soft and hard turned up. The DX5 played soft to hard does get brighter as it gets louder, which confirms the machine works this way, but that is another patch's amount. Kept as voiced.
+     keyScale     <- fm (all patches)
+       Applied on the electric piano: the real one keeps more brightness up the keyboard. The other patches have no multi-octave recording to fit against.
+     decay        <- fm (all patches)
+       The electric piano recordings are cut short by the uploader, so they show no decay, and the long held notes are other patches.
+     release      <- fm (all patches)
+       No recording shows a key being let go on these patches.
+     fbAdd        <- fm (all patches)
+       In these recordings feedback and brightness do the same thing to the tone, and nothing separates them.
+     spread       <- fm (all patches)
+       Operator detune is a patch choice, and the electric piano notes are too short to hear slow beating.
+     dacBits      <- fm (all patches)
+       The measurement sees it, but the recordings' noise floor is the web previews' compression, not the converter's: read literally it would say a far coarser converter than the machine has. Kept at the machine's own.
+     dacLP        <- fm (all patches)
+       The previews are compressed, which hides the top octave, so the output filter cannot be seen.
+     vib          <- fm (all patches)
+       No recording holds a note with vibrato.
+     trem         <- fm (all patches)
+       No recording shows tremolo.
+     lfoRate      <- fm (all patches)
+       No recording shows the LFO. */
+</script>
+
+<script>
+/* ---------------------------------------------------------------------------
+   The page. It owns the UI and nothing else: every sound is made by
+   U.buildFmLine / U.createFm out of the engine block above.
+   WHERE IT OPENS. At CENTRE for every knob a fit moved, because the centre now
+   IS the fit — opening at a fitted position would apply it twice and give you a
+   machine no token can draw. The knobs that were measured and DECLINED open at
+   the shipped value, since nothing moved the centre onto those. Every one of
+   them, and why, is in analysis/fits/. See analysis/build-instrument-page.mjs.
+--------------------------------------------------------------------------- */
+(function(){
+  "use strict";
+  const PATCHES = Object.keys(U.FM_PATCHES);
+  let patch = "ep";
+  let octave = 4;                 // key "A" = C3 (midi 48), the chord register
+  let cur = null;                 // the patch as the panel has it
+  const held = [];                // anti-GC: every live source stays reachable
+  const velEl = document.getElementById("vel");
+  // touch → velocity: 0.15 (softest) .. 1 (hardest)
+  const touch = (p) => 0.15 + 0.85 * Math.min(1, Math.max(0, p));
+
+  let ctx = null, out = null;
+  function audio(){
+    if (!ctx){
+      ctx = new (window.AudioContext || window.webkitAudioContext)();
+      // +6 dB monitor gain into a gentle limiter: sixteen voices at full
+      // velocity sum past full scale, as on the machine
+      const lim = ctx.createDynamicsCompressor();
+      lim.threshold.value = -3; lim.knee.value = 0; lim.ratio.value = 20; lim.attack.value = 0.002; lim.release.value = 0.12;
+      out = ctx.createGain(); out.gain.value = 2.0; out.connect(lim).connect(ctx.destination);
+    }
+    if (ctx.state === "suspended") ctx.resume();
+    return ctx;
+  }
+
+  // --- the panel -----------------------------------------------------------
+  // Ranges are U.FM_KNOBS, the bounds the fitter searches. Center is the
+  // voicing — for the electric piano's key scaling, the fit. No numbers in
+  // the view: a knob says only whether it is at center.
+  const KN = U.FM_KNOBS;
+  const knobsEl = document.getElementById("knobs");
+  const base = () => U.FM_PATCHES[patch];
+  const toPos = (k, v) => k.log ? Math.log(v / k.min) / Math.log(k.max / k.min) : (v - k.min) / (k.max - k.min);
+  const fromPos = (k, p) => {
+    let v = k.log ? k.min * Math.pow(k.max / k.min, p) : k.min + p * (k.max - k.min);
+    if (k.step) v = Math.round(v / k.step) * k.step;
+    return v;
+  };
+  function buildKnobs(){
+    cur = JSON.parse(JSON.stringify(base()));
+    knobsEl.innerHTML = "";
+    for (const k of KN){
+      const b0 = U.fmGet(base(), k.key);
+      const wrap = document.createElement("div");
+      wrap.className = "knob";
+      wrap.innerHTML = '<label class="k">' + k.label + '</label>' +
+        '<input type="range" min="0" max="1000" step="1" value="' + Math.round(toPos(k, b0) * 1000) + '">' +
+        '<div class="val"><span class="d"></span></div>';
+      const inp = wrap.querySelector("input");
+      const d = wrap.querySelector(".d");
+      const paint = (v) => {
+        const off = Math.abs(toPos(k, v) - toPos(k, b0)) > 0.004;
+        d.textContent = off ? (toPos(k, v) > toPos(k, b0) ? "up from center" : "down from center") : "at center";
+        d.style.color = off ? "var(--accent)" : "var(--dim)";
+      };
+      inp.addEventListener("input", () => {
+        const v = fromPos(k, inp.value / 1000);
+        cur = U.fmSet(cur, k.key, v);
+        paint(v); markDirty();
+      });
+      paint(b0);
+      knobsEl.appendChild(wrap);
+    }
+    markDirty();
+  }
+  function markDirty(){
+    const n = KN.filter(k => Math.abs(toPos(k, U.fmGet(cur, k.key)) - toPos(k, U.fmGet(base(), k.key))) > 0.004).length;
+    document.getElementById("dirty").textContent = n ? "some knobs off center" : "every knob at center";
+  }
+  document.getElementById("reset").onclick = () => buildKnobs();
+
+  // --- patch buttons -------------------------------------------------------
+  const pEl = document.getElementById("patches");
+  PATCHES.forEach(p => {
+    const b = document.createElement("button");
+    b.textContent = p; b.dataset.p = p;
+    if (p === patch) b.className = "on";
+    b.onclick = () => {
+      patch = p;
+      octave = p === "bass" ? 3 : 4; paintOct();
+      [...pEl.children].forEach(c => c.className = c.dataset.p === p ? "on" : "");
+      buildKnobs();
+    };
+    pEl.appendChild(b);
+  });
+
+  // --- the demo: four bars through the voice's own schedule() --------------
+  // I - V - vi - IV in C. The electric piano and glass comp it the synth-R&B
+  // way (a held chord, an anticipated push, accents louder than ghosts — so
+  // the touch is audible), brass hits it, bass walks the roots.
+  document.getElementById("prog").onclick = () => {
+    const c = audio();
+    const strip = { input: U.chainMixer(c, out) };
+    const v = U.createFm(c, strip, patch, cur);
+    held.push(v); if (held.length > 64) held.splice(0, 16);
+    const beat = 60 / 100;
+    const CH = [[48, 55, 60, 64], [47, 55, 59, 62], [45, 52, 57, 60], [45, 53, 57, 60]];
+    const ROOT = [36, 43, 45, 41];
+    const ev = [];
+    CH.forEach((ch, b) => {
+      const t0 = b * 4 * beat;
+      if (patch === "bass") {
+        for (const [st, len, vel, oc] of [[0, 0.9, 0.95, 0], [1.5, 0.4, 0.7, 12], [2, 0.9, 0.9, 0], [3.5, 0.4, 0.75, 0]]) ev.push({ t: t0 + st * beat, midi: ROOT[b] + oc, vel, dur: len * beat });
+        return;
+      }
+      const hits = patch === "brass" ? [[0, 1.3, 0.95], [1.5, 0.35, 0.8], [2.5, 1.3, 0.9]]
+        : [[0, 1.4, 0.95], [1.5, 0.45, 0.55], [2.5, 1.4, 0.8], [3.5, 0.45, 0.5]];
+      for (const [st, len, vel] of hits) for (const m of (patch === "glass" ? ch.map(x => x + 12) : ch)) ev.push({ t: t0 + st * beat, midi: m, vel, dur: len * beat });
+    });
+    v.schedule(ev, c.currentTime + 0.06);
+  };
+
+  // --- the live keyboard: one buffer per key ------------------------------
+  // Each key renders its own note with U.buildFmLine (the engine's own
+  // renderer; FM voices are independent, so one note alone is exactly the
+  // note inside a line). While the key is down it plays
+  // a long hold; on key-up the note re-renders with its real length and the
+  // page swaps to it AT THE CURRENT PLAY POSITION. The render is
+  // deterministic and the two buffers are sample-identical up to the release,
+  // so the swap is seamless and the release starts on key-up.
+  const HOLD = 6.0;
+  const live = {};            // semi -> { t0, midi, vel, src, gain }
+  function start(n, dur){
+    const c = audio();
+    const now = c.currentTime + 0.012;
+    const off = Math.max(0, now - n.t0);
+    const data = U.buildFmLine(cur, [{ t: 0, midi: n.midi, vel: n.vel, dur }], c.sampleRate);
+    const buf = c.createBuffer(1, data.length, c.sampleRate);
+    buf.getChannelData(0).set(data);
+    const src = c.createBufferSource(); src.buffer = buf;
+    const g = c.createGain(); g.gain.value = 1;
+    src.connect(g).connect(out);
+    if (off < buf.duration) src.start(n.t0 > now ? n.t0 : now, off);
+    if (n.src){
+      n.gain.gain.setValueAtTime(1, now);
+      n.gain.gain.linearRampToValueAtTime(0, now + 0.004);
+      n.src.stop(now + 0.01);
+    }
+    n.src = src; n.gain = g;
+    held.push(src, g, buf); if (held.length > 192) held.splice(0, 48);
+  }
+  function keyOn(semi, vel){
+    if (live[semi]) keyOff(semi);
+    const c = audio();
+    const n = { t0: c.currentTime + 0.012, midi: octave * 12 + semi, vel: vel == null ? touch(velEl.value / 1000) : vel, src: null, gain: null };
+    live[semi] = n;
+    start(n, HOLD);
+  }
+  function keyOff(semi){
+    const n = live[semi];
+    if (!n) return;
+    delete live[semi];
+    const c = audio();
+    start(n, Math.max(0.01, c.currentTime + 0.012 - n.t0));
+  }
+
+  // --- the keyboard --------------------------------------------------------
+  const WHITE = [0,2,4,5,7,9,11], BLACK = {1:0,3:1,6:3,8:4,10:5};
+  const kbdEl = document.getElementById("kbd");
+  const KEYSEMI = {a:0,w:1,s:2,e:3,d:4,f:5,t:6,g:7,y:8,h:9,u:10,j:11,k:12};
+  let keyEls = {};
+  function buildKbd(){
+    kbdEl.innerHTML = ""; keyEls = {};
+    const OCTS = 2, nWhite = OCTS*7 + 1;
+    const w = 100/nWhite;
+    let wi = 0;
+    for (let o = 0; o < OCTS; o++){
+      for (let i = 0; i < 7; i++){
+        const semi = o*12 + WHITE[i];
+        const el = document.createElement("div");
+        el.className = "wk"; el.style.left = (wi*w)+"%"; el.style.width = w+"%";
+        el.dataset.semi = semi;
+        const lbl = Object.keys(KEYSEMI).find(k => KEYSEMI[k] === semi);
+        if (lbl) el.innerHTML = '<span class="kl">'+lbl.toUpperCase()+'</span>';
+        kbdEl.appendChild(el); keyEls[semi] = el; wi++;
+      }
+    }
+    const last = document.createElement("div");
+    last.className = "wk"; last.style.left = (wi*w)+"%"; last.style.width = w+"%";
+    last.dataset.semi = OCTS*12; kbdEl.appendChild(last); keyEls[OCTS*12] = last;
+    for (let o = 0; o < OCTS; o++){
+      for (const s in BLACK){
+        const semi = o*12 + (+s);
+        const el = document.createElement("div");
+        el.className = "bk";
+        el.style.left = ((o*7 + BLACK[s] + 1)*w - w*0.3) + "%";
+        el.style.width = (w*0.6)+"%";
+        el.dataset.semi = semi;
+        kbdEl.appendChild(el); keyEls[semi] = el;
+      }
+    }
+  }
+  buildKbd();
+  const NAMES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+  function paintOct(){ document.getElementById("oct").textContent = "A = " + NAMES[0] + (octave - 1); }
+  paintOct();
+  const lit = (semi, on) => { const el = keyEls[semi]; if (el) el.classList.toggle("d", on); };
+  const ptr = {};
+  kbdEl.addEventListener("pointerdown", (e) => {
+    const t = e.target.closest("[data-semi]");
+    if (!t) return;
+    e.preventDefault();
+    const semi = +t.dataset.semi;
+    // touch from where the key was struck: high on the key soft, low hard
+    const r = t.getBoundingClientRect();
+    const pos = r.height > 0 ? (e.clientY - r.top) / r.height : 0.75;
+    ptr[e.pointerId] = semi; lit(semi, true); keyOn(semi, touch(pos));
+  });
+  const up = (e) => {
+    const semi = ptr[e.pointerId];
+    if (semi == null) return;
+    delete ptr[e.pointerId]; lit(semi, false); keyOff(semi);
+  };
+  window.addEventListener("pointerup", up);
+  window.addEventListener("pointercancel", up);
+  const down = {};
+  window.addEventListener("keydown", (e) => {
+    const k = e.key.toLowerCase();
+    if (e.metaKey || e.ctrlKey) return;
+    if (k === "z"){ octave = Math.max(2, octave - 1); paintOct(); return; }
+    if (k === "x"){ octave = Math.min(6, octave + 1); paintOct(); return; }
+    if (KEYSEMI[k] == null || down[k]) return;
+    down[k] = 1; lit(KEYSEMI[k], true); keyOn(KEYSEMI[k]);
+  });
+  window.addEventListener("keyup", (e) => {
+    const k = e.key.toLowerCase();
+    if (!down[k]) return;
+    delete down[k]; lit(KEYSEMI[k], false); keyOff(KEYSEMI[k]);
+  });
+
+  // --- the record ----------------------------------------------------------
+  document.getElementById("opensNote").textContent =
+    "Every knob opens at center: the voicing, which for the electric piano's key scaling is the fit. "
+  + "The declined knobs open at center too, since nothing moved the center onto those.";
+  const dEl = document.getElementById("declined");
+  const WHY = window.FIT_WHY || {};
+  const LABEL = Object.fromEntries(U.FM_KNOBS.map(k => [k.key, k.label]));
+  Object.keys(window.FIT_POS || {}).forEach(k => {
+    const p = document.createElement("p");
+    p.className = "declined";
+    p.innerHTML = "<b>" + (LABEL[k] || k) + "</b> — " + (WHY[k] || "measured and declined; see analysis/fits/ in the engine repo.");
+    dEl.appendChild(p);
+  });
+  if (!dEl.children.length) dEl.innerHTML = '<p class="declined">No declined knobs on record.</p>';
+
+  buildKnobs();
+})();
+</script>
+</body>
+</html>
