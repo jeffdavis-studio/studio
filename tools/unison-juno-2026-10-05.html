@@ -68,6 +68,7 @@
     #phrases button{padding:8px 10px}
     #phrases button small{font-size:12px}
     label.k{font-size:12px}
+    .role{font-size:12px}
     .knobs{grid-template-columns:1fr;gap:6px}
     .knob input{height:44px;margin:0}
     .val{font-size:13px}
@@ -143,11 +144,11 @@
     </details>
   </div>
 
-  <footer title="engine @94530f6 · built 2026-10-05">Unison engine — jeffdavis-studio/unison-engine. Hover for build provenance.</footer>
+  <footer title="engine @7b183f3 · built 2026-10-05">Unison engine — jeffdavis-studio/unison-engine. Hover for build provenance.</footer>
 </div>
 
 <script>
-/* ===== src/core/prng.js @ 94530f6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/prng.js @ 7b183f3 — verbatim from jeffdavis-studio/unison-engine ===== */
 // prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
 // token hash, consumed in canonical draw order (Technical Architecture v1.2).
 //
@@ -220,7 +221,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/core/mix.js @ 94530f6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/mix.js @ 7b183f3 — verbatim from jeffdavis-studio/unison-engine ===== */
 // mix.js — the fan-in ≤2 summing rule, as a primitive.
 //
 // Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
@@ -258,7 +259,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/juno.js @ 94530f6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/juno.js @ 7b183f3 — verbatim from jeffdavis-studio/unison-engine ===== */
 // juno.js — Juno-60-flavor poly voice, raw Web Audio, zero dependencies.
 // Ported from the 2026-07-21 bake-off winner (voice-raw.js), restructured to
 // live behind a desk strip: U.createJuno(ctx, strip, patchName) builds its own
@@ -800,7 +801,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/books.js @ 94530f6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/books.js @ 7b183f3 — verbatim from jeffdavis-studio/unison-engine ===== */
 // books.js — Pattern Books v1, as data.
 //
 // This file IS the document: "Unison — Pattern Books v1 (draft)" (Morgan,
@@ -1400,7 +1401,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/session.js @ 94530f6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/session.js @ 7b183f3 — verbatim from jeffdavis-studio/unison-engine ===== */
 // session.js — the session sheet and the arrangement realizer.
 //
 // Two tiers, in this order, each on its own stream (core/prng.js):
@@ -2820,7 +2821,7 @@ window.FIT_POS = {"cutoffBase":0.5,"cutoffEnv":0.5,"filterQ":0.5,"kbdTrack":0.5,
 // and the whole point of declining a knob on the record is that the decline is
 // visible where the instrument is.
 window.FIT_WHY = {"cutoffBase":"THE PACK'S FILTER IS OPEN. Its 85% energy point sits at harmonic 5.9 / 5.1 / 4.0 and it rolls off -6.2 / -6.2 / -6.4 dB/oct at C1 / C3 / C5 — a textbook sawtooth is -6 dB/oct with its 85% point near k=4. So the references carry almost no filter information, and the apparent 0.859 keyboard-tracking slope is the saw's own spectrum scaling with f0, not a VCF. Fitting to it would replace Jeff's 2026-07-22 by-ear voicing with one recording session's slider position.","cutoffEnv":"same: the references' filter is open, so this is their slider position, not the circuit","filterQ":"same; and Q 3.5 against an open-filter reference is the search buying spectral shape it cannot otherwise reach","kbdTrack":"MODELLED BUT NOT MEASURABLE FROM THIS PACK. A Juno-60 has a VCF KYBD slider and juno.js now models it (default 0 = inert, shipped sound unchanged). The ladder in analysis/juno-kbd-ladder.mjs walked it 0 -> 1.0 at Jeff's voicing: the mean residual moved only 1.175 -> 1.040 and C1/C3 got WORSE above 0.7 (rolloff -9.7 vs the references' -6.2). It cannot be pinned against a pack whose filter is open.","subLevel":"THEIR PATCH, NOT THE INSTRUMENT. The pack was recorded with the sub slider down — -23 / -55.6 / -64.9 dB against our -4 dB — and the 2026-08-16 fit drove subLevel to 0.000 AT ITS BOUND. A Juno-60 has a sub oscillator. Removed from the objective entirely rather than fitted; see probes() in fit-juno.mjs.","chorusRate":"NOT MEASURABLE FROM THIS PACK, and that is now a measurement rather than a shrug. analysis/chorus-rate.mjs recovers a known rate to within 0.04 Hz over 0.4-4.5 Hz given a 4 s window, and recovers nothing at 1.5 s. The pack's longest steady span is 1.13 s, and the UNCHORUSED control files answer at higher prominence (3.5-3.9 dB) than the chorused ones (1.4-2.7 dB). Jeff's 0.5 Hz stands.","chorusWet":"finished AT ITS SEARCH BOUND in the joint stage-two fit, which the rig reads as 'could not reach', not as a value","a":"the references' note-off times are unknown, so amplitude decay cannot be separated from 'the player let go'. Fitting an envelope to a guess is worse than not fitting.","d":"same — note-off unknown","s":"same — note-off unknown","r":"same — note-off unknown"};
-/* WHERE THE KNOBS OPEN @ 94530f6, built 2026-10-05.
+/* WHERE THE KNOBS OPEN @ 7b183f3, built 2026-10-05.
 
    Every knob apply-fit moved opens at CENTRE, because after the apply the
    centre IS the fit. Only the knobs it measured and did not move are here, and
