@@ -1,0 +1,3251 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unison — FM keys</title>
+<style>
+  :root{
+    --bg:#16161a; --panel:#1f1f25; --edge:#34343d; --ink:#e8e8ec; --dim:#8d8d99;
+    --accent:#c9a15a; --key:#f2f2f0; --keyd:#232329; --lit:#c9a15a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:14px/1.55 ui-sans-serif,-apple-system,"Segoe UI",Inter,sans-serif;
+    -webkit-text-size-adjust:100%;}
+  .wrap{max-width:940px;margin:0 auto;padding:22px 18px 60px}
+  h1{font-size:19px;font-weight:600;margin:0 0 2px;letter-spacing:.01em}
+  .sub{color:var(--dim);font-size:13px;margin:0 0 18px}
+  .card{background:var(--panel);border:1px solid var(--edge);border-radius:10px;padding:16px;margin-bottom:16px}
+  .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  button{font:inherit;color:var(--ink);background:#2a2a32;border:1px solid var(--edge);
+    border-radius:7px;padding:7px 13px;cursor:pointer}
+  button:hover{border-color:var(--accent)}
+  button.on{background:var(--accent);border-color:var(--accent);color:#1a1a1a;font-weight:600}
+  label.k{display:block;font-size:11px;color:var(--dim);letter-spacing:.06em;text-transform:uppercase;margin-bottom:3px}
+  .knobs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:13px 16px}
+  .knob input{width:100%;accent-color:var(--accent)}
+  .val{font-variant-numeric:tabular-nums;font-size:12px;color:var(--ink)}
+  .val .d{color:var(--accent)}
+  #kbd{position:relative;height:132px;margin:4px 0 10px;user-select:none;touch-action:none}
+  .wk{position:absolute;top:0;bottom:0;background:var(--key);border:1px solid #b9b9b4;
+    border-radius:0 0 5px 5px;box-shadow:inset 0 -7px 9px -8px #000}
+  .wk.d{background:var(--lit)}
+  .bk{position:absolute;top:0;height:62%;background:var(--keyd);border:1px solid #000;
+    border-radius:0 0 4px 4px;z-index:2}
+  .bk.d{background:var(--lit)}
+  .kl{position:absolute;bottom:4px;width:100%;text-align:center;font-size:9px;color:#8a8a84;pointer-events:none}
+  .note{color:var(--dim);font-size:12.5px;line-height:1.6}
+  .note b{color:var(--ink);font-weight:600}
+  footer{color:var(--dim);font-size:12px;border-top:1px solid var(--edge);padding-top:12px;margin-top:22px}
+  code{font:12px ui-monospace,Menlo,monospace;color:var(--accent)}
+  details summary{cursor:pointer;color:var(--dim);font-size:12.5px}
+  details[open] summary{margin-bottom:8px}
+  .declined{font-size:12px;color:var(--dim);margin:6px 0 0;padding-left:14px;border-left:2px solid var(--edge)}
+  .declined b{color:var(--ink)}
+  .hits{display:grid;grid-template-columns:minmax(52px,auto) repeat(3,1fr);gap:8px;align-items:center}
+  .hits .pl{color:var(--ink);font-size:13px}
+  .hit,.wk,.bk{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  button.on.play::before{content:"■ "}
+  #vel{width:150px;accent-color:var(--accent)}
+  /* phone, portrait, inside the hub iframe */
+  @media (max-width:600px){
+    body{font-size:15px}
+    .wrap{padding:14px 10px 40px}
+    .card{padding:12px}
+    h1{font-size:20px}
+    .sub,.note{font-size:14px}
+    label.k{font-size:12px}
+    .val,code,footer,.declined,.hits .pl{font-size:13px}
+    .kl{display:none}
+    button{min-height:44px;min-width:44px;padding:10px 12px}
+    .knobs{grid-template-columns:1fr}
+    .knob input{height:44px;margin:0}
+    #vel{width:100%;height:44px;margin:0}
+    .velrow{flex:1 1 100%}
+    #kbd{height:176px}
+    .desk{display:none}
+    details summary{padding:12px 0;font-size:14px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Unison — FM keys</h1>
+  <p class="sub">The six-operator FM voice, synthesized live in your browser from <code>src/instruments/fm.js</code>, the same file the song render calls. Nothing here is a sample.</p>
+
+  <div class="card">
+    <label class="k">Patch</label>
+    <div class="row" id="patches"></div>
+  </div>
+
+  <div class="card">
+    <label class="k">Hits and phrases</label>
+    <div class="hits" id="hits"></div>
+    <p class="note" style="margin-top:10px">One chord per patch (one low note for the bass), soft or hard. <b>Phrase</b> plays four bars of a progression from the song engine's harmony book through the voice's own <code>schedule()</code>; tap again to stop.</p>
+  </div>
+
+  <div class="card">
+    <label class="k">Play</label>
+    <div id="kbd"></div>
+    <div class="row">
+      <button id="octDn" aria-label="octave down">Oct −</button>
+      <button id="octUp" aria-label="octave up">Oct +</button>
+      <span class="note" id="oct"></span>
+      <button id="prog" class="play">Phrase</button>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <label class="k" style="margin:0">Touch</label>
+      <button id="touchSoft">Soft</button><button id="touchHard">Hard</button>
+      <span class="row velrow"><input id="vel" type="range" min="0" max="1000" value="750" aria-label="touch"></span>
+    </div>
+    <p class="note" style="margin-top:10px">Sixteen voices. Play chords on the keys, several at once<span class="desk">, or type <b>A W S E D F T G Y H U J K</b>; <b>Z</b> / <b>X</b> shift octaves</span>. <b>The touch range is narrow on purpose.</b> On the electric piano and glass the whole range, Soft to Hard, sits near where the old soft setting was, so every note is round and a hard one is only a little louder and brighter than a soft one: consistency over range. Brass was already narrow and the bass is not keys; both play as they did. <span class="desk">With a mouse, click high on a key for a soft note and low for a hard one; typed notes use the <b>Touch</b> slider.</span> On a touch screen the keys play at the <b>Touch</b> setting.</p>
+  </div>
+
+  <div class="card">
+    <label class="k">Session player</label>
+    <div class="row">
+      <button id="groove">Groove: straight, then played</button>
+      <button id="straight">Straight</button>
+      <button id="played">Played</button>
+      <span class="note" id="gnow"></span>
+    </div>
+    <p class="note" style="margin-top:10px">Tap a playing button again to stop. Four bars of the electric piano phrase above, through the voice exactly the way a song plays it. <b>Straight</b> is the phrase as written, every chord on the grid with all its notes at once, the way a sequencer plays it. <b>Played</b> is the same four bars through the session keys player: a little ahead of or behind the beat, each chord rolled low to high by a few milliseconds the way a hand lands, beat one and the backbeat leaned on, no two bars quite the same strength. In a song the player is always on; each song draws its own, and this one is a fixed example.</p>
+  </div>
+
+  <div class="card">
+    <label class="k">Panel</label>
+    <div class="knobs" id="knobs"></div>
+    <div class="row" style="margin-top:14px">
+      <button id="reset">Back to center</button>
+      <span class="note" id="dirty"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What was measured, what moved, and what the reference pack could not tell us</summary>
+      <p class="note">The reference pack is recordings of real Yamaha FM hardware from freesound (CC0 and Sampling Plus): a DX7 electric piano played up the keyboard, DX7 bass notes, and a DX5 (two DX7 engines in one case) played soft to hard and held long. Every file was checked by measurement before use, and three were thrown out for not being what they claimed.</p>
+      <p class="note"><b>Moved, on the electric piano: how much it darkens up the keyboard.</b> The real one keeps more of its brightness in the upper octaves than my first voicing did, so it now darkens much less as you go up, and the tone is a hair brighter.</p>
+      <p class="note"><b>Checked and left alone: the bass.</b> Its brightness already sat where the real DX7 bass notes are.</p>
+      <p class="note"><b>Voiced, not measured: glass and brass.</b> No clean recording of either on real hardware turned up, so these are built from how the instrument works, not fitted.</p>
+      <p class="note" id="opensNote"></p>
+      <p class="note" style="margin-top:10px"><b>Measured and declined.</b> Each knob below was looked at against the pack and not applied, and this is why:</p>
+      <div id="declined"></div>
+    </details>
+  </div>
+
+  <footer title="engine @b976d92 · built 2026-10-05">Unison engine, jeffdavis-studio/unison-engine. Page monitor gain +6 dB over the song's strip input. Hover for build provenance.</footer>
+</div>
+
+<script>
+/* ===== src/core/prng.js @ b976d92 — verbatim from jeffdavis-studio/unison-engine ===== */
+// prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
+// token hash, consumed in canonical draw order (Technical Architecture v1.2).
+//
+// Discipline: every module draws from the same stream, in a documented, fixed
+// order. Never draw conditionally in a way that changes how many draws happen
+// for the same hash (draw first, discard if unused). Reordering draws is a
+// breaking change to every existing output.
+(function (g) {
+  "use strict";
+  const U = (g.U = g.U || {});
+
+  // sfc32 — small fast counter PRNG, 128-bit state, well-tested for this use.
+  // Seeded from the last 32 hex chars (four 32-bit words) of the token hash.
+  // XOR constants keep degenerate hashes (all zeros) from collapsing the state.
+  U.makePrng = function (hash) {
+    let h = String(hash).replace(/^0x/i, "").toLowerCase();
+    if (!/^[0-9a-f]*$/.test(h)) throw new Error("makePrng: non-hex hash");
+    h = h.padStart(32, "0");
+    const word = (i) => parseInt(h.slice(h.length - 8 * (i + 1), h.length - 8 * i), 16) >>> 0;
+    let a = (word(3) ^ 0x9e3779b9) >>> 0;
+    let b = (word(2) ^ 0x243f6a88) >>> 0;
+    let c = (word(1) ^ 0xb7e15162) >>> 0;
+    let d = (word(0) ^ 0x8aed2a6b) >>> 0;
+
+    function r() {
+      a >>>= 0; b >>>= 0; c >>>= 0; d >>>= 0;
+      const t = (a + b) | 0;
+      a = b ^ (b >>> 9);
+      b = (c + (c << 3)) | 0;
+      c = (c << 21) | (c >>> 11);
+      d = (d + 1) | 0;
+      const out = (t + d) | 0;
+      c = (c + out) | 0;
+      return (out >>> 0) / 4294967296;
+    }
+    for (let i = 0; i < 15; i++) r(); // warm-up: decorrelate from raw seed words
+
+    return {
+      // the hash the stream was seeded from, as given (0x stripped, lower
+      // case), so tier 1 can take a fork of the same hash (U.forkPrng) without
+      // its callers passing the hash twice. Not a draw; never read by r().
+      hash: String(hash).replace(/^0x/i, "").toLowerCase(),
+      r,                                                        // [0,1)
+      ri: (lo, hi) => lo + Math.floor(r() * (hi - lo + 1)),     // int, inclusive
+      pick: (arr) => arr[Math.floor(r() * arr.length)],
+      chance: (p) => r() < p,
+    };
+  };
+
+  // FORKED STREAMS (added 2026-10-01 for the bass guitar's session player).
+  // A module that needs its own randomness WITHOUT moving the song's draw
+  // order takes a fork: a separate sfc32 stream seeded from (hash, label)
+  // through FNV-1a + murmur3's fmix32, four words, one per lane of the seed.
+  // It never reads or advances the song stream, so adding or removing a
+  // fork's draws cannot shift any canonical draw (session.js header) — the
+  // same discipline the architecture reserves for the visual layer. Distinct
+  // labels give independent streams; same (hash, label) = same stream.
+  U.forkPrng = function (hash, label) {
+    const s = String(hash).replace(/^0x/i, "").toLowerCase() + ":" + String(label);
+    let hex = "";
+    for (let k = 0; k < 4; k++) {
+      let x = (0x811c9dc5 ^ Math.imul(k + 1, 0x9e3779b9)) >>> 0;
+      for (let i = 0; i < s.length; i++) { x ^= s.charCodeAt(i); x = Math.imul(x, 0x01000193) >>> 0; }
+      x ^= x >>> 16; x = Math.imul(x, 0x85ebca6b) >>> 0;
+      x ^= x >>> 13; x = Math.imul(x, 0xc2b2ae35) >>> 0;
+      x ^= x >>> 16;
+      hex += (x >>> 0).toString(16).padStart(8, "0");
+    }
+    return U.makePrng(hex);
+  };
+})(typeof window !== "undefined" ? window : globalThis);
+
+/* ===== src/core/mix.js @ b976d92 — verbatim from jeffdavis-studio/unison-engine ===== */
+// mix.js — the fan-in ≤2 summing rule, as a primitive.
+//
+// Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
+// audio renders are NOT bit-reproducible wherever a node sums 3+ inputs —
+// float addition isn't associative and the browser doesn't fix the summation
+// order. Chain-mixing every summing point at fan-in ≤2 makes renders
+// bit-identical (SHA-256-equal) across pages and loads. Tone.js cannot adopt
+// this fix; it is why the engine is raw Web Audio.
+//
+// RULE: no AudioNode in this engine may ever receive more than two .connect()s.
+// Anywhere three or more signals meet, they meet through U.chainMixer.
+(function (g) {
+  "use strict";
+  const U = (g.U = g.U || {});
+
+  // Serial chain of 2-input gains. add() splices a fresh gain between the
+  // accumulator and `out`, so every summing node sums exactly two signals in a
+  // fixed order. Order of add() calls is part of the deterministic contract.
+  U.chainMixer = function (ctx, out) {
+    let acc = null;
+    let count = 0;
+    return {
+      add(node) {
+        count++;
+        if (!acc) { acc = ctx.createGain(); node.connect(acc); acc.connect(out); return; }
+        const link = ctx.createGain();
+        acc.disconnect(out);
+        acc.connect(link);
+        node.connect(link);
+        link.connect(out);
+        acc = link;
+      },
+      get count() { return count; },
+    };
+  };
+})(typeof window !== "undefined" ? window : globalThis);
+
+/* ===== src/instruments/fm.js @ b976d92 — verbatim from jeffdavis-studio/unison-engine ===== */
+// fm.js — six-operator FM keys voice (the DX7 lineage), zero dependencies.
+//
+// THE FM LANE (build order 808 → Juno → Minimoog → OB-Xa → Linn → FM).
+// Asana 1217198303706671, built 2026-10-01. The sound wanted: the glassy tine
+// electric piano, bell/glass keys and the solid FM bass of 1983-86 synth-pop
+// and synth R&B. Homage, not clone: patches are voiced here, not copied.
+//
+// IMPLEMENTATION ROUTE: BUFFER SYNTHESIS (route a). Web Audio has no phase-
+// modulation operator, and an OscillatorNode FM graph only approximates PM
+// (the index would have to follow the modulator's frequency, feedback is not
+// expressible at all, and six operators × sixteen voices breaks the fan-in
+// rule's chain budget). So, like the Minimoog and the OB-Xa: noteOn() collects
+// the line, flush() renders it in plain JS into one AudioBuffer, and the song,
+// the fitter and the page all call the same pure function, U.buildFmLine.
+// Deterministic by construction (no clocks, no Math.random, no node timing).
+//
+// THE CIRCUIT, as modelled (per voice; 16 voices, oldest stolen):
+//   OPERATORS  six sine operators (a 4096-point sine table, linear
+//              interpolation). PHASE modulation: a modulator's output is added
+//              to its target's PHASE, scaled so a full-level modulator moves
+//              it ±2 cycles = ±4π (MOD_SCALE; msfa's reading of the chip:
+//              level 99 at full envelope is gain 2 in cycles). Frequency = ratio × note (detune in cents)
+//              or a fixed frequency in Hz.
+//   FEEDBACK   on one operator per algorithm: the mean of its last two
+//              outputs, × π·2^(fb−7), back into its own phase (fb 0-7).
+//   ALGORITHMS the routings the shipped patches need, by their DX7 numbers:
+//                5  three two-operator stacks 2→1, 4→3, 6→5 (fb 6) — ep, glass
+//               16  one carrier with three branches 2→1, 4→3→1, 6→5→1 (fb 6)
+//                   — bass
+//               22  2→1, and 6 modulating 3, 4 and 5 together (fb 6) — brass
+//              Others are not modelled; a patch naming one throws.
+//   ENVELOPES  per operator, the four-rate / four-level generator: levels and
+//              motion in the log (dB) domain, 0.75 dB per level step, speed
+//              doubling every 4 "qrates" (qrate = rate·41/64), attacks 4×
+//              faster than decays and jumping up from −48 dB. Key-on starts
+//              from L4; stage 3 holds at L3 until key-off; then R4 to L4.
+//              Rate scaling (0-7) speeds every stage up the keyboard. Updated
+//              every 16 samples, amplitude interpolated across the block.
+//   LEVELS     output level 0-99 at 0.75 dB a step; KEYBOARD LEVEL SCALING
+//              per operator (break point, left/right depth, curve −lin / −exp
+//              / +exp / +lin, in 3-semitone groups) — how a DX7 EP gets darker
+//              above its break point; VELOCITY SENSITIVITY 0-7 per operator
+//              (−24 dB at velocity 0, sensitivity 7) — on a modulator that is
+//              brightness with velocity, the EP's signature.
+//   LFO        one triangle LFO with a delay: pitch depth in cents, amp depth
+//              on operators whose AMS is set.
+//   OUTPUT     the carriers summed (÷ carrier count), then the DAC: a 12-bit
+//              MANTISSA with a per-sample power-of-two exponent (floating-
+//              point DAC — the noise floor rides with the signal, so the grit
+//              is on quiet tails too), then a 2-pole reconstruction low-pass
+//              (dacLP). Synthesized at the song rate, not the DX7's 49.096 kHz,
+//              so its sample-and-hold is the song rate's own; operator aliasing
+//              is the machine's (it had no oversampling either).
+//   NOT MODELLED: the pitch envelope, portamento, the operator-level
+//              non-linearity below level 20, the EGS's exact attack curve.
+//
+// PANEL. The six operators' settings are the VOICING (U.FM_PATCHES). What the
+// page shows and the fitter moves are performance-level macros over them
+// (U.FM_KNOBS): brightness (an offset on every modulator's level), velocity →
+// tone, key scaling depth, feedback, decay and release time, detune spread,
+// the LFO, the DAC. Every macro's centre is a no-op, so the panel at centre IS
+// the voicing.
+(function (g) {
+  "use strict";
+  const U = (g.U = g.U || {});
+
+  // ops[i] (operator i+1):
+  //   r ratio | hz fixed frequency (0 = ratio mode) | det cents
+  //   lvl output level 0-99 | vs velocity sens 0-7 | rs rate scaling 0-7
+  //   eg [R1,R2,R3,R4, L1,L2,L3,L4] (0-99)
+  //   bp break-point midi | ld/rd left/right depth 0-99 | lc/rc curve
+  //   ("-lin" "-exp" "+exp" "+lin") | ams 0-3
+  const OP = (o) => Object.assign({ r: 1, hz: 0, det: 0, lvl: 0, vs: 0, rs: 0, eg: [99, 99, 99, 99, 99, 99, 99, 0], bp: 60, ld: 0, rd: 0, lc: "-lin", rc: "-lin", ams: 0 }, o);
+  const MACROS = { bright: 0, velTone: 1, keyScale: 1, fbAdd: 0, decay: 1, release: 1, spread: 1, lfoRate: 5, lfoDelay: 0.6, vib: 0, trem: 0, dacBits: 12, dacLP: 14000, level: 0.5 };
+
+  U.FM_PATCHES = {
+    // TINE ELECTRIC PIANO. Algorithm 5. 2→1 is the body (a ratio-1 pair,
+    // velocity on the modulator), 4→3 is the TINE (a ratio-14 modulator whose
+    // envelope dies in ~0.1 s: the bright ping on the attack), 6→5 a second
+    // body slightly detuned, with feedback, for the bark when struck hard.
+    // Modulators scaled down to the right of C4 (the brightness falls up the
+    // keyboard); carriers decay faster up the keyboard (rate scaling).
+    // FIT APPLIED 2026-10-01 (analysis/fit-fm.mjs row A, record
+    // analysis/fits/fm-ep.json): against a real DX7 EP's four rungs C3-C6,
+    // body harmonic centroid 1.48/1.85/1.58/1.25 — the machine keeps more of
+    // its brightness up the keyboard than this voicing did. Right-hand key
+    // scaling depths × 0.2 (op2 40→8, op4 50→10, op6 45→9) and the three
+    // modulators +1 level (84→85, 74→75, 74→75). Residual 0.31 → 0.05
+    // harmonics (RMS over the rungs).
+    ep: Object.assign({}, MACROS, {
+      algo: 5, fb: 4, level: 0.35,
+      ops: [
+        OP({ r: 1, det: 0, lvl: 99, vs: 2, rs: 3, eg: [96, 28, 22, 60, 99, 82, 0, 0] }),
+        OP({ r: 1, det: 0, lvl: 85, vs: 6, rs: 3, eg: [95, 42, 30, 60, 99, 88, 0, 0], bp: 60, rd: 8, rc: "-lin" }),
+        OP({ r: 1, det: 4, lvl: 92, vs: 2, rs: 3, eg: [96, 32, 24, 60, 99, 78, 0, 0] }),
+        OP({ r: 14, det: 0, lvl: 75, vs: 7, rs: 4, eg: [97, 62, 40, 70, 99, 20, 0, 0], bp: 64, rd: 10, rc: "-exp" }),
+        OP({ r: 1, det: -4, lvl: 88, vs: 2, rs: 3, eg: [96, 30, 23, 60, 99, 80, 0, 0] }),
+        OP({ r: 1, det: 0, lvl: 75, vs: 7, rs: 3, eg: [95, 48, 32, 60, 99, 84, 0, 0], bp: 60, rd: 9, rc: "-lin" }),
+      ],
+    }),
+    // GLASS / BELL KEYS. Algorithm 5 again: non-integer modulator ratios
+    // (3.5 and 1.41) put the partials off the harmonic series — bell/glass —
+    // while a ratio-2 pair adds the clean octave shimmer. Long ring, quick
+    // bright attack. A VOICING: the pack has no real-hardware bell (the one
+    // candidate failed its claim), see analysis/fits/fm-lanes.json.
+    glass: Object.assign({}, MACROS, {
+      algo: 5, fb: 2, level: 0.5,
+      ops: [
+        OP({ r: 1, lvl: 99, vs: 2, rs: 2, eg: [97, 30, 20, 45, 99, 72, 0, 0] }),
+        OP({ r: 3.5, lvl: 78, vs: 5, rs: 3, eg: [96, 40, 26, 50, 99, 55, 0, 0], bp: 72, rd: 35, rc: "-lin" }),
+        OP({ r: 2, det: 3, lvl: 84, vs: 2, rs: 2, eg: [97, 26, 18, 45, 99, 74, 0, 0] }),
+        OP({ r: 5.19, lvl: 68, vs: 6, rs: 4, eg: [98, 55, 35, 60, 99, 30, 0, 0], bp: 72, rd: 45, rc: "-exp" }),
+        OP({ r: 1, det: -3, lvl: 82, vs: 2, rs: 2, eg: [97, 28, 19, 45, 99, 72, 0, 0] }),
+        OP({ r: 1.41, lvl: 62, vs: 5, rs: 3, eg: [96, 38, 28, 50, 99, 50, 0, 0] }),
+      ],
+    }),
+    // SOLID FM BASS. Algorithm 16: one carrier, three modulator branches —
+    // 2 (ratio 1, the body, held), 4→3 (a ratio-1 pair with a short ratio-7
+    // click on the front), 6→5 (feedback: the growl). Fast attack, a punchy
+    // drop to a held level, short release.
+    bass: Object.assign({}, MACROS, {
+      algo: 16, fb: 5, level: 0.3,
+      ops: [
+        OP({ r: 1, lvl: 99, vs: 2, rs: 1, eg: [99, 40, 30, 72, 99, 92, 80, 0] }),
+        OP({ r: 1, lvl: 86, vs: 5, rs: 1, eg: [99, 55, 35, 70, 99, 74, 62, 0], bp: 48, rd: 30, rc: "-lin" }),
+        OP({ r: 1, lvl: 78, vs: 3, rs: 1, eg: [99, 50, 30, 70, 99, 70, 60, 0] }),
+        OP({ r: 7, lvl: 70, vs: 6, rs: 2, eg: [99, 70, 50, 75, 99, 0, 0, 0] }),
+        OP({ r: 2, lvl: 64, vs: 3, rs: 1, eg: [99, 50, 35, 70, 99, 70, 55, 0] }),
+        OP({ r: 1, lvl: 72, vs: 3, rs: 1, eg: [99, 50, 35, 70, 99, 72, 60, 0] }),
+      ],
+    }),
+    // BRASS. Algorithm 22: 2→1, and one feedback modulator (6) on three
+    // detuned carriers 3/4/5 — the section. Modulators swell in slower than
+    // the carriers (the brass "blat" opening up), a little vibrato after a
+    // delay. A VOICING: no real-hardware brass in the pack.
+    brass: Object.assign({}, MACROS, {
+      algo: 22, fb: 6, level: 0.45, vib: 6, lfoRate: 5.5, lfoDelay: 0.5,
+      ops: [
+        OP({ r: 1, lvl: 96, vs: 1, rs: 2, eg: [72, 60, 30, 62, 99, 92, 88, 0] }),
+        OP({ r: 1, lvl: 84, vs: 4, rs: 2, eg: [55, 50, 30, 60, 99, 84, 78, 0], bp: 60, rd: 30, rc: "-lin" }),
+        OP({ r: 1, det: 5, lvl: 92, vs: 1, rs: 2, eg: [70, 60, 30, 62, 99, 92, 88, 0] }),
+        OP({ r: 1, det: -5, lvl: 92, vs: 1, rs: 2, eg: [70, 60, 30, 62, 99, 92, 88, 0] }),
+        OP({ r: 1, det: 1, lvl: 90, vs: 1, rs: 2, eg: [70, 60, 30, 62, 99, 92, 88, 0] }),
+        OP({ r: 1, lvl: 80, vs: 4, rs: 2, eg: [52, 48, 30, 60, 99, 86, 80, 0], bp: 60, rd: 30, rc: "-lin" }),
+      ],
+    }),
+  };
+
+  // TOUCH (Asana 1219147597848100, Jeff 2026-10-04: "The hard setting is too
+  // aggressive. Soft is much better. Maybe we really narrow the touch range
+  // for consistency."). A per-patch map from the velocity a player sends to
+  // the velocity the operators see, vel' = centre + width × (vel − 0.5),
+  // clamped 0..1, applied in U.buildFmLine before the level line, so the page,
+  // the keys and the song path all play through it. Narrow ON PURPOSE: the
+  // whole 0..1 range lands in a small band near the page's old Soft (0.2775),
+  // so a hard note is only a little louder and brighter than a soft one.
+  // MEASURED 2026-10-05, harness/fm-touch.mjs (analysis/fits/fm-touch-2026-10-05.json).
+  // The FM bass is not keys: no map (identity). Brass is left at identity
+  // too: its soft-to-hard swing was already half the EP's in tone and under
+  // 1 dB in loudness (see the fit note).
+  U.FM_TOUCH = {
+    ep: { centre: 0.36, width: 0.22 },
+    glass: { centre: 0.33, width: 0.24 },
+  };
+  for (const k in U.FM_TOUCH) U.FM_PATCHES[k].touch = U.FM_TOUCH[k];
+  U.fmTouchVel = function (map, vel) { return map ? Math.min(1, Math.max(0, map.centre + map.width * (vel - 0.5))) : vel; };
+
+  // The panel: performance macros (centre = the voicing), shown on the page
+  // and moved by the fitter.
+  U.FM_KNOBS = [
+    { key: "bright", label: "brightness", min: -30, max: 30, step: 1 },
+    { key: "velTone", label: "velocity → tone", min: 0, max: 2 },
+    { key: "keyScale", label: "key scaling", min: 0, max: 2 },
+    { key: "fbAdd", label: "feedback", min: -4, max: 3, step: 1 },
+    { key: "decay", label: "decay", min: 0.25, max: 4, log: true },
+    { key: "release", label: "release", min: 0.25, max: 4, log: true },
+    { key: "spread", label: "detune", min: 0, max: 3 },
+    { key: "vib", label: "vibrato", min: 0, max: 40, unit: "¢" },
+    { key: "trem", label: "tremolo", min: 0, max: 1 },
+    { key: "lfoRate", label: "lfo rate", min: 0.1, max: 12, log: true, unit: "Hz" },
+    { key: "dacBits", label: "dac grit", min: 8, max: 16, step: 1 },
+    { key: "dacLP", label: "output filter", min: 4000, max: 20000, log: true, unit: "Hz" },
+  ];
+
+  U.fmGet = function (p, key) { return key.split(".").reduce((o, k) => (o == null ? o : o[k]), p); };
+  U.fmSet = function (p, key, val) {
+    const q = JSON.parse(JSON.stringify(p));
+    const ks = key.split(".");
+    let o = q;
+    for (let i = 0; i < ks.length - 1; i++) o = o[ks[i]];
+    o[ks[ks.length - 1]] = val;
+    return q;
+  };
+
+  // ALGORITHMS: mods[i] = operators (0-based) modulating operator i;
+  // car = carriers; fbOp = the operator with feedback.
+  const ALGOS = {
+    5: { mods: [[1], [], [3], [], [5], []], car: [0, 2, 4], fbOp: 5 },
+    16: { mods: [[1, 2, 4], [], [3], [], [5], []], car: [0], fbOp: 5 },
+    22: { mods: [[1], [], [5], [5], [5], []], car: [0, 2, 3, 4], fbOp: 5 },
+  };
+  U.FM_ALGOS = ALGOS;
+
+  const VOICES = 16, BLOCK = 16, TAB = 4096;
+  const SIN = new Float64Array(TAB + 1);
+  for (let i = 0; i <= TAB; i++) SIN[i] = Math.sin((2 * Math.PI * i) / TAB);
+  const MOD_SCALE = 2;            // full-level modulator = ±2 cycles (±4π rad)
+  const midiHz = (m) => 440 * Math.pow(2, (m - 69) / 12);
+  const lvlDb = (l) => (l <= 0 ? -96 : (Math.min(l, 127) - 99) * 0.75);
+  const egDb = (l) => (l <= 0 ? -96 : (l - 99) * 0.75);
+  const dbAmp = (d) => (d <= -95.9 ? 0 : Math.pow(10, d / 20));
+  // speed in dB/s for a (fractional) qrate
+  const speed = (q) => 0.25 * Math.pow(2, q / 4);
+
+  // keyboard level scaling, in level units (0.75 dB)
+  function ksLevel(o, midi, scale) {
+    const d = midi - o.bp;
+    if (d === 0) return 0;
+    const depth = (d > 0 ? o.rd : o.ld) * scale, curve = d > 0 ? o.rc : o.lc;
+    const grp = Math.min(31, Math.floor((Math.abs(d) + 2) / 3));
+    const v = curve.slice(1) === "lin" ? (grp * depth) / 12.5 : (depth * (Math.pow(2, grp / 4.5) - 1)) / 16;
+    return curve[0] === "-" ? -v : v;
+  }
+
+  // One note's operator settings resolved for its pitch and velocity.
+  function noteSetup(p, e, sr) {
+    const algo = ALGOS[p.algo];
+    if (!algo) throw new Error("fm: algorithm " + p.algo + " is not modelled");
+    const f0 = midiHz(e.midi);
+    const isCar = [0, 0, 0, 0, 0, 0];
+    for (const c of algo.car) isCar[c] = 1;
+    const rsx = Math.min(31, Math.max(0, e.midi / 3 - 7));
+    const ops = p.ops.map((o, i) => {
+      let L = o.lvl + ksLevel(o, e.midi, p.keyScale) - o.vs * (32 / 7) * (1 - e.vel) * (isCar[i] ? 1 : p.velTone);
+      if (!isCar[i]) L += p.bright;
+      const hz = o.hz > 0 ? o.hz : f0 * o.r * Math.pow(2, (o.det * p.spread) / 1200);
+      const qd = (o.rs * rsx) / 8;
+      const q = (r) => (r * 41) / 64 + qd;
+      return {
+        gain: dbAmp(lvlDb(Math.max(0, L))) * (isCar[i] ? 1 : MOD_SCALE),
+        inc: hz / sr, car: isCar[i], ams: o.ams,
+        // dB/s per stage; decay macro on stages 2-3, release on 4
+        sp: [speed(q(o.eg[0])) * 4, speed(q(o.eg[1])) / p.decay, speed(q(o.eg[2])) / p.decay, speed(q(o.eg[3])) / p.release],
+        lv: [egDb(o.eg[4]), egDb(o.eg[5]), egDb(o.eg[6]), egDb(o.eg[7])],
+      };
+    });
+    return { algo, ops, fbAmt: (() => { const fb = Math.max(0, Math.min(7, p.fb + p.fbAdd)); return fb ? 0.5 * Math.pow(2, fb - 7) : 0; })() };
+  }
+
+  // Envelope step over dt seconds. st: {db, stage}; stage 0-2 key down
+  // (2 holds at L3), 3 released.
+  function envStep(st, op, dt) {
+    let s = st.stage;
+    if (s > 3) return;
+    const target = op.lv[s];
+    if (st.db < target) {
+      if (st.db < -48) st.db = -48;                 // the attack's jump
+      st.db += op.sp[s] * dt;
+      if (st.db >= target) { st.db = target; if (s < 2) st.stage++; }
+    } else if (st.db > target) {
+      st.db -= op.sp[s] * dt;
+      if (st.db <= target) { st.db = target; if (s < 2) st.stage++; }
+    } else if (s < 2) st.stage++;
+    if (st.db < -96) st.db = -96;
+  }
+
+  // Render one note into out (added), from sample s0, key-off at sOff, hard
+  // stop at sStop (a steal: 2 ms fade). Returns the last sample written + 1.
+  // envOnly: run just the envelopes to find where the note dies.
+  function renderNote(p, e, sr, out, s0, sOff, sStop, envOnly) {
+    const S = noteSetup(p, e, sr);
+    const { algo, ops } = S;
+    const mods = algo.mods, fbOp = algo.fbOp, fbAmt = S.fbAmt;
+    const ncar = algo.car.length;
+    const st = ops.map((o, i) => ({ db: p.ops[i].eg[7] > 0 ? egDb(p.ops[i].eg[7]) : -96, stage: 0 }));
+    const ph = [0, 0, 0, 0, 0, 0], y = [0, 0, 0, 0, 0, 0];
+    let fb1 = 0, fb2 = 0;
+    const a0 = [0, 0, 0, 0, 0, 0], a1 = [0, 0, 0, 0, 0, 0];
+    const dt = BLOCK / sr;
+    const lfoInc = p.lfoRate / sr, vib = p.vib, trem = p.trem;
+    const outScale = p.level / ncar;
+    const N = out ? out.length : Infinity;
+    const maxEnd = Math.min(N, sOff + Math.round(10 * sr));
+    const fadeN = Math.round(0.002 * sr);
+    let n = s0, lfoPh = 0;
+    for (let i = 0; i < 6; i++) a1[i] = dbAmp(st[i].db);
+    while (n < maxEnd && n < sStop + fadeN) {
+      // envelopes at block rate
+      const rel = n >= sOff;
+      let alive = false;
+      for (let i = 0; i < 6; i++) {
+        if (rel && st[i].stage < 3) st[i].stage = 3;
+        a0[i] = a1[i];
+        envStep(st[i], ops[i], dt);
+        a1[i] = dbAmp(st[i].db);
+        if (ops[i].car && (st[i].db > -90 || a0[i] > 0)) alive = true;
+      }
+      if (!alive) {
+        // every carrier silent: released → done; held at a zero sustain level
+        // (L3 = 0, the EP's own shape) → nothing more until the end either
+        if (rel) break;
+        let dead = true;
+        for (const c of algo.car) if (!(st[c].stage === 2 && ops[c].lv[2] <= -96)) dead = false;
+        if (dead) break;
+      }
+      if (envOnly) { n += BLOCK; continue; }
+      const nEnd = Math.min(n + BLOCK, maxEnd);
+      for (let k = 0; n < nEnd; n++, k++) {
+        const w = k / BLOCK;
+        // LFO: triangle, delayed fade-in
+        let lfo = 0, pm = 1, am = 0;
+        if (vib > 0 || trem > 0) {
+          lfoPh += lfoInc; if (lfoPh >= 1) lfoPh -= 1;
+          const tri = lfoPh < 0.5 ? 4 * lfoPh - 1 : 3 - 4 * lfoPh;
+          const tn = (n - s0) / sr, fade = p.lfoDelay > 0 ? Math.min(1, tn / p.lfoDelay) : 1;
+          lfo = tri * fade;
+          if (vib > 0) pm = 1 + (vib * lfo * 0.000577623);   // cents → ratio (ln2/1200)
+          am = trem * 0.5 * (lfo + 1) * fade;
+        }
+        let sum = 0;
+        for (let i = 5; i >= 0; i--) {
+          let mod = 0;
+          const m = mods[i];
+          for (let j = 0; j < m.length; j++) mod += y[m[j]];
+          if (i === fbOp && fbAmt) mod += fbAmt * (fb1 + fb2);
+          let x = ph[i] + mod * MOD_SCALE;
+          x -= Math.floor(x);
+          const fi = x * TAB, ii = fi | 0, fr = fi - ii;
+          const s = SIN[ii] + (SIN[ii + 1] - SIN[ii]) * fr;
+          let amp = (a0[i] + (a1[i] - a0[i]) * w) * ops[i].gain;
+          if (ops[i].ams && am) amp *= 1 - am * ops[i].ams / 3;
+          y[i] = s * amp;
+          if (i === fbOp) { fb2 = fb1; fb1 = y[i]; }
+          if (ops[i].car) sum += y[i];
+          ph[i] += ops[i].inc * pm; if (ph[i] >= 1) ph[i] -= 1;
+        }
+        let v = sum * outScale;
+        if (n >= sStop) v *= Math.max(0, 1 - (n - sStop) / fadeN);
+        out[n] += v;
+      }
+    }
+    return n;
+  }
+
+  // floating-point DAC: 12-bit (dacBits) mantissa, power-of-two exponent over
+  // 8 octaves, then the 2-pole reconstruction low-pass.
+  function dac(x, p, sr) {
+    const bits = Math.max(4, Math.min(24, Math.round(p.dacBits)));
+    const q = Math.pow(2, bits - 1);
+    for (let i = 0; i < x.length; i++) {
+      const v = x[i];
+      if (v === 0) continue;
+      let e = 1;
+      const a = Math.abs(v);
+      for (let k = 0; k < 7 && a < e * 0.5; k++) e *= 0.5;
+      x[i] = (Math.round((v / e) * q) / q) * e;
+    }
+    const c = 1 - Math.exp((-2 * Math.PI * Math.min(p.dacLP, sr * 0.45)) / sr);
+    let z1 = 0, z2 = 0;
+    for (let i = 0; i < x.length; i++) { z1 += c * (x[i] - z1); z2 += c * (z1 - z2); x[i] = z2; }
+    return x;
+  }
+
+  // THE VOICE. events: [{t, midi, vel, dur}] seconds from the buffer start.
+  // Pure: same inputs, same samples. 16 voices: the 17th sounding note steals
+  // the oldest (2 ms fade), found from an envelope-only pass.
+  U.buildFmLine = function (patch, events, sr, totalSec) {
+    const p = Object.assign({}, MACROS, patch);
+    const evs = events.map((e, i) => Object.assign({ i }, e, p.touch ? { vel: U.fmTouchVel(p.touch, e.vel) } : null)).sort((a, b) => a.t - b.t || a.i - b.i);
+    const lastEnd = evs.reduce((m, e) => Math.max(m, e.t + e.dur), 0);
+    // tail: the slowest carrier release, capped
+    const T = totalSec || lastEnd + Math.min(10, 2.5 * p.release) + 0.05;
+    const N = Math.ceil(T * sr);
+    const out = new Float32Array(N);
+    if (!evs.length) return out;
+    const sOn = evs.map((e) => Math.round(e.t * sr)), sOff = evs.map((e) => Math.round((e.t + e.dur) * sr));
+    const ends = evs.map((e, k) => renderNote(p, e, sr, null, sOn[k], sOff[k], Infinity, true));
+    const stop = ends.map(() => Infinity);
+    const active = [];
+    for (let k = 0; k < evs.length; k++) {
+      for (let j = active.length - 1; j >= 0; j--) if (Math.min(ends[active[j]], stop[active[j]]) <= sOn[k]) active.splice(j, 1);
+      if (active.length >= VOICES) stop[active.shift()] = sOn[k];
+      active.push(k);
+    }
+    for (let k = 0; k < evs.length; k++) renderNote(p, evs[k], sr, out, sOn[k], sOff[k], stop[k], false);
+    return dac(out, p, sr);
+  };
+
+  // strip: a desk strip from U.createDesk. Collect-then-flush, like the
+  // Minimoog and the OB-Xa: the voice allocator needs the whole line.
+  U.createFm = function (ctx, strip, patchName, override) {
+    const base = U.FM_PATCHES[patchName];
+    if (!base) throw new Error("createFm: unknown patch " + patchName);
+    const p = override ? Object.assign({}, base, override) : base;
+    const target = ctx.createGain();
+    strip.input.add(target);
+    const held = [target];
+    let pending = [];
+    function flush() {
+      if (!pending.length) return;
+      const evs = pending; pending = [];
+      const t0 = evs.reduce((m, e) => Math.min(m, e.t), Infinity);
+      const rel = evs.map((e) => ({ t: e.t - t0, midi: e.midi, vel: e.vel, dur: e.dur }));
+      const data = U.buildFmLine(p, rel, ctx.sampleRate);
+      const buf = ctx.createBuffer(1, data.length, ctx.sampleRate);
+      buf.getChannelData(0).set(data);
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(target);
+      src.start(t0);
+      held.push(src, buf);
+    }
+    return {
+      held,
+      patch: p,
+      noteOn(t, midi, vel, dur) { pending.push({ t, midi, vel, dur }); },
+      schedule(events, t0) { for (const e of events) pending.push({ t: t0 + e.t, midi: e.midi, vel: e.vel, dur: e.dur }); flush(); },
+      flush,
+    };
+  };
+})(typeof window !== "undefined" ? window : globalThis);
+
+/* ===== src/session/fmplayer.js @ b976d92 — verbatim from jeffdavis-studio/unison-engine ===== */
+// fmplayer.js — the PERFORMANCE half of the FM keys: a session keyboard
+// player on the FM chord strips (compA's tine EP, colour's glass and brass).
+//
+// Rack 2's rule (kb/projects/unison.md, 2026-07-11): every human instrument is
+// a sound model AND a performance model. The sound is instruments/fm.js; this
+// is the player (Asana 1219147597848100, Jeff 2026-10-04 on the FM keys:
+// "maybe a groove setting like the bass guitar? Feels like a more natural
+// player feel might be good there."). A pure, deterministic function of (the
+// bar's written chord notes, the lane's idiom, a player record). It applies
+// ONLY on FM songs (sheet.polyVoice === "fm"); the Juno and the OB-Xa keep
+// playing like sequencers (session.js).
+//
+// Velocity is varied BEFORE the voice's touch map (U.FM_TOUCH, fm.js): the
+// variation is felt in the tone, and the narrow map keeps it consistent.
+//
+// THE PLAYER RECORD is drawn once per song from a FORKED stream,
+// U.forkPrng(hash, "fmPlayer") (core/prng.js), never from the song stream —
+// so drawing it moves no canonical draw and no other song. Fields:
+//   push        ms, + = behind the beat (drag), − = ahead (push); per chord
+//   jitter      ms, per-chord spread around the push (triangular); the
+//               chords on the beat 0.5×
+//   roll        ms between a chord's notes, low to high: a keyboard player's
+//               hand never lands all fingers at once (0-12 ms). Each chord
+//               rolls 0.6-1× of it, so no gap ever exceeds the record's value
+//   velSpread   per-chord velocity variation (fraction); on the beat 0.4×; the
+//               notes inside a chord vary 0.3× of it around the chord
+//   accent      the lift on beat 1 and the backbeats (steps 0, 4, 12); the
+//               off-beat 16ths sit accent × 0.5 under
+//   barVar      a bar's worth of variation in touch: one multiplier per bar
+//   drift       the player's level wandering over a section: a smooth curve
+//               through a random point every 8 bars
+//   lengthFeel  note-length scalar, staccato (<1) ↔ legato (>1); legato never
+//               holds past the next chord
+//   seed        the per-bar fork's seed
+// Lane idiom is a soft bias on the centre of each field, not a rule: funk
+// pushes and accents most; synth R&B drags and rolls widest; new wave and
+// synth-pop are tight; early hip-hop sits back.
+//
+// PORTABLE: only + − × ÷ (no Math.pow/exp/sin): Node and the browser agree.
+//
+// GUARANTEES (selftest: analysis/render-fm.mjs --player):
+//   same events + same record = same output;
+//   U.FM_PLAYER_CENTRE is a no-op (the written notes, untouched);
+//   timing never reorders chords and never leaves the bar;
+//   no gap inside a rolled chord exceeds the record's roll.
+(function (g) {
+  "use strict";
+  const U = (g.U = g.U || {});
+
+  U.FM_PLAYER_LANE = {
+    funk: { push: -3, jit: 1.0, roll: 0.5, acc: 0.16 },
+    synthRnB: { push: 4, jit: 1.0, roll: 1.0, acc: 0.10 },
+    newWave: { push: -1, jit: 0.6, roll: 0.35, acc: 0.08 },
+    synthPop: { push: 0, jit: 0.6, roll: 0.3, acc: 0.08 },
+    earlyHipHop: { push: 5, jit: 0.9, roll: 0.5, acc: 0.12 },
+  };
+  U.FM_PLAYER_CENTRE = { push: 0, jitter: 0, roll: 0, velSpread: 0, accent: 0, barVar: 0, drift: 0, lengthFeel: 1, seed: 1 };
+
+  // Nine draws from the fork, always all nine, in this order.
+  U.drawFmPlayer = function (hash, lane) {
+    const R = U.forkPrng(hash, "fmPlayer");
+    const L = U.FM_PLAYER_LANE[lane] || U.FM_PLAYER_LANE.synthPop;
+    const push = +(L.push + (R.r() * 2 - 1) * 3).toFixed(2);
+    const jitter = +(L.jit * (2 + R.r() * 3)).toFixed(2);
+    const roll = +(12 * L.roll * (0.4 + R.r() * 0.6)).toFixed(2);
+    const velSpread = +(0.04 + R.r() * 0.08).toFixed(3);
+    const accent = +(L.acc * (0.6 + R.r() * 0.8)).toFixed(3);
+    const barVar = +(0.03 + R.r() * 0.06).toFixed(3);
+    const drift = +(0.04 + R.r() * 0.06).toFixed(3);
+    const lengthFeel = +(0.9 + R.r() * 0.2).toFixed(3);
+    const seed = R.ri(1, 2147483646);
+    return { lane, push, jitter, roll, velSpread, accent, barVar, drift, lengthFeel, seed };
+  };
+
+  function driftAt(rec, bar) {
+    if (!rec.drift) return 0;
+    const pt = (k) => U.forkPrng((rec.seed >>> 0).toString(16), "drift" + k).r() * 2 - 1;
+    const k = Math.floor(bar / 8), f = (bar - 8 * k) / 8, s = f * f * (3 - 2 * f);
+    return rec.drift * (pt(k) * (1 - s) + pt(k + 1) * s);
+  }
+
+  // events: one bar of written notes, [{i: step 0-15, midi, vel, dur (steps)}];
+  // the notes sharing a step are a chord. c: {bar, s16 (s), swing (fraction
+  // of a 16th on odd steps)}. Returns [{i, off (s, added to the step's time),
+  // midi, vel, dur}] in time order (a chord low to high).
+  U.playFmBar = function (events, c, rec) {
+    const s16 = c.s16, sw = c.swing || 0;
+    const nominal = (i) => i * s16 + (i % 2 ? sw * s16 : 0);
+    const evs = events.map((e, k) => Object.assign({ k }, e)).sort((a, b) => a.i - b.i || a.midi - b.midi || a.k - b.k);
+    if (!evs.length) return [];
+    const chords = [];
+    for (const e of evs) { const last = chords[chords.length - 1]; if (last && last[0].i === e.i) last.push(e); else chords.push([e]); }
+    const R = U.forkPrng((rec.seed >>> 0).toString(16), "bar" + c.bar);
+    const tri = () => R.r() + R.r() - 1;
+    const bv = 1 + rec.barVar * (R.r() * 2 - 1);
+    const dr = 1 + driftAt(rec, c.bar);
+    const lf = rec.lengthFeel;
+    const out = [];
+    for (let ci = 0; ci < chords.length; ci++) {
+      const ch = chords[ci], i = ch[0].i;
+      const beat = i % 4 === 0, acc = i === 0 || i === 4 || i === 12;
+      const t = tri(), vr = R.r() * 2 - 1, rl = 0.6 + 0.4 * R.r();
+      let m = 1;
+      if (rec.accent) m *= acc ? 1 + rec.accent : beat ? 1 : 1 - rec.accent * 0.5;
+      if (rec.velSpread) m *= 1 + rec.velSpread * (beat ? 0.4 : 1) * vr;
+      m *= bv * dr;
+      const next = chords[ci + 1];
+      for (let n = 0; n < ch.length; n++) {
+        const e = ch[n], nv = R.r() * 2 - 1;
+        const o = { i, off: (rec.push + rec.jitter * t * (beat ? 0.5 : 1) + rec.roll * rl * n) / 1000, midi: e.midi, vel: e.vel, dur: e.dur, ch: ci };
+        if (m !== 1 || rec.velSpread) o.vel = Math.min(1, Math.max(0.05, e.vel * m * (1 + rec.velSpread * 0.3 * nv)));
+        if (lf !== 1) {
+          let d = Math.max(0.25, e.dur * lf);
+          if (lf > 1 && next) d = Math.min(d, Math.max(e.dur, next[0].i - i));
+          o.dur = d;
+        }
+        out.push(o);
+      }
+    }
+    // timing guard, per chord: a chord's first note at least 2 ms after the
+    // last chord's last note and at or after the bar start; its last note
+    // before the bar end (the whole chord shifts; the roll's gaps are kept)
+    const barEnd = 16 * s16;
+    let lastPos = -Infinity;
+    for (let ci = 0, k = 0; ci < chords.length; ci++) {
+      const notes = [];
+      while (k < out.length && out[k].ch === ci) notes.push(out[k++]);
+      const first = nominal(notes[0].i) + notes[0].off, span = notes[notes.length - 1].off - notes[0].off;
+      let pos = first;
+      const lo = lastPos === -Infinity ? 0 : lastPos + 0.002;
+      if (pos < lo) pos = lo;
+      if (pos + span > barEnd - 0.002) pos = barEnd - 0.002 - span;
+      const shift = pos - first;
+      for (const o of notes) { o.off += shift; delete o.ch; }
+      lastPos = pos + span;
+    }
+    return out;
+  };
+})(typeof window !== "undefined" ? window : globalThis);
+
+/* ===== src/session/books.js @ b976d92 — verbatim from jeffdavis-studio/unison-engine ===== */
+// books.js — Pattern Books v1, as data.
+//
+// This file IS the document: "Unison — Pattern Books v1 (draft)" (Morgan,
+// 2026-07-26), transcribed entry for entry. Nothing musical is invented here —
+// where the doc names a pattern in 16-character grid notation, that string is
+// below verbatim; where the doc describes a behavior in prose ("dense 16th
+// syncopation, root/♭7/5, heavy rests"), it becomes a `kind` the realizer in
+// session.js knows how to play, and the doc's wording is kept in the comment.
+//
+// Lane order is Jeff's 2026-07-24 call and is load-bearing: weight = list order,
+// not equal. Influence bank is flat and equal and never owns a song.
+//
+// Weights: the doc deliberately left almost all of these unset ("guessing them
+// on paper is worse than tuning them against renders"). The numbers below are
+// therefore FIRST-PASS and are exactly what the render is for.
+//
+// 2026-08-03 (Jeff's decisions on the pattern-books brief) — three changes land
+// in this file, and one thing is deliberately NOT changed:
+//
+//   FROZEN. Book CONTENT is frozen for testing. No pattern was added, removed,
+//   re-worded or re-weighted below except as required by the silence move.
+//   Expansion is a later pass, driven by real generated songs.
+//
+//   1. Tempo/swing are now SONG-GLOBAL (U.SONG_TEMPO) — one wide range that has
+//      to accommodate every lane. The per-lane tempo table is gone as a
+//      mechanism; a lane only biases where in the global range its draw tends to
+//      land (U.LANE_FEEL.bpmBias / swingBias).
+//   2. Influences draw in two stages: a boolean gate (U.INFLUENCE_GATE), then
+//      selection, then a blend dial that decides how much of the influence's
+//      patch set lands (U.INFLUENCE_PATCHES is the priority order).
+//   4. Silence entries are GONE from the books. A strip going quiet is a mixing
+//      board decision, not an empty pattern draw — every active strip always
+//      draws a real pattern, and whether it is heard is a desk mute. The design
+//      weights those silence entries carried moved to `mute` on U.DESK_ROLES in
+//      desk/desk.js; each one is annotated there with the book weight it came
+//      from. Do not re-add a silence entry to a book.
+//   6. Early hip-hop is drum-forward — U.LANE_ARRANGE carries the per-lane
+//      arrangement/mix bias that expresses it.
+(function (g) {
+  "use strict";
+  const U = (g.U = g.U || {});
+
+  // ---- lanes (7/24 structure) --------------------------------------------
+
+  U.LANES = ["newWave", "synthPop", "synthRnB", "earlyHipHop", "funk"];
+  U.LANE_LABEL = {
+    newWave: "new wave", synthPop: "synth pop", synthRnB: "synth R&B",
+    earlyHipHop: "early hip-hop", funk: "funk",
+  };
+  // Weight = list order. Zipf-ish taper, so lane 1 is meaningfully more likely
+  // than lane 5 without lane 5 becoming rare.
+  U.LANE_WEIGHTS = [30, 24, 19, 14, 13];
+
+  // Tempo + swing are SONG-GLOBAL settings (Jeff, 2026-08-03). ONE wide range,
+  // wide enough for every lane. These two lines are the build-time dials — the
+  // whole project's tempo character is tuned here, by ear, later.
+  U.SONG_TEMPO = {
+    bpm:   [96, 142],
+    swing: [0.00, 0.20],   // applied to odd 16ths
+  };
+
+  // Lane feel. `bpmBias` / `swingBias` are the lane's MEDIAN position in the
+  // global range above (0 = bottom, 0.5 = no bias, 1 = top) — a soft pull, not a
+  // sub-range: every lane can still reach both ends of the global range, it just
+  // lands near its bias most of the time. The medians reproduce the old per-lane
+  // table's centres, so lane character survives the mechanism change.
+  // `mode` picks the harmony orientation the lane's books are written in.
+  U.LANE_FEEL = {
+    newWave:     { bpmBias: 0.65, swingBias: 0.200, kit: "studio",  mode: "minor" },
+    synthPop:    { bpmBias: 0.52, swingBias: 0.125, kit: "studio",  mode: "major" },
+    synthRnB:    { bpmBias: 0.32, swingBias: 0.375, kit: "studio",  mode: "minor" },
+    earlyHipHop: { bpmBias: 0.36, swingBias: 0.250, kit: "machine", mode: "minor" },
+    funk:        { bpmBias: 0.41, swingBias: 0.625, kit: "machine", mode: "minor" },
+  };
+
+  // Median-preserving bias curve: pow(t, k) with k chosen so the median of a
+  // uniform t lands exactly on `bias`. Endpoints stay reachable for every lane.
+  U.biasedPos = function (t, bias) {
+    const b = Math.min(0.99, Math.max(0.01, bias));
+    return Math.pow(t, Math.log(b) / Math.log(0.5));
+  };
+
+  // ---- influences (two-stage, 8/03) ---------------------------------------
+  // Stage 1: does this song have an influence at all? Stage 2: which one.
+  // Then the blend dial decides how much of it lands.
+  U.INFLUENCES = ["reggaeDub", "afrobeat", "motorik", "disco", "sixtiesPop"];
+  U.INFLUENCE_GATE = 0.28;   // build-time dial: P(song is influenced)
+
+  // Each influence's patches in PRIORITY ORDER — the blend dial applies the
+  // first n. A low blend is a trace of the influence; a high blend is the full
+  // patch. An influenced song always gets at least its first patch.
+  U.INFLUENCE_PATCHES = {
+    reggaeDub:  ["oneDrop", "skank", "dropouts"],
+    afrobeat:   ["percTime", "percAccent"],
+    motorik:    ["kick", "hats", "noFills"],
+    disco:      ["kick", "hats", "bass"],
+    sixtiesPop: ["form"],
+  };
+
+  // ---- chord vocabulary ---------------------------------------------------
+
+  U.CHORD_INTERVALS = {
+    m: [0, 3, 7], M: [0, 4, 7],
+    m7: [0, 3, 7, 10], M7: [0, 4, 7, 11], d7: [0, 4, 7, 10],
+    m9: [0, 3, 7, 10, 14], d9: [0, 4, 7, 10, 14],
+    m7b5: [0, 3, 6, 10],
+    sus4: [0, 5, 7], sus2: [0, 2, 7],
+  };
+
+  // ---- Part 1 — harmony books --------------------------------------------
+  // chords: [degreeInSemitonesFromTonic, chordType]. barsPer = harmonic rhythm.
+  // `chorus` (optional) = a different cycle for chorus sections.
+
+  U.HARMONY = {
+    newWave: [
+      { id: "nw.h.aeolian_descent", w: 22, barsPer: 1, chords: [[0, "m"], [10, "M"], [8, "M"], [10, "M"]] },
+      { id: "nw.h.two_chord_minor", w: 16, barsPer: 2, chords: [[0, "m"], [8, "M"]] },
+      { id: "nw.h.parked_minor",    w: 14, barsPer: 4, chords: [[0, "m"]] },
+      { id: "nw.h.minor_lift",      w: 22, barsPer: 1, chords: [[0, "m"], [8, "M"], [3, "M"], [10, "M"]] },
+      { id: "nw.h.iv_pull",         w: 14, barsPer: 1, chords: [[0, "m"], [5, "m"], [0, "m"], [10, "M"]] },
+      { id: "nw.h.relative_flip",   w: 12, barsPer: 1, chords: [[0, "m"], [10, "M"]],
+        chorus: [[3, "M"], [10, "M"], [0, "m"], [8, "M"]] },
+    ],
+    synthPop: [
+      { id: "sp.h.pop_axis",         w: 24, barsPer: 1, chords: [[0, "M"], [7, "M"], [9, "m"], [5, "M"]] },
+      { id: "sp.h.vi_start",         w: 18, barsPer: 1, chords: [[9, "m"], [5, "M"], [0, "M"], [7, "M"]] },
+      { id: "sp.h.mixolydian_vamp",  w: 14, barsPer: 1, chords: [[0, "M"], [10, "M"]] },
+      { id: "sp.h.two_five_one",     w: 12, barsPer: 1, chords: [[2, "m7"], [7, "d7"], [0, "M7"], [0, "M7"]] },
+      { id: "sp.h.bright_two_chord", w: 16, barsPer: 2, chords: [[0, "M"], [5, "M"]] },
+      { id: "sp.h.sus_pad",          w: 12, barsPer: 1, chords: [[0, "sus4"], [0, "M"], [5, "sus2"], [5, "M"]] },
+    ],
+    synthRnB: [
+      { id: "rb.h.min7_vamp",     w: 22, barsPer: 2, chords: [[0, "m7"], [5, "d7"]] },
+      { id: "rb.h.two_five_loop", w: 16, barsPer: 1, chords: [[2, "m7"], [7, "d7"]] },
+      { id: "rb.h.parked_min9",   w: 16, barsPer: 4, chords: [[0, "m9"]] },
+      { id: "rb.h.descent",       w: 14, barsPer: 1, chords: [[5, "M7"], [3, "d7"], [2, "m7"], [0, "m7"]] },
+      { id: "rb.h.gospel_turn",   w: 12, barsPer: 1, chords: [[0, "m7"], [8, "M7"], [2, "m7b5"], [7, "d7"]] },
+      { id: "rb.h.bright_rb",     w: 14, barsPer: 1, chords: [[0, "M7"], [9, "m7"], [2, "m7"], [7, "d7"]] },
+    ],
+    earlyHipHop: [
+      // "the lane's harmony is mostly refusal" — parked is weighted heaviest
+      { id: "hh.h.parked",       w: 44, barsPer: 4, chords: [[0, "m"]] },
+      { id: "hh.h.two_bar_riff", w: 22, barsPer: 2, chords: [[0, "m"], [10, "M"]] },
+      { id: "hh.h.stab_only",    w: 20, barsPer: 4, chords: [[0, "m"]], forceColor: true },
+      { id: "hh.h.iv_shift",     w: 14, barsPer: 4, chords: [[0, "m"], [5, "m"]] },
+    ],
+    funk: [
+      { id: "fk.h.one_chord_vamp", w: 28, barsPer: 4, chords: [[0, "m7"]] },
+      { id: "fk.h.two_chord_push", w: 20, barsPer: 2, chords: [[0, "m7"], [5, "d9"]] },
+      { id: "fk.h.dorian_vamp",    w: 20, barsPer: 1, chords: [[0, "m7"], [5, "d7"]] },
+      { id: "fk.h.turnaround_bar", w: 18, barsPer: 1,
+        chords: [[0, "m7"], [0, "m7"], [0, "m7"], [0, "m7"], [0, "m7"], [0, "m7"], [2, "m7"], [7, "d7"]] },
+      { id: "fk.h.stab_answer",    w: 14, barsPer: 4, chords: [[0, "m7"]], forceColor: true },
+    ],
+  };
+
+  // ---- Part 2 — drum books ------------------------------------------------
+  // 16 chars, one bar of 4/4 at 16ths. x = hit, o = accent/open, g = ghost, . = rest.
+
+  U.KICK = {
+    newWave: [
+      { id: "nw.kick.plain",  w: 30, p: "x.......x......." },
+      { id: "nw.kick.push",   w: 26, p: "x.......x..x...." },
+      { id: "nw.kick.drive",  w: 26, p: "x...x...x...x..." },
+      { id: "nw.kick.sparse", w: 12, p: "x...............", halftime: true },
+    ],
+    synthPop: [
+      { id: "sp.kick.four",      w: 34, p: "x...x...x...x..." },
+      { id: "sp.kick.four_push", w: 24, p: "x...x...x...x..x" },
+      { id: "sp.kick.lift",      w: 20, p: "x...x...x...x.x." },
+      { id: "sp.kick.one_three", w: 18, p: "x.......x...x..." },
+    ],
+    synthRnB: [
+      { id: "rb.kick.synco_a", w: 28, p: "x.....x.x......." },
+      { id: "rb.kick.synco_b", w: 24, p: "x.....x...x..x.." },
+      { id: "rb.kick.pickup",  w: 20, p: "x......xx......." },
+      { id: "rb.kick.gated",   w: 22, p: "x.......x.......", gated: true },
+    ],
+    earlyHipHop: [
+      { id: "hh.kick.808_plain", w: 32, p: "x.......x......." },
+      { id: "hh.kick.808_boom",  w: 28, p: "x.....x.x......." },
+      { id: "hh.kick.electro",   w: 22, p: "x..x....x...x..." },
+      { id: "hh.kick.four",      w: 14, p: "x...x...x...x..." },
+    ],
+    funk: [
+      { id: "fk.kick.boogie_a",  w: 28, p: "x..x....x..x...." },
+      { id: "fk.kick.boogie_b",  w: 26, p: "x.....x.x.....x." },
+      { id: "fk.kick.four_funk", w: 24, p: "x...x...x...x..." },
+      { id: "fk.kick.sparse",    w: 16, p: "x.......x..x...." },
+    ],
+  };
+
+  // snare book is shared across lanes; `lanes` gates which lanes may draw it
+  U.SNARE = [
+    { id: "snare.backbeat",       w: 34, p: "....x.......x...", lanes: null },
+    { id: "snare.backbeat_ghost", w: 18, p: "....x..g....x..g", lanes: ["synthRnB", "funk"] },
+    { id: "snare.halftime",       w: 12, p: "............x...", lanes: ["newWave", "earlyHipHop"] },
+    { id: "snare.pickup_four",    w: 16, p: "....x......xx...", lanes: ["synthRnB", "funk"] },
+    { id: "snare.clap_double",    w: 26, p: "....x.......x...", clap: true,
+      lanes: ["synthPop", "earlyHipHop", "synthRnB"] },
+  ];
+
+  U.HATS = [
+    { id: "hats.eighths",      w: 26, p: "x.x.x.x.x.x.x.x." },
+    { id: "hats.sixteenths",   w: 20, p: "xxxxxxxxxxxxxxxx" },
+    { id: "hats.offbeat",      w: 14, p: "..x...x...x...x." },
+    { id: "hats.open_offbeat", w: 12, p: "x.o.x.o.x.o.x.o." },
+    { id: "hats.electro",      w: 14, p: "x.x.x.o.x.x.x.o." },
+    { id: "hats.gapped",       w: 10, p: "x..xx..xx..xx..x" },
+    // hats.silence (w 10) → desk mute 0.094
+  ];
+
+  // tomsFills — fires only in fill windows. The strip always draws a real fill;
+  // whether the song HAS fills is the desk mute (fills.silence w 52 → 0.520).
+  U.FILLS = [
+    { id: "fills.descend",       w: 22, kind: "descend" },
+    { id: "fills.single_accent", w: 18, kind: "accent" },
+    { id: "fills.bar_takeover",  w: 8,  kind: "takeover" },
+  ];
+
+  // ePerc is the machine's percussion row. The two rim entries were added
+  // 2026-08-31 and they are a WIRING fix, not the book expansion the 8/03 freeze
+  // defers: the 808's rim voice had been built, measured against RS.WAV four
+  // separate times and never once triggered, because no book anywhere named it.
+  // The rim belongs HERE and not in U.SNARE beside clap_double, for a reason
+  // worth writing down. The 808 is on the render path only when the lane's kit
+  // is `machine` (session.js), and only earlyHipHop and funk are machine lanes.
+  // A rim entry in the snare book gated to the lanes where a side-stick backbeat
+  // is idiomatic — new wave, synth pop, synth R&B — would therefore have played
+  // drums.js's generic 9 ms blip and left the 808 rim exactly as unreachable as
+  // it was; and gated to the two machine lanes it would have been musically
+  // wrong, because those lanes want the snare or the clap on the backbeat. On
+  // the machine itself RS/CL sits in the percussion row next to the cowbell and
+  // the congas, which is what this book already is.
+  //
+  // `p2` is a 2-bar (32-step) figure — the son clave does not fit in one bar and
+  // squeezing it into 16 steps would make it something else. The realizer takes
+  // the bar's half, the same way the bass books' RIFF2 does.
+  U.EPERC = [
+    { id: "eperc.cowbell_quarters", w: 14, p: "x...x...x...x...", voice: "cowbell" },
+    { id: "eperc.cowbell_synco",    w: 14, p: "..x...x...x.....", voice: "cowbell" },
+    { id: "eperc.conga_run",        w: 12, kind: "congaRun" },
+    { id: "eperc.accent_only",      w: 12, p: "...........x....", voice: "cowbell" },
+    // Son clave, 3-2. Bar 1 is the three side (1, the "and" of 2, 4); bar 2 is
+    // the two side (2, 3). Gated off new wave — the clave is the Latin-leaning
+    // end of these lanes, and new wave is the one that never goes there.
+    // `linnVoice`: on the Linn-family kit the son clave plays on the machine's
+    // own clave (it has one; the 808 plays the figure on its rim).
+    { id: "eperc.rim_clave", w: 14, voice: "rim", linnVoice: "clave",
+      p2: "x.....x.....x.......x...x.......",
+      lanes: ["synthPop", "synthRnB", "earlyHipHop", "funk"] },
+    // The last-16th tick, machine lanes only: the rim as a metronome sitting a
+    // 16th behind each beat, which is how the electro end of the corpus uses it.
+    { id: "eperc.rim_tick", w: 10, p: "...x...x...x...x", voice: "rim",
+      lanes: ["earlyHipHop", "funk"] },
+    // eperc.silence (w 48) → desk mute 0.480
+  ];
+
+  U.PERCTIME = [
+    // `linnVoice`: the Linn-family kit has the shakers these parts were
+    // written for (cabasa running, tambourine on the backbeat), so it plays
+    // them there; every other kit keeps the quiet closed hat.
+    { id: "perctime.16ths",         w: 16, p: "xxxxxxxxxxxxxxxx", voice: "hatClosed", linnVoice: "cabasa", quiet: true },
+    { id: "perctime.8ths",          w: 14, p: "x.x.x.x.x.x.x.x.", voice: "hatClosed", linnVoice: "cabasa", quiet: true },
+    { id: "perctime.tamb_backbeat", w: 12, p: "....x.......x...", voice: "hatClosed", linnVoice: "tamb", quiet: true },
+    { id: "perctime.off16",         w: 10, p: ".x.x.x.x.x.x.x.x", voice: "hatClosed", linnVoice: "tamb", quiet: true },
+    // perctime.silence (w 48) → desk mute 0.480
+  ];
+
+  // The HUMAN SHAKERS on the percTime strip (2026-10-02, Asana 1219105547030541,
+  // instruments/shakers.js + session/shakerplayer.js). No new draw: draw 17's
+  // walk (the pattern pick over U.PERCTIME, session.js) is kept open and its
+  // RESIDUAL — where the roll fell inside the picked entry's own weight,
+  // uniform on [0, 1) — below U.SHAKERS_SHARE[lane] makes the strip a session
+  // percussionist's shaker, maracas or cabasa instead of the kit's voice (the
+  // same device as the bass guitar on draw 21 and the Linn ride on draw 69).
+  // So every song that does not draw the shakers keeps its kit voice and its
+  // audio byte for byte. The backbeat tambourine part never draws them (a hand
+  // tambourine is another instrument). Shares, the brief's starting points:
+  // funk and synth R&B carry a hand shaker on most records, synth-pop often,
+  // new wave sometimes, early hip-hop rarely.
+  U.SHAKERS_SHARE = { funk: 0.50, synthRnB: 0.45, synthPop: 0.35, newWave: 0.25, earlyHipHop: 0.15 };
+  U.SHAKERS_NEVER = { "perctime.tamb_backbeat": 1 };
+
+  // The HUMAN CONGAS / BONGOS on the percAccent strip (2026-10-02, Asana
+  // 1219116584702308, instruments/congas.js + session/congaplayer.js). No new
+  // draw: draw 18's walk (the pattern pick over U.PERCACCENT, session.js) is
+  // kept open and its RESIDUAL below U.CONGAS_SHARE[lane] makes the strip a
+  // session percussionist's hand drums instead of the kit's congas (the same
+  // device as the shakers on draw 17). Every song that does not draw them
+  // keeps its kit voice and its audio byte for byte. Shares, the brief's
+  // starting points: funk and synth R&B put a conga player over the machine
+  // on most records, early hip-hop and synth-pop sometimes, new wave least.
+  U.CONGAS_SHARE = { funk: 0.60, synthRnB: 0.55, synthPop: 0.30, newWave: 0.20, earlyHipHop: 0.25 };
+
+  U.PERCACCENT = [
+    { id: "percaccent.tumbao",     w: 14, p: "..x.x...x.x.x...", kind: "conga" },
+    { id: "percaccent.sparse",     w: 12, p: "........x.......", kind: "conga" },
+    { id: "percaccent.phrase_end", w: 10, kind: "phraseEnd" },
+    // percaccent.silence (w 64, heaviest of any strip) → desk mute 0.640
+  ];
+
+  // ---- Part 3 — bass books ------------------------------------------------
+  // kind = the realizer's generator; the doc's shape description is the comment.
+
+  U.BASS = {
+    newWave: [
+      { id: "nw.bass.root_eighths", w: 26, kind: "rootEighths" },   // root, straight 8ths, one note per chord
+      { id: "nw.bass.octave_alt",   w: 22, kind: "octaveAlt" },     // root/octave alternating 8ths
+      { id: "nw.bass.seq16",        w: 24, kind: "seq16" },         // 16th sequenced arpeggio on chord tones
+      { id: "nw.bass.riff_hook",    w: 20, kind: "riffHook" },      // 2-bar riff with rests; bass is the hook
+    ],
+    synthPop: [
+      { id: "sp.bass.root_quarters", w: 28, kind: "rootQuarters" }, // stays out of the way
+      { id: "sp.bass.octave_disco",  w: 30, kind: "octaveAlt" },    // root–octave 8ths
+      { id: "sp.bass.walk",          w: 24, kind: "walk" },         // root, then scale walk into the change
+    ],
+    synthRnB: [
+      { id: "rb.bass.synco16",      w: 32, kind: "synco16" },       // the lane's spine
+      { id: "rb.bass.octave_slide", w: 22, kind: "octaveSlide" },
+      { id: "rb.bass.pedal",        w: 20, kind: "pedal" },
+    ],
+    earlyHipHop: [
+      { id: "hh.bass.808_sub",  w: 34, kind: "sub808" },            // long sub tones on 1 and 3, glide tail
+      { id: "hh.bass.riff_2bar", w: 26, kind: "riffHook" },
+      // hh.bass.none (w 22 — "the 808 kick IS the bass") → lane mute bias
+      // +0.268 on the bass strip, in U.LANE_ARRANGE.earlyHipHop below.
+    ],
+    funk: [
+      { id: "fk.bass.16th_synco",  w: 36, kind: "synco16" },        // the composition
+      { id: "fk.bass.octave_push", w: 26, kind: "octavePush" },
+      { id: "fk.bass.one_note",    w: 18, kind: "oneNote" },        // single pitch, all rhythm
+    ],
+  };
+
+  // Which instrument the bass strip patches in for the song (2026-09-24, Asana
+  // 1217198286949491). One draw, right after the bass mask. The desk design has
+  // instruments patching into strips by draw; the Minimoog joins the Juno here
+  // rather than replacing it. Overall ~60/40 Juno/Minimoog at the lane weights.
+  // The Juno plays "sub" on sub808 patterns and "bass" otherwise; the Minimoog's
+  // patch follows the pattern kind (MOOG_BASS_FOR_KIND in session.js).
+  //
+  // The FM bass joins the same draw (2026-10-01, Asana 1217198303706671) at a
+  // modest weight where the records used it: synth-pop and synth R&B (the
+  // 1984-86 FM bass on the bottom of those records), early hip-hop (the
+  // DX-bass electro records). New wave and funk stay Juno/Minimoog: their
+  // bass is the analog one. No new draw — one more entry on draw 21.
+  U.BASS_VOICE = {
+    // seq16 and riffHook are Moog-shaped lines, but the lane's sound is the poly
+    // synth doing everything; the Juno keeps the majority.
+    newWave: [{ id: "juno", w: 65 }, { id: "minimoog", w: 35 }],
+    // octave-disco and walking lines: the records this lane is built on used a
+    // Moog on the bottom about as often as not.
+    synthPop: [{ id: "juno", w: 40 }, { id: "minimoog", w: 40 }, { id: "fm", w: 20 }],
+    // synco16 and slides want the Moog's glide; the pedal wants the Juno's
+    // steadiness. Leans Juno.
+    synthRnB: [{ id: "juno", w: 50 }, { id: "minimoog", w: 30 }, { id: "fm", w: 20 }],
+    // the book leans 808 sub; the Juno sub patch is that feel, so the Moog is
+    // an occasional round sub or fat riff.
+    earlyHipHop: [{ id: "juno", w: 70 }, { id: "minimoog", w: 15 }, { id: "fm", w: 15 }],
+    // the canonical Minimoog lane (the synth-funk bass is a Moog bass).
+    funk: [{ id: "juno", w: 45 }, { id: "minimoog", w: 55 }],
+  };
+
+  // The BASS GUITAR on draw 21 (2026-10-01, Asana 1219089994110317): the
+  // first session player, rack 2. It does NOT get its own entry in the list
+  // above: it takes U.BASSGUITAR_SHARE[lane] of the draw out of WHICHEVER
+  // synth bass the roll landed on — the roll's RESIDUAL inside that entry
+  // (where it fell within the entry's own weight, uniform on [0, 1)) below
+  // the share is a bass-guitar song. The same no-new-draw device as the Linn
+  // ride (draw 69). Two things follow: the synth voices keep their relative
+  // weights within each lane, and every song that does not draw the bass
+  // guitar keeps exactly the synth bass it had, so its audio is byte-
+  // identical. Shares (a starting point, the brief's weights as fractions):
+  // funk heavy, new wave strong, synth R&B moderate, synth-pop light, early
+  // hip-hop near zero (the 808 is the bass there).
+  // A string cannot hold a four-bar pedal or a sub tone: U.BASSGUITAR_NEVER's
+  // pattern kinds never draw it (the synth voice the roll landed on plays).
+  U.BASSGUITAR_SHARE = { funk: 0.45, newWave: 0.35, synthRnB: 0.25, synthPop: 0.20, earlyHipHop: 0.05 };
+  U.BASSGUITAR_NEVER = { pedal: 1, sub808: 1 };
+
+  // Which poly synth the song's chord strips patch in: Juno or OB-Xa
+  // (2026-09-29, Asana 1217198286066699). One draw after the colour pattern
+  // (draw 31), for pad, compA and colour TOGETHER — a song has one poly synth
+  // on its chords, the way a record had one on the session. Lead, arp and
+  // counter stay on the Juno: the OB-Xa voice has no lead or arp patch yet (the
+  // reference pack holds no single-line OB playing to build one from).
+  //   OB-Xa heavier where it was the record's poly: synth-pop and new wave (the
+  //   brass and big-chord OB sound), funk (the Minneapolis OB-Xa). Lighter where
+  //   the Juno's chorus pad IS the lane (synth R&B), and in early hip-hop, whose
+  //   colour strip is the ORCH5 stab the Juno stab patch was voiced for.
+  // THE DRUM MACHINE (draw 69, 2026-09-29): which machine the kit strips play.
+  // The studio lanes ARE the Linn-family machine (new wave, synth-pop, 80s R&B
+  // are the records it made), so they take it every time; early hip-hop is the
+  // 808's. Funk draws: the Minneapolis sound is an LM-1 / LinnDrum record as
+  // often as an 808 one, and the funk books' patterns (syncopated kick, ghost
+  // snares, rim tick, cowbell) render cleanly through both — see
+  // reports/linn-wiring-2026-09-29.md. The weight is a lane-feel call, not a
+  // measurement.
+  U.DRUM_MACHINE = {
+    newWave: [{ id: "linn", w: 100 }],
+    synthPop: [{ id: "linn", w: 100 }],
+    synthRnB: [{ id: "linn", w: 100 }],
+    earlyHipHop: [{ id: "808", w: 100 }],
+    funk: [{ id: "808", w: 55 }, { id: "linn", w: 45 }],
+  };
+  // The 808's auxiliary percussion gate (session.js, the perc808 fork,
+  // 2026-10-04): the chance an aux strip the desk left up on an 808 song stays
+  // up. Jeff, 10/04: "focus on kick snare hats and clap ... everything else
+  // should be rare". Set from the census (harness/perc808-census.mjs, 5000
+  // hashes, 1103 808 songs; before: tomsFills 45 %, ePerc 64 %, percAccent
+  // (kit) 32 % of 808 songs up) to land each near one 808 song in six to nine.
+  U.PERC808_KEEP = { tomsFills: 0.35, ePerc: 0.25, percAccent: 0.35 };
+  // The Linn's (2026-10-04, Jeff: the Linn's other percussion "should still
+  // be used sparingly"): the same gate on Linn songs (the perclinn fork),
+  // started from the 808's values. Census: harness/perclinn-census.mjs.
+  U.PERCLINN_KEEP = { tomsFills: 0.35, ePerc: 0.25, percAccent: 0.35 };
+  // How often a Linn song plays its hats strip on the ride instead of the
+  // closed hat, whole song (2026-09-30, the Linn's cymbals). Read off draw
+  // 69's residual (session.js), not a draw of its own.
+  U.LINN_RIDE = { funk: 0.25, synthRnB: 0.30, synthPop: 0.20, newWave: 0.15 };
+
+  //
+  // THREE-WAY since 2026-10-01 (Asana 1217198303706671): the FM keys voice
+  // joins draw 31. On an FM song compA plays the tine EP and colour plays
+  // glass (section hits) or FM brass (brass offbeats); the PAD stays on the
+  // Juno pad — an FM EP is a struck, decaying sound, not a pad, and the
+  // records under the DX EP kept an analog pad. FM heaviest where the DX7 EP
+  // and glass keys WERE the record (synth R&B, synth-pop), present on new
+  // wave, light on funk (the OB-Xa's lane), and early hip-hop takes it for
+  // the glass/bell colour. No new draw: one more entry on draw 31.
+  U.POLY_VOICE = {
+    newWave: [{ id: "juno", w: 35 }, { id: "obxa", w: 45 }, { id: "fm", w: 20 }],
+    synthPop: [{ id: "juno", w: 30 }, { id: "obxa", w: 35 }, { id: "fm", w: 35 }],
+    synthRnB: [{ id: "juno", w: 40 }, { id: "obxa", w: 20 }, { id: "fm", w: 40 }],
+    earlyHipHop: [{ id: "juno", w: 60 }, { id: "obxa", w: 20 }, { id: "fm", w: 20 }],
+    funk: [{ id: "juno", w: 35 }, { id: "obxa", w: 55 }, { id: "fm", w: 10 }],
+  };
+
+  // The Minimoog on the MONO pitched strips (2026-10-05, Asana
+  // 1219144675065278; Jeff 10/04: "Seems like it's positioned primarily as a
+  // bass instrument. Should we also be using it for other parts?" — lead and
+  // counter/hook riff first, arpeggio at a lower weight, never comps or pads;
+  // "Sounds good to me"). Probability the strip plays the Minimoog instead of
+  // the Juno, per lane, rolled from the moogRoles fork (session.js). The Juno
+  // keeps the majority of every strip (Jeff, 10/04: the Juno is "absolutely
+  // fantastic and should be the workhorse for the unison studio"): the
+  // Minimoog is a drawn alternative, not the new default. Counter = lead
+  // minus .05; arp .15 everywhere.
+  U.MOOG_ROLES = {
+    funk:        { lead: 0.40, counter: 0.35, arp: 0.15 },
+    synthPop:    { lead: 0.35, counter: 0.30, arp: 0.15 },
+    synthRnB:    { lead: 0.30, counter: 0.25, arp: 0.15 },
+    newWave:     { lead: 0.35, counter: 0.30, arp: 0.15 },
+    earlyHipHop: { lead: 0.25, counter: 0.20, arp: 0.15 },
+  };
+
+  // ---- Part 4 — pitched books ---------------------------------------------
+
+  U.COMP = [
+    { id: "comp.stab_offbeats", w: 26, kind: "grid", p: "..x...x...x...x." },
+    { id: "comp.gate_chop",     w: 20, kind: "gateChop" },          // held chord chopped by a gate
+    { id: "comp.rhodes_16ths",  w: 18, kind: "rhodes16", lanes: ["synthRnB", "funk"] },
+    { id: "comp.hold",          w: 20, kind: "hold" },
+    { id: "comp.quarter_pulse", w: 16, kind: "grid", p: "x...x...x...x..." },
+  ];
+
+  // RHYTHM GUITAR (the human rack's fourth stop, 2026-10-03): the rhythmGtr
+  // strip's written parts. p: 16 steps — X accented chord, x chord, c a
+  // written chuck, s a stab, . rest. Stroke direction is structural (the
+  // player's rule, session/gtrplayer.js U.gtrWritten): on a 16th grid a chord
+  // on an even step is a downstroke and on an odd step an upstroke; on an 8th
+  // grid (chop8) down on the beat, up on its "and". strings: the voicing's
+  // top three ("partial") or the whole shape ("full"). wl: the weight per
+  // lane (absent = never on that lane). The strip's silence is the desk mute
+  // per lane, U.RHYTHMGTR_MUTE, drawn as its own uniform (draw 87).
+  U.RHYTHMGTR = [
+    { id: "gtr.chuck16",     p: "X.cxc.xcX.cxc.xc", grid: 16, strings: "partial", wl: { funk: 40, synthRnB: 30, synthPop: 8,  newWave: 4,  earlyHipHop: 18 } },
+    { id: "gtr.partial16",   p: "x.x..x.xx.x..x.x", grid: 16, strings: "partial", wl: { funk: 16, synthRnB: 30, synthPop: 26, newWave: 10, earlyHipHop: 10 } },
+    { id: "gtr.skank",       p: "..s...s...s...s.", grid: 16, strings: "partial", wl: { funk: 12, synthRnB: 14, synthPop: 22, newWave: 22, earlyHipHop: 22 } },
+    { id: "gtr.chop8",       p: "X.x.x.x.X.x.x.x.", grid: 8,  strings: "full",    wl: { funk: 4,  synthRnB: 6,  synthPop: 30, newWave: 50, earlyHipHop: 10 } },
+    { id: "gtr.stab_sparse", p: "s.....s.........", grid: 16, strings: "full",    wl: { funk: 28, synthRnB: 20, synthPop: 14, newWave: 14, earlyHipHop: 40 } },
+  ];
+  U.RHYTHMGTR_MUTE = { funk: 0.40, synthRnB: 0.50, newWave: 0.55, synthPop: 0.70, earlyHipHop: 0.85 };
+  // the book for a lane, as U.pickWeighted reads it
+  U.rhythmGtrBook = function (lane) {
+    const out = [];
+    for (const e of U.RHYTHMGTR) { const w = e.wl[lane] || 0; if (w > 0) out.push(Object.assign({}, e, { w })); }
+    return out;
+  };
+  // voicing per pattern and lane
+  U.GTR_FOR_PATTERN = function (id, lane) {
+    if (id === "gtr.skank") return "skank";
+    if (id === "gtr.chop8") return "chop";
+    if (id === "gtr.stab_sparse") return lane === "funk" || lane === "synthRnB" ? "funk" : "chop";
+    return "funk";
+  };
+
+  U.PAD = [
+    { id: "pad.whole_bar",     w: 26, kind: "wholeBar" },
+    { id: "pad.two_bar_swell", w: 20, kind: "swell" },
+    { id: "pad.section_only",  w: 22, kind: "sectionOnly" },
+    // pad.silence (w 32) → desk mute 0.320
+  ];
+
+  U.ARP = [
+    { id: "arp.up16",         w: 22, kind: "up16" },
+    { id: "arp.updown16",     w: 18, kind: "updown16" },
+    { id: "arp.octave_pulse", w: 16, kind: "octavePulse" },
+    { id: "arp.random8",      w: 14, kind: "random8" },
+    // arp.silence (w 38) → desk mute 0.352
+  ];
+
+  U.LEAD = [
+    { id: "lead.vocal_phrase",      w: 30, kind: "vocalPhrase" },   // one flavor among three, not the default
+    { id: "lead.instrumental_line", w: 26, kind: "instrumental" },
+    { id: "lead.solo_window",       w: 16, kind: "soloWindow" },
+    // lead.none (w 28 — "a whole species of deep cut") → desk mute 0.280
+  ];
+
+  U.COUNTER = [
+    { id: "counter.answer",   w: 24, kind: "answer" },
+    { id: "counter.ostinato", w: 24, kind: "ostinato" },
+    // counter.silence (w 44) → desk mute 0.478
+  ];
+
+  U.COLOR = [
+    { id: "color.section_hit",   w: 22, kind: "sectionHit" },       // pairs with the ORCH5 homage
+    { id: "color.brass_offbeat", w: 16, kind: "brassOffbeat" },
+    // color.silence (w 54, heaviest) → desk mute 0.587
+  ];
+
+  // ---- Part 6 — lane arrangement / mix bias -------------------------------
+  // Per-lane soft bias on the ARRANGEMENT (when a strip enters, how likely it is
+  // muted) and the MIX (fader multipliers). Not a pattern book — this is how a
+  // lane leans on the desk. Empty for a lane means "no lean."
+  //
+  // earlyHipHop (Jeff, 2026-08-03): "more drum/beat focused." Drum strips enter
+  // earlier and sit louder, pitched strips enter later, mute more often, and sit
+  // back — so the beat is the star of the song. The bass entry carries the old
+  // hh.bass.none design weight (0.268); the drum-forward pass leaves it there
+  // rather than stacking another bias on top of it.
+  U.LANE_ARRANGE = {
+    newWave: {}, synthPop: {}, synthRnB: {}, funk: {},
+    earlyHipHop: {
+      entry: {
+        snare: -0.10, hats: -0.08, tomsFills: -0.10,
+        ePerc: -0.15, percTime: -0.12, percAccent: -0.14,
+        compA: +0.12, pad: +0.18, arp: +0.15, lead: +0.12, counter: +0.20, color: +0.08,
+      },
+      mute: {
+        ePerc: -0.18, percTime: -0.15, percAccent: -0.20,
+        bass: +0.268,                     // ← hh.bass.none
+        compA: +0.20, pad: +0.18, arp: +0.18, counter: +0.15,
+      },
+      fader: {
+        kick: 1.10, snare: 1.06, ePerc: 1.06, percAccent: 1.04,
+        compA: 0.85, pad: 0.82, arp: 0.85, counter: 0.85, color: 0.92,
+      },
+    },
+  };
+
+  // ---- Part 5 — influence bank -------------------------------------------
+  // Each influence is a patch applied over a lane draw, never a whole song.
+  // Applied in session.js §applyInfluence.
+
+  U.INFLUENCE_NOTE = {
+    reggaeDub:  "skank upstrokes on comp; one-drop as a COUPLED kick+snare pair on beat 3; strip dropouts",
+    afrobeat:   "interlocking percTime + percAccent figures",
+    motorik:    "four-on-the-floor kick, relentless 8th hats, fills forced silent",
+    disco:      "four-on-the-floor kick, open-offbeat hats, octave bass",
+    sixtiesPop: "form only — verse/chorus/middle-8 shape",
+  };
+
+  // ---- weighted pick against the song's single PRNG stream ----------------
+  // ONE draw per call, always, regardless of list length — so draw counts can't
+  // drift with book size. Filter by lane BEFORE calling.
+  U.pickWeighted = function (R, list) {
+    let total = 0;
+    for (const e of list) total += e.w;
+    let x = R.r() * total;
+    for (const e of list) { x -= e.w; if (x < 0) return e; }
+    return list[list.length - 1];
+  };
+
+  U.forLane = function (list, lane) {
+    return list.filter((e) => !e.lanes || e.lanes.indexOf(lane) > -1);
+  };
+})(typeof window !== "undefined" ? window : globalThis);
+
+/* ===== src/session/session.js @ b976d92 — verbatim from jeffdavis-studio/unison-engine ===== */
+// session.js — the session sheet and the arrangement realizer.
+//
+// Two tiers, in this order, each on its own stream (core/prng.js):
+//
+//   TIER 1 — U.drawSession(R, forceLane)
+//     The song-global sheet. Pure data — no audio, no context. This is what the
+//     renderer probes for song length before it opens an OfflineAudioContext.
+//     It owns the song stream R = U.makePrng(hash), and only it reads R.
+//
+//   TIER 2 — U.realizeSession(ctx, desk, sheet, Rbars, t0)
+//     Turns the sheet into scheduled events on a live or offline context. Its
+//     draws, one per bar in bar order, come from Rbars = U.forkPrng(hash,
+//     "bars") (renderer.js buildSong, 2026-10-03). Until then tier 2 read R
+//     right after tier 1's last draw, so every tier-1 append shifted each
+//     bar's variation draw; on its own fork, it cannot.
+//
+// ===========================================================================
+// CANONICAL DRAW ORDER — THE CONTRACT (revised 2026-09-29)
+// ===========================================================================
+// Tier 1 consumes exactly 87 values (44 through 2026-08-03, plus the 808 panel
+// block appended 2026-08-10 and extended 2026-08-17, plus the bass-voice draw
+// inserted 2026-09-24, plus the poly-voice and poly-slop draws inserted
+// 2026-09-29, plus the drum-machine draw and the Linn panel appended
+// 2026-09-29, plus the rhythm guitar's three draws appended 2026-10-03), in
+// this order, for EVERY song. The count is fixed: nothing here is drawn
+// conditionally. New draws go where they belong in the order and the column
+// below is renumbered to stay true: in development there is no backward hash
+// stability (Jeff, 2026-09-24 — "It's totally fine if code updates produce new
+// results with the same hash while we are in development"). What holds is
+// same code + same hash = same output.
+//
+//    1  lane
+//    2  bpm position within the global tempo range
+//    3  swing position within the global swing range
+//    4  tonic pitch class
+//    5  harmony book
+//    6  form
+//    7  foreground (lead vs bass)
+//    8  density (sparse ↔ dense)
+//    9  influence GATE          — stage 1: is this song influenced at all?
+//   10  influence selection     — stage 2, used only if 9 passed
+//   11  influence blend         — how much of the patch set lands, used only if 9 passed
+//   12  kick pattern            ┐
+//   13  snare pattern           │
+//   14  hats pattern            │
+//   15  tomsFills pattern       │
+//   16  ePerc pattern           │
+//   17  percTime pattern        │  one pattern pick per VOICED desk role,
+//                               │    (its residual: the human SHAKERS, U.SHAKERS_SHARE,
+//                               │    2026-10-02, no new draw)
+//   18  percAccent pattern      │  in U.DESK_ROLES order, with each role's
+//                               │    (its residual: the human CONGAS/BONGOS,
+//                               │    U.CONGAS_SHARE, 2026-10-02, no new draw)
+//   19  bass pattern            │  mask draw immediately after its pick
+//   20  bass mask               │
+//   21  bass VOICE              │  ← which instrument the bass strip patches
+//   22  compA pattern           │    in: Juno, Minimoog or FM (U.BASS_VOICE
+//   23  comp mask               │    [lane], books.js). Added 2026-09-24; FM
+//                               │    joined 2026-10-01 (no new draw). The
+//                               │    BASS GUITAR takes a share of it through
+//                               │    the roll's residual (2026-10-01, no new
+//                               │    draw; U.BASSGUITAR_SHARE, books.js).
+//   24  pad pattern             │
+//   25  arp pattern             │
+//   26  lead pattern            │
+//   27  lead phrase mask        │
+//   28  counter pattern         │
+//   29  counter phrase mask     │
+//   30  color pattern           ┘
+//   31  POLY VOICE — which poly synth the chord strips (pad, compA, color)
+//       patch in: Juno, OB-Xa or FM (U.POLY_VOICE[lane], books.js). Added
+//       2026-09-29, after the patterns it voices; FM joined 2026-10-01 as a
+//       third entry (no new draw; on an FM song the pad stays Juno).
+//   32  poly slop seed — the OB-Xa's voice-card slop table (obxa.js). Drawn
+//       for every song, Juno or not, so the count stays flat.
+//   33–46  strip mutes — one per voiced role, in U.DESK_ROLES order:
+//          kick, snare, hats, tomsFills, ePerc, percTime, percAccent,
+//          bass, compA, pad, arp, lead, counter, color
+//   47  production style
+//   48–68  the 808 front panel (instruments/tr808.js U.draw808Panel), twenty-
+//          one knobs in a fixed block: BD tune/decay/tone/level, SD
+//          tune/snappy/tone/level, CH decay/tone/level, OH decay/tone/level,
+//          the machine's global accent (appended 2026-08-10), then LT/MT/HT
+//          tune and clap/rim/tom level (appended 2026-08-17; this column said
+//          48–62 until 2026-09-29, which is the 6-draw gap the tier-1 count
+//          note in the README chased). Drawn for EVERY song, including songs
+//          whose kit is not the 808 — the panel is discarded there, and the
+//          count stays flat.
+//   69  DRUM MACHINE — which machine the kit strips play: the 808 or the
+//       Linn-family machine (U.DRUM_MACHINE[lane], books.js). Added
+//       2026-09-29. Its RESIDUAL (where the roll fell inside the machine's
+//       own weight, uniform on [0, 1)) is the Linn song's RIDE draw
+//       (U.LINN_RIDE[lane], 2026-09-30): no new draw, so the count and every
+//       808 song stay as they were.
+//   70–84  the Linn-family panel (instruments/linn.js U.drawLinnPanel),
+//          fifteen trims: kick/snare/hat tune, hat decay, three tom tunes,
+//          conga tune, and the level trims. Appended 2026-09-29. Drawn for
+//          EVERY song; discarded where the machine is the 808.
+//   85  RHYTHM GUITAR pattern — U.pickWeighted over U.rhythmGtrBook(lane)
+//       (books.js U.RHYTHMGTR). Appended 2026-10-03 (the human rack's last
+//       stop), so nothing above moved.
+//   86  rhythm guitar phrase mask — which bars of a four-bar phrase it
+//       plays (U.GTR_PHRASE), as the comp mask at 23
+//   87  rhythmGtr strip mute — uniform against U.RHYTHMGTR_MUTE[lane]. The
+//       strip is U.VOICED_LATE (desk.js), NOT in the 33–46 loop. All three
+//       drawn for EVERY song, muted or not, 808 or Linn.
+//
+// Tier 2: one variation draw per bar, in bar order, from the "bars" fork
+// (2026-10-03; before that, from R after draw 87).
+//
+// Draws 10 and 11 are taken whether or not the gate at 9 passed, and discarded
+// when it did not. That is the module's standing "draw first, discard if unused"
+// discipline (prng.js) and it is what keeps the count flat — the two
+// stages are still two independent decisions with their own dials, and no
+// influence is ever selected without the gate.
+//
+// NOT VOICED (deliberate, flagged rather than faked): compB. It draws neither
+// a pattern nor a mute, so wiring it later adds its draws to the order (see
+// the rule above). rhythmGtr was voiced 2026-10-03 through draws 85–87.
+//
+// This order REPLACES the 2026-07-29 order. Every render made before 2026-08-03
+// — including the nine sample songs — draws differently now and cannot be
+// reproduced from its hash. That was accepted when the books were unfrozen from
+// silence: the contract is that the engine is deterministic going forward, not
+// that outputs are frozen backwards.
+(function (g) {
+  "use strict";
+  const U = (g.U = g.U || {});
+
+  const SCALES = { minor: [0, 2, 3, 5, 7, 8, 10], major: [0, 2, 4, 5, 7, 9, 11] };
+
+  // ---- form -----------------------------------------------------------------
+  // The doc's form section, plus the sixtiesPop influence's middle-8 shape.
+  const FORMS = [
+    { id: "form.standard", w: 30, s: [["intro", 4], ["verse", 8], ["chorus", 8], ["verse", 8], ["chorus", 8], ["outro", 4]] },
+    { id: "form.long_verse", w: 20, s: [["intro", 4], ["verse", 16], ["chorus", 8], ["verse", 8], ["chorus", 8], ["outro", 4]] },
+    { id: "form.vamp_out", w: 18, s: [["intro", 4], ["verse", 8], ["chorus", 8], ["verse", 8], ["chorus", 8], ["verse", 4], ["outro", 4]] },
+    { id: "form.middle_eight", w: 16, s: [["intro", 4], ["verse", 8], ["chorus", 8], ["verse", 8], ["bridge", 8], ["chorus", 8], ["outro", 4]] },
+  ];
+
+  const SECTION_ENERGY = { intro: 0.30, verse: 0.60, chorus: 1.00, bridge: 0.70, outro: 0.45 };
+
+  // Section level — a macro-dynamic scalar on every velocity and drum gain.
+  // Added 2026-07-28 after the first full renders measured a loudness range of
+  // 0.3–3.2 LU, i.e. almost none: strip entry alone doesn't make a chorus feel
+  // like a chorus, because the players don't lean in. This is the players
+  // leaning in. It is NOT a mix move — the desk faders are untouched.
+  const SECTION_LEVEL = { intro: 0.72, verse: 0.86, chorus: 1.00, bridge: 0.90, outro: 0.76 };
+
+  // Energy at or above which a strip enters. This is the arrangement — the
+  // reason a verse sounds like a verse. Tuning these is a listening job.
+  // Read down the column: intro is kick/hats/bass, the verse adds the harmony
+  // and the kit, the chorus adds the foreground and the colour.
+  const ENTRY = {
+    kick: 0.00, snare: 0.45, hats: 0.28, tomsFills: 0.55,
+    ePerc: 0.55, percTime: 0.50, percAccent: 0.62,
+    bass: 0.28, compA: 0.42, pad: 0.42, arp: 0.55,
+    lead: 0.62, counter: 0.66, color: 0.70,
+    rhythmGtr: 0.42,                 // with the comp it plays alongside (2026-10-03)
+  };
+
+  // ---- rhythm mask tables ---------------------------------------------------
+  // Where the books describe a shape in prose, the realizer needs concrete
+  // rhythms. Each table gets exactly ONE draw (an index) at sheet time, so book
+  // size and mask count can change without shifting the draw order.
+
+  const SYNCO16 = [
+    "x..x..x...x..x..", "x...x.x..x..x.x.", "x..x.x..x.x..x..",
+    "x.x..x.x..x.x...", "x..x..x.x...x.x.", "x.....x.x..x..x.",
+  ];
+  const RIFF2 = [ // 32 steps = 2 bars; digits are scale-degree indices, . = rest
+    "0...0..3.5..0...0...0..3.5..7...",
+    "0.0.0...7...5...0.0.0...3.......",
+    "0..0..0...5.3...0..0..0...5.7...",
+    "0.......5...3...0.......2...0...",
+  ];
+  const ONE_NOTE = [
+    "x..x..x...x.x...", "x.x...x..x..x.x.", "x..x.x..x..x..x.",
+  ];
+  const GATE = [
+    "x.x.x.x.x.x.x.x.", "xx..xx..xx..xx..", "x.xx..x.x.xx..x.", "xxx.xxx.xxx.xxx.",
+  ];
+  // Lead/counter phrases: 32 steps, scale-degree indices, . = rest, - = tie.
+  const PHRASES = [
+    "..4..2.0.......7..4..2.0........",
+    "0..2..4..2..0...4..2..0.........",
+    "....7..5.4..2...0..2..4.........",
+    "..0.2.4.7---....7.5.4.2.0-------",
+    "4---..2---..0---....2..4..7-----",
+    "..7.7.5.4-----..4.4.2.0---------",
+  ];
+  // (U.SESSION_MASKS, below the tables: the bass guitar's page plays its
+  // groove demo from these same tables, not from a copy.)
+  const COUNTER_OST = [
+    "..4...4...4...4...4...4...4...4.",
+    "7...5...7...5...7...5...7...5...",
+    "..2.4...2.4.....2.4...2.4.......",
+  ];
+
+  U.SESSION_MASKS = { SYNCO16, RIFF2, ONE_NOTE };
+
+  const fold = (m, lo, hi) => { while (m < lo) m += 12; while (m > hi) m -= 12; return m; };
+  const lerp = (a, b, t) => a + (b - a) * t;
+
+  // ---------------------------------------------------------------------------
+  // TIER 1 — the session sheet
+  // ---------------------------------------------------------------------------
+
+  U.drawSession = function (R, forceLane) {
+    // draw 1: lane. Always drawn even when forced, so a forced-lane render and a
+    // free render consume the same stream and stay comparable.
+    const laneRoll = R.r();
+    let lane = U.LANES[U.LANES.length - 1];
+    {
+      let total = 0;
+      for (const w of U.LANE_WEIGHTS) total += w;
+      let x = laneRoll * total;
+      for (let i = 0; i < U.LANES.length; i++) { x -= U.LANE_WEIGHTS[i]; if (x < 0) { lane = U.LANES[i]; break; } }
+    }
+    if (forceLane) lane = forceLane;
+    const feel = U.LANE_FEEL[lane];
+
+    // draws 2,3 — tempo and swing are SONG-GLOBAL (Jeff 2026-08-03): one wide
+    // range for all lanes, the lane only biasing where in it the draw lands.
+    const T = U.SONG_TEMPO;
+    const bpm = Math.round(lerp(T.bpm[0], T.bpm[1], U.biasedPos(R.r(), feel.bpmBias)));
+    const swing = +lerp(T.swing[0], T.swing[1], U.biasedPos(R.r(), feel.swingBias)).toFixed(3);
+
+    const tonicPc = R.ri(0, 11);                                      // draw 4
+    const mode = feel.mode;
+    const harmony = U.pickWeighted(R, U.HARMONY[lane]);               // draw 5
+    const form = U.pickWeighted(R, FORMS);                            // draw 6
+    // draw 7 — foreground: which voice the song is "about". Early hip-hop and
+    // funk lean bass; synth pop leans lead. Hip-hop's 0.14 is part of the
+    // drum-forward pass (Jeff 8/03) — that lane's star is the beat, and the
+    // bass is the closest thing this binary has to it.
+    const leadBias = { newWave: 0.50, synthPop: 0.68, synthRnB: 0.55, earlyHipHop: 0.14, funk: 0.25 }[lane];
+    const foreground = R.r() < leadBias ? "lead" : "bass";
+    const density = +R.r().toFixed(3);                                // draw 8 — sparse↔dense
+
+    // draws 9,10,11 — the two-stage influence draw. Stage 1 is a plain boolean
+    // gate; stage 2 selects; the blend dial then decides how much of the chosen
+    // influence's patch set lands. 10 and 11 are always drawn and discarded when
+    // the gate fails, so the stream count stays fixed (see the header).
+    const influenceGate = R.r() < U.INFLUENCE_GATE;
+    const influenceRoll = R.ri(0, U.INFLUENCES.length - 1);
+    const blendRoll = +R.r().toFixed(3);
+    const influence = influenceGate ? U.INFLUENCES[influenceRoll] : null;
+    const influenceBlend = influenceGate ? blendRoll : 0;
+    let influencePatches = [];
+    if (influence) {
+      const all = U.INFLUENCE_PATCHES[influence];
+      const n = Math.min(all.length, Math.max(1, Math.round(influenceBlend * all.length)));
+      influencePatches = all.slice(0, n);
+    }
+    const has = (patch) => influencePatches.indexOf(patch) > -1;
+
+    // draws 12..30 — one pattern pick per voiced desk role, in U.DESK_ROLES
+    // order (plus the bass voice at 21). Books no longer carry silence entries: every one of these returns a
+    // real pattern, and whether the strip is up is the mute draw further down.
+    const picks = {};
+    picks.kick = U.pickWeighted(R, U.KICK[lane]);
+    picks.snare = U.pickWeighted(R, U.forLane(U.SNARE, lane));
+    picks.hats = U.pickWeighted(R, U.HATS);
+    picks.tomsFills = U.pickWeighted(R, U.FILLS);
+    // ePerc is lane-gated as of 2026-08-31 (the rim entries), through the same
+    // U.forLane the snare and comp books already use. One draw either way —
+    // pickWeighted takes exactly one value however long the list is — so tier 1
+    // stays at its fixed count and the canonical order above is untouched.
+    picks.ePerc = U.pickWeighted(R, U.forLane(U.EPERC, lane));
+    // draw 17 — the percTime pattern. U.pickWeighted's exact walk, kept open
+    // so the residual is readable (as draws 21 and 69): a residual under the
+    // lane's U.SHAKERS_SHARE puts the human shakers on the strip (decided
+    // below, after the influence patches). No new draw.
+    const ptList = U.PERCTIME;
+    let ptTotal = 0; for (const e of ptList) ptTotal += e.w;
+    let ptX = R.r() * ptTotal, ptPick = ptList[ptList.length - 1], ptResidual = 0;
+    for (const e of ptList) { if (ptX - e.w < 0) { ptPick = e; ptResidual = ptX / e.w; break; } ptX -= e.w; }
+    picks.percTime = ptPick;
+    // draw 18 — the percAccent pattern. U.pickWeighted's exact walk, kept
+    // open so the residual is readable (as draw 17): a residual under the
+    // lane's U.CONGAS_SHARE puts the human congas / bongos on the strip
+    // (decided below, after the influence patches). No new draw.
+    const paList = U.PERCACCENT;
+    let paTotal = 0; for (const e of paList) paTotal += e.w;
+    let paX = R.r() * paTotal, paPick = paList[paList.length - 1], paResidual = 0;
+    for (const e of paList) { if (paX - e.w < 0) { paPick = e; paResidual = paX / e.w; break; } paX -= e.w; }
+    picks.percAccent = paPick;
+    picks.bass = U.pickWeighted(R, U.BASS[lane]);
+    const bassMask = R.ri(0, 63);          // one draw, decoded per bass kind
+    // draw 21 — the bass voice. U.pickWeighted's exact walk, kept open so the
+    // residual is readable (as draw 69): a residual under the lane's
+    // U.BASSGUITAR_SHARE makes it a bass-guitar song, unless the pattern is
+    // one a string cannot play (U.BASSGUITAR_NEVER). No new draw.
+    const bvList = U.BASS_VOICE[lane];
+    let bvTotal = 0; for (const e of bvList) bvTotal += e.w;
+    let bvX = R.r() * bvTotal, bvPick = bvList[bvList.length - 1], bvResidual = 0;
+    for (const e of bvList) { if (bvX - e.w < 0) { bvPick = e; bvResidual = bvX / e.w; break; } bvX -= e.w; }
+    const bassVoice = !U.BASSGUITAR_NEVER[picks.bass.kind] && bvResidual < (U.BASSGUITAR_SHARE[lane] || 0) ? "bassguitar" : bvPick.id;
+    picks.compA = U.pickWeighted(R, U.forLane(U.COMP, lane));
+    const compMask = R.ri(0, 63);
+    // compB — not voiced, no draws (see header). rhythmGtr: draws 85–87 below.
+    picks.pad = U.pickWeighted(R, U.PAD);
+    picks.arp = U.pickWeighted(R, U.ARP);
+    picks.lead = U.pickWeighted(R, U.LEAD);
+    const leadPhrase = R.ri(0, 63);
+    picks.counter = U.pickWeighted(R, U.COUNTER);
+    const counterPhrase = R.ri(0, 63);
+    picks.color = U.pickWeighted(R, U.COLOR);
+    // draws 31, 32 — the poly synth on the chord strips, and its slop seed
+    const polyVoice = U.pickWeighted(R, U.POLY_VOICE[lane]).id;
+    const polySeed = R.ri(1, 2147483646);
+
+    // draws 33..46 — strip mutes, one per voiced role in U.DESK_ROLES order.
+    // ALWAYS drawn, even where the probability is zero, so retuning a mute
+    // weight can never shift the stream. This is the mixing board deciding what
+    // is up, which is the only place a strip goes quiet (Jeff, 8/03).
+    const arrange = U.LANE_ARRANGE[lane] || {};
+    const muteBias = arrange.mute || {};
+    const mutes = {};
+    for (const role of U.DESK_ROLES) {
+      if (U.VOICED_ROLES.indexOf(role.id) < 0) continue;
+      const p = Math.min(1, Math.max(0, (role.mute || 0) + (muteBias[role.id] || 0)));
+      mutes[role.id] = R.r() < p;
+    }
+    // Books whose whole idea is the stab ("the harmony IS the stab") pull the
+    // colour strip back up. Was a book-level forceColor override; it is a mix
+    // override now, same intent.
+    if (harmony.forceColor) mutes.color = false;
+
+    // draw 47 — production style (production/production.js). Genre biases the
+    // weights; the effects themselves never leave the production room.
+    const production = U.drawProduction(R, lane);
+
+    // draws 48–62 — the 808 front panel. Always drawn, whatever the kit: a
+    // machine-flavour song plays it, a studio-flavour song discards it, and the
+    // draw count is identical either way. That is the same "draw first, discard
+    // if unused" discipline the influence gate uses, and it is what will let the
+    // Linn's own panel append cleanly at 61 without moving anything.
+    const panel808 = U.draw808Panel(R);
+
+    // draw 69 — the drum machine (U.DRUM_MACHINE, books.js), and draws 70–84 —
+    // the Linn-family panel, appended where the note above said it would go.
+    // Both always drawn; the panel is discarded on an 808 song.
+    // (U.pickWeighted's exact walk, kept open so the residual is readable)
+    const dmList = U.DRUM_MACHINE[lane];
+    let dmTotal = 0; for (const e of dmList) dmTotal += e.w;
+    let dmX = R.r() * dmTotal, dmPick = dmList[dmList.length - 1], dmResidual = 0;
+    for (const e of dmList) { if (dmX - e.w < 0) { dmPick = e; dmResidual = dmX / e.w; break; } dmX -= e.w; }
+    const drumMachine = dmPick.id;
+    // A Linn song plays its hats strip's closed hat on the ride instead, for
+    // the whole song, at the lane's rate (books.js U.LINN_RIDE).
+    const linnRide = drumMachine === "linn" && dmResidual < (U.LINN_RIDE[lane] || 0);
+    const panelLinn = U.drawLinnPanel(R);
+
+    // draws 85–87 — the RHYTHM GUITAR (2026-10-03), APPENDED after the Linn
+    // panel so every earlier draw stays where it was: 85 the rhythmGtr
+    // pattern (U.rhythmGtrBook(lane), books.js), 86 its phrase mask (as the
+    // comp mask at 23), 87 its strip mute (uniform against the lane's
+    // U.RHYTHMGTR_MUTE). Always all three, for every song, muted or not. The
+    // strip is NOT in U.VOICED_ROLES (that list drives the mutes at 33–46);
+    // it is U.VOICED_LATE (desk.js), drawn here.
+    picks.rhythmGtr = U.pickWeighted(R, U.rhythmGtrBook(lane));
+    const gtrMask = R.ri(0, 63);
+    mutes.rhythmGtr = R.r() < Math.min(1, Math.max(0, U.RHYTHMGTR_MUTE[lane] || 0));
+
+    // influence patches — applied over the lane draw, never owning the song.
+    // Which patches land is the blend dial (INFLUENCE_PATCHES priority order).
+    if (influence === "motorik") {
+      if (has("kick")) picks.kick = { id: "influence.motorik.kick", p: "x...x...x...x..." };
+      if (has("hats")) picks.hats = { id: "influence.motorik.hats", p: "x.x.x.x.x.x.x.x." };
+      if (has("noFills")) mutes.tomsFills = true;   // "fills forced silent" — now a mute
+    } else if (influence === "disco") {
+      if (has("kick")) picks.kick = { id: "influence.disco.kick", p: "x...x...x...x..." };
+      if (has("hats")) { picks.hats = { id: "influence.disco.hats", p: "x.o.x.o.x.o.x.o." }; mutes.hats = false; }
+      if (has("bass")) { picks.bass = { id: "influence.disco.bass", kind: "octaveAlt" }; mutes.bass = false; }
+    } else if (influence === "reggaeDub") {
+      // the one-drop is a COUPLED kick+snare pair on beat 3 (Brief 2), so it is
+      // one patch; the realizer reads `oneDrop` off the sheet for the snare half
+      if (has("oneDrop")) picks.kick = { id: "influence.dub.onedrop", p: "........x......." };
+      if (has("skank")) {
+        picks.compA = { id: "influence.dub.skank", kind: "grid", p: "..x...x...x...x." };
+        // the guitar strip, when up, plays the skank too
+        if (!mutes.rhythmGtr) picks.rhythmGtr = U.RHYTHMGTR.find((e) => e.id === "gtr.skank");
+      }
+    } else if (influence === "afrobeat") {
+      if (has("percTime")) { picks.percTime = U.PERCTIME[0]; mutes.percTime = false; }
+      if (has("percAccent")) { picks.percAccent = U.PERCACCENT[0]; mutes.percAccent = false; }
+    }
+    // the percTime strip's instrument: the kit (as ever) or, on draw 17's
+    // residual, the human shakers with the voicing for its pattern
+    const percShakers = !U.SHAKERS_NEVER[picks.percTime.id] && ptResidual < (U.SHAKERS_SHARE[lane] || 0)
+      ? U.SHAKERS_FOR_PATTERN(picks.percTime.id, lane) : null;
+    // the percAccent strip's instrument: the kit (as ever) or, on draw 18's
+    // residual, the human hand drums with the voicing for its pattern
+    const percCongas = paResidual < (U.CONGAS_SHARE[lane] || 0) ? U.CONGAS_FOR_PATTERN(picks.percAccent.id, lane) : null;
+    // THE 808'S AUXILIARY PERCUSSION GATE (2026-10-04, Asana 1219144675109548;
+    // Jeff: "focus on kick snare hats and clap when using that. Everything
+    // else should be rare and in the background in terms of levels"). On an
+    // 808 song (the 808 on the machine kit) each aux strip the kit plays —
+    // tomsFills, ePerc, percAccent when the human hand drums are not on it —
+    // that the desk left up stays up with probability U.PERC808_KEEP[strip]
+    // (books.js), else it is muted. "Rare" is this gate; "in the background"
+    // is U.TRIM_808_PERC_DB on the strip (buildSong). The rolls come from a
+    // FORK, U.forkPrng(hash, "perc808"), read only on 808 songs: tier 1's
+    // draw order is frozen and the mutes (33–46) come before the machine
+    // (69), so the gate cannot be a song-stream draw, and every Linn and
+    // studio-kit sheet is untouched. One roll per strip in this order whether
+    // or not the strip is up, so a strip's fate never depends on another's.
+    // Strips an influence patch forced up (afrobeat's percAccent) are the
+    // song's deliberate spice: exempt from the gate, still trimmed.
+    let perc808 = null;
+    if (drumMachine === "808" && feel.kit === "machine") {
+      if (!R.hash) throw new Error("drawSession: an 808 song needs the stream's hash (U.makePrng) for the perc808 fork");
+      const G = U.forkPrng(R.hash, "perc808");
+      const forcedUp = influence === "afrobeat" && has("percAccent") ? ["percAccent"] : [];
+      perc808 = { gated: [], kept: [], forced: [] };
+      for (const st of ["tomsFills", "ePerc", "percAccent"]) {
+        const roll = G.r();
+        if (mutes[st] || (st === "percAccent" && percCongas)) continue;
+        if (forcedUp.indexOf(st) > -1) perc808.forced.push(st);
+        else if (roll < U.PERC808_KEEP[st]) perc808.kept.push(st);
+        else { mutes[st] = true; perc808.gated.push(st); }
+      }
+    }
+    // THE LINN'S AUXILIARY PERCUSSION, SPARINGLY (2026-10-04, Asana
+    // 1219146890584479; Jeff: "I like the rest of the percussion on Linn
+    // better than 808. But should still be used sparingly."). The 808's gate
+    // above, mirrored on Linn songs: the same strips and rule, its own fork
+    // (U.forkPrng(hash, "perclinn"), read only on Linn songs) and keep table
+    // (U.PERCLINN_KEEP, books.js), so every 808 and studio-kit sheet is
+    // untouched. Level: U.TRIM_LINN_PERC_DB on top of the strip's
+    // LINN_TRIM_DB (buildSong). percTime stays out on both machines: it plays
+    // the time-keeping cabasa and tambourine (the hats-and-shaker role) and is
+    // already "quiet" in books.js.
+    let perclinn = null;
+    if (drumMachine === "linn") {
+      if (!R.hash) throw new Error("drawSession: a Linn song needs the stream's hash (U.makePrng) for the perclinn fork");
+      const G = U.forkPrng(R.hash, "perclinn");
+      const forcedUp = influence === "afrobeat" && has("percAccent") ? ["percAccent"] : [];
+      perclinn = { gated: [], kept: [], forced: [] };
+      for (const st of ["tomsFills", "ePerc", "percAccent"]) {
+        const roll = G.r();
+        if (mutes[st] || (st === "percAccent" && percCongas)) continue;
+        if (forcedUp.indexOf(st) > -1) perclinn.forced.push(st);
+        else if (roll < U.PERCLINN_KEEP[st]) perclinn.kept.push(st);
+        else { mutes[st] = true; perclinn.gated.push(st); }
+      }
+    }
+    // THE MINIMOOG ON THE MONO PITCHED STRIPS (2026-10-05, Asana
+    // 1219144675065278): lead, counter (the hook riff) and arp each play the
+    // Juno or the Minimoog, P(Minimoog) = U.MOOG_ROLES[lane][strip] (books.js,
+    // Juno majority everywhere). A FORK, U.forkPrng(hash, "moogRoles"), read
+    // for EVERY song, three rolls in this fixed order whether or not the strip
+    // is up, so tier 1 stays 87 draws and no strip's voice depends on another.
+    if (!R.hash) throw new Error("drawSession: the moogRoles fork needs the stream's hash (U.makePrng)");
+    const MG = U.forkPrng(R.hash, "moogRoles");
+    const moogW = U.MOOG_ROLES[lane];
+    const leadVoice = MG.r() < moogW.lead ? "minimoog" : "juno";
+    const counterVoice = MG.r() < moogW.counter ? "minimoog" : "juno";
+    const arpVoice = MG.r() < moogW.arp ? "minimoog" : "juno";
+    // the rhythmGtr strip's voicing for its pattern (heard only when the strip is up)
+    const gtrVoicing = U.GTR_FOR_PATTERN(picks.rhythmGtr.id, lane);
+    const sixties = influence === "sixtiesPop" && has("form");
+    const sections = sixties ? FORMS[3].s : form.s;
+
+    // bar map
+    const bars = [];
+    for (const [name, len] of sections) {
+      for (let i = 0; i < len; i++) bars.push({ section: name, indexInSection: i, sectionLen: len });
+    }
+    for (let i = 0; i < bars.length; i++) {
+      const b = bars[i];
+      b.energy = SECTION_ENERGY[b.section];
+      b.last = b.indexInSection === b.sectionLen - 1;
+      b.fillWindow = b.last && i < bars.length - 1;
+    }
+
+    const barSec = 4 * (60 / bpm);
+    return {
+      lane, laneLabel: U.LANE_LABEL[lane], bpm, swing, tonicPc, mode,
+      harmony, form: sixties ? FORMS[3] : form,
+      foreground, density,
+      influence, influenceBlend, influencePatches,
+      picks, bassVoice, polyVoice, polySeed, mutes, production, panel808, drumMachine, panelLinn, linnRide, percShakers, percCongas, gtrVoicing,
+      // present on 808 songs only, so every other sheet is field-for-field what it was
+      ...(perc808 ? { perc808 } : {}),
+      // present on Linn songs only (2026-10-04)
+      ...(perclinn ? { perclinn } : {}),
+      // the mono pitched strips' instrument (2026-10-05, the moogRoles fork)
+      leadVoice, counterVoice, arpVoice,
+      masks: { bass: bassMask, comp: compMask, lead: leadPhrase, counter: counterPhrase, gtr: gtrMask },
+      bars, totalBars: bars.length, barSec, lengthSec: bars.length * barSec,
+      kit: U.LANE_FEEL[lane].kit,
+    };
+  };
+
+  // ---------------------------------------------------------------------------
+  // TIER 2 — realization
+  // ---------------------------------------------------------------------------
+
+  // `opts` is render-time only and never touches the draw stream:
+  //   legacyDrums — build the kit from the generic drums.js voices instead of
+  //   the drawn 808 panel. Exists so the same hash can be rendered both ways
+  //   for an A/B listen. Like forceLane, it changes what you hear, not what
+  //   was drawn.
+  // Minimoog bass (sheet.bassVoice === "minimoog", draw 21): which lane patch
+  // plays which drawn bass pattern. The rule since 2026-09-24; no extra draw.
+  const MOOG_BASS_FOR_KIND = {
+    sub808: "round", pedal: "round", rootQuarters: "round", walk: "round",
+    synco16: "pluck", octavePush: "pluck", oneNote: "pluck", octaveSlide: "pluck", octaveAlt: "pluck", rootEighths: "pluck",
+    seq16: "squelch",
+    riffHook: "fat",
+  };
+
+  // Patch-loudness trim for the Minimoog on the bass strip, in dB, landing on
+  // the strip's trim gain (desk.js guarantee 2). Reference: the Juno "bass"
+  // patch at 0 dB. MEASURED 2026-09-24 (harness/moog-bass-trim.mjs, data in
+  // analysis/fits/minimoog-bass-trim-2026-09-24.json): 24 songs, two per bass
+  // pattern kind, each song's real bass line played solo through every voice,
+  // K-weighted loudness (BS.1770 pre-filter). Mean gap Juno bass − Minimoog
+  // patch over the songs whose kind maps to that patch:
+  //   round   +4.4 dB  (8 songs, sd 0.3)     squelch +7.8 dB  (2 songs, sd 1.1)
+  //   pluck   +4.5 dB  (12 songs, sd 0.3)    fat     +5.3 dB  (2 songs, sd 0.1)
+  // Plain RMS agrees within 0.3 dB. (The 9/23 "+0.4 dB" was a whole-song RMS
+  // and mostly measured the other strips.) The Juno "sub" patch is NOT at the
+  // bass reference: it reads +7 dB over "bass" on the same sub808 lines, which
+  // is the Juno's own patch level and left alone here, so a sub808 song on the
+  // Minimoog (round) sits ~7 dB K-weighted under the same song on the Juno sub.
+  const MOOG_BASS_TRIM_DB = { round: 4.4, pluck: 4.5, squelch: 7.8, fat: 5.3 };
+  U.MOOG_BASS_TRIM_DB = MOOG_BASS_TRIM_DB;
+
+  // Linn-family kit level trims, dB per kit strip (drumMachine === "linn").
+  // Measured K-weighted (harness/linn-kit-trim.mjs, data in
+  // analysis/fits/linn-kit-trim-2026-09-30.json): each song's real strip line
+  // rendered solo through the generic studio kit and through the Linn, the
+  // trim is the mean difference. 12 songs per strip over the Linn lanes; sd
+  // 0.8-1.2 dB on every strip but percTime (3.6), whose reference is the
+  // generic closed hat standing in for the Linn's cabasa and tambourine — two
+  // different instruments, one trim, so it is the mean of the pair.
+  // Re-measured 2026-09-30 after the Linn's DAC/VCF revision and its
+  // percussion group moving 3.5 dB down against the main voices (9/29 trims:
+  // kick 4.2, snare 5.3, hats -4.2, tomsFills 0.8, ePerc 2.7, percTime -6.4,
+  // percAccent 2.0). The trims hold each strip where the generic kit had it,
+  // so the percussion strips come back up here by the same measurement.
+  // Re-measured again for revision 3 (2026-09-30, the lossless refit, the
+  // percussion group at -2.2 dB, the crash and ride on the hats strip; data
+  // in analysis/fits/linn-kit-trim-r3-2026-09-30.json; revision-2 trims kick
+  // 4.2, snare 4.9, hats -3.9, tomsFills 1.9, ePerc 6.2, percTime -2.3,
+  // percAccent 5.0). Hats sd 1.1 dB with the ride songs' reference hat at
+  // the hat's own hit gain; percTime sd 2.4 (tambourine vs cabasa, as above).
+  // Re-measured for revision 4 (2026-10-01: kick second mode and output
+  // coupling, snare body, the hat and cymbal chips' own clocks and output
+  // filters, the conga strike; analysis/fits/linn-kit-trim-r4-2026-10-01.json;
+  // revision-3 trims kick 4.2, snare 4.9, hats -5.3, tomsFills 4.3, ePerc 4.3,
+  // percTime -5.8, percAccent 5.0). Kick sd 0.8, snare 0.9, hats 0.8.
+  // Re-measured for revision 5 (2026-10-04, Jeff's four words: hats and
+  // cymbals less metallic, kick umph, clap brighter, snare snappier;
+  // analysis/fits/linn-kit-trim-r5-2026-10-04.json; revision-4 trims kick
+  // 7.4, snare 3.8, hats -6.7). Kick 3.7 (sd 0.8): the held body and its
+  // 97 Hz mode carry far more K-weighted loudness per hit, so the strip comes
+  // down to hold the song's balance (the umph is in the shape). Snare 5.4
+  // (sd 1.8, +1.3..+8.2: the shorter body reads quieter on the slow songs).
+  // Hats -6.4 (sd 0.8). tomsFills, ePerc, percTime and percAccent play only
+  // voices that render bit-identical to revision 4 and keep their revision-4
+  // trims (this run read 4.3, 4.3, -5.6 and 6.1 on 12, 12, 10 and 11 songs).
+  // The cymbals' hit gains on the hats strip (2026-09-30): the ride brought to
+  // the closed hat's K-weighted loudness as an eighth-note line, the crash to
+  // the open hat's as a single hit (harness/linn-cymbal-gain.mjs).
+  // Re-measured for revision 5 (2026-10-04, the hats and cymbals made less
+  // metallic: less plate ring, the ride's bell down; revision-4 gains ride
+  // 0.242, crash 0.461).
+  const LINN_RIDE_GAIN = 0.277, LINN_CRASH_GAIN = 0.552;
+  U.LINN_CYMBAL_GAIN = { ride: LINN_RIDE_GAIN, crash: LINN_CRASH_GAIN };  // read by harness/linn-kit-trim.mjs
+  const LINN_TRIM_DB = { kick: 3.7, snare: 5.4, hats: -6.4, tomsFills: 4.3, ePerc: 4.3, percTime: -5.8, percAccent: 5.9 };
+
+  // The 808's auxiliary percussion "in the background" (2026-10-04, Asana
+  // 1219144675109548; Jeff: "Everything else should be rare and in the
+  // background in terms of levels"). dB on the strip's trim gain on an 808
+  // song (drumMachine 808, kit machine) when the strip plays kit voices: the
+  // toms on tomsFills, cowbell / rim / congaRun on ePerc, the kit congas on
+  // percAccent (NOT the human hand drums, whose CONGAS_TRIM_DB owns that trim
+  // when sheet.percCongas is set). Rare is the perc808 gate (drawSession).
+  // MEASURED, harness/perc808-level.mjs (data analysis/fits/perc808-level-
+  // before-2026-10-04.json): 12 808 songs per strip, each strip's real line
+  // and the core four's (kick, snare + clap, hats) solo through the song's
+  // own 808 panel, each at its strip's trim x fader, K-weighted, over the
+  // blocks where the aux strip plays. Before: tomsFills -10.0 dB under the
+  // core four (sd 4.4), ePerc -23.1 (sd 8.8: congaRun -6..-19, cowbell
+  // -21..-27, rim -30..-33), percAccent -18.4 (sd 6.1). Target: each strip
+  // 8 dB further down (the strip is linear up to the glue: unity insert),
+  // ceiling -4. Floor: the audibility gate (isAudible, both directions) on
+  // the Stage 0 songs, the song against the same song with the strip pulled,
+  // read over the strip's own windows (harness/perc808-ladder.mjs; the
+  // whole-song lit fraction cannot pass a four-hit fill at any level); the
+  // deepest rung that passes on every song measured. 22 songs (tomsFills 7,
+  // ePerc 9, percAccent 6; analysis/fits/perc808-ladder-2026-10-04.jsonl):
+  //   tomsFills  -7  (89044b8a, five low-tom accents, not audible at -8)
+  //   ePerc      -6  (c25b9c95, funk rim clave, not audible at -7; the other
+  //                   eight, rim / cowbell / congaRun, pass at -10..-12)
+  //   percAccent -6  (the six ladder songs pass at -8, but the real-render
+  //                   check found afb28f7f, 44 kit congas, not audible at -8;
+  //                   its rungs on the trimmed song: -7 no, -6 yes, frac 0.0021)
+  // Confirmed on real renders with these trims: harness/render-check-kit.mjs.
+  const TRIM_808_PERC_DB = { tomsFills: -7, ePerc: -6, percAccent: -6 };
+  U.TRIM_808_PERC_DB = TRIM_808_PERC_DB;
+
+  // The Linn's auxiliary percussion "sparingly" (2026-10-04, Asana
+  // 1219146890584479): dB added to the strip's LINN_TRIM_DB on a Linn song
+  // when the strip plays kit voices (percAccent only without the hand
+  // drums). Measured the perc808 way (harness/perc808-level.mjs --machine
+  // linn, harness/perc808-ladder.mjs). Before (r5 voices, 12 songs each), aux
+  // vs core four K-weighted when up: tomsFills -1.7 dB (sd 2.4), ePerc -13.3
+  // (sd 4.3), percAccent -11.0 (sd 2.7). Target 8 dB down, ceiling -4, floor
+  // the audibility gate over the strip's active windows on the three quietest
+  // songs per strip (analysis/fits/perclinn-ladder-2026-10-04.jsonl): toms and
+  // ePerc pass at -10 on all three; percAccent's floor is -7 (5d204d8e, kit
+  // congas, not audible at -8). NOT YET CONFIRMED on real renders
+  // (render-check-kit does not gate Linn aux strips yet).
+  const TRIM_LINN_PERC_DB = { tomsFills: -8, ePerc: -8, percAccent: -7 };
+  U.TRIM_LINN_PERC_DB = TRIM_LINN_PERC_DB;
+
+  // The Minimoog on the mono pitched strips (2026-10-05, Asana
+  // 1219144675065278): the patch each strip plays and the dB on the strip's
+  // trim that sets it at the loudness of the Juno patch it replaces, measured
+  // K-weighted on each strip's own lines (harness/moog-roles-trim.mjs;
+  // analysis/fits/minimoog-roles-trim-2026-10-05.json): 12 songs per strip,
+  // the strip's real line solo through the Juno patch and the Minimoog patch,
+  // mean K-weighted gap (sd): lead on "lead" +2.8 (0.8), counter on "riff"
+  // -5.8 (0.3), arp on "riff" -4.9 (0.3). The arp plays riff, not pluck: at
+  // the same level (pluck -5.1, sd 1.1) pluck's bass voicing reads dark up
+  // where the arp plays (K-energy above 2 kHz 6 % vs the Juno arp's 23 %;
+  // riff 25 %).
+  const MOOG_FOR_ROLE = { lead: "lead", counter: "riff", arp: "riff" };
+  U.MOOG_FOR_ROLE = MOOG_FOR_ROLE;
+  const MOOG_ROLES_TRIM_DB = { lead: 2.8, counter: -5.8, arp: -4.9 };
+  U.MOOG_ROLES_TRIM_DB = MOOG_ROLES_TRIM_DB;
+
+  // OB-Xa on the chord strips (sheet.polyVoice === "obxa", draw 31): which
+  // patch each strip plays. No extra draw.
+  const OBXA_FOR_STRIP = {
+    compA: () => "comp",
+    pad: () => "pad",
+    color: (P) => (P.color.kind === "brassOffbeat" ? "brass" : "stab"),
+  };
+  // Patch-loudness trim for the OB-Xa, dB on the strip's trim gain (desk.js
+  // guarantee 2), against the Juno patch it REPLACES on that strip (comp →
+  // Juno comp, pad → Juno pad, brass/stab → Juno stab). MEASURED 2026-09-29,
+  // harness/obxa-poly-trim.mjs (data in analysis/fits/obxa-poly-trim-2026-09-29.json):
+  // two songs per pattern kind with the strip up, each song's real strip line
+  // played solo through both voices, K-weighted loudness (BS.1770 pre-filter).
+  // Mean gap Juno − OB-Xa over the songs:
+  //   comp  +4.5 dB  (8 songs, sd 0.8)      brass −4.1 dB  (2 songs, sd 0.5)
+  //   pad   +0.5 dB  (6 songs, sd 0.6)      stab  +0.8 dB  (2 songs, sd 0.1)
+  // Plain RMS agrees within 0.3 dB (after the pulse-DC fix in obxa.js, which
+  // this measurement found). Brass and stab rest on the two colour kinds' two
+  // songs each; the section-hit lines are 8 notes.
+  const OBXA_TRIM_DB = { comp: 4.5, pad: 0.5, brass: -4.1, stab: 0.8 };
+  U.OBXA_TRIM_DB = OBXA_TRIM_DB;
+  U.OBXA_FOR_STRIP = OBXA_FOR_STRIP;
+
+  // FM keys on the chord strips (sheet.polyVoice === "fm", draw 31): compA
+  // plays the tine EP, colour plays glass on section hits and FM brass on the
+  // brass offbeats. The PAD is not an FM strip: it stays on the Juno pad
+  // (null here). No extra draw.
+  const FM_FOR_STRIP = {
+    compA: () => "ep",
+    pad: () => null,
+    color: (P) => (P.color.kind === "brassOffbeat" ? "brass" : "glass"),
+  };
+  // Patch-loudness trims for the FM voice, dB on the strip's trim gain,
+  // against the patch each FM patch REPLACES (ep → Juno comp on compA; glass
+  // and brass → Juno stab on colour; FM bass → Juno bass on the bass strip).
+  // MEASURED K-weighted 2026-10-01, harness/fm-trim.mjs (data in
+  // analysis/fits/fm-trim-2026-10-01.json): three songs per pattern kind with
+  // the strip up, each song's real strip line solo through both voices,
+  // BS.1770 pre-filter. Mean gap reference − FM:
+  //   ep    +0.6 dB (12 songs, sd 2.7)     brass −4.4 dB (3 songs, sd 0.1)
+  //   glass −8.3 dB (3 songs, sd 0.2)      bass  −1.1 dB (33 songs, sd 1.3)
+  // Plain RMS agrees within 0.7 dB. The EP's spread is its velocity: accent
+  // and ghost comps move an FM EP's level and tone more than the Juno comp's,
+  // so the gap depends on the pattern (−3.4..+5.1). Bass on non-sub808 lines
+  // against Juno "bass" (the Minimoog's reference); on sub808 lines the Juno
+  // "sub" reads +6.9 dB over the FM bass, the same Juno-sub gap the Minimoog
+  // note in the README describes — left alone.
+  // RE-MEASURED 2026-10-05 after the narrow touch map (U.FM_TOUCH, fm.js;
+  // Asana 1219147597848100), same method, analysis/fits/fm-trim-2026-10-05.json:
+  //   ep    +1.0 dB (12 songs, sd 2.8)     brass −4.4 dB (3 songs, sd 0.1)
+  //   glass −4.9 dB (3 songs, sd 0.1)
+  // The map pulls glass's song velocities (0.6-0.9) down to about 0.3-0.4, so
+  // glass lost ~3.4 dB and its trim rose by that; the EP moved 0.4 dB. Brass
+  // and bass have no map: brass re-read the same, the bass trim is left at its
+  // 10-01 value (the re-run read −0.6 over a different 22-song set; the voice
+  // did not change). Measured before the session keys player was wired: the
+  // player moves a velocity by ~±10 %, which the map narrows to ±0.02, well
+  // under 0.3 dB.
+  const FM_TRIM_DB = { ep: 1.0, glass: -4.9, brass: -4.4, bass: -1.1 };
+  U.FM_TRIM_DB = FM_TRIM_DB;
+  U.FM_FOR_STRIP = FM_FOR_STRIP;
+  U.MOOG_BASS_FOR_KIND = MOOG_BASS_FOR_KIND;
+
+  // Bass guitar on the bass strip (sheet.bassVoice === "bassguitar", draw 21's
+  // residual): the voicing per pattern kind, by lane. Finger is the default
+  // session bass; funk slaps its 16th lines, riffs and one-note grooves; new
+  // wave picks its octaves, eighths and riffs; synth-pop palm-mutes its
+  // eighths and quarters. pedal and sub808 never reach here
+  // (U.BASSGUITAR_NEVER).
+  const BASSGUITAR_FOR_KIND = (kind, lane) => {
+    if (kind === "synco16" || kind === "seq16") return lane === "funk" ? "slap" : "finger";
+    if (kind === "oneNote") return lane === "funk" ? "slap" : "finger";
+    if (kind === "octaveAlt" || kind === "octavePush") return lane === "newWave" ? "pick" : "finger";
+    if (kind === "rootEighths" || kind === "rootQuarters") return lane === "synthPop" ? "muted" : lane === "newWave" ? "pick" : "finger";
+    if (kind === "riffHook") return lane === "funk" ? "slap" : lane === "newWave" ? "pick" : "finger";
+    return "finger";                                   // walk, octaveSlide
+  };
+  U.BASSGUITAR_FOR_KIND = BASSGUITAR_FOR_KIND;
+  // Voicing-loudness trims, dB on the bass strip's trim gain, against the
+  // Juno "bass" patch at 0 dB (the reference every bass-strip trim uses).
+  // MEASURED K-weighted 2026-10-01, harness/bassguitar-trim.mjs (data in
+  // analysis/fits/bassguitar-trim-2026-10-01.json): songs that drew the bass
+  // guitar, three per (lane, pattern kind), each song's real bass-strip line
+  // (after the session player) solo through the Juno bass and through the
+  // voicing it drew, BS.1770 pre-filter. Mean gap Juno bass − voicing:
+  //   finger −1.5 dB (25 songs, sd 1.1)     muted +11.1 dB (3 songs, sd 0.3)
+  //   pick   +1.2 dB (9 songs, sd 0.3)      slap   +1.1 dB (6 songs, sd 1.4)
+  // Plain RMS agrees within 0.2 dB. The muted note is short by design (a
+  // palm-muted eighth against the Juno's held one), hence its large trim;
+  // muted rests on synth-pop's three root-eighths songs.
+  const BASSGUITAR_TRIM_DB = { finger: -1.5, pick: 1.2, muted: 11.1, slap: 1.1 };
+  U.BASSGUITAR_TRIM_DB = BASSGUITAR_TRIM_DB;
+
+  // The human shakers on the percTime strip (sheet.percShakers, draw 17's
+  // residual): the voicing for the pattern, by lane. Running 16ths are the
+  // shaker's part (the cabasa's on funk, the Linn cabasa's human twin);
+  // eighths go to the maracas on new wave and synth R&B and stay on the
+  // shaker elsewhere; the off-beat 16ths are a shaker part.
+  U.SHAKERS_FOR_PATTERN = function (id, lane) {
+    if (id === "perctime.16ths") return lane === "funk" ? "cabasa" : "shaker";
+    if (id === "perctime.8ths") return lane === "newWave" || lane === "synthRnB" ? "maracas" : "shaker";
+    return "shaker";
+  };
+  // Shaker strip trims, dB on the percTime strip's trim gain (this REPLACES
+  // the strip's trim — on a Linn song the Linn's −5.8 dB), so the human
+  // instrument sits where the voice it replaces sat. Keyed by THAT voice — the
+  // kit's quiet closed hat (hit gain 0.30, every non-Linn kit), the Linn's
+  // cabasa (16ths, 8ths) or its tambourine (off16) — then by voicing.
+  // MEASURED K-weighted 2026-10-02, harness/shakers-trim.mjs (data:
+  // analysis/fits/shakers-trim-2026-10-02.json): songs whose draw 17 residual
+  // drew the shakers, four per (lane, pattern, machine), strip up; the strip's
+  // real strokes after the session player solo through the shakers at 0 dB,
+  // and the same song's kit hits on the strip solo through its own kit with
+  // its strip trim, BS.1770 pre-filter. Mean gap (kit − shakers):
+  //   closed hat → shaker  +1.5 dB (20 songs, sd 1.4)
+  //   closed hat → cabasa  −4.4 dB (4, sd 0.5)
+  //   Linn cabasa → shaker −6.1 dB (20, sd 1.1)
+  //   Linn cabasa → maracas −13.9 dB (8, sd 2.2)
+  //   Linn cabasa → cabasa −13.0 dB (4, sd 0.8)
+  //   Linn tambourine → shaker −1.1 dB (16, sd 1.1)
+  // RMS agrees within 0.2 dB. The rest are never drawn (off16 is always the
+  // shaker; maracas only on new wave and synth R&B, whose machine is always
+  // the Linn) and are DERIVED, for the legacyDrums A/B only: the voicing's gap
+  // to the shaker over the Linn cabasa, added to that voice's shaker trim.
+  // RE-MEASURED 2026-10-04 (hand percussion round, Asana 1219144675004641:
+  // the shaker's and the maracas' voices moved and the player's accent and
+  // spread ranges widened; data analysis/fits/shakers-trim-2026-10-04.json),
+  // same method, mean gap (kit − shakers):
+  //   closed hat → shaker  −0.1 dB (20 songs, sd 1.6)   was +1.5
+  //   closed hat → cabasa  −4.7 dB (4, sd 0.5)          was −4.4 (the player only)
+  //   Linn cabasa → shaker −8.0 dB (20, sd 1.5)         was −6.1
+  //   Linn cabasa → maracas −12.0 dB (8, sd 3.1)        was −13.9
+  //   Linn cabasa → cabasa −13.4 dB (4, sd 0.5)         was −13.0 (the player only)
+  //   Linn tambourine → shaker −3.1 dB (16, sd 1.2)     was −1.1
+  // and the derived three the same way.
+  const SHAKERS_TRIM_DB = {
+    hatClosed: { shaker: -0.1, cabasa: -4.7, maracas: -4.1 },
+    cabasa: { shaker: -8.0, maracas: -12.0, cabasa: -13.4 },
+    tamb: { shaker: -3.1, maracas: -7.1, cabasa: -8.5 },
+  };
+  U.SHAKERS_TRIM_DB = SHAKERS_TRIM_DB;
+  // AUDIBILITY ALLOWANCE, dB added to the measured trim per voicing (set by
+  // the render check, NOT by the loudness measurement — Fable may weigh it).
+  // At equal K-weighted loudness the shaker's energy sits in a narrow band
+  // above ~5 kHz, where the voices it replaces spread wider, so it lights
+  // fewer time-frequency cells over the mix: on ff4411a4 (synth-pop eighths
+  // over the Linn cabasa) it failed the audibility gate at the measured trim
+  // (lit fraction 0.0008; the Linn cabasa it replaced read 0.0021, the floor
+  // is 0.002), read 0.0017 at +3 dB and 0.0031 at +6 dB; two of the other
+  // three shaker songs sat near the floor too (0.0026, 0.0045). So +6 dB on
+  // the shaker voicing everywhere. The maracas the same way: 9e56db24 (synth
+  // R&B eighths over the Linn cabasa) read 0.0014 at the measured trim (the
+  // other maracas song 0.0036), so +4 dB. The cabasa as measured (0.0042 and
+  // 0.0173 on its two songs).
+  // 2026-10-04 (hand percussion round): with the shaker's voice and trim
+  // re-measured, ff4411a4 read lit fraction 0.0017 at +6 (it read 0.0026 at
+  // ec80030): the sharper, rougher strokes put the same K-weighted loudness
+  // into fewer cells. +7 is the smallest whole dB that passes (0.0020, at the
+  // floor; +8 reads 0.0023). Level, not voice: the mix-crest check found the
+  // house path takes 0.05-0.17 dB of crest off the strip. The maracas the
+  // same way: 9e56db24 read 0.0019 at +4 (0.0026 at ec80030; the flatter,
+  // less tonal maracas light fewer cells at equal loudness), 0.0022 at +5.
+  const SHAKERS_AUDIBLE_DB = { shaker: 7, maracas: 5, cabasa: 0 };
+  U.SHAKERS_AUDIBLE_DB = SHAKERS_AUDIBLE_DB;
+  // the stroke velocity the percTime strip hands the player (before the
+  // section level); the strip trim sets the loudness
+  const SHAKER_VEL = 0.8;
+
+  // The human hand drums on the percAccent strip (sheet.percCongas, draw 18's
+  // residual): the voicing for the pattern, by lane. The tumbao and the
+  // single hit are conga parts; the two-hit phrase ending goes to the bongos
+  // on synth-pop and new wave (a lighter, higher answer) and the congas
+  // elsewhere.
+  U.CONGAS_FOR_PATTERN = function (id, lane) {
+    if (id === "percaccent.phrase_end") return lane === "synthPop" || lane === "newWave" ? "bongos" : "congas";
+    return "congas";
+  };
+  const CONGA_PATTERN = { "percaccent.tumbao": "tumbao", "percaccent.sparse": "sparse", "percaccent.phrase_end": "phrase_end" };
+  // Hand-drum strip trims, dB on the percAccent strip's trim gain (REPLACES the
+  // strip's trim — on a Linn song the Linn's), so the human drums sit where
+  // the congas they replace sat. Keyed by THAT voice — the generic kit's
+  // congaHi / congaLo (drums.js, every non-Linn kit: the 808 panel does not
+  // own congas) or the Linn's conga chips — then by voicing. MEASURED
+  // K-weighted 2026-10-02, harness/congas-trim.mjs (data:
+  // analysis/fits/congas-trim-2026-10-02.json): songs whose draw 18 residual
+  // drew the hand drums, four per (lane, pattern, machine), strip up; the
+  // strip's real strokes after the conga player (ghosts included) solo through
+  // the voicing at 0 dB, and the same song's kit hits on the strip solo
+  // through its own kit with its strip trim, BS.1770 pre-filter. Mean gap
+  // (kit − drums):
+  //   kit congas  → congas +2.9 dB (24 songs, sd 1.4)
+  //   Linn congas → congas +3.1 dB (40, sd 2.1)
+  //   Linn congas → bongos +3.4 dB (8, sd 1.4)
+  // RMS agrees within 0.1 dB. kit → bongos is never drawn (the bongos play
+  // the phrase ending on synth-pop and new wave, whose machine is always the
+  // Linn) and is DERIVED for the legacyDrums A/B: the bongos' gap to the
+  // congas over the Linn, added to the kit's congas trim.
+  // RE-MEASURED 2026-10-04 (hand percussion round, Asana 1219146890572140:
+  // the congas voicing became the bongos an octave down, the player leans to
+  // mutes and touches, and the written hits come in lower, CONGA_VEL below;
+  // data analysis/fits/congas-trim-2026-10-04.json), same method:
+  //   kit congas  → congas +10.7 dB (5 songs, sd 1.4)    was +2.9
+  //   Linn congas → congas +9.0 dB (40, sd 2.6)          was +3.1
+  //   Linn congas → bongos +8.3 dB (8, sd 1.7)           was +3.4 (the player only)
+  // kit → bongos derived as before (10.7 + 8.3 − 9.0). The strip comes back up
+  // to where the kit's congas sat; the lean to the muted side is in the
+  // strokes and the narrower velocities, not in the strip's level.
+  const CONGAS_TRIM_DB = {
+    kit: { congas: 10.7, bongos: 10.0 },
+    linn: { congas: 9.0, bongos: 8.3 },
+  };
+  U.CONGAS_TRIM_DB = CONGAS_TRIM_DB;
+  // the written hits' velocities handed to the conga player (before the
+  // section level): the kit's 0.6 / 0.7 hit gains, scaled so a written open
+  // tone sits at the voice's reference touch (0.8). 2026-10-04, Jeff "more
+  // towards muted touch ... a narrower touch range": 0.8 / 0.8 / 0.9 → 0.6 /
+  // 0.6 / 0.7, the largest values at which the player census
+  // (analysis/hand-perc/conga-census.mjs, 5000 records) reads the per-song
+  // velocity range down by a third (0.170 → 0.111; at 0.62 / 0.72 it read
+  // 0.1145) and the mean down by 0.24 (0.898 → 0.658).
+  const CONGA_VEL = { tumbao: 0.6, sparse: 0.6, phrase_end: 0.7 };
+
+  // The rhythm guitar on the rhythmGtr strip (draws 85–87, 2026-10-03). The
+  // phrase mask (draw 86) picks which bars of each four-bar phrase the guitar
+  // plays: mostly every bar (a rhythm part is a part), sometimes laying out
+  // for a bar, sometimes every other bar.
+  const GTR_PHRASE = ["xxxx", "xxxx", "xxxx", "xxx.", "xx.x", ".xxx", "x.x.", "xxxx"];
+  U.GTR_PHRASE = GTR_PHRASE;
+  // Strip trim, dB on the rhythmGtr strip's trim gain, per voicing: the
+  // guitar replaces nothing, so it is set against the compA comp it plays
+  // alongside — the guitar strip solo 2-3 dB under the compA strip solo,
+  // K-weighted (BS.1770 pre-filter), on songs where both are up.
+  // MEASURED 2026-10-03, harness/rhythm-guitar-trim.mjs (data:
+  // analysis/fits/rhythm-guitar-trim-2026-10-03.json): 60 songs, four per
+  // (lane, voicing) where drawn, guitar and compA both up; each part's real
+  // events over the first 40 s played solo through its own instrument (compA
+  // with its poly trim and lane-leaned fader, the guitar at 0 dB with its
+  // fader). Mean trim: funk +2.4 dB (20 songs, sd 2.9), skank 0.0 (20, sd
+  // 4.5; one song at −16.2 where compA's comp sits far over the guitar — the
+  // other 19 average +0.9), chop −1.4 (20, sd 2.9). RMS agrees within 0.2 dB.
+  const GTR_TRIM_DB = { funk: 2.4, skank: 0.0, chop: -1.4 };
+  U.GTR_TRIM_DB = GTR_TRIM_DB;
+
+  U.realizeSession = function (ctx, desk, sheet, R, t0, opts) {
+    opts = opts || {};
+    const s16 = (60 / sheet.bpm) / 4;
+    const swing = sheet.swing;
+    const scale = SCALES[sheet.mode];
+    const P = sheet.picks;
+    let events = 0;
+
+    // ---- the mixing board, set before a note is scheduled ----
+    // Order matters: the lane's mix lean multiplies the house faders, the
+    // production style sets the room, then the mutes decide what is up. Nothing
+    // here adds or removes a node, so the fan-in ≤2 contract is untouched.
+    desk.applyLaneMix(sheet.lane);
+    U.applyProduction(desk, sheet.production);
+    for (const id in sheet.mutes) desk.setMute(id, sheet.mutes[id]);
+    // A muted strip's fader is at zero, so skipping its scheduling below is an
+    // optimization, not a second decision. Read the desk, not the sheet.
+    const up = (id) => !desk.strips[id].muted;
+
+    // Per-lane arrangement lean: when each strip enters the arrangement.
+    // earlyHipHop pulls the drums in early and holds the pitched strips back.
+    const entry = Object.assign({}, ENTRY);
+    const entryBias = (U.LANE_ARRANGE[sheet.lane] || {}).entry;
+    if (entryBias) for (const id in entryBias) entry[id] = (entry[id] || 0) + entryBias[id];
+
+    const infl = (patch) => sheet.influencePatches.indexOf(patch) > -1;
+
+    const stepT = (bar, i) => t0 + (bar * 16 + i) * s16 + (i % 2 ? swing * s16 : 0);
+
+    // --- harmony resolution ---
+    const chorusChords = sheet.harmony.chorus || null;
+    function chordAt(bar) {
+      const b = sheet.bars[bar];
+      const list = (b.section === "chorus" && chorusChords) ? chorusChords : sheet.harmony.chords;
+      const idx = Math.floor(bar / sheet.harmony.barsPer) % list.length;
+      return { deg: list[idx][0], type: list[idx][1] };
+    }
+    const bassMidi = (deg) => fold(36 + sheet.tonicPc + deg, 33, 44);
+    const midMidi = (deg) => fold(60 + sheet.tonicPc + deg, 55, 66);
+    function tones(rootMidi, type, n) {
+      const iv = U.CHORD_INTERVALS[type] || U.CHORD_INTERVALS.m;
+      const out = [];
+      for (let i = 0; i < (n || iv.length); i++) out.push(rootMidi + iv[i % iv.length] + 12 * Math.floor(i / iv.length));
+      return out;
+    }
+    // scale degree index -> midi, relative to the tonic
+    const degMidi = (base, d) => base + scale[((d % 7) + 7) % 7] + 12 * Math.floor(d / 7);
+
+    // --- instruments ---
+    const kitStrips = {};
+    for (const id of ["kick", "snare", "hats", "tomsFills", "ePerc", "percTime", "percAccent"]) kitStrips[id] = desk.strips[id];
+    // The kit's machine is drawn (draw 69, U.DRUM_MACHINE): the 808 on the
+    // machine lanes, the Linn-family machine on the studio lanes, either on
+    // funk. legacyDrums still builds the generic drums.js kit for an A/B.
+    // A Linn kit carries its measured K-weighted trim per strip (LINN_TRIM_DB
+    // below), so swapping the machine does not move the mix.
+    const machine = opts.legacyDrums ? null : sheet.drumMachine;
+    const use808 = machine === "808" && sheet.kit === "machine";
+    const useLinn = machine === "linn";
+    if (useLinn) for (const id in kitStrips) kitStrips[id].trim.gain.value = Math.pow(10, (LINN_TRIM_DB[id] || 0) / 20);
+    // the 808's aux strips in the background (TRIM_808_PERC_DB). percAccent
+    // only when the kit plays it: with the hand drums drawn, CONGAS_TRIM_DB
+    // (below) sets that strip's trim and this never touches it.
+    if (use808) for (const id in TRIM_808_PERC_DB) if (id !== "percAccent" || !sheet.percCongas) kitStrips[id].trim.gain.value = Math.pow(10, TRIM_808_PERC_DB[id] / 20);
+    // the Linn's aux strips sparingly (TRIM_LINN_PERC_DB, on top of the
+    // strip's LINN_TRIM_DB); the same percAccent rule
+    if (useLinn) for (const id in TRIM_LINN_PERC_DB) if (id !== "percAccent" || !sheet.percCongas) kitStrips[id].trim.gain.value = Math.pow(10, ((LINN_TRIM_DB[id] || 0) + TRIM_LINN_PERC_DB[id]) / 20);
+    const kit = U.createDrumKit(ctx, kitStrips, sheet.kit, use808 ? sheet.panel808 : useLinn ? sheet.panelLinn : null);
+    const lv = (e, dflt) => (useLinn && e.linnVoice) || e.voice || dflt;
+    // The Linn's cymbals (2026-09-30), on the hats strip: the CRASH on the
+    // first downbeat of the song and of every new section (the form's section
+    // boundaries, sheet.bars), the RIDE in place of the closed hat for the
+    // whole song when the sheet drew it. Their hit gains bring each to the
+    // closed hat's loudness on the strip, measured K-weighted
+    // (harness/linn-cymbal-gain.mjs), so the strip's trim holds.
+    const rideSong = useLinn && sheet.linnRide;
+    const crashOn = useLinn && up("hats");
+
+    // The bass strip's instrument is drawn (draw 21, U.BASS_VOICE). Juno:
+    // "sub" on sub808 patterns, "bass" otherwise. Minimoog: the lane patch for
+    // the pattern kind, with its measured trim on the strip.
+    let bassInst, bgVoicing = null;
+    if (sheet.bassVoice === "bassguitar") {
+      // the session player (sheet.bassPlayer, drawn by buildSong from a fork
+      // of the hash, src/session/bassplayer.js) plays the line in the bar loop
+      bgVoicing = BASSGUITAR_FOR_KIND(P.bass.kind, sheet.lane);
+      desk.strips.bass.trim.gain.value = Math.pow(10, BASSGUITAR_TRIM_DB[bgVoicing] / 20);
+      bassInst = U.createBassGuitar(ctx, desk.strips.bass, bgVoicing);
+    } else if (sheet.bassVoice === "fm") {
+      desk.strips.bass.trim.gain.value = Math.pow(10, FM_TRIM_DB.bass / 20);
+      bassInst = U.createFm(ctx, desk.strips.bass, "bass");
+    } else if (sheet.bassVoice === "minimoog") {
+      const moogPatch = MOOG_BASS_FOR_KIND[P.bass.kind] || "round";
+      desk.strips.bass.trim.gain.value = Math.pow(10, MOOG_BASS_TRIM_DB[moogPatch] / 20);
+      bassInst = U.createMinimoog(ctx, desk.strips.bass, moogPatch);
+    } else {
+      bassInst = U.createJuno(ctx, desk.strips.bass, P.bass.kind === "sub808" ? "sub" : "bass");
+    }
+    // The chord strips' poly synth is drawn too (draw 31, U.POLY_VOICE). OB-Xa:
+    // the patch for the strip (colour follows its pattern: brass on the brass
+    // offbeats, stab on section hits), its measured trim on the strip, and one
+    // slop seed (draw 32) for all three strips — one machine on the session.
+    // FM: the strip's FM patch and its measured trim; the pad stays Juno.
+    const poly = (strip, junoPatch) => {
+      if (sheet.polyVoice === "fm") {
+        const fp = FM_FOR_STRIP[strip](P);
+        if (!fp) return U.createJuno(ctx, desk.strips[strip], junoPatch);
+        desk.strips[strip].trim.gain.value = Math.pow(10, FM_TRIM_DB[fp] / 20);
+        return U.createFm(ctx, desk.strips[strip], fp);
+      }
+      if (sheet.polyVoice !== "obxa") return U.createJuno(ctx, desk.strips[strip], junoPatch);
+      const op = OBXA_FOR_STRIP[strip](P);
+      desk.strips[strip].trim.gain.value = Math.pow(10, OBXA_TRIM_DB[op] / 20);
+      return U.createObxa(ctx, desk.strips[strip], op, null, sheet.polySeed);
+    };
+    // The percTime strip's instrument: the kit's voice, or (sheet.percShakers,
+    // draw 17's residual) a session percussionist's shaker, maracas or cabasa
+    // played through the shaker player (sheet.shakerPlayer, a fork of the
+    // hash). Created only when drawn and the strip is up, so a song without
+    // the shakers builds exactly the graph it always did. On a Linn song the
+    // human instrument replaces the Linn's cabasa / tambourine on this strip.
+    let shakersInst = null;
+    if (sheet.percShakers && up("percTime")) {
+      const replaced = lv(P.percTime, "hatClosed");
+      desk.strips.percTime.trim.gain.value = Math.pow(10, ((SHAKERS_TRIM_DB[replaced] || SHAKERS_TRIM_DB.hatClosed)[sheet.percShakers] + SHAKERS_AUDIBLE_DB[sheet.percShakers]) / 20);
+      shakersInst = U.createShakers(ctx, desk.strips.percTime, sheet.percShakers);
+    }
+    // The percAccent strip's instrument: the kit's congas, or (sheet.percCongas,
+    // draw 18's residual) a session percussionist's congas or bongos played
+    // through the conga player (sheet.congaPlayer, a fork of the hash).
+    // Created only when drawn and the strip is up, so a song without them
+    // builds exactly the graph it always did. On a Linn song the human drums
+    // replace the Linn's conga chips on this strip.
+    let congasInst = null;
+    if (sheet.percCongas && up("percAccent")) {
+      desk.strips.percAccent.trim.gain.value = Math.pow(10, CONGAS_TRIM_DB[useLinn ? "linn" : "kit"][sheet.percCongas] / 20);
+      congasInst = U.createCongas(ctx, desk.strips.percAccent, sheet.percCongas);
+    }
+    // The rhythmGtr strip's instrument (draws 85–87): the rhythm guitar in the
+    // voicing for its pattern, played through the session guitarist
+    // (sheet.gtrPlayer, a fork of the hash, gtrplayer.js). Created only when
+    // the strip is up, so a song whose guitar is muted builds exactly the
+    // graph it always did.
+    let gtrInst = null;
+    if (sheet.gtrVoicing && up("rhythmGtr") && sheet.gtrPlayer) {
+      desk.strips.rhythmGtr.trim.gain.value = Math.pow(10, GTR_TRIM_DB[sheet.gtrVoicing] / 20);
+      gtrInst = U.createRhythmGuitar(ctx, desk.strips.rhythmGtr, sheet.gtrVoicing);
+    }
+    // The mono pitched strips (2026-10-05, sheet.leadVoice / counterVoice /
+    // arpVoice, the moogRoles fork): the Juno patch as always, or the
+    // Minimoog's patch for the strip (MOOG_FOR_ROLE) with its measured trim.
+    // On counter and arp the riff re-strikes EVERY note: the song's swung
+    // 16ths can run an offbeat note a few ms into the next one (probe,
+    // 2026-10-05: ca712647's up16 arp at 97 bpm, 287 of 576 notes), which on
+    // a mono voice is legato and the pluck would sound on every other note
+    // only. So a note there ends 2 ms before the next starts. The lead keeps
+    // its overlaps: legato with glide is the Minimoog lead.
+    const mono = (strip, junoPatch, voice) => {
+      if (voice !== "minimoog") return U.createJuno(ctx, desk.strips[strip], junoPatch);
+      desk.strips[strip].trim.gain.value = Math.pow(10, MOOG_ROLES_TRIM_DB[strip] / 20);
+      const v = U.createMinimoog(ctx, desk.strips[strip], MOOG_FOR_ROLE[strip]);
+      if (strip === "lead") return v;
+      const evs = [];
+      return { held: v.held, patch: v.patch,
+        noteOn(t, midi, vel, dur) { evs.push({ t, midi, vel, dur }); },
+        flush() {
+          evs.sort((a, b) => a.t - b.t);
+          for (let i = 0; i < evs.length; i++) {
+            const e = evs[i], nx = evs[i + 1];
+            v.noteOn(e.t, e.midi, e.vel, nx && nx.t > e.t ? Math.max(0.005, Math.min(e.dur, nx.t - e.t - 0.002)) : e.dur);
+          }
+          evs.length = 0;
+          v.flush();
+        } };
+    };
+    // FM songs: the chord strips' notes go through the session keys player
+    // (sheet.fmPlayer, drawn by buildSong from a fork of the hash,
+    // src/session/fmplayer.js). The FM pad stays the Juno pad and plays as
+    // written.
+    const fmKeys = sheet.polyVoice === "fm";
+    const inst = {
+      bass: bassInst,
+      compA: poly("compA", "comp"),
+      pad: poly("pad", "pad"),
+      arp: mono("arp", "arp", sheet.arpVoice),
+      lead: mono("lead", "lead", sheet.leadVoice),
+      counter: mono("counter", "arp", sheet.counterVoice),
+      color: poly("color", "stab"),
+    };
+    // `lvl` is the current bar's section level; every velocity and drum gain
+    // rides it, so the whole band gets louder into a chorus.
+    let lvl = 1;
+    const note = (part, t, midi, vel, dur) => { inst[part].noteOn(t, midi, vel * lvl, dur); events++; };
+    // `accent` is the machine's accent track. The books don't carry one, so it
+    // is derived the way an 808 is actually programmed: the quarter-note steps
+    // of the bar get the accent. Ignored entirely by the generic kit.
+    const hit = (strip, voice, t, gain, accent) => { kit.fire(strip, voice, t, gain * lvl, accent); events++; };
+    const beat = (i) => i % 4 === 0;
+
+    // effective energy after the density dial (sparse ↔ dense)
+    const eff = (e) => e + (sheet.density - 0.5) * 0.30;
+    const on = (role, bar) => up(role) && eff(sheet.bars[bar].energy) >= entry[role];
+
+    // foreground: the voice the song is about gets in earlier; the other backs off
+    const leadEntry = sheet.foreground === "lead" ? entry.lead - 0.2 : entry.lead + 0.25;
+
+    // ---- the bar loop. ONE draw per bar, used for every variation decision. ----
+    for (let bar = 0; bar < sheet.totalBars; bar++) {
+      const b = sheet.bars[bar];
+      const v = R.r();                                  // the bar's variation draw
+      lvl = SECTION_LEVEL[b.section];
+      const ch = chordAt(bar);
+      const nch = chordAt(Math.min(bar + 1, sheet.totalBars - 1));
+      const bRoot = bassMidi(ch.deg);
+      const mRoot = midMidi(ch.deg);
+      const bTones = tones(bRoot, ch.type, 4);
+      const mTones = tones(mRoot, ch.type, 4);
+      const dense = eff(b.energy);
+
+      // --- kick ---
+      if (P.kick.p && on("kick", bar)) {
+        const pat = P.kick.p;
+        for (let i = 0; i < 16; i++) {
+          if (pat[i] === "." ) continue;
+          if (P.kick.halftime && bar % 2 === 1) continue;
+          hit("kick", "kick", stepT(bar, i), i === 0 ? 1.0 : 0.88, beat(i));
+        }
+      }
+      // reggae one-drop couples snare to the kick on beat 3 — the kick half is
+      // patched at sheet time, this is the snare half of the same patch
+      const oneDrop = infl("oneDrop");
+
+      // --- snare ---
+      if (P.snare.p && on("snare", bar)) {
+        const voice = P.snare.clap ? "clap" : "snare";
+        const pat = oneDrop ? "........x......." : P.snare.p;
+        for (let i = 0; i < 16; i++) {
+          const c = pat[i];
+          if (c === ".") continue;
+          if (c === "g") hit("snare", "snare", stepT(bar, i), 0.22);
+          else {
+            hit("snare", voice, stepT(bar, i), 0.95, beat(i));
+            // clap patterns double the clap with a quiet snare body
+            if (P.snare.clap) hit("snare", "snare", stepT(bar, i), 0.35, beat(i));
+          }
+        }
+      }
+
+      // --- hats ---
+      if (P.hats.p && on("hats", bar)) {
+        for (let i = 0; i < 16; i++) {
+          const c = P.hats.p[i];
+          if (c === ".") continue;
+          // dub strip dropouts: whole bars of hats vanish
+          if (infl("dropouts") && v < 0.30) break;
+          const hv = c === "o" ? "hatOpen" : rideSong ? "ride" : "hatClosed";
+          hit("hats", hv, stepT(bar, i), (c === "o" ? 0.85 : (beat(i) ? 0.9 : 0.62)) * (hv === "ride" ? LINN_RIDE_GAIN : 1), beat(i));
+        }
+      }
+      if (crashOn && b.indexInSection === 0) hit("hats", "crash", stepT(bar, 0), LINN_CRASH_GAIN, true);
+
+      // --- tomsFills (fill windows only) ---
+      if (b.fillWindow && on("tomsFills", bar)) {
+        const k = P.tomsFills.kind;
+        if (k === "accent") {
+          hit("tomsFills", "tomLo", stepT(bar, 14), 0.9);
+        } else if (k === "descend") {
+          const steps = [10, 12, 13, 14], voices = ["tomHi", "tomHi", "tomMid", "tomLo"];
+          for (let i = 0; i < 4; i++) hit("tomsFills", voices[i], stepT(bar, steps[i]), 0.85);
+        } else if (k === "takeover") {
+          const voices = ["tomHi", "tomHi", "tomMid", "tomMid", "tomLo", "tomLo", "tomLo", "tomLo"];
+          for (let i = 0; i < 8; i++) hit("tomsFills", voices[i], stepT(bar, i * 2), 0.8 + 0.02 * i);
+        }
+      }
+
+      // --- ePerc ---
+      if (on("ePerc", bar)) {
+        if (P.ePerc.kind === "congaRun") {
+          const steps = [2, 3, 6, 10, 11, 14];
+          for (let i = 0; i < steps.length; i++) hit("ePerc", i % 2 ? "congaLo" : "congaHi", stepT(bar, steps[i]), 0.7);
+        } else if (P.ePerc.p2) {
+          // 2-bar figure (the son clave) — the bar takes its own half, same as
+          // the bass books' RIFF2. No accent, matching the 1-bar branch below:
+          // the accent track is a kick/snare/hats behaviour on this strip today
+          // and this entry is not the place to change that.
+          const off = (bar % 2) * 16;
+          for (let i = 0; i < 16; i++) {
+            if (P.ePerc.p2[off + i] === ".") continue;
+            hit("ePerc", lv(P.ePerc, "cowbell"), stepT(bar, i), 0.55);
+          }
+        } else if (P.ePerc.p) {
+          for (let i = 0; i < 16; i++) if (P.ePerc.p[i] !== ".") hit("ePerc", lv(P.ePerc, "cowbell"), stepT(bar, i), 0.55);
+        }
+      }
+
+      // --- percTime ---
+      if (P.percTime.p && on("percTime", bar)) {
+        if (shakersInst) {
+          // the bar's strokes through the session percussionist (U.playShakerBar:
+          // direction, timing, accent, touch, drift), into the human instrument
+          const st = [];
+          for (let i = 0; i < 16; i++) if (P.percTime.p[i] !== ".") st.push({ i, vel: SHAKER_VEL });
+          for (const o of U.playShakerBar(st, { bar, s16, swing }, sheet.shakerPlayer)) {
+            shakersInst.strike(stepT(bar, o.i) + o.off, o.vel * lvl, o.dir);
+            events++;
+          }
+        } else {
+          for (let i = 0; i < 16; i++) if (P.percTime.p[i] !== ".") hit("percTime", lv(P.percTime, "hatClosed"), stepT(bar, i), 0.30);
+        }
+      }
+
+      // --- percAccent ---
+      if (on("percAccent", bar) && congasInst) {
+        // the bar's written hits (the kit's own: steps, drums) through the
+        // session percussionist (U.playCongaBar: stroke types, ghost touches,
+        // timing, accent, variation, drift), into the human drums
+        const pk = CONGA_PATTERN[P.percAccent.id] || (P.percAccent.kind === "phraseEnd" ? "phrase_end" : "tumbao");
+        const hits = [];
+        if (P.percAccent.kind === "phraseEnd") { if (b.last) hits.push({ i: 12, vel: CONGA_VEL.phrase_end, drum: "hi" }, { i: 14, vel: CONGA_VEL.phrase_end, drum: "lo" }); }
+        else if (P.percAccent.p) for (let i = 0; i < 16; i++) if (P.percAccent.p[i] !== ".") hits.push({ i, vel: CONGA_VEL[pk] || 0.8, drum: i % 3 ? "hi" : "lo" });
+        if (hits.length) for (const o of U.playCongaBar(hits, { bar, s16, swing, pattern: pk }, sheet.congaPlayer)) {
+          congasInst.strike(stepT(bar, o.i) + o.off, o.vel * lvl, o.drum, o.stroke);
+          events++;
+        }
+      } else if (on("percAccent", bar)) {
+        if (P.percAccent.kind === "phraseEnd") {
+          if (b.last) { hit("percAccent", "congaHi", stepT(bar, 12), 0.7); hit("percAccent", "congaLo", stepT(bar, 14), 0.7); }
+        } else if (P.percAccent.p) {
+          for (let i = 0; i < 16; i++) if (P.percAccent.p[i] !== ".") hit("percAccent", i % 3 ? "congaHi" : "congaLo", stepT(bar, i), 0.6);
+        }
+      }
+
+      // --- bass ---
+      if (on("bass", bar)) {
+        const k = P.bass.kind;
+        // On a bass-guitar song the bar's notes are COLLECTED and the session
+        // player plays them (U.playBassBar: timing, touch, length, ghosts,
+        // slides); every synth bass plays them as written, as before.
+        const barEv = bgVoicing ? [] : null;
+        const put = bgVoicing
+          ? (i, midi, vel, durSteps) => barEv.push({ i, midi, vel, dur: durSteps })
+          : (i, midi, vel, durSteps) => note("bass", stepT(bar, i), midi, vel, durSteps * s16);
+        if (k === "rootEighths") {
+          for (let i = 0; i < 16; i += 2) put(i, bRoot, i === 0 ? 0.95 : 0.8, 1.7);
+        } else if (k === "rootQuarters") {
+          for (let i = 0; i < 16; i += 4) put(i, bRoot, 0.9, 3.6);
+        } else if (k === "octaveAlt") {
+          for (let i = 0; i < 16; i += 2) put(i, (i / 2) % 2 ? bRoot + 12 : bRoot, i % 4 === 0 ? 0.95 : 0.78, 1.6);
+        } else if (k === "octavePush") {
+          for (let i = 0; i < 16; i += 2) put(i, (i / 2) % 2 ? bRoot + 12 : bRoot, 0.9, 1.4);
+          if (v < 0.5) put(15, bRoot + 12, 0.8, 1.0);
+        } else if (k === "seq16") {
+          for (let i = 0; i < 16; i++) put(i, bTones[i % 4] - (i % 8 < 4 ? 0 : 0), 0.72 + (i % 4 === 0 ? 0.2 : 0), 0.9);
+        } else if (k === "walk") {
+          put(0, bRoot, 0.95, 3.6); put(4, bRoot, 0.85, 3.6); put(8, bRoot, 0.85, 3.6);
+          const target = bassMidi(nch.deg);
+          put(12, bRoot + (target > bRoot ? 2 : -2), 0.8, 1.7);
+          put(14, target - (target > bRoot ? 1 : -1), 0.8, 1.7);
+        } else if (k === "synco16") {
+          const mask = SYNCO16[sheet.masks.bass % SYNCO16.length];
+          for (let i = 0; i < 16; i++) if (mask[i] !== ".") put(i, i % 8 === 0 ? bRoot : bTones[(i * 3) % 4], i === 0 ? 0.95 : 0.8, 1.1);
+        } else if (k === "octaveSlide") {
+          for (let i = 0; i < 16; i += 4) { put(i, bRoot, 0.9, 1.8); put(i + 3, bRoot + 12, 0.7, 0.9); }
+        } else if (k === "pedal") {
+          put(0, bRoot, 0.9, 15.5);
+        } else if (k === "sub808") {
+          put(0, bRoot, 1.0, 7.0); put(8, bRoot, 0.9, 6.5);
+        } else if (k === "oneNote") {
+          const mask = ONE_NOTE[sheet.masks.bass % ONE_NOTE.length];
+          const pitch = bassMidi(sheet.harmony.chords[0][0]);
+          for (let i = 0; i < 16; i++) if (mask[i] !== ".") put(i, pitch, i === 0 ? 0.95 : 0.78, 1.1);
+        } else if (k === "riffHook") {
+          const riff = RIFF2[sheet.masks.bass % RIFF2.length];
+          const off = (bar % 2) * 16;
+          for (let i = 0; i < 16; i++) {
+            const c = riff[off + i];
+            if (c === ".") continue;
+            put(i, degMidi(bRoot, +c), i === 0 ? 0.95 : 0.82, 1.4);
+          }
+        }
+        if (bgVoicing && barEv.length) {
+          for (const n of U.playBassBar(barEv, { bar, s16, swing }, sheet.bassPlayer)) {
+            const ex = {};
+            if (n.mute) ex.mute = true;
+            if (n.slide) ex.slide = n.slide;
+            // slap: the octave and upper notes are popped, the rest thumbed
+            if (bgVoicing === "slap" && !n.mute && n.midi >= bRoot + 7) ex.art = "pop";
+            inst.bass.noteOn(stepT(bar, n.i) + n.off, n.midi, n.vel * lvl, n.dur * s16, ex);
+            events++;
+          }
+        }
+      }
+
+      // --- compA ---
+      if (on("compA", bar)) {
+        const k = P.compA.kind;
+        // On an FM song the bar's notes are COLLECTED and the session keys
+        // player plays them (U.playFmBar: timing, roll, touch, length); the
+        // Juno and the OB-Xa play them as written, as before.
+        const ev = fmKeys ? [] : null;
+        const put = fmKeys
+          ? (i, midi, vel, durSteps) => ev.push({ i, midi, vel, dur: durSteps })
+          : (i, midi, vel, durSteps) => note("compA", stepT(bar, i), midi, vel, durSteps * s16);
+        const chord = (i, vel, durSteps) => { for (const m of mTones) put(i, m, vel, durSteps); };
+        if (k === "grid") {
+          for (let i = 0; i < 16; i++) if (P.compA.p[i] !== ".") chord(i, 0.8, 1.4);
+        } else if (k === "hold") {
+          chord(0, 0.75, 15.5);
+        } else if (k === "gateChop") {
+          const mask = GATE[sheet.masks.comp % GATE.length];
+          for (let i = 0; i < 16; i++) if (mask[i] !== ".") chord(i, 0.7, 0.9);
+        } else if (k === "rhodes16") {
+          for (let i = 0; i < 16; i++) {
+            if ((i + sheet.masks.comp) % 3 === 0) continue;
+            put(i, mTones[(i * 2 + Math.floor(i / 4)) % mTones.length], 0.55, 1.2);
+          }
+        }
+        if (ev && ev.length) for (const n of U.playFmBar(ev, { bar, s16, swing }, sheet.fmPlayer)) note("compA", stepT(bar, n.i) + n.off, n.midi, n.vel, n.dur * s16);
+      }
+
+      // --- rhythmGtr ---
+      // the pattern's written strokes (U.gtrWritten: direction by the hand's
+      // down-up) through the session guitarist (ghost chucks, timing, accent,
+      // spread, variation, drift), on the bar's chord tones as compA has them
+      if (gtrInst && on("rhythmGtr", bar) && GTR_PHRASE[sheet.masks.gtr % GTR_PHRASE.length][b.indexInSection % 4] === "x") {
+        const pr = P.rhythmGtr;
+        for (const o of U.playGtrBar(U.gtrWritten(pr), { bar, s16, swing, pattern: pr.id }, sheet.gtrPlayer)) {
+          gtrInst.strike(stepT(bar, o.i) + o.off, o.vel * lvl, o.stroke, mTones, o.strings, o.spreadMul);
+          events++;
+        }
+      }
+
+      // --- pad ---
+      if (on("pad", bar)) {
+        const k = P.pad.kind;
+        const wantSection = k !== "sectionOnly" || b.section === "chorus" || b.section === "bridge";
+        if (wantSection) {
+          if (k === "swell") {
+            if (bar % 2 === 0) for (const m of mTones) note("pad", stepT(bar, 0), m + 12, 0.6, 2 * 16 * s16);
+          } else {
+            for (const m of mTones) note("pad", stepT(bar, 0), m + 12, 0.6, 15.6 * s16);
+          }
+        }
+      }
+
+      // --- arp ---
+      if (on("arp", bar)) {
+        const k = P.arp.kind;
+        const t4 = tones(mRoot, ch.type, 4);
+        for (let i = 0; i < 16; i++) {
+          let midi = null;
+          if (k === "up16") midi = t4[i % 4] + 12 * Math.floor((i % 8) / 4);
+          else if (k === "updown16") { const seq = [0, 1, 2, 3, 4, 3, 2, 1]; midi = t4[seq[i % 8] % 4] + (seq[i % 8] >= 4 ? 12 : 0); }
+          else if (k === "octavePulse") { if (i % 2) continue; midi = (i / 2) % 2 ? t4[0] + 12 : t4[0]; }
+          else if (k === "random8") { if (i % 2) continue; midi = t4[(i * 5 + bar * 3) % 4] + (((i + bar) % 3 === 0) ? 12 : 0); }
+          if (midi != null) note("arp", stepT(bar, i), midi, 0.6, 0.9 * s16);
+        }
+      }
+
+      // --- lead ---
+      if (up("lead") && eff(b.energy) >= leadEntry) {
+        const k = P.lead.kind;
+        const active = k === "soloWindow" ? (b.section === "bridge" || (b.section === "chorus" && v < 0.5)) : true;
+        if (active) {
+          const ph = PHRASES[(sheet.masks.lead + (k === "instrumental" ? 2 : 0)) % PHRASES.length];
+          const off = (bar % 2) * 16;
+          const base = midMidi(0) + 12;
+          for (let i = 0; i < 16; i++) {
+            const c = ph[off + i];
+            if (c === "." || c === "-") continue;
+            let dur = 1;
+            while (off + i + dur < 32 && ph[off + i + dur] === "-") dur++;
+            note("lead", stepT(bar, i), degMidi(base, +c), 0.85, dur * 1.05 * s16);
+          }
+        }
+      }
+
+      // --- counter ---
+      if (on("counter", bar)) {
+        const src = P.counter.kind === "ostinato" ? COUNTER_OST : PHRASES;
+        const ph = src[sheet.masks.counter % src.length];
+        // "answer" phrases sit in the gaps — second half of each 2-bar unit
+        const active = P.counter.kind === "ostinato" || bar % 2 === 1;
+        if (active) {
+          const off = (bar % 2) * 16;
+          const base = midMidi(0);
+          for (let i = 0; i < 16; i++) {
+            const c = ph[off + i];
+            if (c === "." || c === "-") continue;
+            note("counter", stepT(bar, i), degMidi(base, +c), 0.6, 1.3 * s16);
+          }
+        }
+      }
+
+      // --- color (the ORCH5-flavor stab) ---
+      // On an FM song the same session keys player plays the colour chords.
+      if (on("color", bar)) {
+        const ev = fmKeys ? [] : null;
+        const put = fmKeys
+          ? (i, midi, vel, durSteps) => ev.push({ i, midi, vel, dur: durSteps })
+          : (i, midi, vel, durSteps) => note("color", stepT(bar, i), midi, vel, durSteps * s16);
+        if (P.color.kind === "sectionHit") {
+          if (b.indexInSection === 0) for (const m of mTones) put(0, m, 0.9, 1.6);
+        } else if (P.color.kind === "brassOffbeat") {
+          for (const i of [6, 14]) for (const m of mTones) put(i, m, 0.7, 1.2);
+        }
+        if (ev && ev.length) for (const n of U.playFmBar(ev, { bar, s16, swing }, sheet.fmPlayer)) note("color", stepT(bar, n.i) + n.off, n.midi, n.vel, n.dur * s16);
+      }
+    }
+
+    // A mono voice renders its line only once it has seen every note (note n+1
+    // decides whether note n was legato) — see minimoog.js — and the OB-Xa's
+    // and the FM voice's allocators need the whole line (obxa.js, fm.js). The
+    // Juno has no flush(), so on a Juno strip this does nothing.
+    for (const k of Object.keys(inst)) if (inst[k].flush) inst[k].flush();
+    if (shakersInst) shakersInst.flush();
+    if (congasInst) congasInst.flush();
+    if (gtrInst) gtrInst.flush();
+
+    // `retain` must stay reachable until startRendering() resolves — see the
+    // determinism note in juno.js. The caller owns keeping it alive.
+    return { events, lengthSec: sheet.lengthSec, retain: [kit, inst] };
+  };
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+
+<script>
+window.FIT_POS = {"bright":0.5,"velTone":0.5,"keyScale":0.5,"decay":0.5,"release":0.5,"fbAdd":0.5,"spread":0.5,"dacBits":0.5,"dacLP":0.5,"vib":0.5,"trem":0.5,"lfoRate":0.5};
+// The REASON each declined knob was declined, carried onto the page itself. A
+// notApplied block that only lives in the repo is a record Jeff cannot read,
+// and the whole point of declining a knob on the record is that the decline is
+// visible where the instrument is.
+window.FIT_WHY = {"bright":"Fitted on the electric piano (a small brightening, applied) and on the bass, where the voicing already sat at the real DX7 bass's brightness, so nothing moved. Glass and brass have no clean real-hardware recording, so their brightness is voiced.","velTone":"The measurement sees this knob, but no recording of a real DX7 electric piano played soft and hard turned up. The DX5 played soft to hard does get brighter as it gets louder, which confirms the machine works this way, but that is another patch's amount. Kept as voiced.","keyScale":"Applied on the electric piano: the real one keeps more brightness up the keyboard. The other patches have no multi-octave recording to fit against.","decay":"The electric piano recordings are cut short by the uploader, so they show no decay, and the long held notes are other patches.","release":"No recording shows a key being let go on these patches.","fbAdd":"In these recordings feedback and brightness do the same thing to the tone, and nothing separates them.","spread":"Operator detune is a patch choice, and the electric piano notes are too short to hear slow beating.","dacBits":"The measurement sees it, but the recordings' noise floor is the web previews' compression, not the converter's: read literally it would say a far coarser converter than the machine has. Kept at the machine's own.","dacLP":"The previews are compressed, which hides the top octave, so the output filter cannot be seen.","vib":"No recording holds a note with vibrato.","trem":"No recording shows tremolo.","lfoRate":"No recording shows the LFO."};
+/* WHERE THE KNOBS OPEN @ b976d92, built 2026-10-05.
+
+   Every knob apply-fit moved opens at CENTRE, because after the apply the
+   centre IS the fit. Only the knobs it measured and did not move are here, and
+   each one is here because a fit record says so:
+
+     bright       <- fm (all patches)
+       Fitted on the electric piano (a small brightening, applied) and on the bass, where the voicing already sat at the real DX7 bass's brightness, so nothing moved. Glass and brass have no clean real-hardware recording, so their brightness is voiced.
+     velTone      <- fm (all patches)
+       The measurement sees this knob, but no recording of a real DX7 electric piano played soft and hard turned up. The DX5 played soft to hard does get brighter as it gets louder, which confirms the machine works this way, but that is another patch's amount. Kept as voiced.
+     keyScale     <- fm (all patches)
+       Applied on the electric piano: the real one keeps more brightness up the keyboard. The other patches have no multi-octave recording to fit against.
+     decay        <- fm (all patches)
+       The electric piano recordings are cut short by the uploader, so they show no decay, and the long held notes are other patches.
+     release      <- fm (all patches)
+       No recording shows a key being let go on these patches.
+     fbAdd        <- fm (all patches)
+       In these recordings feedback and brightness do the same thing to the tone, and nothing separates them.
+     spread       <- fm (all patches)
+       Operator detune is a patch choice, and the electric piano notes are too short to hear slow beating.
+     dacBits      <- fm (all patches)
+       The measurement sees it, but the recordings' noise floor is the web previews' compression, not the converter's: read literally it would say a far coarser converter than the machine has. Kept at the machine's own.
+     dacLP        <- fm (all patches)
+       The previews are compressed, which hides the top octave, so the output filter cannot be seen.
+     vib          <- fm (all patches)
+       No recording holds a note with vibrato.
+     trem         <- fm (all patches)
+       No recording shows tremolo.
+     lfoRate      <- fm (all patches)
+       No recording shows the LFO. */
+</script>
+
+<script>
+/* ---------------------------------------------------------------------------
+   The page. It owns the UI and nothing else: every sound is made by
+   U.buildFmLine / U.createFm out of the engine block above.
+   WHERE IT OPENS. At CENTRE for every knob a fit moved, because the centre now
+   IS the fit — opening at a fitted position would apply it twice and give you a
+   machine no token can draw. The knobs that were measured and DECLINED open at
+   the shipped value, since nothing moved the centre onto those. Every one of
+   them, and why, is in analysis/fits/. See analysis/build-instrument-page.mjs.
+--------------------------------------------------------------------------- */
+(function(){
+  "use strict";
+  const PATCHES = Object.keys(U.FM_PATCHES);
+  let patch = "ep";
+  let octave = 4;                 // key "A" = C3 (midi 48), the chord register
+  let cur = null;                 // the patch as the panel has it
+  const held = [];                // anti-GC: every live source stays reachable
+  const velEl = document.getElementById("vel");
+  // touch → velocity: 0.15 (softest) .. 1 (hardest)
+  const touch = (p) => 0.15 + 0.85 * Math.min(1, Math.max(0, p));
+
+  let ctx = null, out = null;
+  function audio(){
+    if (!ctx){
+      ctx = new (window.AudioContext || window.webkitAudioContext)();
+      // +6 dB monitor gain into a gentle limiter: sixteen voices at full
+      // velocity sum past full scale, as on the machine
+      const lim = ctx.createDynamicsCompressor();
+      lim.threshold.value = -3; lim.knee.value = 0; lim.ratio.value = 20; lim.attack.value = 0.002; lim.release.value = 0.12;
+      out = ctx.createGain(); out.gain.value = 2.0; out.connect(lim).connect(ctx.destination);
+    }
+    if (ctx.state === "suspended") ctx.resume();
+    return ctx;
+  }
+
+  // --- the panel -----------------------------------------------------------
+  // Ranges are U.FM_KNOBS, the bounds the fitter searches. Center is the
+  // voicing — for the electric piano's key scaling, the fit. No numbers in
+  // the view: a knob says only whether it is at center.
+  const KN = U.FM_KNOBS;
+  const knobsEl = document.getElementById("knobs");
+  const base = () => U.FM_PATCHES[patch];
+  const toPos = (k, v) => k.log ? Math.log(v / k.min) / Math.log(k.max / k.min) : (v - k.min) / (k.max - k.min);
+  const fromPos = (k, p) => {
+    let v = k.log ? k.min * Math.pow(k.max / k.min, p) : k.min + p * (k.max - k.min);
+    if (k.step) v = Math.round(v / k.step) * k.step;
+    return v;
+  };
+  function buildKnobs(){
+    cur = JSON.parse(JSON.stringify(base()));
+    knobsEl.innerHTML = "";
+    for (const k of KN){
+      const b0 = U.fmGet(base(), k.key);
+      const wrap = document.createElement("div");
+      wrap.className = "knob";
+      wrap.innerHTML = '<label class="k">' + k.label + '</label>' +
+        '<input type="range" min="0" max="1000" step="1" value="' + Math.round(toPos(k, b0) * 1000) + '">' +
+        '<div class="val"><span class="d"></span></div>';
+      const inp = wrap.querySelector("input");
+      const d = wrap.querySelector(".d");
+      const paint = (v) => {
+        const off = Math.abs(toPos(k, v) - toPos(k, b0)) > 0.004;
+        d.textContent = off ? (toPos(k, v) > toPos(k, b0) ? "up from center" : "down from center") : "at center";
+        d.style.color = off ? "var(--accent)" : "var(--dim)";
+      };
+      inp.addEventListener("input", () => {
+        const v = fromPos(k, inp.value / 1000);
+        cur = U.fmSet(cur, k.key, v);
+        paint(v); markDirty();
+      });
+      paint(b0);
+      knobsEl.appendChild(wrap);
+    }
+    markDirty();
+  }
+  function markDirty(){
+    const n = KN.filter(k => Math.abs(toPos(k, U.fmGet(cur, k.key)) - toPos(k, U.fmGet(base(), k.key))) > 0.004).length;
+    document.getElementById("dirty").textContent = n ? "some knobs off center" : "every knob at center";
+  }
+  document.getElementById("reset").onclick = () => buildKnobs();
+
+  // --- patch buttons -------------------------------------------------------
+  const pEl = document.getElementById("patches");
+  PATCHES.forEach(p => {
+    const b = document.createElement("button");
+    b.textContent = p; b.dataset.p = p;
+    if (p === patch) b.className = "on";
+    b.onclick = () => {
+      patch = p;
+      document.getElementById("prog").dataset.play = p;
+      octave = p === "bass" ? 3 : 4; paintOct();
+      [...pEl.children].forEach(c => c.className = c.dataset.p === p ? "on" : "");
+      buildKnobs();
+    };
+    pEl.appendChild(b);
+  });
+
+  // --- hits and phrases ----------------------------------------------------
+  // Everything here goes through U.createFm(...).schedule(), the entry point
+  // the song uses. A patch's row plays the panel as it stands when that patch
+  // is the selected one, otherwise the patch at center.
+  const SOFT = touch(0.15), HARD = touch(1);
+  const HIT = { ep: [[48, 55, 60, 64], 1.2], glass: [[60, 67, 72, 76], 1.5], brass: [[48, 55, 60, 64], 0.9], bass: [[36], 0.5] };
+  // The progressions are rows of the song engine's harmony book
+  // (U.HARMONY, src/session/books.js), looked up by id. This page's engine
+  // block does not carry books.js, so the rows below are those book rows
+  // verbatim (data, not synthesis); if the builder ever inlines the book, the
+  // live rows win. Each patch gets a row from a lane where the session draws
+  // the FM voice (U.POLY_VOICE / U.BASS_VOICE) and the rhythm of the strip
+  // it plays there (U.FM_FOR_STRIP: compA → ep, colour → glass / brass).
+  const BOOK = {
+    "rb.h.bright_rb":    { barsPer: 1, chords: [[0, "M7"], [9, "m7"], [2, "m7"], [7, "d7"]] },
+    "sp.h.vi_start":     { barsPer: 1, chords: [[9, "m"], [5, "M"], [0, "M"], [7, "M"]] },
+    "sp.h.pop_axis":     { barsPer: 1, chords: [[0, "M"], [7, "M"], [9, "m"], [5, "M"]] },
+    "rb.h.two_five_loop": { barsPer: 1, chords: [[2, "m7"], [7, "d7"]] },
+  };
+  const IV = U.CHORD_INTERVALS || { m: [0, 3, 7], M: [0, 4, 7], m7: [0, 3, 7, 10], M7: [0, 4, 7, 11], d7: [0, 4, 7, 10] };
+  function bookRow(id){
+    if (U.HARMONY) for (const lane in U.HARMONY) for (const r of U.HARMONY[lane]) if (r.id === id) return r;
+    return BOOK[id];
+  }
+  // [beat, length in beats, velocity(, octave for the bass)]: accents loud,
+  // pushes and ghosts soft, so the touch is audible inside the phrase
+  const PHRASE = {
+    ep:    { id: "rb.h.bright_rb", bpm: 96, hits: [[0, 1.4, 0.95], [1.5, 0.45, 0.5], [2.5, 1.4, 0.8], [3.5, 0.45, 0.45]] },
+    glass: { id: "sp.h.vi_start", bpm: 112, up: 12, hits: [[0, 0.5, 0.9], [1.5, 0.5, 0.55], [2.5, 1.0, 0.8]] },
+    brass: { id: "sp.h.pop_axis", bpm: 112, hits: [[0, 1.3, 0.95], [1.5, 0.35, 0.75], [2.5, 1.3, 0.9]] },
+    bass:  { id: "rb.h.two_five_loop", bpm: 96, bass: true, hits: [[0, 0.9, 0.95, 0], [1.5, 0.4, 0.6, 12], [2, 0.9, 0.9, 0], [3.5, 0.4, 0.7, 0]] },
+  };
+  function phraseEvents(p){
+    const ph = PHRASE[p], row = bookRow(ph.id), beat = 60 / ph.bpm, ev = [];
+    for (let bar = 0; bar < 4; bar++){
+      const [deg, type] = row.chords[Math.floor(bar / row.barsPer) % row.chords.length];
+      if (ph.bass){
+        let root = 36 + deg; if (root > 43) root -= 12;          // roots around C2
+        for (const [st, len, vel, oc] of ph.hits) ev.push({ t: (bar * 4 + st) * beat, midi: root + oc, vel, dur: len * beat });
+        continue;
+      }
+      let root = 48 + deg; if (root > 55) root -= 12;            // chords in the C3 register
+      const ch = IV[type].map(i => root + i + (ph.up || 0));
+      for (const [st, len, vel] of ph.hits) for (const m of ch) ev.push({ t: (bar * 4 + st) * beat, midi: m, vel, dur: len * beat });
+    }
+    return ev;
+  }
+  let playing = null;                 // { key, g, timer }
+  function stopPlay(){
+    if (!playing) return;
+    const n = ctx.currentTime;
+    playing.g.gain.cancelScheduledValues(n); playing.g.gain.setValueAtTime(playing.g.gain.value, n);
+    playing.g.gain.linearRampToValueAtTime(0, n + 0.05);
+    clearTimeout(playing.timer);
+    document.querySelectorAll('[data-play="' + playing.key + '"]').forEach(b => b.classList.remove("on"));
+    playing = null;
+  }
+  function voiceFor(p, g){
+    const c = audio();
+    const v = U.createFm(c, { input: U.chainMixer(c, g) }, p, p === patch ? cur : null);
+    held.push(v, g); if (held.length > 64) held.splice(0, 16);
+    return v;
+  }
+  function hit(p, vel){
+    const c = audio(), g = c.createGain(); g.connect(out);
+    voiceFor(p, g).schedule(HIT[p][0].map(m => ({ t: 0, midi: m, vel, dur: HIT[p][1] })), c.currentTime + 0.03);
+  }
+  function phrase(p){
+    const was = playing && playing.key;
+    stopPlay();
+    if (was === p) return;
+    const c = audio(), g = c.createGain(); g.connect(out);
+    const ev = phraseEvents(p);
+    voiceFor(p, g).schedule(ev, c.currentTime + 0.06);
+    const end = ev.reduce((m, e) => Math.max(m, e.t + e.dur), 0) + 1.5;
+    playing = { key: p, g, timer: setTimeout(() => { if (playing && playing.key === p) stopPlay(); }, end * 1000) };
+    document.querySelectorAll('[data-play="' + p + '"]').forEach(b => b.classList.add("on"));
+  }
+  // --- the groove: the EP phrase straight and through the session player ---
+  // The phrase's bars as step events (beat × 4 = step), then either scheduled
+  // as written or passed through U.playFmBar with a fixed player record, the
+  // way session.js plays the FM chord strips.
+  const DEMO_HASH = "0x5e55100b1a5e55100b1a5e55100b1a5e55100b1a5e55100b1a5e55100b1a0003";
+  function grooveEvents(played, startBar, bars){
+    const ph = PHRASE.ep, row = bookRow(ph.id), s16 = 60 / ph.bpm / 4;
+    const rec = U.drawFmPlayer(DEMO_HASH, "synthRnB");
+    const evs = [];
+    for (let b = 0; b < bars; b++){
+      const bar = startBar + b;
+      const [deg, type] = row.chords[Math.floor(b / row.barsPer) % row.chords.length];
+      let root = 48 + deg; if (root > 55) root -= 12;
+      let notes = [];
+      for (const [st, len, vel] of ph.hits) for (const i of IV[type]) notes.push({ i: Math.round(st * 4), midi: root + i, vel, dur: len * 4 });
+      if (played) notes = U.playFmBar(notes, { bar, s16, swing: 0 }, rec);
+      for (const n of notes) evs.push({ t: (bar * 16 + n.i) * s16 + (n.off || 0), midi: n.midi, vel: n.vel, dur: n.dur * s16 });
+    }
+    return { evs, barSec: 16 * s16 };
+  }
+  let gTimer = null, gG = null, gBtn = null;
+  function stopGroove(){
+    if (gG){
+      const n = ctx.currentTime;
+      gG.gain.cancelScheduledValues(n); gG.gain.setValueAtTime(gG.gain.value, n); gG.gain.linearRampToValueAtTime(0, n + 0.05);
+      gG = null;
+    }
+    clearTimeout(gTimer);
+    document.getElementById("gnow").textContent = "";
+    if (gBtn){ gBtn.classList.remove("on"); gBtn = null; }
+  }
+  function playGroove(parts, btn){
+    if (gBtn === btn){ stopGroove(); return; }
+    const c = audio();
+    stopGroove(); stopPlay();
+    const g = c.createGain(); g.connect(out);
+    let ev = [], bar = 0, barSec = 0;
+    for (const played of parts){ const r = grooveEvents(played, bar, 4); ev = ev.concat(r.evs); barSec = r.barSec; bar += 4; }
+    voiceFor("ep", g).schedule(ev, c.currentTime + 0.08);
+    gG = g; gBtn = btn; btn.classList.add("on");
+    const gn = document.getElementById("gnow");
+    gn.textContent = parts[0] ? "played" : "straight";
+    if (parts.length > 1) gTimer = setTimeout(() => { gn.textContent = "played"; gTimer = setTimeout(stopGroove, 4 * barSec * 1000 + 1500); }, 4 * barSec * 1000 + 80);
+    else gTimer = setTimeout(stopGroove, 4 * barSec * 1000 + 1500);
+  }
+  const gb = (id, parts) => { const b = document.getElementById(id); b.onclick = () => playGroove(parts, b); };
+  gb("groove", [false, true]); gb("straight", [false]); gb("played", [true]);
+
+  const hitsEl = document.getElementById("hits");
+  PATCHES.forEach(p => {
+    const l = document.createElement("span"); l.className = "pl"; l.textContent = p; hitsEl.appendChild(l);
+    for (const [name, vel] of [["soft", SOFT], ["hard", HARD]]){
+      const b = document.createElement("button");
+      b.className = "hit"; b.textContent = name; b.dataset.hit = p + "-" + name;
+      b.addEventListener("pointerdown", (e) => { e.preventDefault(); hit(p, vel); });
+      hitsEl.appendChild(b);
+    }
+    const b = document.createElement("button");
+    b.className = "play"; b.textContent = "Phrase"; b.dataset.play = p;
+    b.onclick = () => phrase(p);
+    hitsEl.appendChild(b);
+  });
+  // the keyboard card's Phrase plays the selected patch
+  document.getElementById("prog").dataset.play = patch;
+  document.getElementById("prog").onclick = () => phrase(patch);
+  document.getElementById("touchSoft").onclick = () => { velEl.value = 150; };
+  document.getElementById("touchHard").onclick = () => { velEl.value = 1000; };
+
+  // --- the live keyboard: one buffer per key ------------------------------
+  // Each key renders its own note with U.buildFmLine (the engine's own
+  // renderer; FM voices are independent, so one note alone is exactly the
+  // note inside a line). While the key is down it plays
+  // a long hold; on key-up the note re-renders with its real length and the
+  // page swaps to it AT THE CURRENT PLAY POSITION. The render is
+  // deterministic and the two buffers are sample-identical up to the release,
+  // so the swap is seamless and the release starts on key-up.
+  const HOLD = 6.0;
+  const live = {};            // semi -> { t0, midi, vel, src, gain }
+  function start(n, dur){
+    const c = audio();
+    const now = c.currentTime + 0.012;
+    const off = Math.max(0, now - n.t0);
+    const data = U.buildFmLine(cur, [{ t: 0, midi: n.midi, vel: n.vel, dur }], c.sampleRate);
+    const buf = c.createBuffer(1, data.length, c.sampleRate);
+    buf.getChannelData(0).set(data);
+    const src = c.createBufferSource(); src.buffer = buf;
+    const g = c.createGain(); g.gain.value = 1;
+    src.connect(g).connect(out);
+    if (off < buf.duration) src.start(n.t0 > now ? n.t0 : now, off);
+    if (n.src){
+      n.gain.gain.setValueAtTime(1, now);
+      n.gain.gain.linearRampToValueAtTime(0, now + 0.004);
+      n.src.stop(now + 0.01);
+    }
+    n.src = src; n.gain = g;
+    held.push(src, g, buf); if (held.length > 192) held.splice(0, 48);
+  }
+  function keyOn(semi, vel){
+    if (live[semi]) keyOff(semi);
+    const c = audio();
+    const n = { t0: c.currentTime + 0.012, midi: octave * 12 + semi, vel: vel == null ? touch(velEl.value / 1000) : vel, src: null, gain: null };
+    live[semi] = n;
+    start(n, HOLD);
+  }
+  function keyOff(semi){
+    const n = live[semi];
+    if (!n) return;
+    delete live[semi];
+    const c = audio();
+    start(n, Math.max(0.01, c.currentTime + 0.012 - n.t0));
+  }
+
+  // --- the keyboard --------------------------------------------------------
+  const WHITE = [0,2,4,5,7,9,11], BLACK = {1:0,3:1,6:3,8:4,10:5};
+  const kbdEl = document.getElementById("kbd");
+  const KEYSEMI = {a:0,w:1,s:2,e:3,d:4,f:5,t:6,g:7,y:8,h:9,u:10,j:11,k:12};
+  let keyEls = {};
+  // A phone gets one octave (seven white keys, each ~48 px) and black keys
+  // at least 44 px wide; a desk gets two octaves and the top C.
+  const narrow = window.matchMedia("(max-width: 600px)");
+  function buildKbd(){
+    kbdEl.innerHTML = ""; keyEls = {};
+    const phone = narrow.matches;
+    const OCTS = phone ? 1 : 2, nWhite = OCTS*7 + (phone ? 0 : 1);
+    const w = 100/nWhite;
+    let wi = 0;
+    for (let o = 0; o < OCTS; o++){
+      for (let i = 0; i < 7; i++){
+        const semi = o*12 + WHITE[i];
+        const el = document.createElement("div");
+        el.className = "wk"; el.style.left = (wi*w)+"%"; el.style.width = w+"%";
+        el.dataset.semi = semi;
+        const lbl = Object.keys(KEYSEMI).find(k => KEYSEMI[k] === semi);
+        if (lbl) el.innerHTML = '<span class="kl">'+lbl.toUpperCase()+'</span>';
+        kbdEl.appendChild(el); keyEls[semi] = el; wi++;
+      }
+    }
+    if (!phone){
+      const last = document.createElement("div");
+      last.className = "wk"; last.style.left = (wi*w)+"%"; last.style.width = w+"%";
+      last.dataset.semi = OCTS*12; kbdEl.appendChild(last); keyEls[OCTS*12] = last;
+    }
+    for (let o = 0; o < OCTS; o++){
+      for (const s in BLACK){
+        const semi = o*12 + (+s);
+        const el = document.createElement("div");
+        el.className = "bk";
+        const edge = (o*7 + BLACK[s] + 1)*w;
+        el.style.left = phone ? "calc(" + edge + "% - 22px)" : (edge - w*0.3) + "%";
+        el.style.width = phone ? "44px" : (w*0.6)+"%";
+        el.dataset.semi = semi;
+        kbdEl.appendChild(el); keyEls[semi] = el;
+      }
+    }
+  }
+  buildKbd();
+  if (narrow.addEventListener) narrow.addEventListener("change", buildKbd);
+  const NAMES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+  function paintOct(){ document.getElementById("oct").textContent = "from " + NAMES[0] + (octave - 1); }
+  paintOct();
+  document.getElementById("octDn").onclick = () => { octave = Math.max(2, octave - 1); paintOct(); };
+  document.getElementById("octUp").onclick = () => { octave = Math.min(6, octave + 1); paintOct(); };
+  // First tap anywhere unlocks audio (iOS Safari will only start or resume
+  // an AudioContext inside a touchend / click).
+  for (const t of ["touchend", "pointerup", "click"]) document.addEventListener(t, () => audio(), { passive: true });
+  const lit = (semi, on) => { const el = keyEls[semi]; if (el) el.classList.toggle("d", on); };
+  const ptr = {};
+  kbdEl.addEventListener("pointerdown", (e) => {
+    const t = e.target.closest("[data-semi]");
+    if (!t) return;
+    e.preventDefault();
+    const semi = +t.dataset.semi;
+    // touch from where the key was struck: high on the key soft, low hard
+    // (mouse only: on a touch screen the keys play at the Touch setting)
+    const r = t.getBoundingClientRect();
+    const pos = r.height > 0 ? (e.clientY - r.top) / r.height : 0.75;
+    ptr[e.pointerId] = semi; lit(semi, true); keyOn(semi, e.pointerType === "mouse" ? touch(pos) : undefined);
+  });
+  const up = (e) => {
+    const semi = ptr[e.pointerId];
+    if (semi == null) return;
+    delete ptr[e.pointerId]; lit(semi, false); keyOff(semi);
+  };
+  window.addEventListener("pointerup", up);
+  window.addEventListener("pointercancel", up);
+  const down = {};
+  window.addEventListener("keydown", (e) => {
+    const k = e.key.toLowerCase();
+    if (e.metaKey || e.ctrlKey) return;
+    if (k === "z"){ octave = Math.max(2, octave - 1); paintOct(); return; }
+    if (k === "x"){ octave = Math.min(6, octave + 1); paintOct(); return; }
+    if (KEYSEMI[k] == null || down[k]) return;
+    down[k] = 1; lit(KEYSEMI[k], true); keyOn(KEYSEMI[k]);
+  });
+  window.addEventListener("keyup", (e) => {
+    const k = e.key.toLowerCase();
+    if (!down[k]) return;
+    delete down[k]; lit(KEYSEMI[k], false); keyOff(KEYSEMI[k]);
+  });
+
+  // --- the record ----------------------------------------------------------
+  document.getElementById("opensNote").textContent =
+    "Every knob opens at center: the voicing, which for the electric piano's key scaling is the fit. "
+  + "The declined knobs open at center too, since nothing moved the center onto those.";
+  const dEl = document.getElementById("declined");
+  const WHY = window.FIT_WHY || {};
+  const LABEL = Object.fromEntries(U.FM_KNOBS.map(k => [k.key, k.label]));
+  Object.keys(window.FIT_POS || {}).forEach(k => {
+    const p = document.createElement("p");
+    p.className = "declined";
+    p.innerHTML = "<b>" + (LABEL[k] || k) + "</b> — " + (WHY[k] || "measured and declined; see analysis/fits/ in the engine repo.");
+    dEl.appendChild(p);
+  });
+  if (!dEl.children.length) dEl.innerHTML = '<p class="declined">No declined knobs on record.</p>';
+
+  buildKnobs();
+})();
+</script>
+</body>
+</html>
