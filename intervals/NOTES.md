@@ -78,13 +78,15 @@ every record before 09-22 use the old ids.
 - v9 (10-08, Heft call): files are named by the full hash,
   `Intervals-0x<hash>.png` and `Intervals-0x<hash>-Ink<n>.svg`, so a saved
   output leads back to its token while the first mints are curated with Adam.
-- `p` (v9, 10-08) switches the canvas between the digital blends and the plot
-  view: every used pen's file stacked in ink order into one SVG, turned back
-  upright and fitted to the canvas on white. Opaque pens in ink order, as the
-  bench draws them. The export reads no `R`, so the token draws the same;
-  `p` again redraws the digital image byte for byte. On a 1x screen the
-  0.45 mm pitch is about one pixel, so the hatches moire; a 2x screen or
-  `?aspect=14:11` on a big window reads better.
+- `p` (v9, 10-08) flips the canvas between the digital blends and the plot
+  view: every used pen file's lines, read back out of `buildSVG(k)`, turned
+  upright onto the canvas over white, in ink order, each line multiplied over
+  what is under it (ink over ink darkens, as on paper; the virtual plotter's
+  model, where the bench overpaints). The export reads no `R`, so the token
+  draws the same; `p` again redraws the digital image byte for byte, and `s`
+  saves whichever view shows. On a 1x screen the 0.45 mm pitch is about one
+  pixel, so the hatches moire; a 2x screen or `?aspect=14:11` on a big window
+  reads better.
 
 ## Composition and document (09-21)
 
@@ -217,3 +219,34 @@ every record before 09-22 use the old ids.
   travel account for 1,033 s; the 887 s left is 0.13 s per segment (servo moves
   plus acceleration on short segments). Not counted: pen swaps, the lead-in
   from home, the operator.
+
+## v9 (10-08): Adam's tuning, knobs at the top, hash filenames, plot view
+
+v8 is frozen as the 09-25 to 10-07 plot record; v9 is v8 plus the 10-08
+tuning on Adam's read of the outputs, with every number that tuning
+introduced at the top of `Intervals_v9.js` next to `lmin` and `aspan` so
+Jeff can tune by hand before the 10-09 code lock:
+
+- `hband = [170, 420]`, `hbias = 0.75`: the open hue draw takes a hue from
+  hband (cyan through blues, violets and reds to yellow; 420 wraps to 60)
+  hbias of the time, otherwise any hue, so yellow-green through green draws
+  about a quarter of its natural share. v8 was 180-420 half the time.
+- `rspan = 120`: on the open draw a ramp's far end sits within rspan degrees
+  of its near end, so only complementary passes through gray.
+- `pwhite0 = 0.67`: each anchor adds white rather than black with this
+  chance (v8: 0.5); tinted, shaded-free v9 and achromatic still override it.
+- `variants`: hexad and shaded dropped; analogous 0.20, saturated 0.15,
+  tinted 0.10, complementary 0.10, monochromatic 0.10, achromatic 0.05, none
+  0.30.
+- `plot = false`: the view flag `p` flips (above, under Export).
+
+Adam's read behind the four decisions: he prefers prismatic color and
+adjacent hues; dislikes pale yellows and greens, mustards and browns, gray
+passages between hues, and scattered hues; purple-green and mustard-blue
+rolled too often. The knob move changes no output: the check holds v9's
+digital view pixel-identical to v8 at the tuning commit (0c07281) on the
+three fixed hashes.
+
+`intervals-v9-check.mjs` adds section 8: `s` names the PNG by the full hash,
+the same hash saves byte-identical PNGs on two loads, `p` leaves the token's
+state alone and a round trip is pixel-identical, and the v8 comparison.

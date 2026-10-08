@@ -9,6 +9,7 @@ import { createServer } from 'node:http';
 import { readFileSync } from 'node:fs';
 import { dirname, join, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { execSync } from 'node:child_process';
 import { DOC_W, DOC_H } from './plot-frame.mjs';
 
 const { chromium } = await import(process.env.PLAYWRIGHT || 'playwright');
@@ -27,7 +28,8 @@ const USE = HASHES.length ? HASHES : [
 ];
 
 // pens holds all nine pens; inks, the hue ring gcol() mixes, only the eight colors.
-const VARIANTS = ['saturated', 'tinted', 'complementary', 'shaded', 'analogous', 'hexad', 'monochromatic', 'achromatic'];
+// v9 (2026-10-08): shaded and hexad are gone.
+const VARIANTS = ['saturated', 'tinted', 'complementary', 'analogous', 'monochromatic', 'achromatic'];
 const NAMES = ['Red', 'Orange', 'Yellow', 'Fresh Green', 'Green', 'Blue', 'Royal Blue', 'Rose', 'Black'];
 const HEXES = ['#de4a3a', '#f7804d', '#fad15f', '#5ccc78', '#11a894', '#1461c7', '#394091', '#c75690'];
 // ink9, the black pen, strokes pure black.
@@ -66,7 +68,7 @@ function serve() {
     const server = createServer((req, res) => {
       const name = decodeURIComponent(req.url.split('?')[0]).replace(/^\/+/, '') || 'index.html';
       try {
-        const body = readFileSync(join(here, name));
+        const body = extra[name] !== undefined ? extra[name] : readFileSync(join(here, name));
         res.writeHead(200, { 'Content-Type': MIME[extname(name)] || 'application/octet-stream' });
         res.end(body);
       } catch {
@@ -77,6 +79,8 @@ function serve() {
   });
 }
 
+// Files served from memory beside the folder (the v8 render the digital view is held to).
+const extra = {};
 const { server, port } = await serve();
 const browser = await chromium.launch();
 const context = await browser.newContext({ acceptDownloads: true });
@@ -147,11 +151,17 @@ try {
       return { vtype, amin, amax, pwhite, tints: c.map(x => x.tint), shades: c.map(x => x.shade) };
     });
     await q.close();
-    check(N.vtype === 'none' && N.amin === 0 && N.amax === 0.4 && N.pwhite === 0.5,
-      'white-or-black amount 0 to 0.40, 50/50 white or black (a token with no variant)');
+    check(N.vtype === 'none' && N.amin === 0 && N.amax === 0.4 && N.pwhite === 0.67,
+      'white-or-black amount 0 to 0.40, white 0.67 of the time (a token with no variant)');
     check(N.tints.every((t, i) => t === 0 || N.shades[i] === 0), 'no anchor adds both white and black');
   }
-  check(!/^let (amin|amax|pwhite|ng) =/m.test(SRC), 'amount range and hue bias are set where they are used, not as constants');
+  check(!/^let (amin|amax|pwhite|ng) =/m.test(SRC), 'amount range is set where it is used, not as constants');
+  // v9's tuning knobs sit at the top so Jeff can tune them by hand (2026-10-08).
+  check(/^let hband = \[170, 420\];$/m.test(top) && /^let hbias = 0\.75;$/m.test(top) &&
+    /^let rspan = 120;$/m.test(top) && /^let pwhite0 = 0\.67;$/m.test(top) && /^let plot = false;$/m.test(top),
+    'knobs at the top: hband [170, 420], hbias 0.75, rspan 120, pwhite0 0.67, and the plot flag');
+  check(!/random_int\(1[78]0, 4[12]\d\)|random_bool\(0\.[57]5?\)/.test(SRC.slice(SRC.indexOf('function gcol('))),
+    'gcol() draws through the knobs, not literals');
   check(P.variants.map(v => v.name).join(',') === VARIANTS.join(','),
     'variants table has ' + VARIANTS.join(', ') + ' (got ' + P.variants.map(v => v.name).join(', ') + ')');
   check(P.variants.every(v => v.p > 0) && P.variants.reduce((n, v) => n + v.p, 0) < 1,
@@ -294,10 +304,8 @@ try {
     check(g.vtype === name && g.f.Variant === name, '?variant=' + name + ' finds a token that draws it, and $features says so');
     if (name === 'saturated') check(g.tints.every(t => t === 0), 'saturated: no white in any anchor');
     if (name === 'tinted') check(g.tints.every(t => t === 0.4) && g.shades.every(t => t === 0), 'tinted: every anchor at 0.40 white, no black');
-    if (name === 'shaded') check(g.shades.every(t => t === 0.4) && g.tints.every(t => t === 0), 'shaded: every anchor at 0.40 black, no white');
     if (name === 'saturated') check(g.shades.every(t => t === 0), 'saturated: no black in any anchor');
     if (name === 'saturated' || name === 'tinted') check(g.black === '', name + ': no black pen file');
-    if (name === 'shaded') check(g.black !== '', 'shaded: a black pen file');
     check(g.f.Layout === g.lt && (g.lt !== 'even' || g.bw.every(x => Math.abs(x - 1 / 3) < 1e-12)),
       name + ': layout reported, and even layouts have equal bands');
     if (name === 'complementary') {
@@ -313,10 +321,6 @@ try {
       const offs = g.hues.map(x => ((x - g.hues[0] + 540) % 360) - 180);
       check(offs.every(x => x >= 0 && x <= g.aspan) || offs.every(x => x <= 0 && x >= -g.aspan),
         'analogous: every hue inside the band running from the first (offsets ' + offs.join(' ') + ')');
-    }
-    if (name === 'hexad') {
-      const slots = g.hues.map(x => ((x - g.hues[0]) % 360 + 360) % 360).sort((a, b) => a - b);
-      check(slots.join(',') === '0,60,120,180,240,300', 'hexad: the six hues are 60 degrees apart (got ' + slots.join(',') + ')');
     }
     if (name === 'monochromatic') check(g.hues.every(x => x === g.hues[0]), 'monochromatic: every anchor on one hue');
     if (name === 'achromatic') {
@@ -336,7 +340,7 @@ try {
   console.log('\n6b. LAYOUTS');
   // Found by search, so they follow whatever shares the tables hold; a rare
   // combination can take a few minutes, hence the long wait.
-  for (const q of ['layout=varied', 'layout=varied&variant=shaded', 'layout=varied&variant=complementary']) {
+  for (const q of ['layout=varied', 'layout=varied&variant=tinted', 'layout=varied&variant=complementary']) {
     const p = await open(`${ART}?${q}`, 900, 900, 600000);
     const g = await p.evaluate(fn => ({
       lt: ltype, vt: vtype, bw: bw.slice(), f: window.$features, layouts: layouts,
@@ -405,7 +409,70 @@ try {
     console.log('   ' + b0.files + ' files, ' + b0.layers + ' layers, ' + b0.lines.toLocaleString() + ' lines previewed');
   }
 
-  console.log('\n8. DEPLOYABLE AND IN HOUSE STYLE');
+  console.log('\n8. HASH FILENAMES AND THE PLOT VIEW (v9, 2026-10-08)');
+  {
+    const png = p => p.evaluate(() => document.querySelector('canvas').toDataURL('image/png'));
+    const p1 = await open(`${ART}?hash=${USE[0]}&id=1&aspect=14:11`, 1200, 800);
+    const d0 = await png(p1);
+    const [dl] = await Promise.all([p1.waitForEvent('download'), p1.keyboard.press('s')]);
+    check(dl.suggestedFilename() === 'Intervals-' + USE[0] + '.png', 's names the PNG by the full hash (got ' + dl.suggestedFilename() + ')');
+    const saved = readFileSync(await dl.path());
+    const seed = await p1.evaluate(() => JSON.stringify([s, o, vtype, ltype, bx, bw, c.map(x => [x.hue, x.light, x.tint, x.shade])]));
+    await p1.keyboard.press('p');
+    await p1.waitForFunction(() => !isLooping(), null, { timeout: 60000 });
+    const d1 = await png(p1);
+    const seed1 = await p1.evaluate(() => JSON.stringify([s, o, vtype, ltype, bx, bw, c.map(x => [x.hue, x.light, x.tint, x.shade])]));
+    const [dl1] = await Promise.all([p1.waitForEvent('download'), p1.keyboard.press('s')]);
+    const saved1 = readFileSync(await dl1.path());
+    await p1.keyboard.press('p');
+    await p1.waitForFunction(() => !isLooping(), null, { timeout: 60000 });
+    const d2 = await png(p1);
+    await p1.close();
+    check(d1 !== d0, 'p shows the plot view (the canvas changes)');
+    check(seed1 === seed, 'p leaves the token alone: s, o, variant, layout, bands and anchors unchanged');
+    check(d2 === d0, 'p again restores the digital view pixel for pixel');
+    check(saved1.length !== saved.length || !saved1.equals(saved), 's in the plot view saves the plot view');
+    const p2 = await open(`${ART}?hash=${USE[0]}&id=1&aspect=14:11`, 1200, 800);
+    const [dl2] = await Promise.all([p2.waitForEvent('download'), p2.keyboard.press('s')]);
+    const saved2 = readFileSync(await dl2.path());
+    await p2.close();
+    check(saved2.equals(saved), 'the same hash saves byte-identical PNGs on two loads (' + saved.length + ' bytes)');
+    // The plot view is what the pen files draw: paper white where no pen
+    // file has a line, and some of every used pen's color on the canvas.
+    const p3 = await open(`${ART}?hash=${USE[0]}&id=1&aspect=14:11`, 1200, 800);
+    await p3.keyboard.press('p');
+    await p3.waitForFunction(() => !isLooping(), null, { timeout: 60000 });
+    const look = await p3.evaluate(() => {
+      const cv = document.querySelector('canvas');
+      const px = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
+      let white = 0;
+      let dark = 0;
+      for (let i = 0; i < px.length; i += 4) {
+        if (px[i] === 255 && px[i + 1] === 255 && px[i + 2] === 255) white++;
+        if (px[i] + px[i + 1] + px[i + 2] < 60) dark++;
+      }
+      return { white: white / (px.length / 4), dark: dark / (px.length / 4), op: cv.getContext('2d').globalCompositeOperation };
+    });
+    await p3.close();
+    check(look.white > 0 && look.white < 0.5, 'plot view: hatches over paper white (white ' + (100 * look.white).toFixed(1) + '%)');
+    console.log('   plot view: white ' + (100 * look.white).toFixed(1) + '%, near-black ' + (100 * look.dark).toFixed(1) + '%');
+    // The digital view on v9 is the digital view v8 draws for the same hash, at
+    // the tuning commit (0c07281): the knobs moved numbers to the top, nothing else.
+    const v8 = execSync('git show 0c07281:intervals/Intervals_v8.js', { cwd: here, encoding: 'utf8' });
+    extra['Intervals_v8_at_0c07281.js'] = v8;
+    extra['v8-at-0c07281.html'] = readFileSync(join(here, ART), 'utf8').replace('Intervals_v9.js', 'Intervals_v8_at_0c07281.js');
+    for (const hsh of USE) {
+      const a = await open(`${ART}?hash=${hsh}&id=1&aspect=14:11`, 1200, 800);
+      const da = await png(a);
+      await a.close();
+      const b = await open(`v8-at-0c07281.html?hash=${hsh}&id=1&aspect=14:11`, 1200, 800);
+      const db = await png(b);
+      await b.close();
+      check(da === db, hsh.slice(0, 10) + ': v9 digital view equals v8 at 0c07281 pixel for pixel');
+    }
+  }
+
+  console.log('\n9. DEPLOYABLE AND IN HOUSE STYLE');
   const code = SRC.split('\n').filter(l => !/^\s*\/\//.test(l)).join('\n');
   check(!/^\s*(let|var|const)\s+tokenData\b/m.test(code), 'does not declare tokenData (Art Blocks defines it)');
   check(!/location\.search|URLSearchParams/.test(code), 'reads no URL parameters');

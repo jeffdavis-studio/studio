@@ -1,7 +1,5 @@
-let R, w, h, o, s, vtype, ltype, amin, amax, pwhite, adir, aend, bx, bw, c, inks, inkh, pimg;
+let R, w, h, o, s, vtype, ltype, amin, amax, pwhite, adir, aend, bx, bw, c, inks, inkh;
 let lmin = 5;
-// "p" switches the canvas between the digital blends and the plot view.
-let plotted = false;
 let aspan = 75;
 // Hue draw (2026-10-08, on Adam's read): hbias of the time the open draw takes
 // a hue in hband (cyan through blues, violets and reds to yellow), otherwise
@@ -11,6 +9,9 @@ let hband = [170, 420];
 let hbias = 0.75;
 let rspan = 120;
 let pwhite0 = 0.67;
+// p flips the screen between the digital blends and the plot view: every pen
+// file's hatches over white, ink multiplied over ink, as the plotter lays them.
+let plot = false;
 // let ladder = [3, 4, 5, 6, 8, 10, 12, 16, 20, 24, 30, 40];
 // let rungs = [1, 2, 2, 3, 3, 3, 3, 3, 3, 2, 2, 1];
 let ladder = [4, 5, 6, 8, 10, 12, 16, 20, 24];
@@ -212,17 +213,34 @@ function setup() {
 
 function draw() {
   clear();
-  if (plotted) {
-    // The plot view: every used pen's file as the plotter lays it, turned a
-    // quarter turn counterclockwise back upright and fitted to the canvas on
-    // white. The 355.6 x 279.4 mm composition sits centered in the 297 x 410
-    // mm document, so the document's center is the canvas's.
-    let k = min(w / 355.6, h / 279.4);
-    background(255);
+  if (plot) {
     push();
-    translate(w / 2, h / 2);
-    rotate(-HALF_PI);
-    drawingContext.drawImage(pimg, -297 * k / 2, -410 * k / 2, 297 * k, 410 * k);
+    background(255);
+    blendMode(MULTIPLY);
+    for (let k = 0; k < pens.length; k++) {
+      let svg = buildSVG(k);
+      if (svg !== '') {
+        // The file holds the composition turned a quarter turn clockwise and
+        // centered on the document, so its point (X, Y) is composition
+        // (Y - ry, rx - X) in millimeters; the canvas is the composition.
+        let f = /width="(.+)mm"\n\s+height="(.+)mm"[\s\S]+?composition-mm="(.+) x (.+)"/.exec(svg);
+        let rx = (parseFloat(f[1]) + parseFloat(f[4])) / 2;
+        let ry = (parseFloat(f[2]) - parseFloat(f[3])) / 2;
+        push();
+        scale(w / parseFloat(f[3]), h / parseFloat(f[4]));
+        strokeWeight(parseFloat(/stroke-width="(.+)"/.exec(svg)[1]));
+        colorMode(HSB);
+        stroke(pens[k].hsb[0], pens[k].hsb[1], pens[k].hsb[2]);
+        colorMode(RGB);
+        let re = /<line x1="(.+?)" y1="(.+?)" x2="(.+?)" y2="(.+?)"\/>/g;
+        let m = re.exec(svg);
+        while (m) {
+          line(m[2] - ry, rx - m[1], m[4] - ry, rx - m[3]);
+          m = re.exec(svg);
+        }
+        pop();
+      }
+    }
     pop();
   } else {
     for (let i = 0; i < s; i++) {
@@ -771,44 +789,25 @@ function order(bars) {
   return totals;
 }
 
-// "s" saves the image as it shows, Intervals-<hash>.png, so a saved output
-// leads back to its token. One ink per key press: "1" is ink1 Red ... "8" is
-// ink8 Rose, "9" ink9 Black, as Intervals-<hash>-Ink<n>.svg. A key press is a
-// user gesture, so no browser throttles it; a burst of downloads gets dropped,
-// which is why there is no whole-set export. "p" switches between the digital
-// blends and the plot view, the pen files stacked in ink order; the first "p"
-// builds them, which takes a moment.
+// "s" saves the view showing, Intervals-<hash>.png, so a saved output leads
+// back to its token. One ink per key press: "1" is ink1 Red ... "8" is ink8
+// Rose, "9" ink9 Black, as Intervals-<hash>-Ink<n>.svg. A key press is a user
+// gesture, so no browser throttles it; a burst of downloads gets dropped,
+// which is why there is no whole-set export. "p" flips between the digital
+// blends and the plot view; the plot view builds every pen file, which takes
+// a moment.
 function keyPressed(e) {
   let typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
   let free = !typing && !e.metaKey && !e.ctrlKey && !e.altKey;
   let shot = key === 's' && free;
+  let view = key === 'p' && free;
   let pen = /^[1-9]$/.test(key) && free;
-  let plot = key === 'p' && free;
   if (shot) {
     saveCanvas('Intervals-' + tokenData.hash, 'png');
   }
-  if (plot) {
-    plotted = !plotted;
-    if (plotted && pimg === undefined) {
-      // One document: a used pen's header (they differ only in their data
-      // attributes), then every used pen's stroke group in ink order.
-      let head = '';
-      let body = '';
-      for (let i = 0; i < pens.length; i++) {
-        let file = buildSVG(i);
-        if (file !== '') {
-          head = file.substring(0, file.indexOf('  <g stroke='));
-          body += file.substring(file.indexOf('  <g stroke='), file.lastIndexOf('</svg>'));
-        }
-      }
-      pimg = new Image();
-      pimg.onload = function () {
-        redraw();
-      };
-      pimg.src = URL.createObjectURL(new Blob([head + body + '</svg>'], { type: 'image/svg+xml' }));
-    } else {
-      redraw();
-    }
+  if (view) {
+    plot = !plot;
+    redraw();
   }
   if (pen) {
     let k = int(key) - 1;
@@ -834,7 +833,7 @@ function keyPressed(e) {
       console.warn('No ink' + (k + 1) + ' in this token. Inks used: ' + used.join(', '));
     }
   }
-  return !(shot || pen || plot);
+  return !(shot || view || pen);
 }
 
 class Random {
