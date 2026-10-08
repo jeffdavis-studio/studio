@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Intervals v9 — plot bench</title>
+  <!--
+    Dev bench for Intervals_v9.js: the artwork beside its pen files, drawn from
+    exactly what buildSVG() writes. The plot settings live inside buildSVG(), so
+    the bench changes only the token: hash, variant, layout and steps. Keys 1-9
+    export as on the artwork page (with no field focused).
+  -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+  <script>
+    // The artwork pane shows the plot composition's aspect, 14 x 11.
+    window.aspect = [14, 11];
+  </script>
+  <script src="dev-token.js"></script>
+  <script src="Intervals_v9.js"></script>
+  <style>
+    body { font-family: aktiv-grotesk, -apple-system, sans-serif; margin: 0; padding: 24px; color: #333; background: #fff; }
+    h1 { font-size: 17px; font-weight: 600; margin: 0 0 20px; }
+    .wrap { display: flex; gap: 28px; align-items: flex-start; }
+    .panes { flex: 0 0 auto; max-width: 934px; }
+    .panes canvas { display: block; background: #fff; }
+    .pair { display: flex; gap: 14px; align-items: flex-start; }
+    .pane-label { font-size: 11px; color: #777; margin: 6px 0 2px; text-transform: uppercase; letter-spacing: .06em; }
+    .pane-note { font-size: 11px; color: #999; margin-top: 4px; max-width: 320px; line-height: 1.45; }
+    .controls { flex: 1 1 auto; max-width: 420px; font-size: 12px; }
+    fieldset { border: 1px solid #ddd; border-radius: 4px; margin: 0 0 14px; padding: 10px 12px 12px; }
+    legend { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: #777; padding: 0 4px; }
+    .row { display: flex; gap: 8px; margin-bottom: 6px; align-items: center; }
+    .row label { flex: 0 0 96px; color: #666; }
+    input, select { flex: 1 1 auto; font: inherit; padding: 3px 5px; border: 1px solid #ccc; border-radius: 3px; min-width: 0; }
+    input.hash { font-family: ui-monospace, Menlo, monospace; font-size: 11px; }
+    button { font: inherit; padding: 5px 11px; border: 1px solid #bbb; border-radius: 3px; background: #f6f6f6; cursor: pointer; }
+    .readout { font-family: ui-monospace, Menlo, monospace; font-size: 11px; line-height: 1.55; color: #555; white-space: pre-wrap; }
+    .note { font-size: 11px; color: #888; line-height: 1.5; margin-top: 8px; }
+    .pens { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+    .pens button { font-size: 11px; padding: 3px 7px; display: flex; align-items: center; gap: 5px; }
+    .sw { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+  </style>
+</head>
+<body>
+  <h1>Intervals v9 — plot bench</h1>
+
+  <div class="wrap">
+    <div class="panes">
+      <div class="pair">
+        <div>
+          <div class="pane-label">Artwork &mdash; the composition, upright</div>
+          <div id="render-container"></div>
+          <div class="pane-note" id="art-note"></div>
+        </div>
+        <div>
+          <div class="pane-label">Pen files &mdash; the document, as the plotter sees it</div>
+          <canvas id="hatch"></canvas>
+          <div class="pane-note" id="doc-note"></div>
+        </div>
+      </div>
+      <div class="pens" id="pen-buttons"></div>
+      <div class="note">Click a layer to hold it back. Lines are drawn at the Micron 05's 0.45 mm in each pen's color, on white.</div>
+    </div>
+
+    <div class="controls">
+      <fieldset>
+        <legend>Token</legend>
+        <div class="row"><label>Hash</label><input type="text" class="hash" id="hash" spellcheck="false"></div>
+        <div class="row"><label>Variant</label>
+          <select id="vpick">
+            <option value="">(any)</option>
+          </select>
+        </div>
+        <div class="row"><label>Layout</label>
+          <select id="lpick">
+            <option value="">(any)</option>
+          </select>
+        </div>
+        <div class="row"><label>Steps (s)</label><input type="number" id="sover" value="0" step="1" min="0" max="60"></div>
+        <div class="row">
+          <button onclick="reroll()">New token</button>
+          <button onclick="location.href = pinnedURL()">Open pinned</button>
+        </div>
+        <div class="note">Variant and layout find a random token that draws them (both are the token's own, so they cannot be forced onto a hash). New token keeps to them. Steps 0 uses the token's own; another value re-samples the ramps without moving an anchor.</div>
+        <div class="readout" id="token-readout"></div>
+      </fieldset>
+
+      <div class="row"><button onclick="resetBench()">Reset</button></div>
+    </div>
+  </div>
+
+<script>
+  let hatchpx = 1300;
+  let panecss = 460;
+  let previewnib = 0.45;
+  let files, built, art, tokens;
+  let hidden = [];
+
+  window.addEventListener('load', function () {
+    let wait = setInterval(function () {
+      let cv = document.querySelector('canvas:not(#hatch)');
+      if (cv && typeof s === 'number' && s > 0) {
+        clearInterval(wait);
+        boot(cv);
+      }
+    }, 20);
+  });
+
+  function boot(cv) {
+    art = cv;
+    document.getElementById('render-container').appendChild(art);
+    art.style.width = panecss + 'px';
+    art.style.height = (panecss * 11 / 14) + 'px';
+    // setup() re-runs on every token change; keep the one canvas.
+    window.createCanvas = function () {
+      return art;
+    };
+    tokens = s;
+    document.getElementById('hash').value = tokenData.hash;
+    for (let i = 0; i < variants.length; i++) {
+      let opt = document.createElement('option');
+      opt.value = variants[i].name;
+      opt.textContent = variants[i].name + ' (' + round(variants[i].p * 100, 1) + '%)';
+      document.getElementById('vpick').appendChild(opt);
+    }
+    for (let i = 0; i < layouts.length; i++) {
+      let opt = document.createElement('option');
+      opt.value = layouts[i].name;
+      opt.textContent = layouts[i].name + ' (' + round(layouts[i].p * 100, 1) + '%)';
+      document.getElementById('lpick').appendChild(opt);
+    }
+    if (vtype !== 'none') {
+      document.getElementById('vpick').value = devParam('variant', '');
+    }
+    if (ltype !== 'even') {
+      document.getElementById('lpick').value = devParam('layout', '');
+    }
+    document.getElementById('sover').addEventListener('input', rebuild);
+    document.getElementById('vpick').addEventListener('change', reroll);
+    document.getElementById('lpick').addEventListener('change', reroll);
+    document.getElementById('hash').addEventListener('change', function () {
+      reseed(document.getElementById('hash').value.trim());
+    });
+    rebuild();
+  }
+
+  function num(id, fallback) {
+    let v = parseFloat(document.getElementById(id).value);
+    if (!isFinite(v)) {
+      v = fallback;
+    }
+    return v;
+  }
+
+  // Back to the token's own steps and any variant and layout, on the same hash.
+  function resetBench() {
+    document.getElementById('vpick').value = '';
+    document.getElementById('lpick').value = '';
+    document.getElementById('sover').value = 0;
+    reseed(tokenData.hash);
+  }
+
+  function reseed(hash) {
+    if (!/^0x[0-9a-fA-F]{64}$/.test(hash)) {
+      hash = devHash();
+    }
+    tokenData.hash = hash;
+    document.getElementById('hash').value = hash;
+    hidden = [];
+    setup();
+    tokens = s;
+    rebuild();
+  }
+
+  // A new random token that draws the picked variant and layout.
+  function reroll() {
+    reseed(devFind(document.getElementById('vpick').value, document.getElementById('lpick').value));
+  }
+
+  function pinnedURL() {
+    return location.pathname + '?hash=' + tokenData.hash + '&id=' + tokenData.tokenId;
+  }
+
+  // Read the pen files back: each file's root figures, and its lines per angle
+  // layer, already in document millimeters.
+  function rebuild() {
+    let over = round(num('sover', 0));
+    s = tokens;
+    if (over > 0) {
+      s = over;
+    }
+    clear();
+    redraw();
+    files = [];
+    built = [];
+    for (let k = 0; k < 9; k++) {
+      let svg = buildSVG(k);
+      if (svg !== '') {
+        files.push({ ink: k, svg: svg });
+        let re = /<g id="layer-[^"]*" data-angle="([^"]+)"|<line x1="([^"]+)" y1="([^"]+)" x2="([^"]+)" y2="([^"]+)"\/>/g;
+        let m = re.exec(svg);
+        while (m) {
+          if (m[1]) {
+            built.push({ ink: k, angle: parseFloat(m[1]), lines: [] });
+          } else {
+            built[built.length - 1].lines.push([parseFloat(m[2]), parseFloat(m[3]), parseFloat(m[4]), parseFloat(m[5])]);
+          }
+          m = re.exec(svg);
+        }
+      }
+    }
+    drawComposite();
+    renderReadout();
+    renderPenButtons();
+  }
+
+  function attr(svg, name) {
+    return new RegExp('\\s' + name + '="([^"]*)"').exec(svg)[1];
+  }
+
+  // Ink k's color, from its row in pens, black included.
+  function penColor(k) {
+    colorMode(HSB);
+    let pc = color(pens[k].hsb[0], pens[k].hsb[1], pens[k].hsb[2]);
+    colorMode(RGB);
+    return 'rgb(' + round(red(pc)) + ',' + round(green(pc)) + ',' + round(blue(pc)) + ')';
+  }
+
+  // The document as the plotter sees it: working-area edge, the turned image
+  // box, and every visible layer at the nib width with round caps (the nib is
+  // a disc).
+  function drawComposite() {
+    let svg = files[0].svg;
+    let docw = parseFloat(attr(svg, 'width'));
+    let doch = parseFloat(attr(svg, 'height'));
+    let comp = attr(svg, 'data-composition-mm').split(' x ');
+    let imgw = parseFloat(comp[0]);
+    let imgh = parseFloat(comp[1]);
+    let x0 = (docw - imgh) / 2;
+    let y0 = (doch - imgw) / 2;
+    let cv = document.getElementById('hatch');
+    let k = hatchpx / max(docw, doch);
+    cv.width = round(docw * k);
+    cv.height = round(doch * k);
+    cv.style.width = (panecss * docw / max(docw, doch)) + 'px';
+    cv.style.height = (panecss * doch / max(docw, doch)) + 'px';
+    let ctx = cv.getContext('2d');
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, cv.width, cv.height);
+    ctx.setTransform(k, 0, 0, k, 0, 0);
+    ctx.lineWidth = 0.5;
+    ctx.strokeStyle = '#e4e4e4';
+    ctx.strokeRect(0.25, 0.25, docw - 0.5, doch - 0.5);
+    ctx.strokeStyle = '#c8c8c8';
+    ctx.strokeRect(x0, y0, imgh, imgw);
+    ctx.lineCap = 'round';
+    ctx.lineWidth = previewnib;
+    for (let i = 0; i < built.length; i++) {
+      if (hidden.indexOf(built[i].ink + '@' + built[i].angle) < 0) {
+        ctx.strokeStyle = penColor(built[i].ink);
+        ctx.beginPath();
+        for (let j = 0; j < built[i].lines.length; j++) {
+          let l = built[i].lines[j];
+          ctx.moveTo(l[0], l[1]);
+          ctx.lineTo(l[2], l[3]);
+        }
+        ctx.stroke();
+      }
+    }
+    document.getElementById('art-note').textContent = 'Composition ' + imgw + ' x ' + imgh + ' mm (' +
+      (imgw / 25.4).toFixed(2) + ' x ' + (imgh / 25.4).toFixed(2) + ' in), landscape.';
+    document.getElementById('doc-note').textContent = 'Document ' + docw + ' x ' + doch + ' mm portrait. Image ' +
+      imgh + ' x ' + imgw + ' at x ' + x0.toFixed(1) + '-' + (x0 + imgh).toFixed(1) + ', y ' + y0.toFixed(1) + '-' +
+      (y0 + imgw).toFixed(1) + ', turned a quarter turn clockwise; turn the sheet counterclockwise to view.';
+  }
+
+  function renderReadout() {
+    let count = 0;
+    let drawn = 0;
+    let up = 0;
+    let secs = 0;
+    for (let i = 0; i < files.length; i++) {
+      count += parseFloat(attr(files[i].svg, 'data-segments'));
+      drawn += parseFloat(attr(files[i].svg, 'data-distance-mm'));
+      up += parseFloat(attr(files[i].svg, 'data-pen-up-mm'));
+      secs += parseFloat(attr(files[i].svg, 'data-plot-seconds'));
+    }
+    let axis = 'horizontal, gradient top to bottom';
+    if (o === 0) {
+      axis = 'vertical, gradient left to right';
+    }
+    let snote = '';
+    if (s !== tokens) {
+      snote = '  (token ' + tokens + ', overridden)';
+    }
+    document.getElementById('token-readout').textContent =
+      'variant   ' + vtype + '   layout ' + ltype + ' ' + bw.map(function (x) { return round(x * 100) + '%'; }).join(' ') + '\n' +
+      'color     amount ' + amin + '-' + amax + ', ' + round(pwhite * 100) + '% white\n' +
+      'steps     ' + s + '   bars ' + 3 * s + snote + '\n' +
+      'bar axis  o ' + o + ', ' + axis + '\n' +
+      'files     ' + files.length + '   layers ' + built.length + '   segments ' + count.toLocaleString() + '\n' +
+      'drawn     ' + (drawn / 1000).toFixed(2) + ' m   pen-up ' + (up / 1000).toFixed(2) + ' m\n' +
+      'plot time ' + fmtTime(secs);
+  }
+
+  function renderPenButtons() {
+    let host = document.getElementById('pen-buttons');
+    host.innerHTML = '';
+    for (let i = 0; i < built.length; i++) {
+      let b = document.createElement('button');
+      let key = built[i].ink + '@' + built[i].angle;
+      b.innerHTML = '<span class="sw" style="background:' + penColor(built[i].ink) + '"></span>' +
+        (built[i].ink + 1) + ' ' + pens[built[i].ink].name + ' ' + built[i].angle + '&deg;';
+      b.style.opacity = hidden.indexOf(key) < 0 ? 1 : 0.35;
+      b.onclick = function () {
+        if (hidden.indexOf(key) < 0) {
+          hidden.push(key);
+        } else {
+          hidden.splice(hidden.indexOf(key), 1);
+        }
+        drawComposite();
+        renderPenButtons();
+      };
+      host.appendChild(b);
+    }
+  }
+
+  // Rounded to the minute over an hour and to ten seconds under: the overhead
+  // constant comes from one plot.
+  function fmtTime(sec) {
+    let out = '';
+    if (sec < 3600) {
+      let t = round(sec / 10) * 10;
+      out = floor(t / 60) + ' m ' + String(t % 60).padStart(2, '0') + ' s';
+    } else {
+      let t = round(sec / 60);
+      out = floor(t / 60) + ' h ' + String(t % 60).padStart(2, '0') + ' m';
+    }
+    return out;
+  }
+</script>
+</body>
+</html>

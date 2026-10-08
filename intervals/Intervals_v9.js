@@ -1,18 +1,25 @@
 let R, w, h, o, s, vtype, ltype, amin, amax, pwhite, adir, aend, bx, bw, c, inks, inkh;
 let lmin = 5;
 let aspan = 75;
+// Hue draw (2026-10-08, on Adam's read): hbias of the time the open draw takes
+// a hue in hband (cyan through blues, violets and reds to yellow), otherwise
+// any; a ramp's far end sits within rspan degrees of its near end; each
+// anchor adds white rather than black with chance pwhite0.
+let hband = [170, 420];
+let hbias = 0.75;
+let rspan = 120;
+let pwhite0 = 0.67;
 // let ladder = [3, 4, 5, 6, 8, 10, 12, 16, 20, 24, 30, 40];
 // let rungs = [1, 2, 2, 3, 3, 3, 3, 3, 3, 2, 2, 1];
 let ladder = [4, 5, 6, 8, 10, 12, 16, 20, 24];
 let rungs = [1, 1, 2, 2, 2, 2, 2, 2, 1];
-// Each color variant's share of tokens; the rest, 25% here, are 'none'.
+// Each color variant's share of tokens; the rest, 30% here, are 'none'.
+// Hexad and shaded were dropped 2026-10-08 on Adam's read of the outputs.
 let variants = [
-  { name: 'saturated', p: 0.10 },
+  { name: 'saturated', p: 0.15 },
   { name: 'tinted', p: 0.10 },
   { name: 'complementary', p: 0.10 },
-  { name: 'shaded', p: 0.10 },
-  { name: 'analogous', p: 0.10 },
-  { name: 'hexad', p: 0.10 },
+  { name: 'analogous', p: 0.20 },
   { name: 'monochromatic', p: 0.10 },
   { name: 'achromatic', p: 0.05 }
 ];
@@ -102,7 +109,7 @@ function setup() {
   // amax, white with chance pwhite, otherwise black.
   amin = 0;
   amax = 0.4;
-  pwhite = 0.5;
+  pwhite = pwhite0;
   if (vtype === 'saturated') {
     amax = 0;
   }
@@ -222,10 +229,11 @@ function draw() {
 //   col = (1 - tint) * [(1 - mix) * inks[ink] + mix * inks[ink2]] + tint * white
 // so the plot can lay each ink at its own share.
 function gcol(j, pinned) {
-  // Hue: half the time from 180-420 (blues through reds to yellows), otherwise
-  // any. After the first anchor, the hue variants place each hue relative to
-  // the first anchor's, fresh on every draw, so an anchor that fails its
-  // lightness gap can move:
+  // Hue: hbias of the time from hband (cyan through blues, violets and reds
+  // to yellow), otherwise any, so yellow-green through green draws about a
+  // quarter of its natural share. After the first anchor, the hue variants
+  // place each hue relative to the first anchor's, fresh on every draw, so an
+  // anchor that fails its lightness gap can move:
   //   complementary  the first hue or its opposite, by coin flip; pinned keeps
   //                  it opposite
   //   analogous      inside the aspan-degree band from the first; anchor aend
@@ -233,6 +241,8 @@ function gcol(j, pinned) {
   //   hexad          a 60-degree slot no other anchor holds, so the six hues
   //                  sit 60 degrees apart
   //   monochromatic  the first hue exactly
+  //   otherwise      a ramp's far end (odd j) within rspan degrees of its
+  //                  near end, so only complementary passes through gray
   let hs;
   if (vtype === 'complementary' && j > 0) {
     let off = R.random_int(0, 1) * 180;
@@ -260,8 +270,10 @@ function gcol(j, pinned) {
     hs = (c[0].hue + R.random_choice(open)) % 360;
   } else if (vtype === 'monochromatic' && j > 0) {
     hs = c[0].hue;
-  } else if (R.random_bool(0.5)) {
-    hs = R.random_int(180, 420) % 360;
+  } else if (j % 2 === 1) {
+    hs = (c[j - 1].hue + R.random_int(-rspan, rspan) + 360) % 360;
+  } else if (R.random_bool(hbias)) {
+    hs = R.random_int(hband[0], hband[1] - 1) % 360;
   } else {
     hs = R.random_int(0, 359);
   }
