@@ -1,5 +1,7 @@
-let R, w, h, o, s, vtype, ltype, amin, amax, pwhite, adir, aend, bx, bw, c, inks, inkh;
+let R, w, h, o, s, vtype, ltype, amin, amax, pwhite, adir, aend, bx, bw, c, inks, inkh, pimg;
 let lmin = 5;
+// "p" switches the canvas between the digital blends and the plot view.
+let plotted = false;
 let aspan = 75;
 // Hue draw (2026-10-08, on Adam's read): hbias of the time the open draw takes
 // a hue in hband (cyan through blues, violets and reds to yellow), otherwise
@@ -209,16 +211,31 @@ function setup() {
 }
 
 function draw() {
-  for (let i = 0; i < s; i++) {
-    for (let j = 0; j < 3; j++) {
-      let col = betterLerp(c[2 * j].col, c[2 * j + 1].col, i / (s - 1));
-      let t0 = (i + bx[j]) / s;
-      fill(col);
-      stroke(col);
-      if (o === 0) {
-        rect(w * t0, 0, w * bw[j] / s, h);
-      } else {
-        rect(0, h * t0, w, h * bw[j] / s);
+  clear();
+  if (plotted) {
+    // The plot view: every used pen's file as the plotter lays it, turned a
+    // quarter turn counterclockwise back upright and fitted to the canvas on
+    // white. The 355.6 x 279.4 mm composition sits centered in the 297 x 410
+    // mm document, so the document's center is the canvas's.
+    let k = min(w / 355.6, h / 279.4);
+    background(255);
+    push();
+    translate(w / 2, h / 2);
+    rotate(-HALF_PI);
+    drawingContext.drawImage(pimg, -297 * k / 2, -410 * k / 2, 297 * k, 410 * k);
+    pop();
+  } else {
+    for (let i = 0; i < s; i++) {
+      for (let j = 0; j < 3; j++) {
+        let col = betterLerp(c[2 * j].col, c[2 * j + 1].col, i / (s - 1));
+        let t0 = (i + bx[j]) / s;
+        fill(col);
+        stroke(col);
+        if (o === 0) {
+          rect(w * t0, 0, w * bw[j] / s, h);
+        } else {
+          rect(0, h * t0, w, h * bw[j] / s);
+        }
       }
     }
   }
@@ -754,23 +771,50 @@ function order(bars) {
   return totals;
 }
 
-// "s" saves the image. One ink per key press: "1" is ink1 Red ... "8" is ink8
-// Rose, "9" ink9 Black. A key press is a user gesture, so no browser
-// throttles it; a burst of downloads gets dropped, which is why there is no
-// whole-set export.
+// "s" saves the image as it shows, Intervals-<hash>.png, so a saved output
+// leads back to its token. One ink per key press: "1" is ink1 Red ... "8" is
+// ink8 Rose, "9" ink9 Black, as Intervals-<hash>-Ink<n>.svg. A key press is a
+// user gesture, so no browser throttles it; a burst of downloads gets dropped,
+// which is why there is no whole-set export. "p" switches between the digital
+// blends and the plot view, the pen files stacked in ink order; the first "p"
+// builds them, which takes a moment.
 function keyPressed(e) {
   let typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
   let free = !typing && !e.metaKey && !e.ctrlKey && !e.altKey;
   let shot = key === 's' && free;
   let pen = /^[1-9]$/.test(key) && free;
+  let plot = key === 'p' && free;
   if (shot) {
-    saveCanvas('Intervals' + (Number(tokenData.tokenId) % 1000000), 'png');
+    saveCanvas('Intervals-' + tokenData.hash, 'png');
+  }
+  if (plot) {
+    plotted = !plotted;
+    if (plotted && pimg === undefined) {
+      // One document: a used pen's header (they differ only in their data
+      // attributes), then every used pen's stroke group in ink order.
+      let head = '';
+      let body = '';
+      for (let i = 0; i < pens.length; i++) {
+        let file = buildSVG(i);
+        if (file !== '') {
+          head = file.substring(0, file.indexOf('  <g stroke='));
+          body += file.substring(file.indexOf('  <g stroke='), file.lastIndexOf('</svg>'));
+        }
+      }
+      pimg = new Image();
+      pimg.onload = function () {
+        redraw();
+      };
+      pimg.src = URL.createObjectURL(new Blob([head + body + '</svg>'], { type: 'image/svg+xml' }));
+    } else {
+      redraw();
+    }
   }
   if (pen) {
     let k = int(key) - 1;
     let file = buildSVG(k);
     if (file !== '') {
-      let fname = 'Intervals' + (Number(tokenData.tokenId) % 1000000) + '-Ink' + (k + 1) + '.svg';
+      let fname = 'Intervals-' + tokenData.hash + '-Ink' + (k + 1) + '.svg';
       let blob = new Blob([file], { type: 'image/svg+xml' });
       let url = URL.createObjectURL(blob);
       let a = document.createElement('a');
@@ -790,7 +834,7 @@ function keyPressed(e) {
       console.warn('No ink' + (k + 1) + ' in this token. Inks used: ' + used.join(', '));
     }
   }
-  return !(shot || pen);
+  return !(shot || pen || plot);
 }
 
 class Random {

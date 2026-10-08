@@ -75,6 +75,16 @@ every record before 09-22 use the old ids.
   `viewBox` already fix the document.
 - No zip and no File System Access API: the piece must work in every browser
   with no dependency beyond p5.
+- v9 (10-08, Heft call): files are named by the full hash,
+  `Intervals-0x<hash>.png` and `Intervals-0x<hash>-Ink<n>.svg`, so a saved
+  output leads back to its token while the first mints are curated with Adam.
+- `p` (v9, 10-08) switches the canvas between the digital blends and the plot
+  view: every used pen's file stacked in ink order into one SVG, turned back
+  upright and fitted to the canvas on white. Opaque pens in ink order, as the
+  bench draws them. The export reads no `R`, so the token draws the same;
+  `p` again redraws the digital image byte for byte. On a 1x screen the
+  0.45 mm pitch is about one pixel, so the hatches moire; a 2x screen or
+  `?aspect=14:11` on a big window reads better.
 
 ## Composition and document (09-21)
 

@@ -213,8 +213,8 @@ try {
     const k = files[files.length - 1].ink;
     const [dl] = await Promise.all([page.waitForEvent('download'), page.keyboard.press(String(k + 1))]);
     const got = readFileSync(await dl.path(), 'utf8');
-    check(dl.suggestedFilename() === 'Intervals45-Ink' + (k + 1) + '.svg',
-      'key ' + (k + 1) + ' names the file by output number and ink (got ' + dl.suggestedFilename() + ')');
+    check(dl.suggestedFilename() === 'Intervals-' + USE[0] + '-Ink' + (k + 1) + '.svg',
+      'key ' + (k + 1) + ' names the file by hash and ink (got ' + dl.suggestedFilename() + ')');
     check(got === files[files.length - 1].content, 'the downloaded file is exactly buildSVG() for that ink');
     const used = files.map(f => f.ink);
     const missing = [0, 1, 2, 3, 4, 5, 6, 7, 8].filter(i => used.indexOf(i) < 0);
