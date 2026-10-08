@@ -9,6 +9,9 @@ let hband = [170, 420];
 let hbias = 0.75;
 let rspan = 120;
 let pwhite0 = 0.67;
+// p flips the screen between the digital blends and the plot view: every pen
+// file's hatches over white, ink multiplied over ink, as the plotter lays them.
+let plot = false;
 // let ladder = [3, 4, 5, 6, 8, 10, 12, 16, 20, 24, 30, 40];
 // let rungs = [1, 2, 2, 3, 3, 3, 3, 3, 3, 2, 2, 1];
 let ladder = [4, 5, 6, 8, 10, 12, 16, 20, 24];
@@ -209,16 +212,48 @@ function setup() {
 }
 
 function draw() {
-  for (let i = 0; i < s; i++) {
-    for (let j = 0; j < 3; j++) {
-      let col = betterLerp(c[2 * j].col, c[2 * j + 1].col, i / (s - 1));
-      let t0 = (i + bx[j]) / s;
-      fill(col);
-      stroke(col);
-      if (o === 0) {
-        rect(w * t0, 0, w * bw[j] / s, h);
-      } else {
-        rect(0, h * t0, w, h * bw[j] / s);
+  clear();
+  if (plot) {
+    push();
+    background(255);
+    blendMode(MULTIPLY);
+    for (let k = 0; k < pens.length; k++) {
+      let svg = buildSVG(k);
+      if (svg !== '') {
+        // The file holds the composition turned a quarter turn clockwise and
+        // centered on the document, so its point (X, Y) is composition
+        // (Y - ry, rx - X) in millimeters; the canvas is the composition.
+        let f = /width="(.+)mm"\n\s+height="(.+)mm"[\s\S]+?composition-mm="(.+) x (.+)"/.exec(svg);
+        let rx = (parseFloat(f[1]) + parseFloat(f[4])) / 2;
+        let ry = (parseFloat(f[2]) - parseFloat(f[3])) / 2;
+        push();
+        scale(w / parseFloat(f[3]), h / parseFloat(f[4]));
+        strokeWeight(parseFloat(/stroke-width="(.+)"/.exec(svg)[1]));
+        colorMode(HSB);
+        stroke(pens[k].hsb[0], pens[k].hsb[1], pens[k].hsb[2]);
+        colorMode(RGB);
+        let re = /<line x1="(.+?)" y1="(.+?)" x2="(.+?)" y2="(.+?)"\/>/g;
+        let m = re.exec(svg);
+        while (m) {
+          line(m[2] - ry, rx - m[1], m[4] - ry, rx - m[3]);
+          m = re.exec(svg);
+        }
+        pop();
+      }
+    }
+    pop();
+  } else {
+    for (let i = 0; i < s; i++) {
+      for (let j = 0; j < 3; j++) {
+        let col = betterLerp(c[2 * j].col, c[2 * j + 1].col, i / (s - 1));
+        let t0 = (i + bx[j]) / s;
+        fill(col);
+        stroke(col);
+        if (o === 0) {
+          rect(w * t0, 0, w * bw[j] / s, h);
+        } else {
+          rect(0, h * t0, w, h * bw[j] / s);
+        }
       }
     }
   }
@@ -754,23 +789,31 @@ function order(bars) {
   return totals;
 }
 
-// "s" saves the image. One ink per key press: "1" is ink1 Red ... "8" is ink8
-// Rose, "9" ink9 Black. A key press is a user gesture, so no browser
-// throttles it; a burst of downloads gets dropped, which is why there is no
-// whole-set export.
+// "s" saves the view showing, Intervals-<hash>.png, so a saved output leads
+// back to its token. One ink per key press: "1" is ink1 Red ... "8" is ink8
+// Rose, "9" ink9 Black, as Intervals-<hash>-Ink<n>.svg. A key press is a user
+// gesture, so no browser throttles it; a burst of downloads gets dropped,
+// which is why there is no whole-set export. "p" flips between the digital
+// blends and the plot view; the plot view builds every pen file, which takes
+// a moment.
 function keyPressed(e) {
   let typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
   let free = !typing && !e.metaKey && !e.ctrlKey && !e.altKey;
   let shot = key === 's' && free;
+  let view = key === 'p' && free;
   let pen = /^[1-9]$/.test(key) && free;
   if (shot) {
-    saveCanvas('Intervals' + (Number(tokenData.tokenId) % 1000000), 'png');
+    saveCanvas('Intervals-' + tokenData.hash, 'png');
+  }
+  if (view) {
+    plot = !plot;
+    redraw();
   }
   if (pen) {
     let k = int(key) - 1;
     let file = buildSVG(k);
     if (file !== '') {
-      let fname = 'Intervals' + (Number(tokenData.tokenId) % 1000000) + '-Ink' + (k + 1) + '.svg';
+      let fname = 'Intervals-' + tokenData.hash + '-Ink' + (k + 1) + '.svg';
       let blob = new Blob([file], { type: 'image/svg+xml' });
       let url = URL.createObjectURL(blob);
       let a = document.createElement('a');
@@ -790,7 +833,7 @@ function keyPressed(e) {
       console.warn('No ink' + (k + 1) + ' in this token. Inks used: ' + used.join(', '));
     }
   }
-  return !(shot || pen);
+  return !(shot || view || pen);
 }
 
 class Random {
