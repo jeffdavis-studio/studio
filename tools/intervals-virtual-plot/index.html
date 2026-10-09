@@ -67,6 +67,11 @@
   .curvebox .fill label.h { font-size: 11.5px; color: var(--mute); text-transform: uppercase; letter-spacing: .04em; }
   .curvebox .fill .row { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; }
   .curvebox .fill .row label { display: inline-flex; gap: 4px; align-items: center; }
+  .curvebox .copy { flex: 0 0 100%; width: 100%; display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; border-top: 1px solid var(--line); padding-top: 6px; }
+  .curvebox .copy label { font-size: 11.5px; color: var(--mute); text-transform: uppercase; letter-spacing: .04em; }
+  .curvebox .copy .row { flex-wrap: nowrap; align-items: flex-start; }
+  .curvebox .copyset { flex: 1 1 0; min-width: 0; font: 11.5px/1.35 ui-monospace, Menlo, monospace; -webkit-user-select: all; user-select: all; word-break: break-word; }
+  .curvebox .copy button { flex: 0 0 auto; padding: 2px 8px; font-size: 12px; }
   .curvebox .mix label { font-size: 11.5px; color: var(--mute); text-transform: uppercase; letter-spacing: .04em; }
   .lumsum { display: flex; flex-direction: column; gap: 4px; flex: 0 0 auto; width: 340px; max-width: calc(100vw - 32px); font-size: 12px; }
   .lumsum svg { display: block; flex: 0 0 auto; }
@@ -118,7 +123,8 @@
 
 <details>
   <summary><b>The methods, the quantization rule, and what this can't show</b></summary>
-  <p><b>0. program default.</b> What the main program, <code>intervals/Intervals_v9.js</code>, plots: current with its black cubic a (and its achromatic a), mix ease b and black angle, read from that file's plot settings when this page loads (Jeff's 9/29 values: a = 1.2, a = 0 on achromatic tokens, b = 0.1, black 45). Change them in the program and this preset follows. The side's boxes show it as cubic + mix ease; moving a slider leaves the preset. URL: <code>?a=p</code>.</p>
+  <p><b>0. program default.</b> What the main program, <code>intervals/Intervals_v9.js</code>, plots: current with its black cubic a (and its achromatic a), mix ease b, coverage target, line spacing and black angle, read from that file's plot settings when this page loads (Jeff's 9/29 values: a = 1.2, a = 0 on achromatic tokens, b = 0.1, black 45; target 0.95, spacing 0.45). Change them in the program and this preset follows. The side's boxes show it as cubic + mix ease + target and spacing; moving a slider leaves the preset. URL: <code>?a=p</code>.
+  <br><b>0. program default, b / target / spacing on the sliders.</b> The program with its own a, achromatic a and black angle, and the side's mix ease, target and spacing in place of its own; moving b, target or spacing off the program lands here. The page opens on program default (A) against this with mix ease 0 (B), on 0x8e98544e. URL: <code>?b=pm&amp;xb=0</code>.</p>
   <ol>
     <li><b>current, black 45.</b> The pushed export: each anchor's two inks on their own grids at 22.5 / 67.5 (start anchor) and 112.5 / 157.5 (end anchor), densities solved so the bar lands on its tone; black on its own grid, turned to 45.</li>
     <li><b>current + black curve 1.85.</b> Same, with black's line count thinned to a footprint of 1 − exp(−1.85 × share), because 0.45 mm black lines cover about 1.85× their share. Only black changes.</li>
@@ -131,7 +137,8 @@
   <p><b>7. slot fill (Jeff, 2026-09-29).</b> The program default, with empty hatch slots reused. Each bar has four color slots at 22.5 / 67.5 (the interval's start anchor's two inks) and 112.5 / 157.5 (its end anchor's), and black on its own 45 grid. A slot is empty when no ink lays a line on it. Empty slots are handed out one at a time, each to one ink: the ink with the most lines first, then the next, and round again from the densest once every ink has one (ties: the lower pen number). The ink takes the empty angle farthest from the ones it already holds, so a second slot crosses the first near 90°. An ink with extra slots spreads its weight evenly over all of them: every one of its grids gets the same pitch, so it lays the same ink as before and the density solve is untouched; its line count moves a little because the four angles cross a bar at different lengths. Four-ink bars are unchanged line for line.
   <br><b>Scope, by artwork</b> (default): decided once for the token, by angle. The slot angles are the same in every bar, but the inks on them belong to each interval's anchors, so the token-wide question is per angle: an angle that only one ink ever hatches at is that ink's in every bar (where a bar leaves it empty, the ink takes it), and an angle no bar uses is handed out as above, inks ranked by their lines over the whole token. An angle two inks share anywhere belongs to no one, so a token whose intervals mix their pens is unchanged; a monochromatic token's end bars hatch like its middle bars; an achromatic token fills. <b>By bar:</b> each bar decides from its own lines, so the first and last bar of every interval (only the one anchor's two inks) hatch in four directions, and the neighbor bar hands the slots back as the far ink enters.
   <br><b>Achromatic box</b> (default on): where there is no color ink, black leaves 45 and takes the four slot angles, its lines split evenly. Off: black stays on 45. The readout under each render lists every bar's lines by angle, program → fill. URL: <code>?a=f</code> (or <code>a=7</code>), <code>fa=bar</code> / <code>fb=artwork</code> for each side's scope, <code>ka=0</code> / <code>kb=0</code> for the box off, <code>nb=0</code>–<code>3</code> for the neighbors.</p>
-  <p><b>Mix ease (on the current family, with any black curve).</b> Every crossing of two different inks is ink on ink, so a mixed bar can print darker than its digital color. A bar's coverage target becomes 0.95 × (1 − b·X), with b on the slider (0 to 1, presets 0.3 and 0.6) and X the bar's mix index: color grid f covers c<sub>f</sub> = min(1, w<sub>f</sub>·m) in the solve, two grids of different inks cross on c<sub>f</sub>·c<sub>g</sub> of the bar, weighted by |sin| of the angle between them, and X = Σ c<sub>f</sub>c<sub>g</sub>|sin(θ<sub>f</sub> − θ<sub>g</sub>)| / (F·Z), F the bar's footprint (W × 0.95) and Z = 1.412 the same ratio for four inks balanced at full tone, so that bar is 1 and a one-ink bar is 0. Black is left out (its crossings are the black curve's), and two slots of the same ink never count. X grows with tone as well as with mixing: a pale four-ink bar has little ink on ink. The multiplier is then solved again on the lower target, so every grid in the bar thins in proportion, black's included. b = 0 is the export byte for byte. URL: <code>?a=c&amp;aa=1.2&amp;xa=0.3</code>.</p>
+  <p><b>Mix ease (on the current family, with any black curve).</b> Every crossing of two different inks is ink on ink, so a mixed bar can print darker than its digital color. A bar's coverage target becomes target × (1 − b·X), target the side's coverage target (below), with b on the slider (0 to 1, presets 0.3 and 0.6) and X the bar's mix index: color grid f covers c<sub>f</sub> = min(1, w<sub>f</sub>·m) in the solve, two grids of different inks cross on c<sub>f</sub>·c<sub>g</sub> of the bar, weighted by |sin| of the angle between them, and X = Σ c<sub>f</sub>c<sub>g</sub>|sin(θ<sub>f</sub> − θ<sub>g</sub>)| / (F·Z), F the bar's footprint (W × target) and Z the same ratio for four inks balanced at full tone (1.412 at target 0.95), so that bar is 1 and a one-ink bar is 0. Black is left out (its crossings are the black curve's), and two slots of the same ink never count. X grows with tone as well as with mixing: a pale four-ink bar has little ink on ink. The multiplier is then solved again on the lower target, so every grid in the bar thins in proportion, black's included. b = 0 is the export byte for byte. URL: <code>?a=c&amp;aa=1.2&amp;xa=0.3</code>.</p>
+  <p><b>Coverage target and spacing (2026-10-09, on the current family, with any curve and mix ease).</b> Target is what a full bar prints at: a bar of ink share W is solved to cover W × target of the paper, so it moves every bar's ink, black's included, and the mix index's footprint with it. 0.90 to 1.00 in steps of 0.005; the program's is 0.95, its 100%. Spacing is the line pitch of a solid fill, 0.35 to 0.60 mm in steps of 0.01 (the program's 0.45, the nib's width): every grid's line count scales by 0.45 / spacing at the same solved density, so below 0.45 the lines overlap at full tone and above it paper shows between them. <b>Copy settings</b> under each side prints its constants as they go into <code>buildSVG</code>'s plot settings, to hand back as they are (blackCubicAchromatic appears only when the side would change it; the 1.85 curve has no setting). URL: <code>ta</code> / <code>tb</code> for target, <code>sa</code> / <code>sb</code> for spacing, e.g. <code>?b=pm&amp;xb=0.1&amp;tb=0.97</code>.</p>
   <p><b>Luminance.</b> Under each plot, per bar: L* of the plot's mean luminance (sRGB → linear → L*, the bar's whole-mm tiles at 20 px/mm) against L* of the digital render over the same pixels (the bar's one flat color), and Δ = plot − digital, negative = paper darker. Measure all bars adds the whole-token summary (median and worst Δ, color bars X ≥ 0.05 against pure and achromatic ones) and a per-bar Δ chart. The raster model has no pen blot, bleed or feathering, and multiplies inks over paper as the overprint model.</p>
   <p><b>Quantization rule (5 and 6).</b> A grid's lines are split among its pens by one of eleven exact covers: 1; ½ ½; ½ ¼ ¼; ⅓ ⅓ ⅓; ¼ ¼ ¼ ¼; ½ ¼ ⅛ ⅛; ⅓ ⅓ ⅙ ⅙; ½ ⅙ ⅙ ⅙; ¼ ¼ ¼ ⅛ ⅛; ½ ⅛ ⅛ ⅛ ⅛; ⅓ ⅙ ⅙ ⅙ ⅙. A pen with share 1/s takes lines r, r+s, r+2s… The grid's line count is nudged to the nearest multiple of its largest stride so every class has exactly n/s lines. A pen's strides on its grids must divide one another (pitch P, 2P, 4P, never 2P against 3P). Per bar, the layout is the one with the smallest squared share error, then, by bias, the most spread (bias 0) or the most concentrated (bias 1); sparse strides cost a little. At bias 0 all four grids share one pitch, so the share error is the price: up to about 0.06 on a bar. As bias rises the grid weights float and the error falls to about 0.015 on five-pen bars and 0 on bars of four pens or fewer.</p>
   <p><b>digital.</b> The artwork's own screen render for the hash: the flat bars draw() fills, in the same color (betterLerp, p5's rounded levels), laid into the same composition millimeters as the plot, so at every zoom, in the whole-token view and on any bar crop it is the same pixel size and position as the plot beside it. Pick it for either side, or press ⇄ digital (key d for side A, shift-d for side B) to flip a plot side to the digital render in place and back. Under it: each picked bar's HSB (p5's 0–360 / 0–100 / 0–100), hex and RGB.</p>
@@ -164,34 +171,52 @@
   const PRESETS = { '1': ['none', null], '2': ['exp', null], 'c1': ['cubic', 1], 'c06': ['cubic', 0.6], 'c2': ['cubic', 2], 'c3': ['cubic', 3], 'c': ['cubic', null] };
   // Mix ease presets (2026-09-29) set the side's b and keep its curve.
   const MIXP = { 'm03': 0.3, 'm06': 0.6, 'mx': null };
-  const side = { A: { curve: 'none', a: 1, b: 0 }, B: { curve: 'none', a: 1, b: 0 } };
+  // t is the side's coverage target, sp its line spacing (2026-10-09); both start at the program's.
+  const side = { A: { curve: 'none', a: 1, b: 0, t: 0.95, sp: 0.45 }, B: { curve: 'none', a: 1, b: 0, t: 0.95, sp: 0.45 } };
   // Slot fill (2026-09-29): method 7 rides the curve box (it opens on the
   // program default) with its own scope and achromatic switch per side.
   const fill = { A: { on: false, scope: 'artwork', achro: true }, B: { on: false, scope: 'artwork', achro: true } };
   const isFill = S => $('m' + S).value === 'f';
-  const isCur = S => $('m' + S).value in PRESETS || $('m' + S).value in MIXP || $('m' + S).value === 'p' || isFill(S);
+  const isCur = S => $('m' + S).value in PRESETS || $('m' + S).value in MIXP || $('m' + S).value === 'p' || $('m' + S).value === 'pm' || isFill(S);
   // Program default (2026-09-29): the constants Intervals_v9.js plots with, read from it at load.
   const P = () => VP.PROGRAM;
-  const isProg = S => P().ok && side[S].curve === 'cubic' && Math.abs(side[S].a - P().a) < 1e-9 && Math.abs(side[S].b - P().b) < 1e-9;
-  // The a black is plotted with: the program's achromatic a on an achromatic token at program default.
-  const effA = S => isProg(S) && T && T.vtype === 'achromatic' ? P().aAchro : side[S].a;
-  const progLabel = () => P().ok ? `program default (cubic a=${P().a}, a=${P().aAchro} on achromatic, mix ease ${P().b}, black ${P().angle})` : "program default (couldn't read Intervals_v9.js)";
+  const near = (x, y) => Math.abs(x - y) < 1e-9;
+  const num = v => String(+(+v).toFixed(3));
+  // On the program (2026-10-09): the program's cubic a, so its achromatic a and
+  // black angle hold, with b, target and spacing free; at program default when all three are the program's too.
+  const isBase = S => P().ok && side[S].curve === 'cubic' && near(side[S].a, P().a);
+  const isProg = S => isBase(S) && near(side[S].b, P().b) && near(side[S].t, P().target) && near(side[S].sp, P().spacing);
+  // The a black is plotted with: the program's achromatic a on an achromatic token on the program.
+  const effA = S => isBase(S) && T && T.vtype === 'achromatic' ? P().aAchro : side[S].a;
+  const progLabel = () => P().ok ? `program default (cubic a=${P().a}, a=${P().aAchro} on achromatic, mix ease ${P().b}, target ${P().target}, spacing ${P().spacing}, black ${P().angle})` : "program default (couldn't read Intervals_v9.js)";
+  // What a side on the program changes, and a target or spacing off the program's on any other curve.
+  const progDiff = S => { const c = side[S], d = []; if (!near(c.b, P().b)) d.push('mix ease ' + num(c.b)); if (!near(c.t, P().target)) d.push('target ' + num(c.t)); if (!near(c.sp, P().spacing)) d.push('spacing ' + num(c.sp)); return d; };
+  const tsLabel = S => { const c = side[S]; return (P().ok && !near(c.t, P().target) ? ' + target ' + num(c.t) : '') + (P().ok && !near(c.sp, P().spacing) ? ' + spacing ' + num(c.sp) : ''); };
+  // The side's settings as they would go into buildSVG's plot settings (null: the 1.85 curve has none).
+  function copyText(S) {
+    const c = side[S];
+    const a = c.curve === 'cubic' ? c.a : c.curve === 'none' ? 0 : null;
+    if (a === null) return null;
+    const aAchro = isBase(S) ? P().aAchro : a;
+    return `target: ${num(c.t)}, blackCubic: ${num(a)}, mixEase: ${num(c.b)}, spacing: ${num(c.sp)}` + (P().ok && near(aAchro, P().aAchro) ? '' : `, blackCubicAchromatic: ${num(aAchro)}`);
+  }
   const isDig = S => $('m' + S).value === 'd';
   const active = () => ['A', 'B'].filter(S => $('m' + S).value !== '0');
   // Flip: a plot side shown as the digital render in the same place.
   const flip = { A: false, B: false };
   const DIGNAME = 'digital — the artwork on screen';
+  const sideOpts = S => { const c = side[S]; return isBase(S) ? VP.programOpts(c.b, c.t, c.sp) : VP.curveOpts(c.curve, c.a, c.b, c.t, c.sp); };
   function methodOpts(S) {
-    if (isFill(S)) return VP.fillOpts(isProg(S) ? VP.programOpts() : VP.curveOpts(side[S].curve, side[S].a, side[S].b), fill[S]);
-    if (isCur(S) && isProg(S)) return VP.programOpts();
-    if (isCur(S)) return VP.curveOpts(side[S].curve, side[S].a, side[S].b);
+    if (isFill(S)) return VP.fillOpts(sideOpts(S), fill[S]);
+    if (isCur(S)) return sideOpts(S);
     const m = VP.METHODS.find(x => x.id === +$('m' + S).value); return m.opts(+$('bias').value);
   }
   function methodName(S) {
     if (isDig(S)) return DIGNAME;
-    if (isFill(S)) { const c = side[S]; return '7. slot fill, by ' + fill[S].scope + (fill[S].achro ? '' : ', achromatic black on 45') + ' — on ' + (isProg(S) ? 'program default' : c.curve === 'none' ? 'current, black 45' : c.curve === 'exp' ? 'curve 1.85' : VP.curveLabel('cubic', c.a, c.b)); }
+    if (isFill(S)) { const c = side[S]; return '7. slot fill, by ' + fill[S].scope + (fill[S].achro ? '' : ', achromatic black on 45') + ' — on ' + (isProg(S) ? 'program default' : isBase(S) ? 'program default with ' + progDiff(S).join(', ') : (c.curve === 'none' ? 'current, black 45' : c.curve === 'exp' ? 'curve 1.85' : VP.curveLabel('cubic', c.a, c.b)) + tsLabel(S)); }
     if (isCur(S) && isProg(S)) return '0. ' + progLabel() + ', what Intervals_v9.js plots';
-    if (isCur(S)) { const c = side[S]; return (c.curve === 'none' ? '1. current, black 45' : c.curve === 'exp' ? '2. current + curve 1.85' : 'current + ' + VP.curveLabel('cubic', c.a)) + (c.b > 0 ? ' + mix ease ' + c.b.toFixed(2) : ''); }
+    if (isCur(S) && isBase(S)) return '0. program default with ' + progDiff(S).join(', ');
+    if (isCur(S)) { const c = side[S]; return (c.curve === 'none' ? '1. current, black 45' : c.curve === 'exp' ? '2. current + curve 1.85' : 'current + ' + VP.curveLabel('cubic', c.a)) + (c.b > 0 ? ' + mix ease ' + c.b.toFixed(2) : '') + tsLabel(S); }
     const m = VP.METHODS.find(x => x.id === +$('m' + S).value); return m.id + '. ' + m.name + (m.id === 6 ? ' (bias ' + (+$('bias').value).toFixed(2) + ')' : '');
   }
 
@@ -201,6 +226,9 @@
       const po = new Option('0. ' + progLabel(), 'p');
       po.disabled = !P().ok;
       sel.add(po);
+      const pm = new Option('0. program default, b / target / spacing on the sliders', 'pm');
+      pm.disabled = !P().ok;
+      sel.add(pm);
       for (const m of VP.METHODS) {
         if (m.key === 'fill') { sel.add(new Option('7. slot fill (program default + empty slots to the densest inks)', 'f')); continue; }
         sel.add(new Option(m.id === 1 ? '1. current' : m.id === 2 ? '2. curve 1.85' : m.id + '. ' + m.name, m.id));
@@ -217,13 +245,18 @@
       }
       sel.add(new Option(DIGNAME, 'd'));
     }
-    if (P().ok) { $('mA').value = 'p'; $('mB').value = '1'; } else { $('mA').value = '1'; $('mB').value = 'c1'; }
+    // Opens on the program against the program with mix ease off (Jeff, 2026-10-09).
+    if (P().ok) {
+      for (const S of ['A', 'B']) { side[S].t = P().target; side[S].sp = P().spacing; }
+      $('mA').value = 'p'; $('mB').value = 'pm'; side.B.b = 0;
+    } else { $('mA').value = '1'; $('mB').value = 'c1'; }
   }
 
   // A preset picked in the method list sets that side's curve.
   function fromSelect(S) {
     const v = $('m' + S).value;
-    if ((v === 'p' || v === 'f') && P().ok) { side[S].curve = 'cubic'; side[S].a = P().a; side[S].b = P().b; }
+    if ((v === 'p' || v === 'f') && P().ok) { side[S].curve = 'cubic'; side[S].a = P().a; side[S].b = P().b; side[S].t = P().target; side[S].sp = P().spacing; }
+    if (v === 'pm' && P().ok) { side[S].curve = 'cubic'; side[S].a = P().a; }
     if (v in PRESETS) { const [c, a] = PRESETS[v]; side[S].curve = c; if (a !== null) side[S].a = a; }
     if (v in MIXP && MIXP[v] !== null) side[S].b = MIXP[v];
     drawCurveBox(S);
@@ -234,6 +267,7 @@
     const b = side[S].b;
     if (isFill(S)) return;
     if (isProg(S)) { $('m' + S).value = 'p'; return; }
+    if (isBase(S)) { $('m' + S).value = 'pm'; return; }
     if (b === 0) return toSelect(S);
     $('m' + S).value = Math.abs(b - 0.3) < 1e-9 ? 'm03' : Math.abs(b - 0.6) < 1e-9 ? 'm06' : 'mx';
   }
@@ -241,6 +275,7 @@
     const c = side[S];
     if (isFill(S)) return;
     if (isProg(S)) { $('m' + S).value = 'p'; return; }
+    if (isBase(S)) { $('m' + S).value = 'pm'; return; }
     $('m' + S).value = c.curve === 'none' ? '1' : c.curve === 'exp' ? '2' : c.a === 1 ? 'c1' : c.a === 2 ? 'c2' : c.a === 3 ? 'c3' : Math.abs(c.a - 0.6) < 1e-9 ? 'c06' : 'c';
   }
   function curBar() { return T.bars[Math.min(Math.max(1, +$('bar').value || 1), T.bars.length) - 1]; }
@@ -258,17 +293,32 @@
       <div class="row"><span>b <b id="cbv${S}">0.00</b></span><input type="range" id="cb${S}" min="0" max="1" step="0.05" value="0"></div>
       <div class="fx" id="cbfx${S}"></div><div class="ap" id="cbap${S}"></div>
       <div class="hint">X is how much of the bar is two different color inks crossing: 0 for one ink or black alone, 1 for four inks balanced at full tone. The bar's coverage target drops by b·X, so pure and achromatic bars stay as they are. Black is left to the curve above.</div></div>
+      <div class="mix"><label>Coverage target and spacing, side ${S}</label>
+      <div class="row"><span>target <b id="ctv${S}">0.950</b></span><input type="range" id="ct${S}" min="0.9" max="1" step="0.005" value="0.95"></div>
+      <div class="row"><span>spacing <b id="csv${S}">0.45</b> mm</span><input type="range" id="cs${S}" min="0.35" max="0.6" step="0.01" value="0.45"></div>
+      <div class="hint" id="cth${S}"></div></div>
       <div class="fill" id="cf${S}"><label class="h">Slot fill, side ${S}</label>
       <div class="row"><label>scope <select id="fs${S}"><option value="artwork">by artwork</option><option value="bar">by bar</option></select></label>
       <label><input type="checkbox" id="fk${S}" checked> achromatic: black on all four slots</label></div>
       <div class="ap" id="cfap${S}"></div>
-      <div class="hint">An empty color slot goes to one ink, densest first, round again when every ink has one; the ink spreads its lines evenly over its slots (same pitch on each, same ink). By artwork: decided once for the token, by angle: an angle only one ink ever uses is that ink's in every bar, and an angle no bar uses is handed out. By bar: each bar decides for itself, so the first and last bar of every interval fill. Black keeps 45 unless the box is ticked and there is no color ink.</div></div>`;
+      <div class="hint">An empty color slot goes to one ink, densest first, round again when every ink has one; the ink spreads its lines evenly over its slots (same pitch on each, same ink). By artwork: decided once for the token, by angle: an angle only one ink ever uses is that ink's in every bar, and an angle no bar uses is handed out. By bar: each bar decides for itself, so the first and last bar of every interval fill. Black keeps 45 unless the box is ticked and there is no color ink.</div></div>
+      <div class="copy"><label>Copy settings, side ${S}</label>
+      <div class="row"><code class="copyset" id="cc${S}"></code><button id="ccb${S}">copy</button></div></div>`;
     $('fs' + S).onchange = () => { fill[S].scope = $('fs' + S).value; drawCurveBox(S); soon(); };
     $('fk' + S).onchange = () => { fill[S].achro = $('fk' + S).checked; drawCurveBox(S); soon(); };
     $('csel' + S).onchange = () => { side[S].curve = $('csel' + S).value; toSelect(S); drawCurveBox(S); soon(); };
     $('ca' + S).oninput = () => { side[S].a = Math.round(+$('ca' + S).value * 10) / 10; side[S].curve = 'cubic'; toSelect(S); drawCurveBox(S); soon(); };
     $('cb' + S).oninput = () => { side[S].b = Math.round(+$('cb' + S).value * 20) / 20; toSelectMix(S); drawCurveBox(S); soon(); };
+    $('ct' + S).oninput = () => { side[S].t = Math.round(+$('ct' + S).value * 200) / 200; toSelectMix(S); drawCurveBox(S); soon(); };
+    $('cs' + S).oninput = () => { side[S].sp = Math.round(+$('cs' + S).value * 100) / 100; toSelectMix(S); drawCurveBox(S); soon(); };
+    $('ccb' + S).onclick = () => {
+      const t = $('cc' + S).textContent, done = () => { $('ccb' + S).textContent = 'copied'; setTimeout(() => { $('ccb' + S).textContent = 'copy'; }, 1200); };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done, () => selectText($('cc' + S)));
+      else selectText($('cc' + S));
+    };
   }
+
+  function selectText(el) { const r = document.createRange(); r.selectNodeContents(el); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r); }
 
   function drawCurveBox(S) {
     const box = $('curve' + S);
@@ -289,7 +339,14 @@
       + `<tr><td class="rl">applied</td>${SS.map(x => `<td>${VP.applied(c.curve, a, x).toFixed(3)}</td>`).join('')}</tr>`;
     // Mix ease: b, the formula, and the picked bar's X and coverage target.
     $('cb' + S).value = c.b; $('cbv' + S).textContent = c.b.toFixed(2);
-    $('cbfx' + S).textContent = `coverage target = 0.95 × (1 − ${c.b.toFixed(2)} · X)`;
+    $('cbfx' + S).textContent = `coverage target = ${c.t.toFixed(3)} × (1 − ${c.b.toFixed(2)} · X)`;
+    // Target and spacing, and the side's settings to hand back.
+    $('ct' + S).value = c.t; $('ctv' + S).textContent = c.t.toFixed(3);
+    $('cs' + S).value = c.sp; $('csv' + S).textContent = c.sp.toFixed(2);
+    $('cth' + S).textContent = `A bar of ink share W prints at W × target; higher lays more ink in every bar. Spacing is the line pitch of a solid fill under the 0.45 mm nib: below 0.45 the lines overlap at full tone, above it paper shows between them.` + (VP.PROGRAM.ok ? ` Program: target ${VP.PROGRAM.target}, spacing ${VP.PROGRAM.spacing}.` : '');
+    const ct = copyText(S);
+    $('cc' + S).textContent = ct === null ? 'the 1.85 curve has no buildSVG setting; pick cubic' : ct;
+    $('ccb' + S).disabled = ct === null;
     $('cf' + S).style.display = isFill(S) ? 'flex' : 'none';
     if (isFill(S)) {
       $('fs' + S).value = fill[S].scope; $('fk' + S).checked = fill[S].achro;
@@ -299,7 +356,7 @@
     }
     const mi = VP.mixInfo(methodOpts(S));
     const q = mi && mi[b.n];
-    if (q) $('cbap' + S).innerHTML = `bar ${b.n}: X <b>${q.X.toFixed(3)}</b> → coverage target <b>${q.target.toFixed(3)}</b>` + (c.b > 0 && q.X > 0 ? ` <span class="sub">(−${((1 - q.target / 0.95) * 100).toFixed(1)}%)</span>` : '');
+    if (q) $('cbap' + S).innerHTML = `bar ${b.n}: X <b>${q.X.toFixed(3)}</b> → coverage target <b>${q.target.toFixed(3)}</b>` + (c.b > 0 && q.X > 0 ? ` <span class="sub">(−${((1 - q.target / c.t) * 100).toFixed(1)}%)</span>` : '');
     // The plot: share 0..1 on x, applied 0..1 on y.
     const cv = $('cplot' + S), dpr = window.devicePixelRatio || 1, P = 132;
     cv.width = Math.round(P * dpr); cv.height = Math.round(P * dpr);
@@ -520,7 +577,7 @@
         rows += `<tr><td><span class="sw" style="background:${rgbCss(b.rgb)}"></span><b>bar ${b.n}</b></td>` +
           (me ? `<td>sd <b>${me.sd.toFixed(3)}</b></td><td>5–95 <b>${me.spread.toFixed(3)}</b></td><td>L* plot ${me.Lp.toFixed(1)} · digital ${me.Ld.toFixed(1)} · <b>Δ ${sgn(me.dL)}</b></td>` : '<td colspan=3>too small to tile</td>') +
           `<td>${segs} lines in view</td></tr>` +
-          (q ? `<tr><td></td><td colspan=4>mix X <b>${q.X.toFixed(3)}</b> → coverage target <b>${q.target.toFixed(3)}</b>${side[id].b > 0 ? ` <span class="sub">= 0.95 × (1 − ${side[id].b.toFixed(2)} × ${q.X.toFixed(3)})</span>` : ''}</td></tr>` : '') +
+          (q ? `<tr><td></td><td colspan=4>mix X <b>${q.X.toFixed(3)}</b> → coverage target <b>${q.target.toFixed(3)}</b>${side[id].b > 0 ? ` <span class="sub">= ${side[id].t.toFixed(3)} × (1 − ${side[id].b.toFixed(2)} × ${q.X.toFixed(3)})</span>` : ''}</td></tr>` : '') +
           (b.black > 1e-6 ? `<tr><td></td><td colspan=4>black share ${b.black.toFixed(3)}${ap} · footprint <b>${me ? me.blackFoot.toFixed(3) : '–'}</b></td></tr>` : '') +
           (fi && fi.bars[b.n] ? `<tr><td></td><td colspan=4>slot fill: ${fi.bars[b.n].changed ? '<b>filled</b>' : 'unchanged'} · lines by angle, program → fill: ${fillSlots(fi, b.n)}</td></tr>` : '');
       }
@@ -707,6 +764,11 @@
       // xa / xb: side A / B's mix ease b (0..1, step 0.05).
       const x = q.get('x' + S.toLowerCase());
       if (x !== null && isFinite(+x)) { side[S].b = Math.min(1, Math.max(0, Math.round(+x * 20) / 20)); if (isCur(S)) toSelectMix(S); }
+      // ta / tb: coverage target (0.90..1.00, step 0.005); sa / sb: line spacing (0.35..0.60 mm, step 0.01).
+      const t = q.get('t' + S.toLowerCase());
+      if (t !== null && isFinite(+t)) { side[S].t = Math.min(1, Math.max(0.9, Math.round(+t * 200) / 200)); if (isCur(S)) toSelectMix(S); }
+      const sp = q.get('s' + S.toLowerCase());
+      if (sp !== null && isFinite(+sp)) { side[S].sp = Math.min(0.6, Math.max(0.35, Math.round(+sp * 100) / 100)); if (isCur(S)) toSelectMix(S); }
       // fa / fb: slot fill scope (bar or artwork); ka / kb=0: achromatic box off.
       const fs = (q.get('f' + S.toLowerCase()) || '').toLowerCase();
       if (fs.startsWith('bar')) fill[S].scope = 'bar'; else if (fs.startsWith('art')) fill[S].scope = 'artwork';

@@ -58,7 +58,7 @@ for (const h of hashes) {
   const used = a.files.filter(f => f !== '').length;
   const diff = a.files.map((f, k) => f === b.files[k] ? null : k + 1).filter(v => v !== null);
   const bytes = a.files.reduce((t, f) => t + f.length, 0);
-  console.log(`${h.slice(0, 10)} ${a.vtype.padEnd(14)} ${used} inks, ${bytes} bytes: ${diff.length ? 'DIFFER on ink ' + diff.join(', ') : 'identical'}`);
+  console.log(`${h} ${a.vtype.padEnd(14)} ${used} inks, ${bytes} bytes: ${diff.length ? 'DIFFER on ink ' + diff.join(', ') : 'identical'}`);
   if (a.vtype !== b.vtype) { console.log(`  vtype differs: ${a.vtype} vs ${b.vtype}`); bad++; }
   bad += diff.length;
 }

@@ -32,13 +32,15 @@
   };
   const applied = (curve, a, x) => CURVES[curve].f(x, a);
   // Mix ease b (2026-09-29) rides on any curve: opts.mixEase, 0 = off.
-  const curveOpts = (curve, a, b) => Object.assign({ mode: 'current', blackAngle: 45 }, CURVES[curve].opts(a), b > 0 ? { mixEase: b } : {});
+  // Coverage target t and line spacing sp (2026-10-09) ride on any curve too:
+  // opts.target, opts.spacing; null leaves the program's.
+  const curveOpts = (curve, a, b, t, sp) => Object.assign({ mode: 'current', blackAngle: 45 }, CURVES[curve].opts(a), b > 0 ? { mixEase: b } : {}, t != null ? { target: t } : {}, sp != null ? { spacing: sp } : {});
   const curveLabel = (curve, a, b) => (curve === 'none' ? 'current, black 45' : curve === 'exp' ? 'curve 1.85' : 'cubic a=' + String(+(+a).toFixed(2))) + (b > 0 ? ' + mix ease ' + String(+(+b).toFixed(2)) : '');
 
   // The main program's plot constants (2026-09-29), read from intervals/Intervals_v9.js
-  // itself (buildSVG's blackCubic, blackCubicAchromatic, mixEase and black's slot angle), so the
-  // program-default preset draws what the program plots and the two cannot drift.
-  const PROGRAM = { ok: false, a: null, aAchro: null, b: null, angle: null };
+  // itself (buildSVG's blackCubic, blackCubicAchromatic, mixEase, target, spacing and black's
+  // slot angle), so the program-default preset draws what the program plots and the two cannot drift.
+  const PROGRAM = { ok: false, a: null, aAchro: null, b: null, angle: null, target: null, spacing: null };
   async function loadProgram(url) {
     try {
       const src = await (await fetch(url, { cache: 'no-cache' })).text();
@@ -49,13 +51,17 @@
       PROGRAM.aAchro = num('blackCubicAchromatic');
       PROGRAM.b = num('mixEase');
       PROGRAM.angle = ang ? +ang[1].split(',')[4] : null;
-      PROGRAM.ok = [PROGRAM.a, PROGRAM.aAchro, PROGRAM.b, PROGRAM.angle].every(v => v !== null && isFinite(v));
+      PROGRAM.target = num('target');
+      PROGRAM.spacing = num('spacing');
+      PROGRAM.ok = [PROGRAM.a, PROGRAM.aAchro, PROGRAM.b, PROGRAM.angle, PROGRAM.target, PROGRAM.spacing].every(v => v !== null && isFinite(v));
     } catch (e) {
       PROGRAM.ok = false;
     }
     return PROGRAM;
   }
-  const programOpts = () => Object.assign(curveOpts('cubic', PROGRAM.a, PROGRAM.b), { blackCubicAchromatic: PROGRAM.aAchro, blackAngle: PROGRAM.angle });
+  // The program's settings, with b, t and sp in place of its own when given
+  // (the page's 'program default with ...' sides keep the achromatic a and black's angle).
+  const programOpts = (b, t, sp) => Object.assign(curveOpts('cubic', PROGRAM.a, b != null ? b : PROGRAM.b, t != null ? t : PROGRAM.target, sp != null ? sp : PROGRAM.spacing), { blackCubicAchromatic: PROGRAM.aAchro, blackAngle: PROGRAM.angle });
 
   // Slot fill per bar for opts: { n: { owner, n, before: { owner, n }, changed } },
   // five slots each (angles in angles), and the token's plan under scope artwork.

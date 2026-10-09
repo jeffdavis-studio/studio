@@ -980,6 +980,16 @@ function plotSettings(opts) {
   if (opts && opts.mixEase) {
     p.mixEase = opts.mixEase;
   }
+  // Coverage target and line pitch (2026-10-09): opts.target replaces the
+  // program's target (a bar of ink share W prints at W * target, and the mix
+  // index's footprint is W * target); opts.spacing replaces the line pitch of
+  // a solid fill. The nib, lw, stays the pen's.
+  if (opts && opts.target !== undefined && opts.target !== null) {
+    p.target = opts.target;
+  }
+  if (opts && opts.spacing !== undefined && opts.spacing !== null) {
+    p.spacing = opts.spacing;
+  }
   // Black-in-the-slots fork: opts.blackSlots = true, current mode only. No
   // black grid; black takes each shaded anchor's share of its own grids' lines.
   if (opts && opts.blackSlots) {
