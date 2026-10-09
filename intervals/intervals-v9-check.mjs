@@ -9,7 +9,6 @@ import { createServer } from 'node:http';
 import { readFileSync } from 'node:fs';
 import { dirname, join, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { execSync } from 'node:child_process';
 import { DOC_W, DOC_H } from './plot-frame.mjs';
 
 const { chromium } = await import(process.env.PLAYWRIGHT || 'playwright');
@@ -68,7 +67,7 @@ function serve() {
     const server = createServer((req, res) => {
       const name = decodeURIComponent(req.url.split('?')[0]).replace(/^\/+/, '') || 'index.html';
       try {
-        const body = extra[name] !== undefined ? extra[name] : readFileSync(join(here, name));
+        const body = readFileSync(join(here, name));
         res.writeHead(200, { 'Content-Type': MIME[extname(name)] || 'application/octet-stream' });
         res.end(body);
       } catch {
@@ -79,16 +78,14 @@ function serve() {
   });
 }
 
-// Files served from memory beside the folder (the v8 render the digital view is held to).
-const extra = {};
 const { server, port } = await serve();
 const browser = await chromium.launch();
 const context = await browser.newContext({ acceptDownloads: true });
 const errors = [];
 const warnings = [];
 
-// wait is how long the page may take to render; a ?variant= / ?layout= search
-// for a rare combination can take much longer than a pinned hash.
+// wait is how long the page may take to render; a ?layout= search can take
+// longer than a pinned hash.
 async function open(path, vw = 900, vh = 900, wait = 20000) {
   const page = await context.newPage();
   await page.setViewportSize({ width: vw, height: vh });
@@ -101,6 +98,16 @@ async function open(path, vw = 900, vh = 900, wait = 20000) {
   await page.waitForFunction(() => typeof isLooping === 'function' && typeof s === 'number' && s > 0 && !isLooping(),
     null, { timeout: wait });
   return page;
+}
+
+// A hash whose token draws color variant v and layout l ('' is any), found in
+// the page with devFind(): v9 has no ?variant= parameter. A rare combination
+// can take a few minutes.
+async function find(v, l) {
+  const p = await open(ART);
+  const hsh = await p.evaluate(([v, l]) => devFind(v, l), [v, l]);
+  await p.close();
+  return hsh;
 }
 
 // Every pen file the token has, as buildSVG() writes it for key 1-8.
@@ -124,7 +131,7 @@ try {
   console.log('\n1. LOCKED CONSTANTS');
   const page = await open(`${ART}?hash=${USE[0]}&id=123000045`);
   const P = await page.evaluate(() => ({
-    amin, amax, pwhite, vtype, variants, layouts, names: pens.map(p => p.name), tints: c.map(x => x.tint), shades: c.map(x => x.shade),
+    tmin, tmax, smin, smax, ptint, pshade, vtype, variants, layouts, names: pens.map(p => p.name), tints: c.map(x => x.tint), shades: c.map(x => x.shade),
     hexes: inks.map(c => '#' + [red(c), green(c), blue(c)].map(v => Math.round(v).toString(16).padStart(2, '0')).join(''))
   }));
   const want = {
@@ -148,18 +155,40 @@ try {
     const N = await q.evaluate(() => {
       tokenData.hash = devFind('none', '');
       setup();
-      return { vtype, amin, amax, pwhite, tints: c.map(x => x.tint), shades: c.map(x => x.shade) };
+      return { vtype, tmin, tmax, smin, smax, wfloor, kfloor, wdepth, kdepth, ptint, pshade, ptint0, pshade0, rspan, hues: c.map(x => x.hue), tints: c.map(x => x.tint), shades: c.map(x => x.shade) };
     });
     await q.close();
-    check(N.vtype === 'none' && N.amin === 0 && N.amax === 0.4 && N.pwhite === 0.67,
-      'white-or-black amount 0 to 0.40, white 0.67 of the time (a token with no variant)');
+    check(N.vtype === 'none' && N.tmin === N.wfloor && N.tmax === N.wdepth && N.smin === N.kfloor && N.smax === N.kdepth && N.ptint === N.ptint0 && N.pshade === N.pshade0,
+      'tint wfloor to wdepth with chance ptint0, shade kfloor to kdepth with chance pshade0, else full color (a token with no variant)');
     check(N.tints.every((t, i) => t === 0 || N.shades[i] === 0), 'no anchor adds both white and black');
+    check([0, 2, 4].every(j => Math.min(Math.abs(N.hues[j] - N.hues[j + 1]), 360 - Math.abs(N.hues[j] - N.hues[j + 1])) <= N.rspan),
+      'each ramp\'s far end within rspan of its near end (' + [0, 2, 4].map(j => N.hues[j] + '-' + N.hues[j + 1]).join(', ') + ')');
   }
-  check(!/^let (amin|amax|pwhite|ng) =/m.test(SRC), 'amount range is set where it is used, not as constants');
+  check(!/^let (tmin|tmax|smin|smax|ptint|pshade|ng) =/m.test(SRC), 'per-token white and black ranges are set in setup(), not as constants');
+  check(/^let wdepth = [\d.]+;$/m.test(top) && /^let kdepth = [\d.]+;$/m.test(top),
+    'knobs at the top: wdepth and kdepth');
+  {
+    // No anchor goes past its depth, over many tokens of every kind but
+    // achromatic.
+    const q = await open(ART);
+    const r = await q.evaluate(() => {
+      let deep = 0;
+      for (let i = 0; i < 200; i++) {
+        tokenData.hash = devHash();
+        setup();
+        for (let j = 0; j < 6; j++) {
+          if (vtype !== 'achromatic' && (c[j].tint > wdepth || c[j].shade > kdepth)) deep++;
+        }
+      }
+      return { deep };
+    });
+    await q.close();
+    check(r.deep === 0, 'no anchor adds more white than wdepth or more black than kdepth');
+  }
   // v9's tuning knobs sit at the top so Jeff can tune them by hand (2026-10-08).
-  check(/^let hband = \[170, 420\];$/m.test(top) && /^let hbias = 0\.75;$/m.test(top) &&
-    /^let rspan = 120;$/m.test(top) && /^let pwhite0 = 0\.67;$/m.test(top) && /^let plot = false;$/m.test(top),
-    'knobs at the top: hband [170, 420], hbias 0.75, rspan 120, pwhite0 0.67, and the plot flag');
+  check(!/hweights|ohue|hbands|hbias/.test(SRC) && /hs = R\.random_int\(0, 359\);/.test(SRC) &&
+    /^let rspan = 120;$/m.test(top) && /^let ptint0 = [\d.]+;$/m.test(top) && /^let pshade0 = [\d.]+;$/m.test(top) && /^let plot = false;$/m.test(top),
+    'knobs at the top: rspan 120, ptint0 and pshade0, and the plot flag; hue drawn uniformly, no weights');
   check(!/random_int\(1[78]0, 4[12]\d\)|random_bool\(0\.[57]5?\)/.test(SRC.slice(SRC.indexOf('function gcol('))),
     'gcol() draws through the knobs, not literals');
   check(P.variants.map(v => v.name).join(',') === VARIANTS.join(','),
@@ -293,17 +322,17 @@ try {
   // Circular distance between two hues, in degrees.
   const arc = (a, b) => Math.min(Math.abs(a - b), 360 - Math.abs(a - b));
   for (const name of VARIANTS) {
-    const p = await open(`${ART}?variant=${name}`);
+    const p = await open(`${ART}?hash=${await find(name, '')}`);
     const g = await p.evaluate(() => ({
-      vtype, amin, amax, lmin, aspan, tints: c.map(x => x.tint), shades: c.map(x => x.shade), f: window.$features,
+      vtype, tmin, tmax, smin, smax, wdepth, lmin, aspan, tints: c.map(x => x.tint), shades: c.map(x => x.shade), f: window.$features,
       hues: c.map(x => x.hue), light: c.map(x => x.light), black: buildSVG(8), bw: bw.slice(), lt: ltype,
       rgb: c.map(x => [red(x.col), green(x.col), blue(x.col)]),
       inkfiles: [0, 1, 2, 3, 4, 5, 6, 7].filter(k => buildSVG(k) !== '')
     }));
     await p.close();
-    check(g.vtype === name && g.f.Variant === name, '?variant=' + name + ' finds a token that draws it, and $features says so');
+    check(g.vtype === name && g.f.Variant === name, name + ': devFind() finds a token that draws it, and $features says so');
     if (name === 'saturated') check(g.tints.every(t => t === 0), 'saturated: no white in any anchor');
-    if (name === 'tinted') check(g.tints.every(t => t === 0.4) && g.shades.every(t => t === 0), 'tinted: every anchor at 0.40 white, no black');
+    if (name === 'tinted') check(g.tints.every(t => t === g.wdepth) && g.shades.every(t => t === 0), 'tinted: every anchor at the full white depth, no black');
     if (name === 'saturated') check(g.shades.every(t => t === 0), 'saturated: no black in any anchor');
     if (name === 'saturated' || name === 'tinted') check(g.black === '', name + ': no black pen file');
     check(g.f.Layout === g.lt && (g.lt !== 'even' || g.bw.every(x => Math.abs(x - 1 / 3) < 1e-12)),
@@ -341,16 +370,17 @@ try {
   // Found by search, so they follow whatever shares the tables hold; a rare
   // combination can take a few minutes, hence the long wait.
   for (const q of ['layout=varied', 'layout=varied&variant=tinted', 'layout=varied&variant=complementary']) {
-    const p = await open(`${ART}?${q}`, 900, 900, 600000);
+    const want = q.split('&').map(x => x.split('='));
+    const path = want[1] ? `${ART}?hash=${await find(want[1][1], 'varied')}` : `${ART}?${q}`;
+    const p = await open(path, 900, 900, 600000);
     const g = await p.evaluate(fn => ({
       lt: ltype, vt: vtype, bw: bw.slice(), f: window.$features, layouts: layouts,
 
       files: eval('(' + fn + ')')().map(f => f.content)
     }), allFiles.toString());
     await p.close();
-    const want = q.split('&').map(x => x.split('='));
-    check(g.lt === 'varied' && g.f.Layout === 'varied', '?' + q + ' finds a varied layout (got ' + g.lt + ')');
-    if (want[1]) check(g.vt === want[1][1], '?' + q + ' also has the ' + want[1][1] + ' color variant: layouts and variants combine');
+    check(g.lt === 'varied' && g.f.Layout === 'varied', q + ' finds a varied layout (got ' + g.lt + ')');
+    if (want[1]) check(g.vt === want[1][1], q + ' also has the ' + want[1][1] + ' color variant: layouts and variants combine');
     // widths is private to setup(), so find a whole-number triple in the row's
     // ranges that splits a step the way bw does.
     const row = g.layouts.filter(x => x.name === g.lt)[0];
@@ -366,16 +396,16 @@ try {
       }
     }
     check(found !== null && Math.min(found[0], found[1], found[2]) === 1 && !(found[0] === found[1] && found[1] === found[2]),
-      '?' + q + ': varied has at least one band of 1 and not all bands the same');
+      q + ': varied has at least one band of 1 and not all bands the same');
     check(found !== null && Math.abs(g.bw[0] + g.bw[1] + g.bw[2] - 1) < 1e-12,
-      '?' + q + ': bands split each step by whole-number widths within the layout\'s ranges (' + (found ? found.join(':') : 'none') + ')');
+      q + ': bands split each step by whole-number widths within the layout\'s ranges (' + (found ? found.join(':') : 'none') + ')');
     let n = 0;
     for (const f of g.files) {
       for (const [x, y] of endpoints(f)) {
         if (x < BOX.x0 - EPS || x > BOX.x1 + EPS || y < BOX.y0 - EPS || y > BOX.y1 + EPS) n++;
       }
     }
-    check(g.files.length > 0 && n === 0, '?' + q + ': pen files written, all ink inside the image');
+    check(g.files.length > 0 && n === 0, q + ': pen files written, all ink inside the image');
     console.log('   ' + q + ' -> ' + g.vt + ', ' + g.lt + ', ' + g.files.length + ' pen files');
   }
 
@@ -415,7 +445,7 @@ try {
     const p1 = await open(`${ART}?hash=${USE[0]}&id=1&aspect=14:11`, 1200, 800);
     const d0 = await png(p1);
     const [dl] = await Promise.all([p1.waitForEvent('download'), p1.keyboard.press('s')]);
-    check(dl.suggestedFilename() === 'Intervals-' + USE[0] + '.png', 's names the PNG by the full hash (got ' + dl.suggestedFilename() + ')');
+    check(dl.suggestedFilename() === USE[0] + '.png', 's names the PNG by the full hash alone (got ' + dl.suggestedFilename() + ')');
     const saved = readFileSync(await dl.path());
     const seed = await p1.evaluate(() => JSON.stringify([s, o, vtype, ltype, bx, bw, c.map(x => [x.hue, x.light, x.tint, x.shade])]));
     await p1.keyboard.press('p');
@@ -431,7 +461,10 @@ try {
     check(d1 !== d0, 'p shows the plot view (the canvas changes)');
     check(seed1 === seed, 'p leaves the token alone: s, o, variant, layout, bands and anchors unchanged');
     check(d2 === d0, 'p again restores the digital view pixel for pixel');
-    check(saved1.length !== saved.length || !saved1.equals(saved), 's in the plot view saves the plot view');
+    check(saved.readUInt32BE(16) / saved.readUInt32BE(20) === 1018 / 800,
+      's in the digital view saves the canvas, in the window\'s aspect (got ' + saved.readUInt32BE(16) + 'x' + saved.readUInt32BE(20) + ')');
+    check(saved1.readUInt32BE(16) === 3400 && saved1.readUInt32BE(20) === 2800,
+      's in the plot view saves the sheet alone at 17 x 14 in, 200 per inch (got ' + saved1.readUInt32BE(16) + 'x' + saved1.readUInt32BE(20) + ')');
     const p2 = await open(`${ART}?hash=${USE[0]}&id=1&aspect=14:11`, 1200, 800);
     const [dl2] = await Promise.all([p2.waitForEvent('download'), p2.keyboard.press('s')]);
     const saved2 = readFileSync(await dl2.path());
@@ -451,25 +484,27 @@ try {
         if (px[i] === 255 && px[i + 1] === 255 && px[i + 2] === 255) white++;
         if (px[i] + px[i + 1] + px[i + 2] < 60) dark++;
       }
-      return { white: white / (px.length / 4), dark: dark / (px.length / 4), op: cv.getContext('2d').globalCompositeOperation };
+      // The sheet: 355.6 x 431.8 mm at one scale, centered; the image inside it
+      // starts 38.1 mm (1.5 in) in from the top.
+      const at = (x, y) => {
+        const i = 4 * (Math.round(y) * cv.width + Math.round(x));
+        return [px[i], px[i + 1], px[i + 2]];
+      };
+      const k = Math.min(cv.width / 431.8, cv.height / 355.6);
+      const left = (cv.width - 431.8 * k) / 2;
+      const top = (cv.height - 355.6 * k) / 2;
+      return {
+        white: white / (px.length / 4), dark: dark / (px.length / 4),
+        corner: at(1, 1), margin: at(cv.width / 2, top + 19 * k), image: at(cv.width / 2, top + 177.8 * k),
+        sheet: [left, top]
+      };
     });
     await p3.close();
     check(look.white > 0 && look.white < 0.5, 'plot view: hatches over paper white (white ' + (100 * look.white).toFixed(1) + '%)');
+    check(look.corner.join() === '220,220,220', 'plot view: gray around the 14 x 17 sheet (corner ' + look.corner.join() + ')');
+    check(look.margin.join() === '255,255,255', 'plot view: paper white in the 1.5 in margin above the image');
+    check(look.image.join() !== '255,255,255' && look.image.join() !== '220,220,220', 'plot view: ink inside the image');
     console.log('   plot view: white ' + (100 * look.white).toFixed(1) + '%, near-black ' + (100 * look.dark).toFixed(1) + '%');
-    // The digital view on v9 is the digital view v8 draws for the same hash, at
-    // the tuning commit (0c07281): the knobs moved numbers to the top, nothing else.
-    const v8 = execSync('git show 0c07281:intervals/Intervals_v8.js', { cwd: here, encoding: 'utf8' });
-    extra['Intervals_v8_at_0c07281.js'] = v8;
-    extra['v8-at-0c07281.html'] = readFileSync(join(here, ART), 'utf8').replace('Intervals_v9.js', 'Intervals_v8_at_0c07281.js');
-    for (const hsh of USE) {
-      const a = await open(`${ART}?hash=${hsh}&id=1&aspect=14:11`, 1200, 800);
-      const da = await png(a);
-      await a.close();
-      const b = await open(`v8-at-0c07281.html?hash=${hsh}&id=1&aspect=14:11`, 1200, 800);
-      const db = await png(b);
-      await b.close();
-      check(da === db, hsh.slice(0, 10) + ': v9 digital view equals v8 at 0c07281 pixel for pixel');
-    }
   }
 
   console.log('\n9. DEPLOYABLE AND IN HOUSE STYLE');

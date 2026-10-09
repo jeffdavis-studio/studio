@@ -1,29 +1,47 @@
-let R, w, h, o, s, vtype, ltype, amin, amax, pwhite, adir, aend, bx, bw, c, inks, inkh;
-let lmin = 5;
-let aspan = 75;
-// Hue draw (2026-10-08, on Adam's read): hbias of the time the open draw takes
-// a hue in hband (cyan through blues, violets and reds to yellow), otherwise
-// any; a ramp's far end sits within rspan degrees of its near end; each
-// anchor adds white rather than black with chance pwhite0.
-let hband = [170, 420];
-let hbias = 0.75;
+let R, w, h, o, s, vtype, ltype, tmin, tmax, smin, smax, ptint, pshade, lmin, aspan, adir, aend, bx, bw, c, inks, inkl, inka;
+// The lightness gap between same-side anchors, and the Lab floor between bars
+// drawn side by side: lmin0 for every token but tinted, which takes ltinted.
+// Each is the most that can never strand an anchor with no lightness left to
+// draw (10-09): 7.5 holds when one anchor is held to a single hue
+// (monochromatic, analogous's band edge, complementary's pinned opposite),
+// and a tinted anchor's lightness is fixed by its hue, safe only to 4.9.
+// Both limits move with wdepth, kdepth, the floors, rspan and the inks.
+let lmin0 = 7.5;
+let ltinted = 4;
+// Analogous band width in degrees, drawn per token from amin to amax.
+let amin = 45;
+let amax = 75;
+// Hue throughout is the CIELAB hue angle, in whole degrees, drawn uniformly,
+// so equal steps read as roughly equal steps of color (on the ink wheel, red
+// was 24 degrees and purple 71). A ramp's far end sits within rspan degrees
+// of its start.
 let rspan = 120;
-let pwhite0 = 0.67;
+// Each anchor is a tint (white added), a shade (black added) or full color
+// (the pure ink blend): ptint0 and pshade0 are the chances of the first two,
+// and full color takes the rest.
+let ptint0 = 0.3;
+let pshade0 = 0.2;
+// White and black: a tint adds from wfloor to wdepth white, a shade from
+// kfloor to kdepth black. The floors keep a tint or shade from passing for
+// full color.
+let wfloor = 0.05;
+let wdepth = 0.4;
+let kfloor = 0.05;
+let kdepth = 0.3;
 // p flips the screen between the digital blends and the plot view: every pen
-// file's hatches over white, ink multiplied over ink, as the plotter lays them.
+// file's hatches on the 14 x 17 sheet, turned to read like the digital view,
+// ink multiplied over ink, as the plotter lays them. s saves the view showing.
 let plot = false;
-// let ladder = [3, 4, 5, 6, 8, 10, 12, 16, 20, 24, 30, 40];
-// let rungs = [1, 2, 2, 3, 3, 3, 3, 3, 3, 2, 2, 1];
-let ladder = [4, 5, 6, 8, 10, 12, 16, 20, 24];
-let rungs = [1, 1, 2, 2, 2, 2, 2, 2, 1];
-// Each color variant's share of tokens; the rest, 30% here, are 'none'.
-// Hexad and shaded were dropped 2026-10-08 on Adam's read of the outputs.
+// Steps per ramp, and each one's weight.
+let ladder = [5, 6, 8, 10, 12, 16, 20, 24];
+let rungs = [1, 2, 2, 2, 2, 2, 2, 1];
+// Each color variant's share of tokens; the rest are 'none'.
 let variants = [
-  { name: 'saturated', p: 0.15 },
+  { name: 'saturated', p: 0.10 },
   { name: 'tinted', p: 0.10 },
-  { name: 'complementary', p: 0.10 },
-  { name: 'analogous', p: 0.20 },
-  { name: 'monochromatic', p: 0.10 },
+  { name: 'complementary', p: 0.05 },
+  { name: 'analogous', p: 0.10 },
+  { name: 'monochromatic', p: 0.05 },
   { name: 'achromatic', p: 0.05 }
 ];
 // Each layout's share of tokens, drawn independently of the color variant,
@@ -31,7 +49,7 @@ let variants = [
 // whole number in each range and uses them as a ratio. A fixed ratio is lo =
 // hi, e.g. 1:3:5 is [[1, 1], [3, 3], [5, 5]]. The rest are 'even' (1:1:1).
 let layouts = [
-  { name: 'varied', p: 0.50, widths: [[1, 4], [1, 4], [1, 4]] }
+  { name: 'varied', p: 0.45, widths: [[1, 4], [1, 4], [1, 4]] }
 ];
 // Every pen, in ink order: ink1 is pens[0] ... ink9 is pens[8]. The first
 // ncol are the color inks gcol() mixes by hue; black, last, sits outside that
@@ -57,15 +75,19 @@ function setup() {
   noStroke();
   noFill();
   colorMode(HSB);
-  // inks and inkh are the color inks only, so black never enters the hue ring.
+  // inks are the color inks only, so black never enters the hue ring. inkl is
+  // each ink in CIELAB, inka its Lab hue angle; in ink order the angles run
+  // once around the wheel, so the inks bracket every hue.
   inks = [];
   for (let i = 0; i < ncol; i++) {
     inks[i] = color(pens[i].hsb[0], pens[i].hsb[1], pens[i].hsb[2]);
   }
   colorMode(RGB);
-  inkh = [];
+  inkl = [];
+  inka = [];
   for (let i = 0; i < inks.length; i++) {
-    inkh[i] = hue(inks[i]);
+    inkl[i] = rgbToLab(inks[i]);
+    inka[i] = (degrees(atan2(inkl[i][2], inkl[i][1])) + 360) % 360;
   }
 
   // 1. The token: bar axis, steps, color variant, layout.
@@ -103,40 +125,55 @@ function setup() {
     ltype = 'even';
     ranges = [[1, 1], [1, 1], [1, 1]];
   }
+  // The other end: 5 and 6 steps read too plain as even bars, so those tokens
+  // are always varied.
+  if (s <= 6) {
+    for (let i = 0; i < layouts.length; i++) {
+      if (layouts[i].name === 'varied') {
+        ltype = 'varied';
+        ranges = layouts[i].widths;
+      }
+    }
+  }
   print('variant: ' + vtype);
   print('layout: ' + ltype);
   print('bars: ' + 3 * s);
 
   // 2. Variant settings: every number a variant changes is decided here.
-  // Each anchor adds white or black, never both: an amount from amin to
-  // amax, white with chance pwhite, otherwise black.
-  amin = 0;
-  amax = 0.4;
-  pwhite = pwhite0;
+  // Each anchor is a tint, from tmin to tmax white, with chance ptint; a
+  // shade, from smin to smax black, with chance pshade; otherwise full color.
+  tmin = wfloor;
+  tmax = wdepth;
+  smin = kfloor;
+  smax = kdepth;
+  ptint = ptint0;
+  pshade = pshade0;
+  lmin = lmin0;
   if (vtype === 'saturated') {
-    amax = 0;
+    ptint = 0;
+    pshade = 0;
   }
   if (vtype === 'tinted') {
-    amin = 0.4;
-    pwhite = 1;
+    tmin = wdepth;
+    ptint = 1;
+    pshade = 0;
+    lmin = ltinted;
   }
-  if (vtype === 'shaded') {
-    amin = 0.4;
-    pwhite = 0;
-  }
-  // Analogous spans an aspan-degree band starting at the first anchor's hue:
-  // adir is the direction it runs (+1 or -1), and anchor aend holds its far
-  // end, so the spread is always exactly aspan.
+  // Analogous spans an aspan-degree band (amin to amax) starting at the first
+  // anchor's hue: adir is the direction it runs (+1 or -1), and anchor aend
+  // holds its far end, so the spread is always exactly aspan.
   if (vtype === 'analogous') {
+    aspan = R.random_int(amin, amax);
     adir = R.random_int(0, 1) * 2 - 1;
     aend = R.random_int(1, 5);
   }
-  // Achromatic has no ink: each anchor is a gray, a black share from amin to
-  // amax over paper (see gcol()).
+  // Achromatic has no ink: each anchor is a gray, a black share from smin to
+  // smax over paper (see gcol()).
   if (vtype === 'achromatic') {
-    amin = 0.1;
-    amax = 0.9;
-    pwhite = 0;
+    smin = 0.1;
+    smax = 0.9;
+    ptint = 0;
+    pshade = 1;
   }
   // The layout's widths, one whole number per band from its range, repeat
   // every step. bx and bw are each band's start and width as fractions of a
@@ -160,7 +197,17 @@ function setup() {
 
   // 3. Anchors, with gcol() taking each hue by variant. 4. Guarantees: the
   // pass loop adds a seventh when complementary drew no anchor opposite the
-  // first; anchor jr, chosen at random, is re-drawn pinned to the opposite.
+  // first (anchor jr, chosen at random, is re-drawn pinned to the opposite),
+  // or when a token with no variant reads too plain (see plain(): all six
+  // anchors one kind, or every hue inside amax degrees, so it passes for
+  // analogous). Then anchor jr, a ramp's far end so its hue still answers to
+  // its ramp's start, is re-drawn until the token is no longer plain.
+  // 5. Neighbors: after the last pass, the bars as drawn side by side (ramp
+  // j's bar next to ramp j + 1's at each step, and ramp 2's bar next to ramp
+  // 0's at the next step) must differ by lmin in Lab (dE76), so two bars
+  // never blur together where their ramps cross in lightness. If any pair
+  // falls short, all six anchors are re-drawn: re-drawing one may not reach
+  // the pair.
   c = [];
   let n = 6;
   let jr = 0;
@@ -172,7 +219,8 @@ function setup() {
     c[j] = gcol(j, i === 6);
     // The other anchors on j's side are (j + 2) % 6 and (j + 4) % 6.
     while (((j + 2) % 6 < c.length && abs(c[(j + 2) % 6].light - c[j].light) < lmin) ||
-      ((j + 4) % 6 < c.length && abs(c[(j + 4) % 6].light - c[j].light) < lmin)) {
+      ((j + 4) % 6 < c.length && abs(c[(j + 4) % 6].light - c[j].light) < lmin) ||
+      (i === 6 && vtype === 'none' && plain())) {
       c[j] = gcol(j, i === 6);
     }
     if (i === 5 && vtype === 'complementary') {
@@ -185,6 +233,29 @@ function setup() {
       if (!far) {
         n = 7;
         jr = R.random_int(1, 5);
+      }
+    }
+    if (i === 5 && vtype === 'none' && plain()) {
+      n = 7;
+      jr = R.random_int(0, 2) * 2 + 1;
+    }
+    if (i === n - 1) {
+      let labs = [];
+      for (let k = 0; k < s; k++) {
+        for (let f = 0; f < 3; f++) {
+          labs.push(rgbToLab(betterLerp(c[2 * f].col, c[2 * f + 1].col, k / (s - 1))));
+        }
+      }
+      let blur = false;
+      for (let k = 1; k < labs.length; k++) {
+        if (dist(labs[k][0], labs[k][1], labs[k][2], labs[k - 1][0], labs[k - 1][1], labs[k - 1][2]) < lmin) {
+          blur = true;
+        }
+      }
+      if (blur) {
+        c = [];
+        n = 6;
+        i = -1;
       }
     }
   }
@@ -202,7 +273,7 @@ function setup() {
     ' ' + nf(abs(c[0].light - c[4].light), 1, 1));
   print('L ends: ' + nf(abs(c[1].light - c[3].light), 1, 1) + ' ' + nf(abs(c[3].light - c[5].light), 1, 1) +
     ' ' + nf(abs(c[1].light - c[5].light), 1, 1));
-  // 5. Features.
+  // 6. Features.
   window.$features = {
     Variant: vtype,
     Layout: ltype,
@@ -214,33 +285,12 @@ function setup() {
 function draw() {
   clear();
   if (plot) {
+    // The sheet at one scale fitted to the canvas, gray around it.
+    let sk = min(w / 431.8, h / 355.6);
     push();
-    background(255);
-    blendMode(MULTIPLY);
-    for (let k = 0; k < pens.length; k++) {
-      let svg = buildSVG(k);
-      if (svg !== '') {
-        // The file holds the composition turned a quarter turn clockwise and
-        // centered on the document, so its point (X, Y) is composition
-        // (Y - ry, rx - X) in millimeters; the canvas is the composition.
-        let f = /width="(.+)mm"\n\s+height="(.+)mm"[\s\S]+?composition-mm="(.+) x (.+)"/.exec(svg);
-        let rx = (parseFloat(f[1]) + parseFloat(f[4])) / 2;
-        let ry = (parseFloat(f[2]) - parseFloat(f[3])) / 2;
-        push();
-        scale(w / parseFloat(f[3]), h / parseFloat(f[4]));
-        strokeWeight(parseFloat(/stroke-width="(.+)"/.exec(svg)[1]));
-        colorMode(HSB);
-        stroke(pens[k].hsb[0], pens[k].hsb[1], pens[k].hsb[2]);
-        colorMode(RGB);
-        let re = /<line x1="(.+?)" y1="(.+?)" x2="(.+?)" y2="(.+?)"\/>/g;
-        let m = re.exec(svg);
-        while (m) {
-          line(m[2] - ry, rx - m[1], m[4] - ry, rx - m[3]);
-          m = re.exec(svg);
-        }
-        pop();
-      }
-    }
+    background(220);
+    translate((w - 431.8 * sk) / 2, (h - 355.6 * sk) / 2);
+    sheet(window, sk);
     pop();
   } else {
     for (let i = 0; i < s; i++) {
@@ -260,24 +310,58 @@ function draw() {
   noLoop();
 }
 
+// The plot as it comes off the machine, turned to read like the digital view:
+// the 14 x 17 in sheet lying landscape (431.8 x 355.6 mm) with the image
+// upright and 1.5 in margins all round, drawn into g (the canvas, as window,
+// or a graphics buffer) at sk pixels per millimeter. Each pen file's document,
+// the plotter's working area, sits centered on the portrait sheet; its point
+// (X, Y) there is (X + ox, Y + oy), and the quarter turn counterclockwise
+// that views the sheet takes that to (Y + oy, 355.6 - X - ox). Ink is
+// multiplied over ink.
+function sheet(g, sk) {
+  g.push();
+  g.scale(sk);
+  g.noStroke();
+  g.fill(255);
+  g.rect(0, 0, 431.8, 355.6);
+  g.blendMode(MULTIPLY);
+  for (let k = 0; k < pens.length; k++) {
+    let svg = buildSVG(k);
+    if (svg !== '') {
+      let f = /width="(.+)mm"\n\s+height="(.+)mm"/.exec(svg);
+      let ox = (355.6 - parseFloat(f[1])) / 2;
+      let oy = (431.8 - parseFloat(f[2])) / 2;
+      g.strokeWeight(parseFloat(/stroke-width="(.+)"/.exec(svg)[1]));
+      g.colorMode(HSB);
+      g.stroke(pens[k].hsb[0], pens[k].hsb[1], pens[k].hsb[2]);
+      g.colorMode(RGB);
+      let re = /<line x1="(.+?)" y1="(.+?)" x2="(.+?)" y2="(.+?)"\/>/g;
+      let m = re.exec(svg);
+      while (m) {
+        g.line(parseFloat(m[2]) + oy, 355.6 - parseFloat(m[1]) - ox, parseFloat(m[4]) + oy, 355.6 - parseFloat(m[3]) - ox);
+        m = re.exec(svg);
+      }
+    }
+  }
+  g.pop();
+}
+
 // An anchor is two neighboring inks over paper:
 //   col = (1 - tint) * [(1 - mix) * inks[ink] + mix * inks[ink2]] + tint * white
 // so the plot can lay each ink at its own share.
 function gcol(j, pinned) {
-  // Hue: hbias of the time from hband (cyan through blues, violets and reds
-  // to yellow), otherwise any, so yellow-green through green draws about a
-  // quarter of its natural share. After the first anchor, the hue variants
+  // Hue: the open draw, any whole degree, for every anchor of the open draw
+  // and for the first anchor of a hue variant. After the first anchor, the hue variants
   // place each hue relative to the first anchor's, fresh on every draw, so an
   // anchor that fails its lightness gap can move:
   //   complementary  the first hue or its opposite, by coin flip; pinned keeps
   //                  it opposite
   //   analogous      inside the aspan-degree band from the first; anchor aend
   //                  sits on its far end
-  //   hexad          a 60-degree slot no other anchor holds, so the six hues
-  //                  sit 60 degrees apart
   //   monochromatic  the first hue exactly
-  //   otherwise      a ramp's far end (odd j) within rspan degrees of its
-  //                  near end, so only complementary passes through gray
+  //   otherwise      the open draw; a ramp's far end (odd j) is re-drawn the
+  //                  same way until it sits within rspan degrees of its near
+  //                  end, so only complementary passes through gray
   let hs;
   if (vtype === 'complementary' && j > 0) {
     let off = R.random_int(0, 1) * 180;
@@ -289,69 +373,83 @@ function gcol(j, pinned) {
     hs = (c[0].hue + aspan * adir + 360) % 360;
   } else if (vtype === 'analogous' && j > 0) {
     hs = (c[0].hue + R.random_int(0, aspan) * adir + 360) % 360;
-  } else if (vtype === 'hexad' && j > 0) {
-    let open = [];
-    for (let f = 1; f < 6; f++) {
-      let taken = false;
-      for (let k = 1; k < c.length; k++) {
-        if (k !== j && c[k].hue === (c[0].hue + f * 60) % 360) {
-          taken = true;
-        }
-      }
-      if (!taken) {
-        open.push(f * 60);
-      }
-    }
-    hs = (c[0].hue + R.random_choice(open)) % 360;
   } else if (vtype === 'monochromatic' && j > 0) {
     hs = c[0].hue;
-  } else if (j % 2 === 1) {
-    hs = (c[j - 1].hue + R.random_int(-rspan, rspan) + 360) % 360;
-  } else if (R.random_bool(hbias)) {
-    hs = R.random_int(hband[0], hband[1] - 1) % 360;
   } else {
     hs = R.random_int(0, 359);
-  }
-  // The two inks either side of the hue; mix is how far it sits from ink to
-  // ink2 (0 all ink, 1 all ink2). Tint is the paper share, how much white.
-  let i = inks.length - 1;
-  let lo = inkh[i];
-  let hi = inkh[0] + 360;
-  for (let j = 0; j < inks.length - 1; j++) {
-    if (hs >= inkh[j] && hs < inkh[j + 1]) {
-      i = j;
-      lo = inkh[j];
-      hi = inkh[j + 1];
+    while (j % 2 === 1 && min(abs(hs - c[j - 1].hue), 360 - abs(hs - c[j - 1].hue)) > rspan) {
+      hs = R.random_int(0, 359);
     }
   }
-  // A hue below Red sits in the Rose -> Red wrap segment, which ends at
-  // Red + 360.
-  let wrap = hs;
-  if (wrap < inkh[0]) {
-    wrap = wrap + 360;
+  // The two inks either side of the Lab hue, and mix, how far from ink to
+  // ink2 (0 all ink, 1 all ink2): the blend runs in a straight line in Lab, so
+  // mix is where the hue's ray from gray crosses that line, solved exactly.
+  let i = 0;
+  for (let f = 0; f < inks.length; f++) {
+    if ((hs - inka[f] + 360) % 360 < (inka[(f + 1) % inks.length] - inka[f] + 360) % 360) {
+      i = f;
+    }
   }
   let k = (i + 1) % inks.length;
-  let mix = (wrap - lo) / (hi - lo);
-  // White or black: tint is the white (paper) share, shade the black share,
-  // and one of them is always 0.
-  let amount = R.random_num(amin, amax);
+  let ua = cos(radians(hs));
+  let ub = sin(radians(hs));
+  let mix = (inkl[i][2] * ua - inkl[i][1] * ub) /
+    ((inkl[k][1] - inkl[i][1]) * ub - (inkl[k][2] - inkl[i][2]) * ua);
+  // Tint, shade or full color: tint is the white (paper) share, shade the
+  // black share, and at most one of them is above 0.
+  let pick = R.random_dec();
+  let kind = pick < ptint ? 'tint' : (pick < ptint + pshade ? 'shade' : 'full');
   let tint = 0;
-  let shade = amount;
-  let edge = color(0, 0, 0);
-  if (R.random_bool(pwhite)) {
-    tint = amount;
-    shade = 0;
-    edge = color(255, 255, 255);
+  let shade = 0;
+  let col = betterLerp(inks[i], inks[k], mix);
+  if (kind === 'tint') {
+    tint = R.random_num(tmin, tmax);
+    col = betterLerp(col, color(255, 255, 255), tint);
   }
-  let col = betterLerp(betterLerp(inks[i], inks[k], mix), edge, amount);
+  if (kind === 'shade') {
+    shade = R.random_num(smin, smax);
+    col = betterLerp(col, color(0, 0, 0), shade);
+  }
   // Achromatic: no ink, just a gray of black (shade) over paper (tint). A full
   // single hatch of the black pen reads #333 on paper, so that is the dark end.
   if (vtype === 'achromatic') {
-    tint = 1 - amount;
-    shade = amount;
-    col = betterLerp(color(255, 255, 255), color(51, 51, 51), amount);
+    tint = 1 - shade;
+    col = betterLerp(color(255, 255, 255), color(51, 51, 51), shade);
   }
-  return { col: col, light: rgbToLab(col)[0], hue: hs, ink: i, ink2: k, mix: mix, tint: tint, shade: shade };
+  return { col: col, light: rgbToLab(col)[0], hue: hs, ink: i, ink2: k, mix: mix, tint: tint, shade: shade, kind: kind };
+}
+
+// A token with no variant is plain when it would read as a variant: all six
+// anchors one kind (only when the knobs allow more than one), or every hue
+// inside an arc of amax degrees, the widest analogous band. The arc is 360
+// less the widest gap between neighboring hues around the wheel.
+function plain() {
+  let kinds = 0;
+  if (ptint > 0) {
+    kinds++;
+  }
+  if (pshade > 0) {
+    kinds++;
+  }
+  if (ptint + pshade < 1) {
+    kinds++;
+  }
+  let same = true;
+  let hues = [];
+  for (let j = 0; j < 6; j++) {
+    if (c[j].kind !== c[0].kind) {
+      same = false;
+    }
+    hues[j] = c[j].hue;
+  }
+  hues.sort(function (a, b) {
+    return a - b;
+  });
+  let gap = hues[0] + 360 - hues[5];
+  for (let j = 1; j < 6; j++) {
+    gap = max(gap, hues[j] - hues[j - 1]);
+  }
+  return (kinds > 1 && same) || 360 - gap <= amax;
 }
 
 // rgbToLab and labToRgb: thank you easyrgb.com
@@ -789,7 +887,7 @@ function order(bars) {
   return totals;
 }
 
-// "s" saves the view showing, Intervals-<hash>.png, so a saved output leads
+// "s" saves the view showing, <hash>.png, so a saved output leads
 // back to its token. One ink per key press: "1" is ink1 Red ... "8" is ink8
 // Rose, "9" ink9 Black, as Intervals-<hash>-Ink<n>.svg. A key press is a user
 // gesture, so no browser throttles it; a burst of downloads gets dropped,
@@ -802,8 +900,18 @@ function keyPressed(e) {
   let shot = key === 's' && free;
   let view = key === 'p' && free;
   let pen = /^[1-9]$/.test(key) && free;
-  if (shot) {
-    saveCanvas('Intervals-' + tokenData.hash, 'png');
+  // s saves the view showing: the digital image as the canvas is, in the
+  // window's aspect; the plot preview as the sheet alone, at 17 x 14 in and
+  // 200 pixels per inch.
+  if (shot && !plot) {
+    saveCanvas(tokenData.hash, 'png');
+  }
+  if (shot && plot) {
+    let pg = createGraphics(3400, 2800);
+    pg.pixelDensity(1);
+    sheet(pg, pg.width / 431.8);
+    saveCanvas(pg, tokenData.hash, 'png');
+    pg.remove();
   }
   if (view) {
     plot = !plot;

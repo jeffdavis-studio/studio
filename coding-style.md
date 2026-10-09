@@ -58,9 +58,10 @@ Order top to bottom:
 - Expose deterministic token traits via `window.$features = { ... }`
   at the end of `setup()`. Values must derive from the seeded `R`
   PRNG so the same hash always produces the same features.
-- Strip the project-id prefix when naming export files:
-  `Number(tokenData.tokenId) % 1000000` gives the per-project output
-  number; number-to-string conversion drops leading zeros naturally.
+- Name export files by the full hash, e.g. `0x<hash>.png` for the image and
+  `Intervals-0x<hash>-Ink<n>.svg` for plot files, so a saved file leads back to its token
+  (from Intervals v9, 2026-10-08). Older projects, such as Mechanical
+  Drawings, name them by `Number(tokenData.tokenId) % 1000000`.
 
 ## Declarations
 

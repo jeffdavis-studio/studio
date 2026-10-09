@@ -8,14 +8,16 @@ Dates are 2026.
 
 | File | What it is |
 |---|---|
-| `Intervals_v8.js` | The artwork. Deploys as is: Art Blocks defines `tokenData`, and the script reads no URL. |
-| `Intervals_v8.html` | Dev page. `?hash=`, `?id=`, `?variant=`, `?aspect=14:11`. |
-| `dev-token.js` | Dev only. Stands in for Art Blocks: defines `tokenData`; `?variant=` searches for a token that draws it; `?aspect=` fits the window the artwork sees. The artwork has no code for either. |
-| `plot-bench-v8.html` | Dev bench. Previews exactly what `buildSVG()` writes, beside the artwork; changes only the token (hash, variant, steps, tint). |
-| `intervals-v8-check.mjs` | Browser check: constants, files, keys, determinism, variants, bench, deploy and style rules. |
+| `Intervals_v9.js` | The artwork. Deploys as is: Art Blocks defines `tokenData`, and the script reads no URL. |
+| `Intervals_v9.html` | Dev page. `?hash=`, `?id=`, `?layout=`, `?aspect=14:11`. |
+| `dev-token-v9.js` | Dev only, v9's own. Stands in for Art Blocks: defines `tokenData`; `?layout=` searches for a token that draws it; `?aspect=` fits the window the artwork sees. No `?variant=`: the bench picker and the check find variants with `devFind()`. |
+| `plot-bench-v9.html` | Dev bench. Previews exactly what `buildSVG()` writes, beside the artwork; changes only the token (hash, variant, layout, steps). |
+| `intervals-v9-check.mjs` | Browser check: constants, files, keys, determinism, variants, layouts, plot view, deploy and style rules. Verifies v9 against itself. |
+| `Intervals_v8.*`, `dev-token.js` | v8, frozen as the 09-25 to 10-07 plot record, with its own dev token, bench and check. |
 | `plot-frame.mjs` | Canonical document size; the check asserts `docw` / `doch` agree with it. |
 
-v1–v7 and their benches and checks are kept as they were.
+v1–v8 and their benches and checks are kept as they were. Hash output is
+not held stable across versions or edits until code lock.
 
 ## v8 (09-22): v7 restyled to `studio/coding-style.md`
 
@@ -76,17 +78,16 @@ every record before 09-22 use the old ids.
 - No zip and no File System Access API: the piece must work in every browser
   with no dependency beyond p5.
 - v9 (10-08, Heft call): files are named by the full hash,
-  `Intervals-0x<hash>.png` and `Intervals-0x<hash>-Ink<n>.svg`, so a saved
+  `0x<hash>.png` (10-09: the hash alone) and `Intervals-0x<hash>-Ink<n>.svg`, so a saved
   output leads back to its token while the first mints are curated with Adam.
 - `p` (v9, 10-08) flips the canvas between the digital blends and the plot
-  view: every used pen file's lines, read back out of `buildSVG(k)`, turned
-  upright onto the canvas over white, in ink order, each line multiplied over
-  what is under it (ink over ink darkens, as on paper; the virtual plotter's
-  model, where the bench overpaints). The export reads no `R`, so the token
-  draws the same; `p` again redraws the digital image byte for byte, and `s`
-  saves whichever view shows. On a 1x screen the 0.45 mm pitch is about one
-  pixel, so the hatches moire; a 2x screen or `?aspect=14:11` on a big window
-  reads better.
+  view: the 14 x 17 in sheet lying landscape, turned to read like the digital
+  view, at one scale fitted to the canvas with gray around it. Every used pen
+  file's lines, read back out of `buildSVG(k)`, are placed as on the plotted
+  sheet (the document, the working area, centered on it) and the whole sheet
+  turned a quarter turn counterclockwise, so the image is upright with 1.5 in
+  margins all round. Ink order, each line multiplied over what is under it
+  (ink over ink darkens, as on paper). `s` in this view saves the sheet alone.
 
 ## Composition and document (09-21)
 
@@ -227,26 +228,81 @@ tuning on Adam's read of the outputs, with every number that tuning
 introduced at the top of `Intervals_v9.js` next to `lmin` and `aspan` so
 Jeff can tune by hand before the 10-09 code lock:
 
-- `hband = [170, 420]`, `hbias = 0.75`: the open hue draw takes a hue from
-  hband (cyan through blues, violets and reds to yellow; 420 wraps to 60)
-  hbias of the time, otherwise any hue, so yellow-green through green draws
-  about a quarter of its natural share. v8 was 180-420 half the time.
-- `rspan = 120`: on the open draw a ramp's far end sits within rspan degrees
-  of its near end, so only complementary passes through gray.
-- `pwhite0 = 0.67`: each anchor adds white rather than black with this
-  chance (v8: 0.5); tinted, shaded-free v9 and achromatic still override it.
-- `variants`: hexad and shaded dropped; analogous 0.20, saturated 0.15,
-  tinted 0.10, complementary 0.10, monochromatic 0.10, achromatic 0.05, none
-  0.30.
-- `plot = false`: the view flag `p` flips (above, under Export).
+Jeff's v9 spec, 10-08, after time with the outputs:
+
+- Hue (10-09): the CIELAB hue angle in whole degrees, drawn uniformly
+  (`R.random_int(0, 359)`). Weighting was tried and dropped the same day:
+  10-08's 50/50 split between two bands (0-60, 180-240) and any hue, then an
+  `hweights` table (330-50 3x, 51-169 1x, 170-260 3x, 261-329 2x) drawn by
+  ohue(); both removed with their code for the full distribution.
+- `rspan = 120`: on the open draw a ramp's far end is drawn the same way and
+  re-drawn until it sits within rspan degrees of its near end, so only
+  complementary passes through gray. (At first the far end was drawn as an
+  offset of up to rspan from the near end, which let the excluded hues back
+  in at the far end.)
+- `ptint0 = 0.33`, `pshade0 = 0.33` (10-09): each anchor is a tint (white
+  added, wfloor to wdepth), a shade (black added, kfloor to kdepth) or full color (the
+  pure ink blend), a third each; full color takes whatever ptint0 and pshade0
+  leave. Before 10-09 each anchor flipped a white-or-black coin and full color
+  only came from a near-zero amount. Tinted is always a full-depth tint,
+  saturated always full color, achromatic always its 0.10-0.90 black share.
+  A token with no variant never has all six anchors the same kind: if the
+  six come out all tints, all shades or all full color, a seventh pass
+  re-draws one ramp's far end to another kind (skipped when the knobs allow
+  only one kind). From 10-09 the same pass also fires when its six hues
+  fall inside an arc of `amax` degrees (it would read as analogous): the far
+  end is re-drawn until the arc is wider than amax and the kinds are mixed
+  (`plain()`).
+- `wfloor = 0.05`, `wdepth`, `kfloor = 0.05`, `kdepth`: a tint adds from
+  wfloor to wdepth white, a shade from kfloor to kdepth black. The floors
+  (10-09) keep a tint or shade from passing for full color.
+- Ladder (10-09): 4 steps dropped; 5 6 8 10 12 16 20 24 weighted
+  1 2 2 2 2 2 2 1.
+- Layout by step count: steps too narrow for any varied ratio over the band
+  floor are even, and (10-08) 5 and 6 steps, which read too plain as even
+  bars, are always varied.
+- `variants`: hexad and shaded dropped (their code removed); analogous 0.10,
+  tinted 0.08, saturated 0.06, monochromatic 0.05 (dropped 10-08, back 10-09),
+  complementary 0.04, achromatic 0.02, none 0.65. Monochromatic hung on
+  orange and yellow hues only while the no-black rule was in: three anchors
+  of one hue, white only, could not keep lmin apart.
+- A no-black rule for oranges and yellows was tried and backed out the same
+  day.
+- Neighbors (10-09): lmin only spaced the anchors, so where two ramps
+  crossed in lightness the bars beside each other could nearly match (about
+  1 in 20 tokens had a side-by-side pair under 5 dE). Now every pair of bars
+  drawn side by side, including ramp 3's bar beside the next step's ramp 1,
+  must differ by lmin in Lab (dE76); if any falls short, all six anchors are
+  re-drawn (re-drawing one far end can be stuck, e.g. gray ramps).
+- Lightness gap (10-09): `lmin0 = 7.5` for every token, `ltinted = 4` for
+  tinted, set per token in step 2 as `lmin`. The anchor loop re-draws one
+  anchor until it clears its side, which can strand it: tinted at lmin 7 hung
+  on about 1 in 100 tokens (its lightness is fixed by hue, about L 58-91, and
+  two far ends could block every hue in the last one's window). Computed over
+  every hue and window: tinted is safe to 4.9, saturated to 8.2, and any
+  anchor held to one hue (monochromatic, analogous's band edge,
+  complementary's pinned opposite) to between 7.5 and 8. None, normal
+  complementary and achromatic are safe at 8.
+- Analogous band (10-09): `aspan` is drawn per token from `amin = 45` to
+  `amax = 75` degrees instead of one fixed width; the spread is still exactly
+  aspan.
+- `plot = false`: the view flag `p` flips. The plot view is the 14 x 17 in
+  sheet lying landscape, turned to read like the digital view: image upright,
+  1.5 in margins, at one scale fitted to the canvas with gray around it. `s`
+  saves the view showing as `0x<hash>.png`: the digital image as
+  the canvas is, in the window's aspect; the plot view as the sheet alone,
+  3400 x 2800 (17 x 14 in at 200 per inch).
 
 Adam's read behind the four decisions: he prefers prismatic color and
 adjacent hues; dislikes pale yellows and greens, mustards and browns, gray
 passages between hues, and scattered hues; purple-green and mustard-blue
-rolled too often. The knob move changes no output: the check holds v9's
-digital view pixel-identical to v8 at the tuning commit (0c07281) on the
-three fixed hashes.
+rolled too often.
 
 `intervals-v9-check.mjs` adds section 8: `s` names the PNG by the full hash,
-the same hash saves byte-identical PNGs on two loads, `p` leaves the token's
-state alone and a round trip is pixel-identical, and the v8 comparison.
+the same hash saves byte-identical PNGs on two loads, the digital save is the
+canvas and the plot save the 3400 x 2800 sheet, `p` leaves the token's state alone and a round trip is
+pixel-identical, and the plot view is the landscape sheet (gray around it,
+paper in the margin, ink in the image). It also asserts
+each ramp's far end within `rspan` of its near end. It verifies v9 against
+itself; an early comparison against v8's render was removed, since hash
+output is free to change until code lock.

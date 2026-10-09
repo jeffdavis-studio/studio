@@ -14,7 +14,7 @@
     // The artwork pane shows the plot composition's aspect, 14 x 11.
     window.aspect = [14, 11];
   </script>
-  <script src="dev-token.js"></script>
+  <script src="dev-token-v9.js"></script>
   <script src="Intervals_v9.js"></script>
   <style>
     body { font-family: aktiv-grotesk, -apple-system, sans-serif; margin: 0; padding: 24px; color: #333; background: #fff; }
@@ -295,7 +295,7 @@
     }
     document.getElementById('token-readout').textContent =
       'variant   ' + vtype + '   layout ' + ltype + ' ' + bw.map(function (x) { return round(x * 100) + '%'; }).join(' ') + '\n' +
-      'color     amount ' + amin + '-' + amax + ', ' + round(pwhite * 100) + '% white\n' +
+      'color     tint ' + round(ptint * 100) + '% (' + tmin + '-' + tmax + '), shade ' + round(pshade * 100) + '% (' + smin + '-' + smax + '), full ' + round((1 - ptint - pshade) * 100) + '%\n' +
       'steps     ' + s + '   bars ' + 3 * s + snote + '\n' +
       'bar axis  o ' + o + ', ' + axis + '\n' +
       'files     ' + files.length + '   layers ' + built.length + '   segments ' + count.toLocaleString() + '\n' +

@@ -9,11 +9,11 @@
             loads, so Intervals_v9.js runs here exactly as it will on chain.
 
             ?hash=0x<64 hex>   pin the token (otherwise random)
-            ?id=<n>            token id for file names (otherwise random)
-            ?variant=<name>    a random token that draws saturated, tinted or complementary
+            ?id=<n>            token id (otherwise random)
+            ?layout=<name>     a random token that draws that layout
             ?aspect=W:H        fit the canvas to an aspect; 14:11 is the plot
 
-            s saves the view showing as Intervals-<hash>.png. Keys 1-9 download that ink's plot file
+            s saves the view showing as <hash>.png. Keys 1-9 download that ink's plot file
             as Intervals-<hash>-Ink<n>.svg (1 Red ... 8 Rose, 9 Black). p flips between the
             digital image and the plot view.
         -->
@@ -37,7 +37,7 @@
             }
         </style>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
-        <script src="dev-token.js"></script>
+        <script src="dev-token-v9.js"></script>
         <script src="Intervals_v9.js"></script>
     </head>
     <body>
