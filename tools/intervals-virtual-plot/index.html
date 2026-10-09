@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Intervals v8 — virtual plotter</title>
+<title>Intervals v9 — virtual plotter</title>
 <style>
   :root { --paper: #f7f5ef; --ink: #1d1d1b; --mute: #6b6a66; --line: #d9d6cc; }
   * { box-sizing: border-box; }
@@ -75,7 +75,7 @@
 </head>
 <body>
 <header>
-  <h1>Intervals v8 — virtual plotter</h1>
+  <h1>Intervals v9 — virtual plotter</h1>
   <div class="sub">The export's own lines, drawn the way the pen lays them: 0.45 mm nib, round caps, inks multiplied over paper #f7f5ef. Render a bar, compare two methods, read the evenness numbers. Nothing here changes the artwork.</div>
 </header>
 
@@ -118,7 +118,7 @@
 
 <details>
   <summary><b>The methods, the quantization rule, and what this can't show</b></summary>
-  <p><b>0. program default.</b> What the main program, <code>intervals/Intervals_v8.js</code>, plots: current with its black cubic a (and its achromatic a), mix ease b and black angle, read from that file's plot settings when this page loads (Jeff's 9/29 values: a = 1.2, a = 0 on achromatic tokens, b = 0.1, black 45). Change them in the program and this preset follows. The side's boxes show it as cubic + mix ease; moving a slider leaves the preset. URL: <code>?a=p</code>.</p>
+  <p><b>0. program default.</b> What the main program, <code>intervals/Intervals_v9.js</code>, plots: current with its black cubic a (and its achromatic a), mix ease b and black angle, read from that file's plot settings when this page loads (Jeff's 9/29 values: a = 1.2, a = 0 on achromatic tokens, b = 0.1, black 45). Change them in the program and this preset follows. The side's boxes show it as cubic + mix ease; moving a slider leaves the preset. URL: <code>?a=p</code>.</p>
   <ol>
     <li><b>current, black 45.</b> The pushed export: each anchor's two inks on their own grids at 22.5 / 67.5 (start anchor) and 112.5 / 157.5 (end anchor), densities solved so the bar lands on its tone; black on its own grid, turned to 45.</li>
     <li><b>current + black curve 1.85.</b> Same, with black's line count thinned to a footprint of 1 − exp(−1.85 × share), because 0.45 mm black lines cover about 1.85× their share. Only black changes.</li>
@@ -141,7 +141,7 @@
 
 <script>let tokenData = { hash: '0x8e98544e589386e90f68a7e9d95fe7bba8ea580bfa3a9cd5ec1822d0d40a7ef1', tokenId: '4' };</script>
 <script src="p5.min.js"></script>
-<script src="Intervals_v8_virtual.js"></script>
+<script src="Intervals_v9_virtual.js"></script>
 <script src="vplot.js"></script>
 <script>
 (function () {
@@ -170,12 +170,12 @@
   const fill = { A: { on: false, scope: 'artwork', achro: true }, B: { on: false, scope: 'artwork', achro: true } };
   const isFill = S => $('m' + S).value === 'f';
   const isCur = S => $('m' + S).value in PRESETS || $('m' + S).value in MIXP || $('m' + S).value === 'p' || isFill(S);
-  // Program default (2026-09-29): the constants Intervals_v8.js plots with, read from it at load.
+  // Program default (2026-09-29): the constants Intervals_v9.js plots with, read from it at load.
   const P = () => VP.PROGRAM;
   const isProg = S => P().ok && side[S].curve === 'cubic' && Math.abs(side[S].a - P().a) < 1e-9 && Math.abs(side[S].b - P().b) < 1e-9;
   // The a black is plotted with: the program's achromatic a on an achromatic token at program default.
   const effA = S => isProg(S) && T && T.vtype === 'achromatic' ? P().aAchro : side[S].a;
-  const progLabel = () => P().ok ? `program default (cubic a=${P().a}, a=${P().aAchro} on achromatic, mix ease ${P().b}, black ${P().angle})` : "program default (couldn't read Intervals_v8.js)";
+  const progLabel = () => P().ok ? `program default (cubic a=${P().a}, a=${P().aAchro} on achromatic, mix ease ${P().b}, black ${P().angle})` : "program default (couldn't read Intervals_v9.js)";
   const isDig = S => $('m' + S).value === 'd';
   const active = () => ['A', 'B'].filter(S => $('m' + S).value !== '0');
   // Flip: a plot side shown as the digital render in the same place.
@@ -190,7 +190,7 @@
   function methodName(S) {
     if (isDig(S)) return DIGNAME;
     if (isFill(S)) { const c = side[S]; return '7. slot fill, by ' + fill[S].scope + (fill[S].achro ? '' : ', achromatic black on 45') + ' — on ' + (isProg(S) ? 'program default' : c.curve === 'none' ? 'current, black 45' : c.curve === 'exp' ? 'curve 1.85' : VP.curveLabel('cubic', c.a, c.b)); }
-    if (isCur(S) && isProg(S)) return '0. ' + progLabel() + ', what Intervals_v8.js plots';
+    if (isCur(S) && isProg(S)) return '0. ' + progLabel() + ', what Intervals_v9.js plots';
     if (isCur(S)) { const c = side[S]; return (c.curve === 'none' ? '1. current, black 45' : c.curve === 'exp' ? '2. current + curve 1.85' : 'current + ' + VP.curveLabel('cubic', c.a)) + (c.b > 0 ? ' + mix ease ' + c.b.toFixed(2) : ''); }
     const m = VP.METHODS.find(x => x.id === +$('m' + S).value); return m.id + '. ' + m.name + (m.id === 6 ? ' (bias ' + (+$('bias').value).toFixed(2) + ')' : '');
   }
@@ -688,7 +688,7 @@
   // p5 runs setup() on load; start once the artwork has a token.
   async function ready() {
     if (typeof s !== 'number') { setTimeout(ready, 30); return; }
-    await VP.loadProgram('../../intervals/Intervals_v8.js');
+    await VP.loadProgram('../../intervals/Intervals_v9.js');
     window.keyPressed = undefined;
     window.print = () => {};
     wire();

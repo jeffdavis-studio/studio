@@ -1,5 +1,5 @@
-// Virtual plotter for Intervals v8 (Morgan, 2026-09-28). Runs in a page that has
-// loaded p5 and Intervals_v8_virtual.js (setup() already run). Builds each pen's
+// Virtual plotter for Intervals v9 (Morgan, 2026-09-28). Runs in a page that has
+// loaded p5 and Intervals_v9_virtual.js (setup() already run). Builds each pen's
 // lines with the export's own builders, in composition mm, and rasterizes them
 // the way the pen lays them: 0.45 mm nib, round caps, one path per pen (a pen
 // never darkens itself), pens multiplied over paper.
@@ -35,7 +35,7 @@
   const curveOpts = (curve, a, b) => Object.assign({ mode: 'current', blackAngle: 45 }, CURVES[curve].opts(a), b > 0 ? { mixEase: b } : {});
   const curveLabel = (curve, a, b) => (curve === 'none' ? 'current, black 45' : curve === 'exp' ? 'curve 1.85' : 'cubic a=' + String(+(+a).toFixed(2))) + (b > 0 ? ' + mix ease ' + String(+(+b).toFixed(2)) : '');
 
-  // The main program's plot constants (2026-09-29), read from intervals/Intervals_v8.js
+  // The main program's plot constants (2026-09-29), read from intervals/Intervals_v9.js
   // itself (buildSVG's blackCubic, blackCubicAchromatic, mixEase and black's slot angle), so the
   // program-default preset draws what the program plots and the two cannot drift.
   const PROGRAM = { ok: false, a: null, aAchro: null, b: null, angle: null };
