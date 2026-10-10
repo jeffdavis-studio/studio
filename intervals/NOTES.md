@@ -8,7 +8,9 @@ Dates are 2026.
 
 | File | What it is |
 |---|---|
-| `Intervals_v9.js` | The artwork. Deploys as is: Art Blocks defines `tokenData`, and the script reads no URL. |
+| `Intervals_v10.js` | The artwork, proposed on branch `intervals-v10` (10-10): lightness bands replace the re-roll loops, cleanup pass. Deploys as is: Art Blocks defines `tokenData`, and the script reads no URL. |
+| `Intervals_v10.html`, `dev-token-v10.js` | v10's dev page and dev token, cloned from v9's. |
+| `Intervals_v9.js` | v9, the 10-09 code-lock candidate. Dev page `Intervals_v9.html`, `?hash=`, `?id=`, `?layout=`, `?aspect=14:11`. |
 | `Intervals_v9.html` | Dev page. `?hash=`, `?id=`, `?layout=`, `?aspect=14:11`. |
 | `dev-token-v9.js` | Dev only, v9's own. Stands in for Art Blocks: defines `tokenData`; `?layout=` searches for a token that draws it; `?aspect=` fits the window the artwork sees. No `?variant=`: the bench picker and the check find variants with `devFind()`. |
 | `plot-bench-v9.html` | Dev bench. Previews exactly what `buildSVG()` writes, beside the artwork; changes only the token (hash, variant, layout, steps). |
@@ -306,3 +308,43 @@ paper in the margin, ink in the image). It also asserts
 each ramp's far end within `rspan` of its near end. It verifies v9 against
 itself; an early comparison against v8's render was removed, since hash
 output is free to change until code lock.
+
+## v10 (10-10): lightness bands replace the re-roll loops, cleanup pass
+
+Branch `intervals-v10`, proposed, not merged. Jeff's decisions by voice
+10-10, after the 10-09 and 10-10 studies of the re-roll loops (`files/
+intervals-reroll-measure-2026-10-09`, `intervals-loop4-blame-2026-10-10` in
+the Morgan workspace): lightness contrast is constructed, not checked.
+
+- `lgap0 = 8`, `ltinted = 4` replace `lmin0` / `ltinted`. On each side (the
+  three starts, the three far ends) the anchors take three equal CIELAB
+  lightness bands lgap apart, inside the lightness the token's hues can reach
+  (its darkest hue at full shade, or at the tint floor when it lays no black,
+  to its lightest hue at full tint; achromatic from smax to smin black over
+  paper). Each anchor's lightness is drawn uniformly inside its band.
+- Band order is a shuffle of 0 1 2 per side, so ramps cross in lightness
+  where the two sides' orders differ. Monochromatic and achromatic keep the
+  starts' order on the far ends, and never cross.
+- `gcol()` draws the hue and mixes the ink blend; `tone()` moves the blend to
+  its band by tint (above the blend's lightness) or shade (below), the white
+  or black share that lands on it, held to the floor and cap, so a hue that
+  cannot reach its band takes the nearest lightness it can. No re-roll for
+  lightness anywhere. `ptint0` / `pshade0` and the kind draw are gone; kind
+  follows from lightness. Saturated adds neither (every anchor full color,
+  every band out of reach); tinted lays no black and every anchor is a tint
+  of wdepth to 1 - wdepth.
+- Removed: the lightness terms of the anchor while (loop 1), the neighbor
+  dE76 scan (loop 4). Kept: the complementary seventh pass, the plain()
+  seventh pass (hue arc only; its "all one kind" clause could no longer
+  always be satisfied, since a re-drawn far end's kind follows its band),
+  rspan, aspan, widths, drawing, emitter, keys.
+- Measured on the 10/09 study's 2000 hashes (`files/intervals-v10-bands-
+  2026-10-10/RESULT.md`): 0 restarts, 6 gcol() calls per token, mono and
+  achromatic 0 crossings; the hue-first fallback clips 52% of anchors and
+  leaves two same-side anchors within 2 L on 20% of tokens (an ink-order band
+  assignment, measured in the rig only, brings that to 7%).
+- Cleanup pass (second commit, output byte-identical on the 2000 anchors and
+  24 PNGs): debug prints out, blackApplied() inlined, the two m bisections in
+  buildBars() written once, $features extended (Steps, Kinds, Crossings), the
+  first-outputs table `firsts` (empty until the hash selection), the
+  commented-out local hash generator at the top.

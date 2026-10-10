@@ -1,4 +1,15 @@
+// Local testing without the dev page: a random token. Art Blocks defines
+// tokenData before this script runs, so this stays commented out.
+// let tokenData = { hash: '0x', tokenId: '0' };
+// for (let i = 0; i < 64; i++) {
+//   tokenData.hash += '0123456789abcdef'[Math.floor(Math.random() * 16)];
+// }
+
 let R, w, h, o, s, vtype, ltype, tmin, tmax, smin, smax, lgap, aspan, adir, aend, bx, bw, c, inks, inkl, inka, lk;
+// First outputs: the hashes chosen with Adam for the first tokens of the
+// series, by token index, so a token at index i draws firsts[i] in place of
+// tokenData.hash. Filled in after the hash selection.
+let firsts = [];
 // Lightness is constructed, not checked (10-10). On each side (the three
 // starts, the three far ends) the anchors take three equal bands of CIELAB
 // lightness, lgap0 apart, inside the lightness the token's hues can reach,
@@ -64,6 +75,9 @@ let pens = [
 ];
 
 function setup() {
+  if (Number(tokenData.tokenId) % 1000000 < firsts.length) {
+    tokenData.hash = firsts[Number(tokenData.tokenId) % 1000000];
+  }
   R = new Random(tokenData.hash);
   w = windowWidth;
   h = windowHeight;
@@ -134,9 +148,6 @@ function setup() {
       }
     }
   }
-  print('variant: ' + vtype);
-  print('layout: ' + ltype);
-  print('bars: ' + 3 * s);
 
   // 2. Variant settings: every number a variant changes is decided here.
   // A tint adds from tmin to tmax white, a shade from smin to smax black (see
@@ -188,7 +199,6 @@ function setup() {
       widths[j] = R.random_int(ranges[j][0], ranges[j][1]);
     }
   }
-  print('widths: ' + widths.join(':'));
   let wsum = widths[0] + widths[1] + widths[2];
   bx = [0, widths[0] / wsum, (widths[0] + widths[1]) / wsum];
   bw = [widths[0] / wsum, widths[1] / wsum, widths[2] / wsum];
@@ -261,26 +271,34 @@ function setup() {
       tone(jr, lt[jr]);
     }
   }
-  // Analogous: each anchor's hue offset from the first (0 to aspan, or 0 to
-  // -aspan), and the delta, the widest spread between any two: always aspan.
-  if (vtype === 'analogous') {
-    let offs = [];
+  // 6. Features, every one from the seeded draws above. Kinds lists the
+  // anchor kinds the token uses, in tint, shade, full order; Crossings is how
+  // many ramp pairs swap lightness order between start and far end.
+  let kinds = [];
+  let names = ['tint', 'shade', 'full'];
+  for (let k = 0; k < 3; k++) {
     for (let j = 0; j < 6; j++) {
-      offs[j] = ((c[j].hue - c[0].hue + 540) % 360) - 180;
+      if (c[j].kind === names[k] && kinds.indexOf(names[k]) < 0) {
+        kinds.push(names[k]);
+      }
     }
-    print('hue delta: ' + (max(offs) - min(offs)) + ' (offsets ' + offs.join(' ') + ')');
   }
-  // Lightness differences between the ramps, starts then ends: 1-2, 2-3, 1-3.
-  print('L starts: ' + nf(abs(c[0].light - c[2].light), 1, 1) + ' ' + nf(abs(c[2].light - c[4].light), 1, 1) +
-    ' ' + nf(abs(c[0].light - c[4].light), 1, 1));
-  print('L ends: ' + nf(abs(c[1].light - c[3].light), 1, 1) + ' ' + nf(abs(c[3].light - c[5].light), 1, 1) +
-    ' ' + nf(abs(c[1].light - c[5].light), 1, 1));
-  // 6. Features.
+  let crossings = 0;
+  for (let f = 0; f < 3; f++) {
+    for (let g = f + 1; g < 3; g++) {
+      if ((c[2 * f].light - c[2 * g].light) * (c[2 * f + 1].light - c[2 * g + 1].light) < 0) {
+        crossings++;
+      }
+    }
+  }
   window.$features = {
     Variant: vtype,
     Layout: ltype,
     Orientation: o === 0 ? 'Vertical' : 'Horizontal',
-    Bars: 3 * s
+    Steps: s,
+    Bars: 3 * s,
+    Kinds: kinds.join(', '),
+    Crossings: crossings
   };
 }
 
@@ -567,15 +585,6 @@ function betterLerp(col1, col2, t) {
 // anchor, and black (ink9, pens[8]) lerped between the anchors' shades. Each
 // of ink's active slots becomes a hatch at that slot's angle. p is the plot
 // settings, from buildSVG().
-// Black's applied weight for shade share w, the cubic w - a w^2 (1 - w) with
-// a = p.blackCubic (p.blackCubicAchromatic on achromatic tokens): 0 at 0, 1 at
-// 1, lighter between. Only black's line count reads it; m and the colors are
-// untouched.
-function blackApplied(w, p) {
-  let a = vtype === 'achromatic' ? p.blackCubicAchromatic : p.blackCubic;
-  return w - a * w * w * (1 - w);
-}
-
 // Mix index X of a bar, 0..1: the share of the bar's footprint that is two
 // different color inks crossing. Color slot f (0-3) lays a grid of coverage
 // c_f = min(1, w_f m); two grids of different inks cross on c_f c_g of the
@@ -652,29 +661,19 @@ function buildBars(ink, p) {
           sum += weights[f];
         }
       }
-      let mlo = 0;
-      let mhi = 64;
-      for (let k = 0; k < 50; k++) {
-        let mid = (mlo + mhi) / 2;
-        let clear = 1;
-        for (let f = 0; f < raw.length; f++) {
-          clear *= 1 - min(1, raw[f] * mid);
-        }
-        if (1 - clear < sum * p.target) {
-          mlo = mid;
-        } else {
-          mhi = mid;
-        }
-      }
-      let m = (mlo + mhi) / 2;
       // Mix ease: the bar's coverage target becomes target * (1 - mixEase * X),
-      // X its mix index, and m is solved again on it. Pure-ink and achromatic
-      // bars have X = 0 and keep the full target.
-      let X = mixIndex(weights, owner, m, sum * p.target, p);
-      if (p.mixEase > 0 && X > 0) {
-        let tgt = p.target * (1 - p.mixEase * X);
-        mlo = 0;
-        mhi = 64;
+      // X its mix index, and m is solved again on it, so the bisection runs
+      // once on the full target and once more on the eased one. Pure-ink and
+      // achromatic bars have X = 0 and keep the full target.
+      let m = 0;
+      let tgt = p.target;
+      for (let pass = 0; pass < 2; pass++) {
+        if (pass === 1) {
+          let X = mixIndex(weights, owner, m, sum * p.target, p);
+          tgt = p.target * (1 - p.mixEase * X);
+        }
+        let mlo = 0;
+        let mhi = 64;
         for (let k = 0; k < 50; k++) {
           let mid = (mlo + mhi) / 2;
           let clear = 1;
@@ -703,7 +702,14 @@ function buildBars(ink, p) {
           let d3 = -(box.x + box.w) * sa + (box.y + box.h) * ca;
           let dmin = min(d0, d1, d2, d3);
           let pspan = max(d0, d1, d2, d3) - dmin;
-          let nlines = round((f === 4 ? blackApplied(weights[f], p) : weights[f]) * m * pspan / p.spacing);
+          // Black's applied weight for shade share w is the cubic w - a w^2 (1 - w)
+          // with a = p.blackCubic (p.blackCubicAchromatic on achromatic tokens): 0
+          // at 0, 1 at 1, lighter between. Only black's line count reads it.
+          let wf = weights[f];
+          if (f === 4) {
+            wf = wf - (vtype === 'achromatic' ? p.blackCubicAchromatic : p.blackCubic) * wf * wf * (1 - wf);
+          }
+          let nlines = round(wf * m * pspan / p.spacing);
           let step = pspan / nlines;
           let xmin = clip.x;
           let xmax = clip.x + clip.w;
