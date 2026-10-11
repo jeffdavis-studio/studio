@@ -9,7 +9,7 @@
     Intervals hash picker. Each tile is frame.html, which runs the program
     unmodified at one hash. The URL is the whole state:
 
-    ?v=9|10          program version (9 = main on Pages, 10 = intervals-v10 via jsDelivr)
+    ?v=9|9.1|10      program version (9 = main on Pages, 9.1 = intervals-v91 and 10 = intervals-v10 via jsDelivr)
     ?seed=<word>     seeds the hashes; a fresh one is written in on first load
     ?page=<k>        page of the seed, from 0
     ?n=<count>       tiles per page, default 24, cap 60
@@ -61,6 +61,7 @@
     <div class="grp">
         <select id="ver" aria-label="Version">
             <option value="9">v9 (main)</option>
+            <option value="9.1">v9.1 (branch)</option>
             <option value="10">v10 (branch)</option>
         </select>
         <span class="note" id="vnote"></span>
@@ -83,7 +84,7 @@
         <textarea id="xl" readonly></textarea>
     </div>
     <div class="row">
-        <div class="lbl">firsts line for Intervals_v10.js (index = position) <button data-copy="xf">Copy</button></div>
+        <div class="lbl">firsts line for the program (index = position) <button data-copy="xf">Copy</button></div>
         <textarea id="xf" readonly></textarea>
     </div>
     <div class="row">
@@ -100,7 +101,7 @@
 
     // URL state. Anything missing is filled in and written back, so the
     // address bar always reproduces the page.
-    let v = q.get('v') === '10' ? '10' : '9';
+    let v = ['9.1', '10'].indexOf(q.get('v')) >= 0 ? q.get('v') : '9';
     let seed = q.get('seed') || randomWord();
     let page = Math.max(0, parseInt(q.get('page'), 10) || 0);
     let n = Math.min(60, Math.max(1, parseInt(q.get('n'), 10) || 24));
@@ -370,9 +371,9 @@
 
     function chrome() {
         document.getElementById('ver').value = v;
-        document.getElementById('vnote').textContent = v === '10'
-            ? 'v10 is the unmerged intervals-v10 branch, via jsDelivr (up to 12 h behind)'
-            : 'v9 is the program on main';
+        document.getElementById('vnote').textContent = v === '9'
+            ? 'v9 is the program on main'
+            : 'v' + v + ' is the unmerged intervals-v' + v.replace('.', '') + ' branch, via jsDelivr (up to 12 h behind)';
         document.getElementById('what').textContent = pinned
             ? 'v' + v + ', ' + pinned.length + ' chosen hashes'
             : 'v' + v + ', seed ' + seed + ', ' + n + ' tokens a page, 14:11 like the plotted sheet';

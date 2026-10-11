@@ -8,9 +8,10 @@ Dates are 2026.
 
 | File | What it is |
 |---|---|
+| `Intervals_v9.js` | The artwork, the 10-09 code-lock candidate after the 10-11 cleanup pass. Deploys as is: Art Blocks defines `tokenData`, and the script reads no URL. |
+| `Intervals_v9_1.js` | v9.1, proposed on branch `intervals-v91` (10-11): v9 after the cleanup pass, with loop 4 re-drawing the paler far end before a full restart. Dev page `Intervals_v9_1.html`, dev token `dev-token-v9_1.js`, both cloned from v9's. |
 | `Intervals_v10.js` | The artwork, proposed on branch `intervals-v10` (10-10): lightness bands replace the re-roll loops, cleanup pass. Deploys as is: Art Blocks defines `tokenData`, and the script reads no URL. |
 | `Intervals_v10.html`, `dev-token-v10.js` | v10's dev page and dev token, cloned from v9's. |
-| `Intervals_v9.js` | v9, the 10-09 code-lock candidate. Dev page `Intervals_v9.html`, `?hash=`, `?id=`, `?layout=`, `?aspect=14:11`. |
 | `Intervals_v9.html` | Dev page. `?hash=`, `?id=`, `?layout=`, `?aspect=14:11`. |
 | `dev-token-v9.js` | Dev only, v9's own. Stands in for Art Blocks: defines `tokenData`; `?layout=` searches for a token that draws it; `?aspect=` fits the window the artwork sees. No `?variant=`: the bench picker and the check find variants with `devFind()`. |
 | `plot-bench-v9.html` | Dev bench. Previews exactly what `buildSVG()` writes, beside the artwork; changes only the token (hash, variant, layout, steps). |
@@ -309,9 +310,59 @@ each ramp's far end within `rspan` of its near end. It verifies v9 against
 itself; an early comparison against v8's render was removed, since hash
 output is free to change until code lock.
 
+Cleanup pass (10-11, output byte-identical on the 2000 study hashes' anchors,
+the 24-token PNG set and every pen file of 8 tokens), the same pass v10 had
+on its branch: the commented-out local hash generator at the top; the
+first-outputs table `firsts` (empty until the hash selection with Adam;
+setup() draws `firsts[tokenId % 1000000]` in place of the hash when the index
+is in the table, so filenames and the SVG's data-token follow the drawn hash);
+the six debug `print()` lines out (the dev page loses its console readout;
+`$features` carries the same numbers); `$features` extended with Steps, Kinds
+(the anchor kinds present, in tint, shade, full order) and Crossings (ramp
+pairs that swap lightness order between start and far end), all from the
+seeded draws; `blackApplied()` inlined at its one call; the m bisection in
+`buildBars()` written once as a loop over two passes (the second pass also
+runs when X = 0, where it reproduces the same m).
+
+## v9.1 (10-11): loop 4 re-draws the paler far end before a full restart
+
+Branch `intervals-v91`, merged to main 10-11. Jeff's decision by text 10-11
+after the 10-10 blame study of loop 4 (`files/intervals-loop4-blame-2026-10-10`
+in the Morgan workspace): v9 as cleaned, plus the `one` policy that study
+measured.
+
+- `rmax = 20`, a knob at the top. When the side-by-side scan (loop 4) finds
+  a pair under lmin, the far end of the paler ramp in the first such pair
+  (the bar with less chroma; within 1 chroma, the lighter) is re-drawn as a
+  seventh pass, under the same-side gap and, for none, `!plain()`, up to rmax
+  times per draw of six; then all six anchors are re-drawn as v9 did, and
+  the count starts over. The complementary pin applies only to the genuine
+  seventh pass (`r === 0`), never to a blur re-draw.
+- Measured on the study's 2000 hashes, anchor for anchor the study's `one`
+  run: tokens with a full restart 22.1% to 4.2% (none, saturated, tinted and
+  complementary 0%; analogous 2.5%; monochromatic 42%, achromatic 29%, where
+  a far-end re-draw rarely helps and 83 tokens spend the whole budget);
+  tokens with a crossing 64.0% to 66.0%; mean gcol() calls 18.7 to 20.0, the
+  worst token 299 to 831 (setup() 65 ms at most); kind shares, mean L and
+  the hue bins within a point of v9 overall; monochromatic mean L 61 to 58
+  and achromatic 61 to 63.
+- Nothing else changes: the cleaned v9 and v9.1 differ by the knob, the
+  counter `r`, the scan naming `jr`, and the branch on `r < rmax`.
+- af25a50 (10-11): on monochromatic and achromatic, whose bars have only
+  lightness to tell them apart, the far ends are swapped into the starts'
+  lightness order before the scan, so those ramps never cross. Every other
+  variant untouched (anchors and counters identical on 1780 of 1780 tokens);
+  the two: 0 crossings, 0 full restarts (were 42% and 29%).
+- 10-11, split: `lmin0` / `ltinted` now set only the same-side anchor
+  lightness gap (loop 1 and the one-anchor re-draw's gap test); the new
+  `dmin0` / `dtinted` set only the side-by-side dE76 floor in the scan, so
+  Jeff can dial each alone. Both 7.5 / 4, output byte-identical (2000
+  anchors and counters, 24 PNGs, 57 pen files of 8 tokens). The pen-grid
+  local `dmin` in buildSVG became `plo` to free the name.
+
 ## v10 (10-10): lightness bands replace the re-roll loops, cleanup pass
 
-Branch `intervals-v10`, proposed, not merged. Jeff's decisions by voice
+Branch `intervals-v10`, merged to main 10-11 so the versions sit side by side; not the Heft candidate. Jeff's decisions by voice
 10-10, after the 10-09 and 10-10 studies of the re-roll loops (`files/
 intervals-reroll-measure-2026-10-09`, `intervals-loop4-blame-2026-10-10` in
 the Morgan workspace): lightness contrast is constructed, not checked.
