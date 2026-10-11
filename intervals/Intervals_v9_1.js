@@ -22,7 +22,9 @@ let ltinted = 4;
 // dmin is the Lab (dE76) floor between bars drawn side by side, the blur
 // check that drives the re-draws: dmin0 for every token but tinted, which
 // takes dtinted. Split from lmin on 10-11 so the two can be set apart; they
-// start equal.
+// start equal. Off on monochromatic and achromatic, where dE is lightness and
+// loop 1 with the far-end ordering already keeps every same-step pair lmin
+// apart.
 let dmin0 = 7.5;
 let dtinted = 4;
 // Analogous band width in degrees, drawn per token from amin to amax.
@@ -180,6 +182,9 @@ function setup() {
     pshade = 0;
     lmin = ltinted;
     dmin = dtinted;
+  }
+  if (vtype === 'monochromatic' || vtype === 'achromatic') {
+    dmin = 0;
   }
   // Analogous spans an aspan-degree band (amin to amax) starting at the first
   // anchor's hue: adir is the direction it runs (+1 or -1), and anchor aend

@@ -362,6 +362,13 @@ measured.
   the scan after every pass, not only the first, so a blur re-draw that takes
   the only opposite anchor brings the pin back (one re-draw against rmax);
   before, that token finished complementary in name only.
+- 10-11, dmin off on monochromatic and achromatic (`dmin = 0` after the
+  tinted block): there dE is lightness, and loop 1 with the far-end ordering
+  already keeps every same-step pair lmin apart. On the 2000 hashes the
+  other 1780 tokens are anchor- and counter-identical; monochromatic 0
+  re-draws before and after, achromatic 2 to 0 (two tokens change). One of
+  the two now has a 4.8 dE pair where ramp 2's bar meets ramp 0's at the next
+  step, a pair the ordering does not reach.
 
 ## v10 (10-10): lightness bands replace the re-roll loops, cleanup pass
 
