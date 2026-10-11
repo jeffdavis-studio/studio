@@ -10,8 +10,8 @@
             unmodified: p5 1.11.3, then the version's dev-token-v<n>.js, then the
             program, in the order its own dev page loads them.
 
-            ?v=9|9.1|10        v9 from ../../intervals/ (main on Pages), v9.1 and v10
-                               from the intervals-v91 and intervals-v10 branches through
+            ?v=9|9.1|10        all three from ../../intervals/ (main on Pages since the
+                               10-11 merge; before that, v9.1 and v10 came from branches through
                                jsDelivr (cached up to 12 h)
             ?hash=0x<64 hex>   the token
             ?aspect=W:H        read by dev-token; the picker passes 14:11
@@ -43,9 +43,7 @@
             (function () {
                 let v = new URLSearchParams(location.search).get('v');
                 v = ['9.1', '10'].indexOf(v) >= 0 ? v : '9';
-                let base = v === '9'
-                    ? '../../intervals/'
-                    : 'https://cdn.jsdelivr.net/gh/jeffdavis-studio/studio@intervals-v' + v.replace('.', '') + '/intervals/';
+                let base = '../../intervals/';
                 let file = v.replace('.', '_');
                 document.write('<script src="' + base + 'dev-token-v' + file + '.js"><\/script>');
                 document.write('<script src="' + base + 'Intervals_v' + file + '.js"><\/script>');

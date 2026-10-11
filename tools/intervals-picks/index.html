@@ -9,7 +9,7 @@
     Intervals hash picker. Each tile is frame.html, which runs the program
     unmodified at one hash. The URL is the whole state:
 
-    ?v=9|9.1|10      program version (9 = main on Pages, 9.1 = intervals-v91 and 10 = intervals-v10 via jsDelivr)
+    ?v=9|9.1|10      program version, all three from intervals/ on main
     ?seed=<word>     seeds the hashes; a fresh one is written in on first load
     ?page=<k>        page of the seed, from 0
     ?n=<count>       tiles per page, default 24, cap 60
@@ -60,9 +60,9 @@
 <div id="bar">
     <div class="grp">
         <select id="ver" aria-label="Version">
-            <option value="9">v9 (main)</option>
-            <option value="9.1">v9.1 (branch)</option>
-            <option value="10">v10 (branch)</option>
+            <option value="9">v9</option>
+            <option value="9.1">v9.1</option>
+            <option value="10">v10</option>
         </select>
         <span class="note" id="vnote"></span>
     </div>
