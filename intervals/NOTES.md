@@ -358,6 +358,18 @@ measured.
   Jeff can dial each alone. Both 7.5 / 4, output byte-identical (2000
   anchors and counters, 24 PNGs, 57 pen files of 8 tokens). The pen-grid
   local `dmin` in buildSVG became `plo` to free the name.
+- 10-11, per group (Jeff, by text, erring low): lmin and dmin are set in
+  setup() by color variant, four groups, each pair a knob at the top.
+
+  | group | variants | lmin | dmin |
+  |---|---|---|---|
+  | open hues (`lmin0`, `dmin0`) | none, saturated, complementary | 5 | 10 |
+  | close hues (`lanalogous`, `danalogous`) | analogous | 4 | 8 |
+  | tinted (`ltinted`, `dtinted`) | tinted | 4 | 5 |
+  | no hue (`lmono`, `dmono`) | monochromatic, achromatic | 7.5 | 0 |
+
+  dmin 0 means the side-by-side scan never fires on monochromatic and
+  achromatic; loop 1 and the far-end ordering carry them. rmax stays 20.
 - 10-11, complementary: the "any anchor opposite the first" check runs in
   the scan after every pass, not only the first, so a blur re-draw that takes
   the only opposite anchor brings the pin back (one re-draw against rmax);

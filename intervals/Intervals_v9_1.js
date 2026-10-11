@@ -11,20 +11,30 @@ let R, w, h, o, s, vtype, ltype, tmin, tmax, smin, smax, ptint, pshade, lmin, dm
 // tokenData.hash. Filled in after the hash selection.
 let firsts = [];
 // lmin is the lightness gap between the three anchors on a side (the three
-// starts, the three far ends): lmin0 for every token but tinted, which takes
-// ltinted. Each is the most that can never strand an anchor with no lightness
-// left to draw (10-09): 7.5 holds when one anchor is held to a single hue
-// (monochromatic, analogous's band edge, complementary's pinned opposite),
-// and a tinted anchor's lightness is fixed by its hue, safe only to 4.9.
-// Both limits move with wdepth, kdepth, the floors, rspan and the inks.
+// starts, the three far ends). setup() sets it by color variant, in four
+// groups (10-11): lmin0 for none, saturated and complementary, whose hues
+// are open; lanalogous for analogous, whose hues sit close; ltinted for
+// tinted; lmono for monochromatic and achromatic, which have no hue to tell
+// bars apart. 7.5 is the most that never strands an anchor with no lightness
+// left to draw when one anchor is held to a single hue (monochromatic,
+// analogous's band edge, complementary's pinned opposite). A tinted anchor's
+// lightness is fixed by its hue, and a tint reaches about 12 L per hue, so
+// ltinted is safe only to 4.9. Both limits move with wdepth, kdepth, the
+// floors, rspan and the inks.
 let lmin0 = 5;
+let lanalogous = 4;
 let ltinted = 4;
+let lmono = 7.5;
 // dmin is the Lab (dE76) floor between bars drawn side by side, the blur
-// check that drives the re-draws: dmin0 for every token but tinted, which
-// takes dtinted. Split from lmin on 10-11 so the two can be set apart; they
-// start equal.
+// check that drives the re-draws, set by the same four groups: dmin0,
+// danalogous, dtinted, dmono. Split from lmin on 10-11 so the two can be set
+// apart. dmono is 0, no scan: monochromatic and achromatic bars differ by
+// lightness alone, and loop 1 with the far-end ordering already keeps every
+// same-step pair lmin apart.
 let dmin0 = 10;
-let dtinted = 4;
+let danalogous = 8;
+let dtinted = 5;
+let dmono = 0;
 // Analogous band width in degrees, drawn per token from amin to amax.
 let amin = 45;
 let amax = 75;
@@ -181,6 +191,10 @@ function setup() {
     lmin = ltinted;
     dmin = dtinted;
   }
+  if (vtype === 'monochromatic' || vtype === 'achromatic') {
+    lmin = lmono;
+    dmin = dmono;
+  }
   // Analogous spans an aspan-degree band (amin to amax) starting at the first
   // anchor's hue: adir is the direction it runs (+1 or -1), and anchor aend
   // holds its far end, so the spread is always exactly aspan.
@@ -188,6 +202,8 @@ function setup() {
     aspan = R.random_int(amin, amax);
     adir = R.random_int(0, 1) * 2 - 1;
     aend = R.random_int(1, 5);
+    lmin = lanalogous;
+    dmin = danalogous;
   }
   // Achromatic has no ink: each anchor is a gray, a black share from smin to
   // smax over paper (see gcol()).
