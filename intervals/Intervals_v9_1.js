@@ -17,13 +17,13 @@ let firsts = [];
 // (monochromatic, analogous's band edge, complementary's pinned opposite),
 // and a tinted anchor's lightness is fixed by its hue, safe only to 4.9.
 // Both limits move with wdepth, kdepth, the floors, rspan and the inks.
-let lmin0 = 7.5;
+let lmin0 = 5;
 let ltinted = 4;
 // dmin is the Lab (dE76) floor between bars drawn side by side, the blur
 // check that drives the re-draws: dmin0 for every token but tinted, which
 // takes dtinted. Split from lmin on 10-11 so the two can be set apart; they
 // start equal.
-let dmin0 = 7.5;
+let dmin0 = 10;
 let dtinted = 4;
 // Analogous band width in degrees, drawn per token from amin to amax.
 let amin = 45;
@@ -57,12 +57,12 @@ let ladder = [5, 6, 8, 10, 12, 16, 20, 24];
 let rungs = [1, 2, 2, 2, 2, 2, 2, 1];
 // Each color variant's share of tokens; the rest are 'none'.
 let variants = [
-  { name: 'saturated', p: 0.10 },
-  { name: 'tinted', p: 0.10 },
-  { name: 'complementary', p: 0.05 },
-  { name: 'analogous', p: 0.10 },
-  { name: 'monochromatic', p: 0.05 },
-  { name: 'achromatic', p: 0.05 }
+  { name: 'saturated', p: 0.12 },
+  { name: 'tinted', p: 0.12 },
+  { name: 'complementary', p: 0.12 },
+  { name: 'analogous', p: 0.12 },
+  { name: 'monochromatic', p: 0.12 },
+  { name: 'achromatic', p: 0.12 }
 ];
 // Each layout's share of tokens, drawn independently of the color variant,
 // and each band's width within a step as a range [lo, hi]; setup() draws a
@@ -311,35 +311,17 @@ function setup() {
       }
     }
   }
-  // 6. Features, every one from the seeded draws above. Kinds lists the
-  // anchor kinds the token uses, in tint, shade, full order; Crossings is how
-  // many ramp pairs swap lightness order between start and far end.
-  let kinds = [];
-  let names = ['tint', 'shade', 'full'];
-  for (let k = 0; k < 3; k++) {
-    for (let j = 0; j < 6; j++) {
-      if (c[j].kind === names[k] && kinds.indexOf(names[k]) < 0) {
-        kinds.push(names[k]);
-      }
-    }
-  }
-  let crossings = 0;
-  for (let f = 0; f < 3; f++) {
-    for (let g = f + 1; g < 3; g++) {
-      if ((c[2 * f].light - c[2 * g].light) * (c[2 * f + 1].light - c[2 * g + 1].light) < 0) {
-        crossings++;
-      }
-    }
-  }
+  // 6. Features, every one from the seeded draws above.
   window.$features = {
-    Variant: vtype,
-    Layout: ltype,
-    Orientation: o === 0 ? 'Vertical' : 'Horizontal',
-    Steps: s,
-    Bars: 3 * s,
-    Kinds: kinds.join(', '),
-    Crossings: crossings
+    'Bars': 3 * s,
+    'Bar Orientation': o === 0 ? 'Vertical' : 'Horizontal',
+    'Bar Width': ltype.charAt(0).toUpperCase() + ltype.slice(1),
+    'Color Variant': vtype.charAt(0).toUpperCase() + vtype.slice(1)
   };
+  let fk = Object.keys(window.$features);
+  for (let k = 0; k < fk.length; k++) {
+    print(fk[k] + ': ' + window.$features[fk[k]]);
+  }
 }
 
 function draw() {
