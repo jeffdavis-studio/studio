@@ -26,12 +26,15 @@ let lanalogous = 4;
 let ltinted = 4;
 let lmono = 7.5;
 // dmin is the Lab (dE76) floor between bars drawn side by side, the blur
-// check that drives the re-draws, set by the same four groups: dmin0,
-// danalogous, dtinted, dmono. Split from lmin on 10-11 so the two can be set
-// apart. dmono is 0, no scan: monochromatic and achromatic bars differ by
+// check that drives the re-draws, set by the same groups plus one: dmin0 for
+// none and saturated; dcomplementary for complementary, whose pairs inside
+// one hue family lean on lightness and restarted most at 10; danalogous,
+// dtinted, dmono. Split from lmin on 10-11 so the two can be set apart.
+// dmono is 0, no scan: monochromatic and achromatic bars differ by
 // lightness alone, and loop 1 with the far-end ordering already keeps every
 // same-step pair lmin apart.
 let dmin0 = 10;
+let dcomplementary = 8;
 let danalogous = 8;
 let dtinted = 5;
 let dmono = 0;
@@ -183,6 +186,9 @@ function setup() {
   if (vtype === 'saturated') {
     ptint = 0;
     pshade = 0;
+  }
+  if (vtype === 'complementary') {
+    dmin = dcomplementary;
   }
   if (vtype === 'tinted') {
     tmin = wdepth;

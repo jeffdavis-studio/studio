@@ -414,3 +414,4 @@ the Morgan workspace): lightness contrast is constructed, not checked.
   buildBars() written once, $features extended (Steps, Kinds, Crossings), the
   first-outputs table `firsts` (empty until the hash selection), the
   commented-out local hash generator at the top.
+- 10-11, later: complementary gets its own dE floor, `dcomplementary = 8` (was dmin0 10 with none and saturated); it restarted 18% of its tokens at 10, the highest rate left. lmin stays lmin0.
