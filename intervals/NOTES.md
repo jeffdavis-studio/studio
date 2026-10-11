@@ -8,7 +8,7 @@ Dates are 2026.
 
 | File | What it is |
 |---|---|
-| `Intervals_v9.js` | The artwork. Deploys as is: Art Blocks defines `tokenData`, and the script reads no URL. |
+| `Intervals_v9.js` | The artwork, the 10-09 code-lock candidate after the 10-11 cleanup pass. Deploys as is: Art Blocks defines `tokenData`, and the script reads no URL. |
 | `Intervals_v9.html` | Dev page. `?hash=`, `?id=`, `?layout=`, `?aspect=14:11`. |
 | `dev-token-v9.js` | Dev only, v9's own. Stands in for Art Blocks: defines `tokenData`; `?layout=` searches for a token that draws it; `?aspect=` fits the window the artwork sees. No `?variant=`: the bench picker and the check find variants with `devFind()`. |
 | `plot-bench-v9.html` | Dev bench. Previews exactly what `buildSVG()` writes, beside the artwork; changes only the token (hash, variant, layout, steps). |
@@ -306,3 +306,17 @@ paper in the margin, ink in the image). It also asserts
 each ramp's far end within `rspan` of its near end. It verifies v9 against
 itself; an early comparison against v8's render was removed, since hash
 output is free to change until code lock.
+
+Cleanup pass (10-11, output byte-identical on the 2000 study hashes' anchors,
+the 24-token PNG set and every pen file of 8 tokens), the same pass v10 had
+on its branch: the commented-out local hash generator at the top; the
+first-outputs table `firsts` (empty until the hash selection with Adam;
+setup() draws `firsts[tokenId % 1000000]` in place of the hash when the index
+is in the table, so filenames and the SVG's data-token follow the drawn hash);
+the six debug `print()` lines out (the dev page loses its console readout;
+`$features` carries the same numbers); `$features` extended with Steps, Kinds
+(the anchor kinds present, in tint, shade, full order) and Crossings (ramp
+pairs that swap lightness order between start and far end), all from the
+seeded draws; `blackApplied()` inlined at its one call; the m bisection in
+`buildBars()` written once as a loop over two passes (the second pass also
+runs when X = 0, where it reproduces the same m).
