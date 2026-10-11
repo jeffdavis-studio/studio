@@ -5,20 +5,26 @@
 //   tokenData.hash += '0123456789abcdef'[Math.floor(Math.random() * 16)];
 // }
 
-let R, w, h, o, s, vtype, ltype, tmin, tmax, smin, smax, ptint, pshade, lmin, aspan, adir, aend, bx, bw, c, inks, inkl, inka;
+let R, w, h, o, s, vtype, ltype, tmin, tmax, smin, smax, ptint, pshade, lmin, dmin, aspan, adir, aend, bx, bw, c, inks, inkl, inka;
 // First outputs: the hashes chosen with Adam for the first tokens of the
 // series, by token index, so a token at index i draws firsts[i] in place of
 // tokenData.hash. Filled in after the hash selection.
 let firsts = [];
-// The lightness gap between same-side anchors, and the Lab floor between bars
-// drawn side by side: lmin0 for every token but tinted, which takes ltinted.
-// Each is the most that can never strand an anchor with no lightness left to
-// draw (10-09): 7.5 holds when one anchor is held to a single hue
+// lmin is the lightness gap between the three anchors on a side (the three
+// starts, the three far ends): lmin0 for every token but tinted, which takes
+// ltinted. Each is the most that can never strand an anchor with no lightness
+// left to draw (10-09): 7.5 holds when one anchor is held to a single hue
 // (monochromatic, analogous's band edge, complementary's pinned opposite),
 // and a tinted anchor's lightness is fixed by its hue, safe only to 4.9.
 // Both limits move with wdepth, kdepth, the floors, rspan and the inks.
 let lmin0 = 7.5;
 let ltinted = 4;
+// dmin is the Lab (dE76) floor between bars drawn side by side, the blur
+// check that drives the re-draws: dmin0 for every token but tinted, which
+// takes dtinted. Split from lmin on 10-11 so the two can be set apart; they
+// start equal.
+let dmin0 = 7.5;
+let dtinted = 4;
 // Analogous band width in degrees, drawn per token from amin to amax.
 let amin = 45;
 let amax = 75;
@@ -163,6 +169,7 @@ function setup() {
   ptint = ptint0;
   pshade = pshade0;
   lmin = lmin0;
+  dmin = dmin0;
   if (vtype === 'saturated') {
     ptint = 0;
     pshade = 0;
@@ -172,6 +179,7 @@ function setup() {
     ptint = 1;
     pshade = 0;
     lmin = ltinted;
+    dmin = dtinted;
   }
   // Analogous spans an aspan-degree band (amin to amax) starting at the first
   // anchor's hue: adir is the direction it runs (+1 or -1), and anchor aend
@@ -217,7 +225,7 @@ function setup() {
   // its ramp's start, is re-drawn until the token is no longer plain.
   // 5. Neighbors: after the last pass, the bars as drawn side by side (ramp
   // j's bar next to ramp j + 1's at each step, and ramp 2's bar next to ramp
-  // 0's at the next step) must differ by lmin in Lab (dE76), so two bars
+  // 0's at the next step) must differ by dmin in Lab (dE76), so two bars
   // never blur together where their ramps cross in lightness. If any pair
   // falls short, the far end of the paler ramp in the first such pair (the
   // bar with less chroma; within 1, the lighter) is re-drawn as a seventh
@@ -278,7 +286,7 @@ function setup() {
       }
       let blur = false;
       for (let k = 1; k < labs.length; k++) {
-        if (!blur && dist(labs[k][0], labs[k][1], labs[k][2], labs[k - 1][0], labs[k - 1][1], labs[k - 1][2]) < lmin) {
+        if (!blur && dist(labs[k][0], labs[k][1], labs[k][2], labs[k - 1][0], labs[k - 1][1], labs[k - 1][2]) < dmin) {
           blur = true;
           let ca = sqrt(sq(labs[k - 1][1]) + sq(labs[k - 1][2]));
           let cb = sqrt(sq(labs[k][1]) + sq(labs[k][2]));
@@ -728,8 +736,8 @@ function buildBars(ink, p) {
           let d1 = -(box.x + box.w) * sa + box.y * ca;
           let d2 = -box.x * sa + (box.y + box.h) * ca;
           let d3 = -(box.x + box.w) * sa + (box.y + box.h) * ca;
-          let dmin = min(d0, d1, d2, d3);
-          let pspan = max(d0, d1, d2, d3) - dmin;
+          let plo = min(d0, d1, d2, d3);
+          let pspan = max(d0, d1, d2, d3) - plo;
           // Black's applied weight for shade share w is the cubic w - a w^2 (1 - w)
           // with a = p.blackCubic (p.blackCubicAchromatic on achromatic tokens): 0
           // at 0, 1 at 1, lighter between. Only black's line count reads it.
@@ -745,7 +753,7 @@ function buildBars(ink, p) {
           let ymax = clip.y + clip.h;
           let ls = [];
           for (let k = 0; k < nlines; k++) {
-            let dd = dmin + step / 2 + k * step;
+            let dd = plo + step / 2 + k * step;
             let tl = (xmin + dd * sa) / ca;
             let tr = (xmax + dd * sa) / ca;
             let tt = (ymin - dd * ca) / sa;

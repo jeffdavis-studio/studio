@@ -346,3 +346,14 @@ measured.
   and achromatic 61 to 63.
 - Nothing else changes: the cleaned v9 and v9.1 differ by the knob, the
   counter `r`, the scan naming `jr`, and the branch on `r < rmax`.
+- af25a50 (10-11): on monochromatic and achromatic, whose bars have only
+  lightness to tell them apart, the far ends are swapped into the starts'
+  lightness order before the scan, so those ramps never cross. Every other
+  variant untouched (anchors and counters identical on 1780 of 1780 tokens);
+  the two: 0 crossings, 0 full restarts (were 42% and 29%).
+- 10-11, split: `lmin0` / `ltinted` now set only the same-side anchor
+  lightness gap (loop 1 and the one-anchor re-draw's gap test); the new
+  `dmin0` / `dtinted` set only the side-by-side dE76 floor in the scan, so
+  Jeff can dial each alone. Both 7.5 / 4, output byte-identical (2000
+  anchors and counters, 24 PNGs, 57 pen files of 8 tokens). The pen-grid
+  local `dmin` in buildSVG became `plo` to free the name.
