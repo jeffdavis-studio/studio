@@ -1,0 +1,3 @@
+# Intervals hash picker
+
+Live: https://jeffdavis-studio.github.io/studio/tools/intervals-picks/ . Params: `?v=9|10` (10 = intervals-v10 branch via jsDelivr), `?seed=`, `?page=`, `?n=` (default 24, cap 60), `?hashes=0x..,0x..` (exactly those), `#f=..&h=..` (fave / hmmm marks). The address bar is the whole state: mark tiles, press Share, text the URL; opening it restores the marks (and replaces that browser's saved marks for the version). Export gives the fave hashes, the `let firsts = [...]` line and a faves-only page. Tiles are `frame.html`, which loads p5 1.11.3, `dev-token-v<n>.js` and the program unmodified.
