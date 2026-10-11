@@ -336,8 +336,7 @@ measured.
   (the bar with less chroma; within 1 chroma, the lighter) is re-drawn as a
   seventh pass, under the same-side gap and, for none, `!plain()`, up to rmax
   times per draw of six; then all six anchors are re-drawn as v9 did, and
-  the count starts over. The complementary pin applies only to the genuine
-  seventh pass (`r === 0`), never to a blur re-draw.
+  the count starts over.
 - Measured on the study's 2000 hashes, anchor for anchor the study's `one`
   run: tokens with a full restart 22.1% to 4.2% (none, saturated, tinted and
   complementary 0%; analogous 2.5%; monochromatic 42%, achromatic 29%, where
@@ -359,6 +358,10 @@ measured.
   Jeff can dial each alone. Both 7.5 / 4, output byte-identical (2000
   anchors and counters, 24 PNGs, 57 pen files of 8 tokens). The pen-grid
   local `dmin` in buildSVG became `plo` to free the name.
+- 10-11, complementary: the "any anchor opposite the first" check runs in
+  the scan after every pass, not only the first, so a blur re-draw that takes
+  the only opposite anchor brings the pin back (one re-draw against rmax);
+  before, that token finished complementary in name only.
 
 ## v10 (10-10): lightness bands replace the re-roll loops, cleanup pass
 

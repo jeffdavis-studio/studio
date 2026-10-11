@@ -217,50 +217,42 @@ function setup() {
   bw = [widths[0] / wsum, widths[1] / wsum, widths[2] / wsum];
 
   // 3. Anchors, with gcol() taking each hue by variant. 4. Guarantees: the
-  // pass loop adds a seventh when complementary drew no anchor opposite the
-  // first (anchor jr, chosen at random, is re-drawn pinned to the opposite),
-  // or when a token with no variant reads too plain (see plain(): all six
-  // anchors one kind, or every hue inside amax degrees, so it passes for
-  // analogous). Then anchor jr, a ramp's far end so its hue still answers to
-  // its ramp's start, is re-drawn until the token is no longer plain.
-  // 5. Neighbors: after the last pass, the bars as drawn side by side (ramp
-  // j's bar next to ramp j + 1's at each step, and ramp 2's bar next to ramp
-  // 0's at the next step) must differ by dmin in Lab (dE76), so two bars
-  // never blur together where their ramps cross in lightness. If any pair
-  // falls short, the far end of the paler ramp in the first such pair (the
-  // bar with less chroma; within 1, the lighter) is re-drawn as a seventh
-  // pass, up to rmax times; then all six anchors are re-drawn. First, on
-  // monochromatic and achromatic, whose bars have only lightness to tell them
-  // apart, the far ends are swapped into the starts' lightness order, so those
-  // ramps never cross (every other variant crosses freely).
+  // pass loop adds a seventh when a token with no variant reads too plain
+  // (see plain(): all six anchors one kind, or every hue inside amax degrees,
+  // so it passes for analogous). Then anchor jr, a ramp's far end so its hue
+  // still answers to its ramp's start, is re-drawn until the token is no
+  // longer plain. 5. The scan, after the last pass of every draw: a
+  // complementary token with no anchor opposite the first re-draws anchor jr,
+  // chosen at random, pinned to the opposite; otherwise the bars as drawn
+  // side by side (ramp j's bar next to ramp j + 1's at each step, and ramp
+  // 2's bar next to ramp 0's at the next step) must differ by dmin in Lab
+  // (dE76), so two bars never blur together where their ramps cross in
+  // lightness. If any pair falls short, the far end of the paler ramp in the
+  // first such pair (the bar with less chroma; within 1, the lighter) is
+  // re-drawn. Either re-draw is a seventh pass, and the scan runs again on
+  // the result (a blur re-draw can take the only opposite anchor, so the pin
+  // comes back), up to rmax re-draws; then all six anchors are re-drawn.
+  // First, on monochromatic and achromatic, whose bars have only lightness to
+  // tell them apart, the far ends are swapped into the starts' lightness
+  // order, so those ramps never cross (every other variant crosses freely).
   c = [];
   let n = 6;
   let jr = 0;
   let r = 0;
+  let pin = false;
   for (let i = 0; i < n; i++) {
     let j = i;
     if (i === 6) {
       j = jr;
     }
-    c[j] = gcol(j, i === 6 && r === 0);
+    c[j] = gcol(j, pin);
     // The other anchors on j's side are (j + 2) % 6 and (j + 4) % 6.
     while (((j + 2) % 6 < c.length && abs(c[(j + 2) % 6].light - c[j].light) < lmin) ||
       ((j + 4) % 6 < c.length && abs(c[(j + 4) % 6].light - c[j].light) < lmin) ||
       (i === 6 && vtype === 'none' && plain())) {
-      c[j] = gcol(j, i === 6 && r === 0);
+      c[j] = gcol(j, pin);
     }
-    if (i === 5 && vtype === 'complementary') {
-      let far = false;
-      for (let k = 1; k < 6; k++) {
-        if (c[k].hue !== c[0].hue) {
-          far = true;
-        }
-      }
-      if (!far) {
-        n = 7;
-        jr = R.random_int(1, 5);
-      }
-    }
+    pin = false;
     if (i === 5 && vtype === 'none' && plain()) {
       n = 7;
       jr = R.random_int(0, 2) * 2 + 1;
@@ -278,13 +270,26 @@ function setup() {
           }
         }
       }
+      let blur = false;
+      if (vtype === 'complementary') {
+        let far = false;
+        for (let k = 1; k < 6; k++) {
+          if (c[k].hue !== c[0].hue) {
+            far = true;
+          }
+        }
+        if (!far) {
+          blur = true;
+          pin = true;
+          jr = R.random_int(1, 5);
+        }
+      }
       let labs = [];
       for (let k = 0; k < s; k++) {
         for (let f = 0; f < 3; f++) {
           labs.push(rgbToLab(betterLerp(c[2 * f].col, c[2 * f + 1].col, k / (s - 1))));
         }
       }
-      let blur = false;
       for (let k = 1; k < labs.length; k++) {
         if (!blur && dist(labs[k][0], labs[k][1], labs[k][2], labs[k - 1][0], labs[k - 1][1], labs[k - 1][2]) < dmin) {
           blur = true;
@@ -302,6 +307,7 @@ function setup() {
         n = 6;
         i = -1;
         r = 0;
+        pin = false;
       }
     }
   }
@@ -408,8 +414,8 @@ function gcol(j, pinned) {
   // and for the first anchor of a hue variant. After the first anchor, the hue variants
   // place each hue relative to the first anchor's, fresh on every draw, so an
   // anchor that fails its lightness gap can move:
-  //   complementary  the first hue or its opposite, by coin flip; pinned keeps
-  //                  it opposite
+  //   complementary  the first hue or its opposite, by coin flip; pinned (the
+  //                  scan found no opposite) keeps it opposite
   //   analogous      inside the aspan-degree band from the first; anchor aend
   //                  sits on its far end
   //   monochromatic  the first hue exactly
