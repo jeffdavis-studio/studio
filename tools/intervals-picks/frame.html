@@ -10,12 +10,14 @@
             unmodified: p5 1.11.3, then the version's dev-token-v<n>.js, then the
             program, in the order its own dev page loads them.
 
-            ?v=9|10            v9 from ../../intervals/ (main on Pages), v10 from the
-                               intervals-v10 branch through jsDelivr (cached up to 12 h)
+            ?v=9|9.1|10        v9 from ../../intervals/ (main on Pages), v9.1 and v10
+                               from the intervals-v91 and intervals-v10 branches through
+                               jsDelivr (cached up to 12 h)
             ?hash=0x<64 hex>   the token
             ?aspect=W:H        read by dev-token; the picker passes 14:11
-            ?id=<n>            read by dev-token; the picker passes 999999 so v10's
-                               firsts table, once filled, never swaps the hash shown
+            ?id=<n>            read by dev-token; the picker passes 999999 so the
+                               program's firsts table, once filled, never swaps the
+                               hash shown
         -->
         <style>
             html, body {
@@ -39,12 +41,14 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
         <script>
             (function () {
-                let v = new URLSearchParams(location.search).get('v') === '10' ? '10' : '9';
-                let base = v === '10'
-                    ? 'https://cdn.jsdelivr.net/gh/jeffdavis-studio/studio@intervals-v10/intervals/'
-                    : '../../intervals/';
-                document.write('<script src="' + base + 'dev-token-v' + v + '.js"><\/script>');
-                document.write('<script src="' + base + 'Intervals_v' + v + '.js"><\/script>');
+                let v = new URLSearchParams(location.search).get('v');
+                v = ['9.1', '10'].indexOf(v) >= 0 ? v : '9';
+                let base = v === '9'
+                    ? '../../intervals/'
+                    : 'https://cdn.jsdelivr.net/gh/jeffdavis-studio/studio@intervals-v' + v.replace('.', '') + '/intervals/';
+                let file = v.replace('.', '_');
+                document.write('<script src="' + base + 'dev-token-v' + file + '.js"><\/script>');
+                document.write('<script src="' + base + 'Intervals_v' + file + '.js"><\/script>');
             })();
         </script>
     </head>
