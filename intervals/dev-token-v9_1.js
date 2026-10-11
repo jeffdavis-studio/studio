@@ -1,6 +1,6 @@
 // Dev only, never deployed. Stands in for Art Blocks: defines tokenData before
 // the artwork loads, and handles the dev URL parameters so the artwork needs
-// no code for them. Loaded by Intervals_v9_1.html and plot-bench-v9_1.html; v8
+// no code for them. Loaded by Intervals_v9_1.html and plot-bench-v9.html; v8
 // keeps dev-token.js, so each version's devTraits() mirrors its own setup().
 //
 //   ?hash=0x<64 hex>   pin the token (otherwise random)
@@ -81,7 +81,7 @@ function devFind(v, l) {
 
 // The [variant, layout] a hash draws. Mirrors step 1 of setup() in
 // Intervals_v9_1.js (bar axis, steps, then one draw walked through each table);
-// if that changes, change this too. intervals-v9_1-check.mjs confirms devFind()
+// if that changes, change this too. intervals-v9-check.mjs confirms devFind()
 // and ?layout= land where they should.
 function devTraits(hash) {
   let rng = new Random(hash);

@@ -221,7 +221,10 @@ function setup() {
   // never blur together where their ramps cross in lightness. If any pair
   // falls short, the far end of the paler ramp in the first such pair (the
   // bar with less chroma; within 1, the lighter) is re-drawn as a seventh
-  // pass, up to rmax times; then all six anchors are re-drawn.
+  // pass, up to rmax times; then all six anchors are re-drawn. First, on
+  // monochromatic and achromatic, whose bars have only lightness to tell them
+  // apart, the far ends are swapped into the starts' lightness order, so those
+  // ramps never cross (every other variant crosses freely).
   c = [];
   let n = 6;
   let jr = 0;
@@ -255,6 +258,18 @@ function setup() {
       jr = R.random_int(0, 2) * 2 + 1;
     }
     if (i === n - 1) {
+      let crossed = vtype === 'monochromatic' || vtype === 'achromatic';
+      while (crossed) {
+        crossed = false;
+        for (let f = 0; f < 3; f++) {
+          for (let g = f + 1; g < 3; g++) {
+            if ((c[2 * f].light - c[2 * g].light) * (c[2 * f + 1].light - c[2 * g + 1].light) < 0) {
+              [c[2 * f + 1], c[2 * g + 1]] = [c[2 * g + 1], c[2 * f + 1]];
+              crossed = true;
+            }
+          }
+        }
+      }
       let labs = [];
       for (let k = 0; k < s; k++) {
         for (let f = 0; f < 3; f++) {
