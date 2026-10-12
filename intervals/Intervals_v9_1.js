@@ -34,12 +34,12 @@ let units = [5, 6, 8, 10, 12, 16, 20, 24];
 let uprob = [1, 2, 2, 2, 2, 2, 2, 1];
 // color variants and probabilities
 let variants = [
-  { name: 'analogous', p: 0.16 },
-  { name: 'complementary', p: 0.03 },
-  { name: 'monochromatic', p: 0.02 },
+  { name: 'analogous', p: 0.15 },
+  { name: 'complementary', p: 0.05 },
+  { name: 'monochromatic', p: 0.03 },
   { name: 'achromatic', p: 0.01 },
   { name: 'saturated', p: 0.12 },
-  { name: 'tinted', p: 0.08 }
+  { name: 'tinted', p: 0.09 }
 ];
 // layouts and probabilities
 let layouts = [
