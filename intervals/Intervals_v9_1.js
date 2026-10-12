@@ -264,7 +264,6 @@ function setup() {
         n = 6;
         i = -1;
         r = 0;
-        pin = false;
       }
     }
   }
