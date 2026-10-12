@@ -9,7 +9,7 @@
     Intervals hash picker. Each tile is frame.html, which runs the program
     unmodified at one hash. The URL is the whole state:
 
-    ?v=9|9.1|10      program version, all three from intervals/ on main
+    ?v=9|9.1         program version, both from intervals/ on main
     ?seed=<word>     seeds the hashes; a fresh one is written in on first load
     ?page=<k>        page of the seed, from 0
     ?n=<count>       tiles per page, default 24, cap 60
@@ -62,7 +62,6 @@
         <select id="ver" aria-label="Version">
             <option value="9">v9</option>
             <option value="9.1">v9.1</option>
-            <option value="10">v10</option>
         </select>
         <span class="note" id="vnote"></span>
     </div>
@@ -84,7 +83,7 @@
         <textarea id="xl" readonly></textarea>
     </div>
     <div class="row">
-        <div class="lbl">firsts line for the program (index = position) <button data-copy="xf">Copy</button></div>
+        <div class="lbl">curated line for the program (index = position) <button data-copy="xf">Copy</button></div>
         <textarea id="xf" readonly></textarea>
     </div>
     <div class="row">
@@ -101,7 +100,7 @@
 
     // URL state. Anything missing is filled in and written back, so the
     // address bar always reproduces the page.
-    let v = ['9.1', '10'].indexOf(q.get('v')) >= 0 ? q.get('v') : '9';
+    let v = ['9.1'].indexOf(q.get('v')) >= 0 ? q.get('v') : '9';
     let seed = q.get('seed') || randomWord();
     let page = Math.max(0, parseInt(q.get('page'), 10) || 0);
     let n = Math.min(60, Math.max(1, parseInt(q.get('n'), 10) || 24));
@@ -330,7 +329,7 @@
         document.getElementById('counts').innerHTML =
             '<span><b>' + faves.length + '</b> fave</span><span><b>' + hmmm.length + '</b> hmmm</span>';
         document.getElementById('xl').value = faves.join('\n');
-        document.getElementById('xf').value = 'let firsts = [' + faves.map(h => "'" + h + "'").join(', ') + '];';
+        document.getElementById('xf').value = 'let curated = [' + faves.map(h => "'" + h + "'").join(', ') + '];';
         let fu = faves.length ? stateUrl({ hashes: faves }) : '';
         document.getElementById('xu').value = fu;
         document.getElementById('xo').href = fu || '#';

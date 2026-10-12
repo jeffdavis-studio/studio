@@ -9,9 +9,7 @@ Dates are 2026.
 | File | What it is |
 |---|---|
 | `Intervals_v9.js` | The artwork, the 10-09 code-lock candidate after the 10-11 cleanup pass. Deploys as is: Art Blocks defines `tokenData`, and the script reads no URL. |
-| `Intervals_v9_1.js` | v9.1, proposed on branch `intervals-v91` (10-11): v9 after the cleanup pass, with loop 4 re-drawing the paler far end before a full restart. Dev page `Intervals_v9_1.html`, dev token `dev-token-v9_1.js`, both cloned from v9's. |
-| `Intervals_v10.js` | The artwork, proposed on branch `intervals-v10` (10-10): lightness bands replace the re-roll loops, cleanup pass. Deploys as is: Art Blocks defines `tokenData`, and the script reads no URL. |
-| `Intervals_v10.html`, `dev-token-v10.js` | v10's dev page and dev token, cloned from v9's. |
+| `Intervals_v9_1.js` | v9.1, the final artwork (10-11), first proposed on branch `intervals-v91`: v9 after the cleanup pass, with loop 4 re-drawing the paler far end before a full restart. Dev page `Intervals_v9_1.html`, dev token `dev-token-v9_1.js`, both cloned from v9's. |
 | `Intervals_v9.html` | Dev page. `?hash=`, `?id=`, `?layout=`, `?aspect=14:11`. |
 | `dev-token-v9.js` | Dev only, v9's own. Stands in for Art Blocks: defines `tokenData`; `?layout=` searches for a token that draws it; `?aspect=` fits the window the artwork sees. No `?variant=`: the bench picker and the check find variants with `devFind()`. |
 | `plot-bench-v9.html` | Dev bench. Previews exactly what `buildSVG()` writes, beside the artwork; changes only the token (hash, variant, layout, steps). |
@@ -376,6 +374,9 @@ measured.
   before, that token finished complementary in name only.
 
 ## v10 (10-10): lightness bands replace the re-roll loops, cleanup pass
+
+Abandoned 10-11: not a path that worked. Its files were removed; v9.1 is
+the final artwork. Kept here as the record of what was tried.
 
 Branch `intervals-v10`, merged to main 10-11 so the versions sit side by side; not the Heft candidate. Jeff's decisions by voice
 10-10, after the 10-09 and 10-10 studies of the re-roll loops (`files/

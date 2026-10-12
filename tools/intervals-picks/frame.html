@@ -10,13 +10,13 @@
             unmodified: p5 1.11.3, then the version's dev-token-v<n>.js, then the
             program, in the order its own dev page loads them.
 
-            ?v=9|9.1|10        all three from ../../intervals/ (main on Pages since the
-                               10-11 merge; before that, v9.1 and v10 came from branches through
+            ?v=9|9.1           both from ../../intervals/ (main on Pages since the
+                               10-11 merge; before that, v9.1 came from a branch through
                                jsDelivr (cached up to 12 h)
             ?hash=0x<64 hex>   the token
             ?aspect=W:H        read by dev-token; the picker passes 14:11
             ?id=<n>            read by dev-token; the picker passes 999999 so the
-                               program's firsts table, once filled, never swaps the
+                               program's curated table, once filled, never swaps the
                                hash shown
         -->
         <style>
@@ -42,7 +42,7 @@
         <script>
             (function () {
                 let v = new URLSearchParams(location.search).get('v');
-                v = ['9.1', '10'].indexOf(v) >= 0 ? v : '9';
+                v = ['9.1'].indexOf(v) >= 0 ? v : '9';
                 let base = '../../intervals/';
                 let file = v.replace('.', '_');
                 document.write('<script src="' + base + 'dev-token-v' + file + '.js"><\/script>');
