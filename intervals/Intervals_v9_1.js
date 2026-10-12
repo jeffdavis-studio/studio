@@ -29,9 +29,8 @@ let kfloor = 0.05;
 let kdepth = 0.3;
 // plot flag
 let plot = false;
-// bars and probabilities
-let ladder = [5, 6, 8, 10, 12, 16, 20, 24];
-let rungs = [1, 2, 2, 2, 2, 2, 2, 1];
+// steps per ramp, weighted
+let steps = [5, 6, 6, 8, 8, 10, 10, 12, 12, 16, 16, 20, 20, 24];
 // color variants and probabilities
 let variants = [
   { name: 'saturated', p: 0.12 },
@@ -87,13 +86,7 @@ function setup() {
 
   // token: bar axis, steps, color variant, layout
   o = R.random_int(0, 1);
-  let pool = [];
-  for (let i = 0; i < ladder.length; i++) {
-    for (let k = 0; k < rungs[i]; k++) {
-      pool.push(ladder[i]);
-    }
-  }
-  s = R.random_choice(pool);
+  s = R.random_choice(steps);
   let v = R.random_dec();
   vtype = 'none';
   for (let i = 0; i < variants.length; i++) {
