@@ -197,7 +197,7 @@ function setup() {
     if (i === 6) {
       j = jr;
     }
-    // draw and lightness re-roll
+    // draw, re-rolled under the lightness gap or, on the seventh pass of a none token, while plain
     c[j] = gcolor(j, pin);
     while (((j + 2) % 6 < c.length && abs(c[(j + 2) % 6].light - c[j].light) < lmin) ||
       ((j + 4) % 6 < c.length && abs(c[(j + 4) % 6].light - c[j].light) < lmin) ||
@@ -211,7 +211,7 @@ function setup() {
       jr = R.random_int(0, 2) * 2 + 1;
     }
     if (i === n - 1) {
-      // uncross mono ramps
+      // uncross mono and achromatic ramps
       let crossed = vtype === 'monochromatic' || vtype === 'achromatic';
       while (crossed) {
         crossed = false;
@@ -264,7 +264,6 @@ function setup() {
         n = 6;
         i = -1;
         r = 0;
-        pin = false;
       }
     }
   }
