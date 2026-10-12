@@ -88,9 +88,9 @@ function devTraits(hash) {
   // Bar axis, then steps: one draw each.
   let ax = rng.random_int(0, 1);
   let pool = [];
-  for (let i = 0; i < ladder.length; i++) {
-    for (let k = 0; k < rungs[i]; k++) {
-      pool.push(ladder[i]);
+  for (let i = 0; i < units.length; i++) {
+    for (let k = 0; k < uprob[i]; k++) {
+      pool.push(units[i]);
     }
   }
   let st = rng.random_choice(pool);

@@ -3,13 +3,13 @@ let R, w, h, o, s, vtype, ltype, tmin, tmax, smin, smax, ptint, pshade, aspan, a
 let curated = [];
 // variant lightness limits
 let lmin = 5;
-let lanalogous = 4;
+let lanalog = 4;
 let ltinted = 4;
-let lmono = 7.5;
+let lmono = 7;
 // variant blur limits
 let dmin = 10;
-let dcomplementary = 8;
-let danalogous = 8;
+let dcomp = 8;
+let danalog = 8;
 let dtinted = 5;
 let dmono = 0;
 // analogous band width limits
@@ -20,8 +20,8 @@ let hrange = 120;
 // re-roll max
 let rollmax = 20;
 // tint and shade probabilities
-let tintprob = 0.3;
-let shadeprob = 0.2;
+let tintprob = 0.33;
+let shadeprob = 0.22;
 // white and black ranges
 let wfloor = 0.05;
 let wdepth = 0.4;
@@ -30,16 +30,16 @@ let kdepth = 0.3;
 // plot flag
 let plot = false;
 // bars and probabilities
-let ladder = [5, 6, 8, 10, 12, 16, 20, 24];
-let rungs = [1, 2, 2, 2, 2, 2, 2, 1];
+let units = [5, 6, 8, 10, 12, 16, 20, 24];
+let uprob = [1, 2, 2, 2, 2, 2, 2, 1];
 // color variants and probabilities
 let variants = [
+  { name: 'analogous', p: 0.16 },
+  { name: 'complementary', p: 0.03 },
+  { name: 'monochromatic', p: 0.02 },
+  { name: 'achromatic', p: 0.01 },
   { name: 'saturated', p: 0.12 },
-  { name: 'tinted', p: 0.12 },
-  { name: 'complementary', p: 0.12 },
-  { name: 'analogous', p: 0.12 },
-  { name: 'monochromatic', p: 0.12 },
-  { name: 'achromatic', p: 0.12 }
+  { name: 'tinted', p: 0.08 }
 ];
 // layouts and probabilities
 let layouts = [
@@ -88,9 +88,9 @@ function setup() {
   // token: bar axis, steps, color variant, layout
   o = R.random_int(0, 1);
   let pool = [];
-  for (let i = 0; i < ladder.length; i++) {
-    for (let k = 0; k < rungs[i]; k++) {
-      pool.push(ladder[i]);
+  for (let i = 0; i < units.length; i++) {
+    for (let k = 0; k < uprob[i]; k++) {
+      pool.push(units[i]);
     }
   }
   s = R.random_choice(pool);
@@ -143,7 +143,7 @@ function setup() {
     pshade = 0;
   }
   if (vtype === 'complementary') {
-    dmin = dcomplementary;
+    dmin = dcomp;
   }
   if (vtype === 'tinted') {
     tmin = wdepth;
@@ -160,8 +160,8 @@ function setup() {
     aspan = R.random_int(amin, amax);
     adir = R.random_int(0, 1) * 2 - 1;
     aend = R.random_int(1, 5);
-    lmin = lanalogous;
-    dmin = danalogous;
+    lmin = lanalog;
+    dmin = danalog;
   }
   if (vtype === 'achromatic') {
     smin = 0.1;
