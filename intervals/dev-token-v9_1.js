@@ -124,3 +124,15 @@ function devTraits(hash) {
   }
   return [vt, lt];
 }
+
+// The dev page's console readout: every feature, once setup() has set
+// window.$features (p5 runs setup() after this file loads).
+let devFeatures = setInterval(function () {
+  if (window.$features) {
+    clearInterval(devFeatures);
+    let fk = Object.keys(window.$features);
+    for (let k = 0; k < fk.length; k++) {
+      console.log(fk[k] + ': ' + window.$features[fk[k]]);
+    }
+  }
+}, 50);

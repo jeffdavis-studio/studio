@@ -276,10 +276,6 @@ function setup() {
     'Bar Width': ltype.charAt(0).toUpperCase() + ltype.slice(1),
     'Color Variant': vtype.charAt(0).toUpperCase() + vtype.slice(1)
   };
-  let fk = Object.keys(window.$features);
-  for (let k = 0; k < fk.length; k++) {
-    print(fk[k] + ': ' + window.$features[fk[k]]);
-  }
 }
 
 function draw() {
