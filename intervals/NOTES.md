@@ -416,3 +416,24 @@ the Morgan workspace): lightness contrast is constructed, not checked.
   first-outputs table `firsts` (empty until the hash selection), the
   commented-out local hash generator at the top.
 - 10-11, later: complementary gets its own dE floor, `dcomplementary = 8` (was dmin0 10 with none and saturated); it restarted 18% of its tokens at 10, the highest rate left. lmin stays lmin0.
+- 10-11, Jeff's cleanup (c38dfdf, bdc9d72): the knobs are named as they
+  read now. `lmin` / `dmin` are the open group's knobs and the working
+  values setup() overwrites by variant (the old `lmin0` / `dmin0`);
+  `hrange` (was rspan), `rollmax` (rmax), `tintprob` / `shadeprob` (ptint0 /
+  pshade0), `curated` (firsts), `gcolor()` (gcol). The plot constants sit in
+  `plotSettings()`, read by `buildSVG()` and `sheet()`; the plot view draws
+  the sheet in inches straight from `buildBars()` instead of parsing the pen
+  files, and the pen files drop their data- header and per-bar groups (one
+  layer per angle; every line and its order unchanged). The features print
+  loop moved to the dev token. The pre-cleanup fedfea9 and bdc9d72 agree on
+  the 2000 study hashes: anchors, features and counters on 2000 of 2000, 24
+  PNGs byte for byte, every pen-file line of 24 tokens in the same order
+  (the plot view differs by at most 3 of 255 on a channel, line order under
+  multiply). Record: `files/intervals-v91-final-review-2026-10-11/RESULT.md`
+  in the Morgan workspace.
+- Harness note (10-11 review): since `lmin` and `dmin` are both knob and
+  working value, a page that calls setup() more than once carries the
+  previous token's group into the next (541 of 2000 tokens change in the
+  rig unless the two are reset before each call). On chain setup() runs
+  once per load, so the token is unaffected; the rigs reset the two, and
+  `intervals-v9_1-check.mjs` still reads the pre-cleanup names.
