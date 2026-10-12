@@ -111,7 +111,11 @@ function devTraits(hash) {
     l -= layouts[i].p;
   }
   // Steps too narrow for any varied ratio over the band floor are even.
-  if (Math.floor((ax === 0 ? 355.6 : 279.4) / st / 3.88) < 4) {
+  let wmax = Math.floor(91 / st);
+  if (ax === 1) {
+    wmax = Math.floor(72 / st);
+  }
+  if (wmax < 4) {
     lt = 'even';
   }
   // 5 and 6 steps are always varied.
