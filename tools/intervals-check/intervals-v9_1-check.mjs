@@ -176,7 +176,7 @@ try {
   console.log('\n1. LOCKED PLOT SETTINGS, KNOBS, TABLES');
   const top = SRC.slice(0, SRC.indexOf('function setup('));
   const rest = SRC.slice(SRC.indexOf('function setup('));
-  const page = await open(`${ART}?hash=${'0x' + 'ab'.repeat(32)}&id=1`);
+  const page = await open(`${ART}?hash=${'0x' + 'ab'.repeat(32)}&id=999999`);
   const P = await page.evaluate(() => ({
     plot: typeof plotSettings === 'function' ? plotSettings() : null,
     variants, names: pens.map(p => p.name), curated: curated.slice(), knobs: window.$knobs,
@@ -239,7 +239,7 @@ try {
   const kept = {};
   for (let ti = 0; ti < TOK.length; ti++) {
     const t = TOK[ti];
-    const id = String(123000001 + ti);
+    const id = String(123000101 + ti);
     const tag = t.hash.slice(0, 10) + ' ' + (t.want || 'given');
     const p = await open(`${ART}?hash=${t.hash}&id=${id}`);
     const g = await p.evaluate(fn => ({
@@ -409,7 +409,7 @@ try {
   for (const t of [TOK[0], TOK.find(x => x.vtype === 'achromatic') || TOK[1]]) {
     const shots = [];
     for (const sc of screens) {
-      const p = await open(`${ART}?hash=${t.hash}&id=1${sc.q}`, sc.vw, sc.vh);
+      const p = await open(`${ART}?hash=${t.hash}&id=999999${sc.q}`, sc.vw, sc.vh);
       const d = await p.evaluate(fn => {
         const cv = document.querySelector('canvas');
         return { cw: cv.width, ch: cv.height, files: eval('(' + fn + ')')().map(f => f.content).join('') };
@@ -424,7 +424,7 @@ try {
   console.log('\n5. DETERMINISM');
   for (let ti = 0; ti < TOK.length; ti++) {
     const t = TOK[ti];
-    const p = await open(`${ART}?hash=${t.hash}&id=${123000001 + ti}`);
+    const p = await open(`${ART}?hash=${t.hash}&id=${123000101 + ti}`);
     const d = await look(p);
     if (ti < 2) {
       const sv = await press(p, 's');
@@ -443,27 +443,35 @@ try {
     check(/^0x[0-9a-f]{64}$/.test(h1) && h1 !== h2, 'unpinned loads are well-formed, different tokens');
   }
 
-  console.log('\n6. CURATED TABLE (a test table, injected for this run only)');
+  // The real table, as the source declares it. Empty until the curated hashes go in.
+  const REAL = (() => {
+    const m = /^let curated = \[([\s\S]*?)\];/m.exec(SRC);
+    return m ? [...m[1].matchAll(/'(0x[0-9a-f]{64})'/g)].map(x => x[1]) : [];
+  })();
+  console.log('\n6. CURATED TABLE (' + (REAL.length ? 'the real table, ' + REAL.length + ' entries' : 'a test table, injected for this run only') + ')');
   {
     const pick = v => TOK.filter(x => x.vtype === v);
-    const F = [pick('complementary')[0], pick('achromatic')[0], pick('none')[0]].map(x => x.hash);
+    const F = REAL.length ? REAL : [pick('complementary')[0], pick('achromatic')[0], pick('none')[0]].map(x => x.hash);
+    const INJ = REAL.length ? null : F;
     const X = pick('tinted')[0].hash;
     console.log('   curated = [' + F.map(h => h.slice(0, 10)).join(', ') + '], token hash ' + X.slice(0, 10));
+    check(!REAL.length || new Set(REAL).size === REAL.length, 'the real table has no duplicate hash');
+    const IDS = REAL.length ? F.flatMap((h, i) => [[i, String(i)], [i, String(123000000 + i)]]) : [[0, '0'], [2, '2'], [0, '123000000'], [2, '123000002']];
     // ?id=i draws curated[i]: everything the page emits is what ?hash=curated[i] emits.
     // The pen files carry no token data since c38dfdf, so their bytes are the whole claim.
-    for (const [i, id] of [[0, '0'], [2, '2'], [0, '123000000'], [2, '123000002']]) {
-      const pa = await open(`${ART}?hash=${X}&id=${id}`, 900, 900, F);
+    for (const [i, id] of IDS) {
+      const pa = await open(`${ART}?hash=${X}&id=${id}`, 900, 900, INJ);
       const a = await look(pa);
       const keys = [];
       for (const f of a.files) keys.push(await press(pa, String(f.ink + 1)));
       const sa = await press(pa, 's');
       await pa.close();
-      const pb = await open(`${ART}?hash=${F[i]}&id=${id}`);
+      const pb = await open(`${ART}?hash=${F[i]}&id=999999`);
       const b = await look(pb);
       const sb = await press(pb, 's');
       await pb.close();
       const tag = '?hash=' + X.slice(0, 10) + '&id=' + id;
-      check(a.ncurated === F.length && b.ncurated === 0, tag + ': the test table is in place (' + a.ncurated + ' entries) and the reference page has none');
+      check(a.ncurated === F.length && b.ncurated === (REAL.length ? F.length : 0), tag + ': the table is in place (' + a.ncurated + ' entries)' + (REAL.length ? '' : ' and the reference page has none'));
       check(a.hash === F[i], tag + ': tokenData.hash becomes curated[' + i + '] (' + a.hash.slice(0, 10) + ')');
       check(a.canvas === b.canvas, tag + ': canvas pixel-identical to ?hash=curated[' + i + ']');
       check(sa.bytes.equals(sb.bytes) && sa.name === F[i] + '.png', tag + ': s saves the same PNG bytes, named by the curated hash (' + sa.name.slice(0, 12) + '...)');
@@ -474,21 +482,21 @@ try {
     }
     // Past the table, the token's own hash.
     for (const id of [String(F.length), '123000' + String(F.length).padStart(3, '0'), '999999']) {
-      const pa = await open(`${ART}?hash=${X}&id=${id}`, 900, 900, F);
+      const pa = await open(`${ART}?hash=${X}&id=${id}`, 900, 900, INJ);
       const a = await look(pa);
       await pa.close();
-      const pb = await open(`${ART}?hash=${X}&id=${id}`);
+      const pb = await open(`${ART}?hash=${X}&id=999999`);
       const b = await look(pb);
       await pb.close();
       check(a.ncurated === F.length && a.hash === X && a.canvas === b.canvas && joined(a.files) === joined(b.files),
-        '?id=' + id + ' (past the table): draws its own hash, canvas and pen files identical with or without the table');
+        '?id=' + id + ' (past the table): draws its own hash, canvas and pen files identical to ?id=999999');
     }
   }
 
   console.log('\n7. THE PLOT VIEW');
   {
     const H = TOK[0].hash;
-    const p1 = await open(`${ART}?hash=${H}&id=1&aspect=14:11`, 1200, 800);
+    const p1 = await open(`${ART}?hash=${H}&id=999999&aspect=14:11`, 1200, 800);
     const d0 = await png(p1);
     const saved = (await press(p1, 's')).bytes;
     const state = () => p1.evaluate(() => JSON.stringify([s, o, vtype, ltype, bx, bw, c.map(x => [x.hue, x.light, x.tint, x.shade])]));
@@ -511,7 +519,7 @@ try {
     check(saved1.readUInt32BE(16) === 3400 && saved1.readUInt32BE(20) === 2800 && sv1.name === H + '.png',
       's in the plot view saves the sheet alone, 3400 x 2800, named by the hash (got ' + saved1.readUInt32BE(16) + 'x' + saved1.readUInt32BE(20) + ', ' + sv1.name.slice(0, 12) + '...)');
     if (OUT) writeFileSync(join(OUT, H + '-plotview.png'), saved1);
-    const p3 = await open(`${ART}?hash=${H}&id=1&aspect=14:11`, 1200, 800);
+    const p3 = await open(`${ART}?hash=${H}&id=999999&aspect=14:11`, 1200, 800);
     await p3.keyboard.press('p');
     await p3.waitForFunction(() => !isLooping() && plot, null, { timeout: 60000 });
     const lk = await p3.evaluate(() => {
