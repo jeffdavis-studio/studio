@@ -1,4 +1,4 @@
-// Check for intervals/Intervals_v9_1.js and its dev page: the emitted pen files
+// Check for intervals/Intervals_final.js (or INTERVALS_FILE=Intervals_v9_1) and its dev page: the emitted pen files
 // and PNGs, the keys, determinism, the curated table and the p view.
 //
 //   PLAYWRIGHT=/path/to/playwright/index.mjs node tools/intervals-check/intervals-v9_1-check.mjs [--per=3] [--out=dir] [0x<hash> ...]
@@ -24,8 +24,9 @@ const { chromium } = await import(process.env.PLAYWRIGHT || 'playwright');
 
 const here = join(dirname(fileURLToPath(import.meta.url)), '../../intervals');
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript' };
-const ART = 'Intervals_v9_1.html';
-const SRC = readFileSync(join(here, 'Intervals_v9_1.js'), 'utf8');
+const FILE = process.env.INTERVALS_FILE || 'Intervals_final';
+const ART = FILE + '.html';
+const SRC = readFileSync(join(here, FILE + '.js'), 'utf8');
 
 const args = process.argv.slice(2);
 const PER = +((args.find(a => a.startsWith('--per=')) || '--per=3').slice(6));
@@ -552,7 +553,7 @@ try {
   check(!/location\.search|URLSearchParams/.test(code), 'reads no URL parameters');
   check(!/window\.aspect|innerWidth|innerHeight/.test(code), 'no aspect code: the canvas is the window (dev pages pin it)');
   check(!/<script|import\s|require\(/.test(code), 'no dependencies beyond p5');
-  check(readFileSync(join(here, 'Intervals_v9_1.js'), 'utf8') === SRC, 'Intervals_v9_1.js unchanged by the run');
+  check(readFileSync(join(here, FILE + '.js'), 'utf8') === SRC, FILE + '.js unchanged by the run');
 
   for (const e of errors) {
     failures++;
