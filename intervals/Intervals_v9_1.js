@@ -1,6 +1,15 @@
 let R, w, h, o, s, vtype, ltype, tmin, tmax, smin, smax, ptint, pshade, aspan, adir, aend, bx, bw, c, inks, inkl, inka;
 // curated hashes
-let curated = [];
+let curated = [
+  '0x5e3837b79163bb08c1bd236b2a869d053ec4cfcaf750f0ee10dca316810cc65a',
+  '0x9745141161c384881d6b0157146f3db9b9b973cf52c85764dfde5495bd6e2b8e',
+  '0x6fea97164da3bc6112e741fb04af9dff0b55d454809d79ad28a6b28f06534f03',
+  '0x16ade34d9beeeccd97fecef863f131e5ced2df6219215f0df246b579a333d662',
+  '0x0149688c47a62cc598b00d9fc1f8f4a15220503a88c7ad34e5b5d3aa2c001271',
+  '0xe8143a00031eeeeea09a8b0520acfdeb28802cc708612df5154f28de0c08887d',
+  '0xf263039e77cc9bee90292dd57a476b3bdbf95b90d632f983cfc647b03d51bb44',
+  '0xf80525749e3790029997d333f9ace9fd3b334ce2c40718f9f5fb5feafc5d84be',
+];
 // variant lightness limits
 let lmin = 5;
 let lanalog = 4;
