@@ -1,0 +1,59 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Voice audition</title>
+<style>
+body{margin:0;font:17px/1.4 -apple-system,system-ui,sans-serif;background:#f6f5f2;color:#222}
+main{max-width:640px;margin:0 auto;padding:20px 16px 60px}
+h1{font-size:24px;margin:0 0 6px} p.note{color:#666;font-size:15px;margin:0 0 18px}
+.row{background:#fff;border-radius:14px;padding:14px;margin:0 0 12px;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.name{font-size:20px;font-weight:600} .eng{color:#777;font-size:14px;margin:2px 0 10px}
+.btns{display:flex;flex-direction:row;gap:10px}
+button{flex:1 1 0;width:50%;height:56px;font-size:17px;border:0;border-radius:12px;background:#e7e4dc;color:#222;-webkit-appearance:none;appearance:none}
+button.playing{background:#2f5d50;color:#fff}
+details{margin-top:20px;color:#555;font-size:15px}
+</style></head><body><main>
+<h1>Voice audition</h1>
+<p class="note">Same two scripts in every voice. Tap to play, tap again to stop. Loudness is matched across clips.</p>
+<div class="row"><div class="meta"><div class="name">Lessac</div><div class="eng">Piper (current) &middot; Current voice bridge, male</div></div>
+<div class="btns"><button data-src="clips/piper-lessac-A.mp3">Morgan script</button><button data-src="clips/piper-lessac-B.mp3">Abby script</button></div></div>
+<div class="row"><div class="meta"><div class="name">Heart</div><div class="eng">Piper (current) &middot; Current voice bridge, female</div></div>
+<div class="btns"><button data-src="clips/piper-heart-A.mp3">Morgan script</button><button data-src="clips/piper-heart-B.mp3">Abby script</button></div></div>
+<div class="row"><div class="meta"><div class="name">Heart</div><div class="eng">Kokoro &middot; American, female</div></div>
+<div class="btns"><button data-src="clips/kokoro-af_heart-A.mp3">Morgan script</button><button data-src="clips/kokoro-af_heart-B.mp3">Abby script</button></div></div>
+<div class="row"><div class="meta"><div class="name">Bella</div><div class="eng">Kokoro &middot; American, female</div></div>
+<div class="btns"><button data-src="clips/kokoro-af_bella-A.mp3">Morgan script</button><button data-src="clips/kokoro-af_bella-B.mp3">Abby script</button></div></div>
+<div class="row"><div class="meta"><div class="name">Nicole</div><div class="eng">Kokoro &middot; American, female, soft and slow</div></div>
+<div class="btns"><button data-src="clips/kokoro-af_nicole-A.mp3">Morgan script</button><button data-src="clips/kokoro-af_nicole-B.mp3">Abby script</button></div></div>
+<div class="row"><div class="meta"><div class="name">Sarah</div><div class="eng">Kokoro &middot; American, female</div></div>
+<div class="btns"><button data-src="clips/kokoro-af_sarah-A.mp3">Morgan script</button><button data-src="clips/kokoro-af_sarah-B.mp3">Abby script</button></div></div>
+<div class="row"><div class="meta"><div class="name">Sky</div><div class="eng">Kokoro &middot; American, female</div></div>
+<div class="btns"><button data-src="clips/kokoro-af_sky-A.mp3">Morgan script</button><button data-src="clips/kokoro-af_sky-B.mp3">Abby script</button></div></div>
+<div class="row"><div class="meta"><div class="name">Emma</div><div class="eng">Kokoro &middot; British, female</div></div>
+<div class="btns"><button data-src="clips/kokoro-bf_emma-A.mp3">Morgan script</button><button data-src="clips/kokoro-bf_emma-B.mp3">Abby script</button></div></div>
+<div class="row"><div class="meta"><div class="name">Isabella</div><div class="eng">Kokoro &middot; British, female</div></div>
+<div class="btns"><button data-src="clips/kokoro-bf_isabella-A.mp3">Morgan script</button><button data-src="clips/kokoro-bf_isabella-B.mp3">Abby script</button></div></div>
+<div class="row"><div class="meta"><div class="name">Michael</div><div class="eng">Kokoro &middot; American, male</div></div>
+<div class="btns"><button data-src="clips/kokoro-am_michael-A.mp3">Morgan script</button><button data-src="clips/kokoro-am_michael-B.mp3">Abby script</button></div></div>
+<div class="row"><div class="meta"><div class="name">George</div><div class="eng">Kokoro &middot; British, male</div></div>
+<div class="btns"><button data-src="clips/kokoro-bm_george-A.mp3">Morgan script</button><button data-src="clips/kokoro-bm_george-B.mp3">Abby script</button></div></div>
+<div class="row"><div class="meta"><div class="name">Samantha</div><div class="eng">macOS say &middot; Built-in system voice, for reference</div></div>
+<div class="btns"><button data-src="clips/say-samantha-A.mp3">Morgan script</button><button data-src="clips/say-samantha-B.mp3">Abby script</button></div></div>
+<details><summary>Scripts</summary>
+<p><b>Morgan:</b> Morning. Two things before you go. The taxi is confirmed for 9:15 at Brainerd, and the plotter plan is in your Drive. One call for you today: UPS Ground or 2-Day. I'd take Ground.</p>
+<p><b>Abby:</b> Hi Jeff, it's Abby. The strategy call with Erick is at ten Mountain, and the board packet is due Friday. I've drafted the agenda and put it in your Art Blocks drive. Want me to send it to the team?</p>
+</details>
+<audio id="player" preload="none"></audio>
+</main>
+<script>
+var p=document.getElementById('player'),cur=null;
+function clear(){if(cur)cur.classList.remove('playing');cur=null;}
+document.querySelectorAll('button[data-src]').forEach(function(b){
+ b.addEventListener('click',function(){
+  if(cur===b){p.pause();clear();return;}
+  clear();p.src=b.getAttribute('data-src');p.currentTime=0;
+  var r=p.play(); cur=b;b.classList.add('playing');
+  if(r&&r.catch)r.catch(function(){clear();});
+ });
+});
+p.addEventListener('ended',clear);
+</script></body></html>
