@@ -1,0 +1,52 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Voice audition</title>
+<style>
+body{margin:0;font:17px/1.4 -apple-system,system-ui,sans-serif;background:#f6f5f2;color:#222}
+main{max-width:640px;margin:0 auto;padding:20px 16px 60px}
+h1{font-size:24px;margin:0 0 6px} p.note{color:#666;font-size:15px;margin:0 0 18px}
+.row{background:#fff;border-radius:14px;padding:14px;margin:0 0 12px;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.name{font-size:20px;font-weight:600} .eng{color:#777;font-size:14px;margin:2px 0 10px}
+.btns{display:flex;flex-direction:row;gap:10px}
+button{flex:1 1 0;width:50%;height:56px;font-size:17px;border:0;border-radius:12px;background:#e7e4dc;color:#222;-webkit-appearance:none;appearance:none}
+button.playing{background:#2f5d50;color:#fff}
+details{margin-top:20px;color:#555;font-size:15px}
+.num{color:#2f5d50;font-size:14px;margin:-6px 0 10px}
+</style></head><body><main>
+<h1>Voice audition, round 2</h1>
+<p class="note">Aiming at the current voice with less robot. The first row is the voice as it runs today. "Match" is how close each one sounds to it, from a voice-ID model (today's voice against itself is 98). "Wait" is how long a 12-second reply takes to make on the mini. <a href="index.html">Round 1</a></p>
+<div class="row"><div class="meta"><div class="name">Today&#x27;s voice</div><div class="eng">Piper Heart, exactly as the bridge runs it</div><div class="num">Match 98 · Wait 0.4 s</div></div>
+<div class="btns"><button data-src="clips/r2/base-A.mp3">Morgan script</button><button data-src="clips/r2/base-B.mp3">Abby script</button></div></div>
+<div class="row"><div class="meta"><div class="name">Same voice, cleaner</div><div class="eng">Piper Heart, less generator noise, 5% slower, short pause between sentences</div><div class="num">Match 98 · Wait 0.4 s</div></div>
+<div class="btns"><button data-src="clips/r2/piper-clean-A.mp3">Morgan script</button><button data-src="clips/r2/piper-clean-B.mp3">Abby script</button></div></div>
+<div class="row"><div class="meta"><div class="name">Same voice, unhurried</div><div class="eng">Piper Heart, 10% slower, longer pause between sentences</div><div class="num">Match 98 · Wait 0.4 s</div></div>
+<div class="btns"><button data-src="clips/r2/piper-unhurried-A.mp3">Morgan script</button><button data-src="clips/r2/piper-unhurried-B.mp3">Abby script</button></div></div>
+<div class="row"><div class="meta"><div class="name">Cleaner, polished</div><div class="eng">Row 2 with a softer top end, de-essed, 44.1 kHz</div><div class="num">Match 95 · Wait 0.4 s</div></div>
+<div class="btns"><button data-src="clips/r2/piper-clean-polish-A.mp3">Morgan script</button><button data-src="clips/r2/piper-clean-polish-B.mp3">Abby script</button></div></div>
+<div class="row"><div class="meta"><div class="name">Unhurried, polished</div><div class="eng">Row 3 with a softer top end, de-essed, 44.1 kHz</div><div class="num">Match 95 · Wait 0.4 s</div></div>
+<div class="btns"><button data-src="clips/r2/piper-unhurried-polish-A.mp3">Morgan script</button><button data-src="clips/r2/piper-unhurried-polish-B.mp3">Abby script</button></div></div>
+<div class="row"><div class="meta"><div class="name">Kokoro blend 1</div><div class="eng">Kokoro, Heart 60% + Nicole 40%</div><div class="num">Match 79 · Wait 1.9 s</div></div>
+<div class="btns"><button data-src="clips/r2/kokoro-heart-nicole-A.mp3">Morgan script</button><button data-src="clips/r2/kokoro-heart-nicole-B.mp3">Abby script</button></div></div>
+<div class="row"><div class="meta"><div class="name">Kokoro blend 2</div><div class="eng">Kokoro, Heart 50% + Nicole 30% + Kore 20%</div><div class="num">Match 79 · Wait 1.9 s</div></div>
+<div class="btns"><button data-src="clips/r2/kokoro-heart-nicole-kore-A.mp3">Morgan script</button><button data-src="clips/r2/kokoro-heart-nicole-kore-B.mp3">Abby script</button></div></div>
+<div class="row"><div class="meta"><div class="name">Kokoro blend 3</div><div class="eng">Kokoro, Heart 60% + Nicole 20% + Kore 20%</div><div class="num">Match 79 · Wait 1.9 s</div></div>
+<div class="btns"><button data-src="clips/r2/kokoro-heart-nicole-kore2-A.mp3">Morgan script</button><button data-src="clips/r2/kokoro-heart-nicole-kore2-B.mp3">Abby script</button></div></div>
+<details><summary>Scripts</summary>
+<p><b>Morgan:</b> Morning. Two things before you go. The taxi is confirmed for 9:15 at Brainerd, and the plotter plan is in your Drive. One call for you today: UPS Ground or 2-Day. I'd take Ground.</p>
+<p><b>Abby:</b> Hi Jeff, it's Abby. The strategy call with Erick is at ten Mountain, and the board packet is due Friday. I've drafted the agenda and put it in your Art Blocks drive. Want me to send it to the team?</p>
+</details>
+<audio id="player" preload="none"></audio>
+</main>
+<script>
+var p=document.getElementById('player'),cur=null;
+function clear(){if(cur)cur.classList.remove('playing');cur=null;}
+document.querySelectorAll('button[data-src]').forEach(function(b){
+ b.addEventListener('click',function(){
+  if(cur===b){p.pause();clear();return;}
+  clear();p.src=b.getAttribute('data-src');p.currentTime=0;
+  var r=p.play(); cur=b;b.classList.add('playing');
+  if(r&&r.catch)r.catch(function(){clear();});
+ });
+});
+p.addEventListener('ended',clear);
+</script></body></html>
