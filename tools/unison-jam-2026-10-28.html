@@ -122,10 +122,10 @@
 <div id="bars" class="row"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
 <div id="layers"></div>
 <div id="add" class="row"><div class="lbl">Add a layer</div><div id="pal"></div></div>
-<footer title="engine @e239f5f · built 2026-10-28">Unison jam &middot; every sound is synthesized in this page by the engine at e239f5f</footer>
+<footer title="engine @61d0b52 · built 2026-10-28">Unison jam &middot; every sound is synthesized in this page by the engine at 61d0b52</footer>
 
 <script>
-/* ===== src/core/prng.js @ e239f5f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/prng.js @ 61d0b52 — verbatim from jeffdavis-studio/unison-engine ===== */
 // prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
 // token hash, consumed in canonical draw order (Technical Architecture v1.2).
 //
@@ -198,7 +198,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/core/mix.js @ e239f5f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/mix.js @ 61d0b52 — verbatim from jeffdavis-studio/unison-engine ===== */
 // mix.js — the fan-in ≤2 summing rule, as a primitive.
 //
 // Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
@@ -236,7 +236,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/desk/desk.js @ e239f5f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/desk/desk.js @ 61d0b52 — verbatim from jeffdavis-studio/unison-engine ===== */
 // desk.js — the 24-track desk as a running audio graph.
 //
 // The desk is the data structure, not a metaphor (Composition Brief 2 / Tech
@@ -626,7 +626,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/production.js @ e239f5f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/production.js @ 61d0b52 — verbatim from jeffdavis-studio/unison-engine ===== */
 // production.js — the production room, v0.
 //
 // PLACEMENT DECISION (Morgan's call, ratified by Jeff 2026-08-03). Production
@@ -825,7 +825,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/juno.js @ e239f5f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/juno.js @ 61d0b52 — verbatim from jeffdavis-studio/unison-engine ===== */
 // juno.js — Juno-60-flavor poly voice, raw Web Audio, zero dependencies.
 // Ported from the 2026-07-21 bake-off winner (voice-raw.js), restructured to
 // live behind a desk strip: U.createJuno(ctx, strip, patchName) builds its own
@@ -1367,7 +1367,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/minimoog.js @ e239f5f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/minimoog.js @ 61d0b52 — verbatim from jeffdavis-studio/unison-engine ===== */
 // minimoog.js — Minimoog Model D-lineage mono voice, zero dependencies.
 //
 // THE MONO BASS LANE (build order 808 → Juno → Minimoog → …; it also absorbs
@@ -1909,7 +1909,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/obxa.js @ e239f5f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/obxa.js @ 61d0b52 — verbatim from jeffdavis-studio/unison-engine ===== */
 // obxa.js — Oberheim OB-Xa-lineage poly voice, zero dependencies.
 //
 // THE BRASS/PAD POLY LANE (build order 808 → Juno → Minimoog → OB-Xa → …).
@@ -2446,7 +2446,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/fm.js @ e239f5f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/fm.js @ 61d0b52 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fm.js — six-operator FM keys voice (the DX7 lineage), zero dependencies.
 //
 // THE FM LANE (build order 808 → Juno → Minimoog → OB-Xa → Linn → FM).
@@ -3119,7 +3119,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/bassguitar.js @ e239f5f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/bassguitar.js @ 61d0b52 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassguitar.js — electric bass guitar, the first session player of the human
 // rack (Rack 2), zero dependencies.
 //
@@ -3708,7 +3708,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/rhythmguitar.js @ e239f5f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/rhythmguitar.js @ 61d0b52 — verbatim from jeffdavis-studio/unison-engine ===== */
 // rhythmguitar.js — clean electric rhythm guitar, the fourth and last stop of
 // the human rack (Rack 2), zero dependencies.
 //
@@ -4357,7 +4357,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/tr808.js @ e239f5f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/tr808.js @ 61d0b52 — verbatim from jeffdavis-studio/unison-engine ===== */
 // tr808.js — THE MACHINE. A TR-808-lineage core voice: bass drum, snare,
 // closed hat, open hat, each with a front panel the token actually turns.
 //
@@ -5641,7 +5641,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/linn.js @ e239f5f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/linn.js @ 61d0b52 — verbatim from jeffdavis-studio/unison-engine ===== */
 // linn.js — THE STUDIO MACHINE. A Linn-family (LM-1 / LinnDrum lineage)
 // drum computer: the new wave / synth-pop / 80s R&B kit.
 //
@@ -6398,7 +6398,7 @@
   U._linn = { burn, play, vca, roms, V, EPROM_HZ, RECON_HZ, SR, TOM_MID_CLOCK };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drums.js @ e239f5f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drums.js @ 61d0b52 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drums.js — the drum machine: 808/LM-1-flavor voices, synthesized at runtime
 // into short AudioBuffers, played back as one-shots.
 //
@@ -6727,7 +6727,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/books.js @ e239f5f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/books.js @ 61d0b52 — verbatim from jeffdavis-studio/unison-engine ===== */
 // books.js — Pattern Books v1, as data.
 //
 // This file IS the document: "Unison — Pattern Books v1 (draft)" (Morgan,
@@ -7349,7 +7349,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/bassplayer.js @ e239f5f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/bassplayer.js @ 61d0b52 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassplayer.js — the PERFORMANCE half of the bass guitar: a session player.
 //
 // Rack 2's rule (kb/projects/unison.md, 2026-07-11): every human instrument is
@@ -7601,7 +7601,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/gtrplayer.js @ e239f5f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/gtrplayer.js @ 61d0b52 — verbatim from jeffdavis-studio/unison-engine ===== */
 // gtrplayer.js — the PERFORMANCE half of the rhythm guitar: a session
 // guitarist on the rhythmGtr strip.
 //
@@ -7801,7 +7801,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/fmplayer.js @ e239f5f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/fmplayer.js @ 61d0b52 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fmplayer.js — the PERFORMANCE half of the FM keys: a session keyboard
 // player on the FM chord strips (compA's tine EP, colour's glass and brass).
 //
@@ -7942,7 +7942,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/testPhrase.js @ e239f5f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/testPhrase.js @ 61d0b52 — verbatim from jeffdavis-studio/unison-engine ===== */
 // testPhrase.js — deterministic 8-bar test phrase, ported from the bake-off
 // (phrase.js) onto the engine's canonical PRNG (core/prng.js).
 //
@@ -8036,7 +8036,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/session.js @ e239f5f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/session.js @ 61d0b52 — verbatim from jeffdavis-studio/unison-engine ===== */
 // session.js — the session sheet and the arrangement realizer.
 //
 // Two tiers, in this order, each on its own stream (core/prng.js):
@@ -9275,7 +9275,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/render/renderer.js @ e239f5f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/render/renderer.js @ 61d0b52 — verbatim from jeffdavis-studio/unison-engine ===== */
 // renderer.js — song assembly + the render pipeline (Technical Architecture
 // v1.2 playback model): live-first, with (a) a cheap analysis pre-render for
 // verification/metrics and (b) an on-demand full OfflineAudioContext render
@@ -9876,19 +9876,41 @@
     });
     return bars.map(function (x) { return x.sort().join(" "); });
   }
+  function planKey(g, sec, inst, pat, patch, opt, vr) { return gKey(g) + "#" + sec + "#" + inst + "|" + pat + "|" + patch + "|" + ((opt && opt.pn) || "") + "#" + vr; }
+  function planOrder(vr) { var uses = {}, order = []; SCHED[vr].forEach(function (v) { if (!uses[v]) { uses[v] = 0; order.push(v); } uses[v]++; }); return { uses: uses, order: order }; }
+  function nCodesOf(avail) { var n = 1; avail.forEach(function (a) { n *= a; }); return n; }
+  function sigOf(g, sec, inst, pat, patch, opt, v, c) {
+    return barSigs(capture(buildSheet(g, sec, inst, pat, patch, v, { pn: opt && opt.pn, forceCode: c }), pat, v, 0), INST_BY[inst].strips, g.bpm);
+  }
   function sigPlan(g, sec, inst, pat, patch, opt, vr, E, avail) {
-    var key = gKey(g) + "#" + sec + "#" + inst + "|" + pat + "|" + patch + "|" + ((opt && opt.pn) || "") + "#" + vr;
+    var key = planKey(g, sec, inst, pat, patch, opt, vr);
     if (planCache[key]) return planCache[key];
-    var sched = SCHED[vr], uses = {}, order = [], nCodes = 1, base = [], T = 4, count = {}, plans = {};
-    for (var e0 = 0; e0 < E.length; e0++) { base.push(nCodes); nCodes *= avail[e0]; }
-    sched.forEach(function (v) { if (!uses[v]) { uses[v] = 0; order.push(v); } uses[v]++; });
-    var cost = function (c) { var x = 0; for (var e = 0; e < E.length; e++) { var dg = Math.floor(c / base[e]) % avail[e]; if (dg) x += E[e].c + (dg - 1) * 0.5; } return x; };
-    var strips = INST_BY[inst].strips, sig = {};
-    order.forEach(function (v) {
-      sig[v] = [];
-      for (var c = 0; c < nCodes; c++) sig[v].push(barSigs(capture(buildSheet(g, sec, inst, pat, patch, v, { pn: opt && opt.pn, forceCode: c }), pat, v, 0), strips, g.bpm));
-      var a0 = sig[v][0][0]; if (a0) count[a0] = (count[a0] || 0) + uses[v];
+    var po = planOrder(vr), nCodes = nCodesOf(avail), sig = {};
+    po.order.forEach(function (v) { sig[v] = []; for (var c = 0; c < nCodes; c++) sig[v].push(sigOf(g, sec, inst, pat, patch, opt, v, c)); });
+    return storePlan(key, planFromSigs(sig, po, E, avail));
+  }
+  function storePlan(key, plans) { if (Object.keys(planCache).length > 200) planCache = {}; return (planCache[key] = plans); }
+  // the same plan, its captures one per tick, so a tap never waits on it
+  // (render() runs this first; buildSheet then finds the plan cached)
+  function planAsync(g, sec, inst, pat, patch, opt, v) {
+    var vr = vrOf(v), key = planKey(g, sec, inst, pat, patch, opt, vr);
+    if (!v || INST_BY[inst].cls === "drums" || planCache[key] || !elems(inst, vr).length) return Promise.resolve();
+    var J = buildSheet(g, sec, inst, pat, patch, v, { pn: opt && opt.pn, forceCode: 0 }).jamPlan;
+    var po = planOrder(vr), nCodes = nCodesOf(J.avail), sig = {}, tasks = [];
+    po.order.forEach(function (vv) { sig[vv] = []; for (var c = 0; c < nCodes; c++) tasks.push([vv, c]); });
+    return new Promise(function (done) {
+      (function step() {
+        if (!tasks.length) { storePlan(key, planFromSigs(sig, po, J.E, J.avail)); done(); return; }
+        var t = tasks.shift(); sig[t[0]][t[1]] = sigOf(g, sec, inst, pat, patch, opt, t[0], t[1]);
+        setTimeout(step, 0);
+      })();
     });
+  }
+  function planFromSigs(sig, po, E, avail) {
+    var uses = po.uses, order = po.order, nCodes = nCodesOf(avail), base = [], T = 4, count = {}, plans = {}, b0 = 1;
+    for (var e0 = 0; e0 < E.length; e0++) { base.push(b0); b0 *= avail[e0]; }
+    var cost = function (c) { var x = 0; for (var e = 0; e < E.length; e++) { var dg = Math.floor(c / base[e]) % avail[e]; if (dg) x += E[e].c + (dg - 1) * 0.5; } return x; };
+    order.forEach(function (v) { var a0 = sig[v][0][0]; if (a0) count[a0] = (count[a0] || 0) + uses[v]; });
     order.forEach(function (v) {
       var codes = [0];
       for (var b = 1; b < BARS; b++) {
@@ -9902,8 +9924,7 @@
       }
       plans[v] = codes;
     });
-    if (Object.keys(planCache).length > 200) planCache = {};
-    return (planCache[key] = plans);
+    return plans;
   }
   function vrOf(v) { return v >= 3 ? 2 : v >= 1 ? 1 : 0; }
 
@@ -10054,8 +10075,11 @@
   var OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
   var renderLog = [];
   function render(g, sec, inst, pat, patch, v, opt) {
-    var t0 = performance.now();
     opt = opt || {};
+    return planAsync(g, sec, inst, pat, patch, opt, v).then(function () { return render1(g, sec, inst, pat, patch, v, opt); });
+  }
+  function render1(g, sec, inst, pat, patch, v, opt) {
+    var t0 = performance.now();
     var s = buildSheet(g, sec, inst, pat, patch, v, opt);
     var r = renderSheet(s, pat, v, opt.oct || 0);
     var tBuild = performance.now() - t0;
