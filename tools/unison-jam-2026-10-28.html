@@ -73,12 +73,21 @@
   .layer .sub{font-size:14px;color:var(--dim);white-space:nowrap;overflow:hidden;margin:2px 0 6px;height:18px}
   .layer .ctl{flex:1 1 auto;min-height:0}
   .layer .ctl button{flex:1 1 0;width:0;height:100%;max-height:58px;font-size:17px;padding:0 4px}
+  .layer button:disabled{opacity:.3;cursor:default}
   .layer .ctl2{margin-top:8px;flex:1 1 auto;min-height:0}
   .layer .ctl2 .seg{flex:3 1 0;width:0;display:-webkit-box;display:flex;height:100%;max-height:58px}
   .layer .ctl2 .seg button{-webkit-box-flex:1;flex:1 1 0;width:0;height:100%;padding:0}
   .layer .ctl2 > button{flex:1 1 0;width:0;height:100%;max-height:58px;font-size:17px}
   .layer .mute.on{background:var(--red);border-color:var(--red)}
   .layer .x{flex:0 0 52px !important;width:52px !important}
+  .layer .oct{flex:0 0 auto;display:-webkit-box;display:flex;height:100%;max-height:58px;-webkit-box-align:center;align-items:center}
+  .layer .ctl .oct button{flex:0 0 40px;width:40px;font-size:22px;padding:0}
+  .layer .oct span{flex:0 0 56px;width:56px;text-align:center;font-size:15px;line-height:1.1;color:var(--dim)}
+  .layer .oct span b{display:block;font-size:19px;color:var(--ink)}
+  .layer .lvl{flex:0 0 30px;height:30px;margin-top:6px}
+  .layer .lvl label{flex:0 0 auto;font-size:13px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em}
+  .layer .lvl input{flex:1 1 auto;width:0;height:30px;margin:0 8px 0 0;accent-color:var(--or);cursor:pointer}
+  .layer .lvl .dbv{flex:0 0 64px;width:64px;text-align:right;font-size:17px;font-weight:700}
   .empty{color:var(--dim);font-size:20px;padding:30px 10px}
   /* add palette */
   #add{flex:0 0 112px;height:112px;margin-top:4px}
@@ -9648,7 +9657,20 @@
   // 808, where it sat.
   var LEVEL_DB = { d808: 0, linn: 6.1, bgtr: 4.5, mbass: 3.8, jbass: 3.5, fbass: 3.8, rgtr: 5.2, jcomp: 3.1, ocomp: 3.1,
     fkeys: 2.2, jpad: 5.9, opad: 6.3, obrass: 9, jlead: 3.6, mlead: 4.3, jarp: 14.6, marp: 14.9, mriff: 17.9 };
-  function levelOf(l) { return l.mute ? 0 : Math.pow(10, (LEVEL_DB[l.inst] || 0) / 20); }
+  // v2 (Jeff 10/28): the card's fader is an offset in dB on top of this
+  // table, -12..+12; 0 is the table. A gain node, so it never re-renders.
+  var DB_MIN = -12, DB_MAX = 12;
+  function levelOf(l) { return l.mute ? 0 : Math.pow(10, ((LEVEL_DB[l.inst] || 0) + (l.db || 0)) / 20); }
+  // Octave shift per pitched layer, applied to the notes before render (see
+  // withOctave). The range each voice takes cleanly, measured 10/28
+  // (harness/jam-octaves.mjs, RMS and pitch re octave 0): the basses stop at
+  // -1 (at -2 the line sits at 13-26 Hz, under hearing); the guitar loses
+  // 13 dB at +1 and 41 dB at +2 (the string model's short strings), so it
+  // stops at 0; the Juno pad at +2 drops 11 dB and stops following the pitch,
+  // so it stops at +1. Everything else takes -2..+2. Drums have none.
+  var OCT_RANGE = { bgtr: [-1, 2], mbass: [-1, 2], jbass: [-1, 2], fbass: [-1, 2], rgtr: [-1, 0], jpad: [-2, 1] };
+  function octRange(inst) { return INST_BY[inst].cls === "drums" ? [0, 0] : (OCT_RANGE[inst] || [-2, 2]); }
+  function clampOct(inst, o) { var r = octRange(inst); return Math.max(r[0], Math.min(r[1], +o || 0)); }
 
   // ---- progressions: every U.HARMONY entry, major or minor by its tonic chord ----
   var PROGS = [], PROG_BY = {};
@@ -9696,7 +9718,8 @@
   function swingFor(lane) { var T = U.SONG_TEMPO; return +(T.swing[0] + (T.swing[1] - T.swing[0]) * Math.min(0.6, U.LANE_FEEL[lane].swingBias)).toFixed(3); }
   function gKey(g) { return [g.bpm, g.key, g.mode, g.lane, g.A, g.B].join("|"); }
   function gSnap() { return { bpm: G.bpm, key: G.key, mode: G.mode, lane: G.lane, A: G.A, B: G.B }; }
-  function lSig(l) { return l.inst + "|" + l.pat + "|" + l.patch; }
+  function lSig(l) { return l.inst + "|" + l.pat + "|" + l.patch + "|" + (l.oct || 0) + "|" + (l.pn || ""); }
+  function lOpt(l) { return { oct: l.oct || 0, pn: l.pn || null }; }
 
   // Drum layers play with no room (Jeff 10/28, after playing it: "the snare
   // sounds metallic"). The production draw above is one fixed draw per style
@@ -9711,7 +9734,7 @@
   var DRY_KIT = { id: "jam.dry_kit", send: 0, wet: 0, damp: 3000 };
 
   // ---- one strip, one section, rendered by the engine ----
-  function buildSheet(g, sec, inst, pat, patch, v) {
+  function buildSheet(g, sec, inst, pat, patch, v, opt) {
     var d = INST_BY[inst], lane = g.lane;
     var patSeed = v === 2 ? pat + 100000 : pat;
     var R = U.makePrng(seedHash(patSeed, "pat"));
@@ -9783,10 +9806,11 @@
   try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) {}
   var OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
   var renderLog = [];
-  function render(g, sec, inst, pat, patch, v) {
+  function render(g, sec, inst, pat, patch, v, opt) {
     var t0 = performance.now();
-    var s = buildSheet(g, sec, inst, pat, patch, v);
-    var r = renderSheet(s, pat, v);
+    opt = opt || {};
+    var s = buildSheet(g, sec, inst, pat, patch, v, opt);
+    var r = renderSheet(s, pat, v, opt.oct || 0);
     var tBuild = performance.now() - t0;
     return r.done.then(function (buf) {
       var ms = Math.round(performance.now() - t0);
@@ -9794,11 +9818,39 @@
       return { buf: buf, patch: patchName(inst, s), pattern: patternName(inst, s) };
     });
   }
-  function renderSheet(s, pat, v) {
+  // The octave shift: while the realizer runs, every pitched voice it builds
+  // gets its notes moved by 12 semitones a step at noteOn (the guitar, whose
+  // notes come from strings and frets, gets its open strings moved while its
+  // line renders, so its voicings and shapes are unchanged). Only this
+  // page's call is wrapped; the engine's functions are restored right after.
+  var VOICE_MAKERS = ["createJuno", "createMinimoog", "createFm", "createObxa", "createBassGuitar", "createRhythmGuitar"];
+  function withOctave(oct, fn) {
+    if (!oct) return fn();
+    var saved = {};
+    VOICE_MAKERS.forEach(function (n) {
+      var f = saved[n] = U[n];
+      U[n] = function () {
+        var v = f.apply(this, arguments);
+        if (n === "createRhythmGuitar") {
+          var fl = v.flush;
+          v.flush = function () {
+            var S = U.RHYTHMGUITAR_STRINGS; U.RHYTHMGUITAR_STRINGS = S.map(function (m) { return m + 12 * oct; });
+            try { return fl.apply(v, arguments); } finally { U.RHYTHMGUITAR_STRINGS = S; }
+          };
+        } else if (v && v.noteOn) {
+          var on = v.noteOn;
+          v.noteOn = function (t, midi, vel, dur, extra) { return on.call(v, t, midi + 12 * oct, vel, dur, extra); };
+        }
+        return v;
+      };
+    });
+    try { return fn(); } finally { VOICE_MAKERS.forEach(function (n) { U[n] = saved[n]; }); }
+  }
+  function renderSheet(s, pat, v, oct) {
     var len = Math.ceil((LEAD + s.lengthSec + TAIL) * RATE);
     var ctx = new OAC(2, len, RATE);
     var desk = U.createDesk(ctx, ctx.destination, { busTrimDb: 0 });
-    var stats = U.realizeSession(ctx, desk, s, U.forkPrng(seedHash(pat, "bars" + v), "bars"), LEAD, {});
+    var stats = withOctave(oct || 0, function () { return U.realizeSession(ctx, desk, s, U.forkPrng(seedHash(pat, "bars" + v), "bars"), LEAD, {}); });
     return { stats: stats, done: ctx.startRendering().then(function (buf) {
       void stats; void desk;   // the graph must outlive the render (renderer.js note)
       return buf;
@@ -9826,7 +9878,7 @@
     if (!job) { prune(); return; }
     busy = job.k;
     var l = job[2];
-    render(job[0], job[1], l.inst, l.pat, l.patch, job[3]).then(function (r) {
+    render(job[0], job[1], l.inst, l.pat, l.patch, job[3], lOpt(l)).then(function (r) {
       cache[job.k] = r; busy = null;
       if (job[3] === 0) { l.patchName = r.patch; l.patternName = r.pattern; drawLayers(); }
       setTimeout(pump, 0);
@@ -9975,7 +10027,7 @@
     if (G.L.length >= MAXL) return;
     audio();
     var n = G.n++;
-    G.L.push({ id: n, inst: inst, pat: n * 7 + G.hs, patch: n * 13 + 1, vr: 1, mute: false });
+    G.L.push({ id: n, inst: inst, pat: n * 7 + G.hs, patch: n * 13 + 1, vr: 1, mute: false, oct: 0, db: 0, pn: null });
     if (!playing) start();
     changed();
   }
@@ -9990,11 +10042,10 @@
     }
     changed();
   }
-  function setMute(l, on) {
-    l.mute = on;
-    if (l.out) { l.out.gain.cancelScheduledValues(ctx.currentTime); l.out.gain.setTargetAtTime(levelOf(l), ctx.currentTime, 0.01); }
-    changed();
-  }
+  function applyGain(l) { if (l.out) { l.out.gain.cancelScheduledValues(ctx.currentTime); l.out.gain.setTargetAtTime(levelOf(l), ctx.currentTime, 0.01); } }
+  function setMute(l, on) { l.mute = on; applyGain(l); changed(); }
+  function setDb(l, db) { l.db = Math.max(DB_MIN, Math.min(DB_MAX, Math.round(+db || 0))); applyGain(l); save(); drawLayers(); }
+  function setOct(l, o) { o = clampOct(l.inst, o); if (o === (l.oct || 0)) return; l.oct = o; changed(); }
   function setSection(s) { G.sec = s; changed(); }
   function setG(k, v) {
     G[k] = v;
@@ -10005,7 +10056,7 @@
   // ---- snapshot in the URL ----
   function save() {
     var o = { b: G.bpm, k: G.key, m: G.mode === "minor" ? 1 : 0, l: G.lane, h: G.hs, A: G.A, B: G.B, s: G.sec,
-      L: G.L.map(function (l) { return [l.inst, l.pat, l.patch, l.vr, l.mute ? 1 : 0]; }) };
+      L: G.L.map(function (l) { return [l.inst, l.pat, l.patch, l.vr, l.mute ? 1 : 0, l.oct || 0, l.db || 0, l.pn || ""]; }) };
     var s = btoa(JSON.stringify(o)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
     try { history.replaceState(null, "", "#j=" + s); } catch (e) { location.hash = "j=" + s; }
   }
@@ -10026,7 +10077,9 @@
       G.L = [];
       (o.L || []).slice(0, MAXL).forEach(function (a) {
         if (!INST_BY[a[0]]) return;
-        G.L.push({ id: G.n++, inst: a[0], pat: +a[1] || 1, patch: +a[2] || 1, vr: Math.max(0, Math.min(2, +a[3] || 0)), mute: !!a[4] });
+        // v1 links carry five fields; octave, fader and chosen patch default to 0, 0 and the seed's draw
+        G.L.push({ id: G.n++, inst: a[0], pat: +a[1] || 1, patch: +a[2] || 1, vr: Math.max(0, Math.min(2, +a[3] || 0)), mute: !!a[4],
+          oct: clampOct(a[0], a[5]), db: Math.max(DB_MIN, Math.min(DB_MAX, Math.round(+a[6] || 0))), pn: typeof a[7] === "string" && a[7] ? a[7] : null });
       });
       return true;
     } catch (e) { console.error("snapshot unreadable", e); return false; }
@@ -10047,8 +10100,17 @@
       c.appendChild(el("div", "sub", (l.patchName || "rendering…") + (l.patternName ? " · " + l.patternName : "")));
       var r1 = el("div", "row ctl");
       var bPat = el("button", "pat", "New pattern"); bPat.onclick = function () { l.pat += 1 + (G.n % 5); G.n++; changed(); };
-      var bPatch = el("button", "patch", "New sound"); bPatch.onclick = function () { l.patch += 1 + (G.n % 3); G.n++; changed(); };
-      r1.appendChild(bPat); r1.appendChild(bPatch); c.appendChild(r1);
+      var bPatch = el("button", "patch", "New sound"); bPatch.onclick = function () { l.patch += 1 + (G.n % 3); l.pn = null; G.n++; changed(); };
+      r1.appendChild(bPat); r1.appendChild(bPatch);
+      if (d.cls !== "drums") {   // octave: pitched layers only
+        var orng = octRange(l.inst), ov = l.oct || 0, ob = el("div", "oct");
+        var bDn = el("button", "octDn", "\u2212"), bUp = el("button", "octUp", "+");
+        bDn.disabled = ov <= orng[0]; bUp.disabled = ov >= orng[1];
+        bDn.onclick = function () { setOct(l, (l.oct || 0) - 1); }; bUp.onclick = function () { setOct(l, (l.oct || 0) + 1); };
+        var sp = el("span", null, "oct"); sp.appendChild(el("b", "octv", (ov > 0 ? "+" : "") + ov));
+        ob.appendChild(bDn); ob.appendChild(sp); ob.appendChild(bUp); r1.appendChild(ob);
+      }
+      c.appendChild(r1);
       var r2 = el("div", "row ctl2"), seg = el("div", "seg");
       ["Steady", "Fills", "Lots"].forEach(function (t, i) {
         var b = el("button", l.vr === i ? "on" : "", t); b.onclick = function () { l.vr = i; changed(); }; seg.appendChild(b);
@@ -10056,6 +10118,13 @@
       var bm = el("button", "mute" + (l.mute ? " on" : ""), l.mute ? "Muted" : "Mute"); bm.onclick = function () { setMute(l, !l.mute); };
       var bx = el("button", "x", "✕"); bx.title = "remove"; bx.onclick = function () { removeLayer(l); };
       r2.appendChild(seg); r2.appendChild(bm); r2.appendChild(bx); c.appendChild(r2);
+      // level: an offset in dB on the measured table, one tap on the track sets it
+      var r3 = el("div", "row lvl"), fd = el("input", "fader");
+      fd.type = "range"; fd.min = DB_MIN; fd.max = DB_MAX; fd.step = 1; fd.value = l.db || 0; fd.title = "level offset, dB";
+      var dbv = el("span", "dbv", ((l.db || 0) > 0 ? "+" : "") + (l.db || 0) + " dB");
+      fd.oninput = function () { l.db = +fd.value; dbv.textContent = (l.db > 0 ? "+" : "") + l.db + " dB"; applyGain(l); };
+      fd.onchange = function () { setDb(l, fd.value); };
+      r3.appendChild(el("label", null, "Level")); r3.appendChild(fd); r3.appendChild(dbv); c.appendChild(r3);
       box.appendChild(c);
     });
     var full = G.L.length >= MAXL;
