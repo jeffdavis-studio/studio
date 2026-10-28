@@ -9633,6 +9633,17 @@
     { id: "mriff", label: "Moog riff", cls: "mono", strips: ["counter"], set: function (s) { s.counterVoice = "minimoog"; } },
   ];
   var INST_BY = {}; INST.forEach(function (d) { INST_BY[d.id] = d; });
+  // Layer levels, dB on the layer's output. The engine's desk is a song mix,
+  // where an arp or a riff sits far under the kit; a jam layer has to be
+  // heard on its own. Measured 2026-10-28 (harness/jam-levels.mjs: RMS of the
+  // section-A render over four pattern and patch seeds, re the 808 at
+  // 112 bpm): Linn -4.9, basses -9.5..-10.5, rhythm guitar -15.2, comps and
+  // FM keys -11..-12, pads -18, OB-Xa brass -21, leads -13, arps -27, Moog riff
+  // -33. These lift each to drums 0 / bass -6 / chords and leads -9 / pads,
+  // brass, arps -12 / riff -15.
+  var LEVEL_DB = { d808: 0, linn: 2.9, bgtr: 4.5, mbass: 3.8, jbass: 3.5, fbass: 3.8, rgtr: 5.2, jcomp: 3.1, ocomp: 3.1,
+    fkeys: 2.2, jpad: 5.9, opad: 6.3, obrass: 9, jlead: 3.6, mlead: 4.3, jarp: 14.6, marp: 14.9, mriff: 17.9 };
+  function levelOf(l) { return l.mute ? 0 : Math.pow(10, (LEVEL_DB[l.inst] || 0) / 20); }
 
   // ---- progressions: every U.HARMONY entry, major or minor by its tonic chord ----
   var PROGS = [], PROG_BY = {};
@@ -9751,6 +9762,8 @@
     return e ? e.id.split(".").pop().replace(/_/g, " ") : "";
   }
 
+  // iOS mutes Web Audio under the silent switch unless the page asks for playback
+  try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) {}
   var OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
   var renderLog = [];
   function render(g, sec, inst, pat, patch, v) {
@@ -9814,7 +9827,8 @@
       var lim = ctx.createDynamicsCompressor();
       lim.threshold.value = -6; lim.knee.value = 0; lim.ratio.value = 20; lim.attack.value = 0.003; lim.release.value = 0.15;
       master = ctx.createGain(); master.gain.value = 0.6;
-      master.connect(lim); lim.connect(ctx.destination);
+      var post = ctx.createGain(); post.gain.value = 0.85;   // six loud layers peak 0.9 through the limiter without it (measured)
+      master.connect(lim); lim.connect(post); post.connect(ctx.destination);
     }
     if (ctx.state === "suspended") ctx.resume();
     return ctx;
@@ -9834,7 +9848,7 @@
   }
   function ensureOut(l) {
     if (l.out) return;
-    l.out = ctx.createGain(); l.out.gain.value = l.mute ? 0 : 1; l.out.connect(master);
+    l.out = ctx.createGain(); l.out.gain.value = levelOf(l); l.out.connect(master);
     l.srcs = []; l.until = 0; l.used = {};
   }
   function stopLayerAt(l, T) {
@@ -9950,7 +9964,7 @@
   }
   function setMute(l, on) {
     l.mute = on;
-    if (l.out) { l.out.gain.cancelScheduledValues(ctx.currentTime); l.out.gain.setTargetAtTime(on ? 0 : 1, ctx.currentTime, 0.01); }
+    if (l.out) { l.out.gain.cancelScheduledValues(ctx.currentTime); l.out.gain.setTargetAtTime(levelOf(l), ctx.currentTime, 0.01); }
     changed();
   }
   function setSection(s) { G.sec = s; changed(); }
@@ -10067,7 +10081,7 @@
       if (b.className !== cls) b.className = cls;
     });
     var st = "";
-    if (busy) st = "rendering " + (cache ? "" : "") + "…";
+    if (busy) st = G.L.every(function (l) { return l.playSig === lSig(l); }) ? "preparing fills…" : "rendering…";
     if (playing && gKey(last.g) !== gKey(gSnap())) st = "changes land on the next bar after rendering…";
     else if (pend) st = "switching to " + G.sec + " on the next bar…";
     if (!playing && !G.L.length) st = "add a layer to start";
@@ -10113,7 +10127,7 @@
   // for the walk-through (harness/jam-check.mjs)
   window.__jam = { G: G, starts: starts, renderLog: renderLog, epochs: function () { return epochs; }, cache: cache,
     ctx: function () { return ctx; }, playing: function () { return playing; }, busy: function () { return busy; },
-    LEAD: LEAD, BARS: BARS };
+    LEAD: LEAD, BARS: BARS, render: render, LEVEL_DB: LEVEL_DB, INST_IDS: INST.map(function (d) { return d.id; }) };
 })();
 </script>
 </body>
