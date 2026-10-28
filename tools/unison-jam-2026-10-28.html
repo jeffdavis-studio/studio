@@ -122,10 +122,10 @@
 <div id="bars" class="row"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
 <div id="layers"></div>
 <div id="add" class="row"><div class="lbl">Add a layer</div><div id="pal"></div></div>
-<footer title="engine @f92e782 · built 2026-10-28">Unison jam &middot; every sound is synthesized in this page by the engine at f92e782</footer>
+<footer title="engine @93fa10e · built 2026-10-28">Unison jam &middot; every sound is synthesized in this page by the engine at 93fa10e</footer>
 
 <script>
-/* ===== src/core/prng.js @ f92e782 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/prng.js @ 93fa10e — verbatim from jeffdavis-studio/unison-engine ===== */
 // prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
 // token hash, consumed in canonical draw order (Technical Architecture v1.2).
 //
@@ -198,7 +198,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/core/mix.js @ f92e782 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/mix.js @ 93fa10e — verbatim from jeffdavis-studio/unison-engine ===== */
 // mix.js — the fan-in ≤2 summing rule, as a primitive.
 //
 // Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
@@ -236,7 +236,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/desk/desk.js @ f92e782 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/desk/desk.js @ 93fa10e — verbatim from jeffdavis-studio/unison-engine ===== */
 // desk.js — the 24-track desk as a running audio graph.
 //
 // The desk is the data structure, not a metaphor (Composition Brief 2 / Tech
@@ -626,7 +626,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/production.js @ f92e782 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/production.js @ 93fa10e — verbatim from jeffdavis-studio/unison-engine ===== */
 // production.js — the production room, v0.
 //
 // PLACEMENT DECISION (Morgan's call, ratified by Jeff 2026-08-03). Production
@@ -825,7 +825,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/juno.js @ f92e782 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/juno.js @ 93fa10e — verbatim from jeffdavis-studio/unison-engine ===== */
 // juno.js — Juno-60-flavor poly voice, raw Web Audio, zero dependencies.
 // Ported from the 2026-07-21 bake-off winner (voice-raw.js), restructured to
 // live behind a desk strip: U.createJuno(ctx, strip, patchName) builds its own
@@ -1367,7 +1367,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/minimoog.js @ f92e782 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/minimoog.js @ 93fa10e — verbatim from jeffdavis-studio/unison-engine ===== */
 // minimoog.js — Minimoog Model D-lineage mono voice, zero dependencies.
 //
 // THE MONO BASS LANE (build order 808 → Juno → Minimoog → …; it also absorbs
@@ -1909,7 +1909,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/obxa.js @ f92e782 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/obxa.js @ 93fa10e — verbatim from jeffdavis-studio/unison-engine ===== */
 // obxa.js — Oberheim OB-Xa-lineage poly voice, zero dependencies.
 //
 // THE BRASS/PAD POLY LANE (build order 808 → Juno → Minimoog → OB-Xa → …).
@@ -2446,7 +2446,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/fm.js @ f92e782 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/fm.js @ 93fa10e — verbatim from jeffdavis-studio/unison-engine ===== */
 // fm.js — six-operator FM keys voice (the DX7 lineage), zero dependencies.
 //
 // THE FM LANE (build order 808 → Juno → Minimoog → OB-Xa → Linn → FM).
@@ -3119,7 +3119,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/bassguitar.js @ f92e782 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/bassguitar.js @ 93fa10e — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassguitar.js — electric bass guitar, the first session player of the human
 // rack (Rack 2), zero dependencies.
 //
@@ -3708,7 +3708,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/rhythmguitar.js @ f92e782 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/rhythmguitar.js @ 93fa10e — verbatim from jeffdavis-studio/unison-engine ===== */
 // rhythmguitar.js — clean electric rhythm guitar, the fourth and last stop of
 // the human rack (Rack 2), zero dependencies.
 //
@@ -4357,7 +4357,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/tr808.js @ f92e782 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/tr808.js @ 93fa10e — verbatim from jeffdavis-studio/unison-engine ===== */
 // tr808.js — THE MACHINE. A TR-808-lineage core voice: bass drum, snare,
 // closed hat, open hat, each with a front panel the token actually turns.
 //
@@ -5641,7 +5641,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/linn.js @ f92e782 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/linn.js @ 93fa10e — verbatim from jeffdavis-studio/unison-engine ===== */
 // linn.js — THE STUDIO MACHINE. A Linn-family (LM-1 / LinnDrum lineage)
 // drum computer: the new wave / synth-pop / 80s R&B kit.
 //
@@ -6398,7 +6398,7 @@
   U._linn = { burn, play, vca, roms, V, EPROM_HZ, RECON_HZ, SR, TOM_MID_CLOCK };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drums.js @ f92e782 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drums.js @ 93fa10e — verbatim from jeffdavis-studio/unison-engine ===== */
 // drums.js — the drum machine: 808/LM-1-flavor voices, synthesized at runtime
 // into short AudioBuffers, played back as one-shots.
 //
@@ -6727,7 +6727,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/books.js @ f92e782 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/books.js @ 93fa10e — verbatim from jeffdavis-studio/unison-engine ===== */
 // books.js — Pattern Books v1, as data.
 //
 // This file IS the document: "Unison — Pattern Books v1 (draft)" (Morgan,
@@ -7349,7 +7349,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/bassplayer.js @ f92e782 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/bassplayer.js @ 93fa10e — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassplayer.js — the PERFORMANCE half of the bass guitar: a session player.
 //
 // Rack 2's rule (kb/projects/unison.md, 2026-07-11): every human instrument is
@@ -7601,7 +7601,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/gtrplayer.js @ f92e782 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/gtrplayer.js @ 93fa10e — verbatim from jeffdavis-studio/unison-engine ===== */
 // gtrplayer.js — the PERFORMANCE half of the rhythm guitar: a session
 // guitarist on the rhythmGtr strip.
 //
@@ -7801,7 +7801,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/fmplayer.js @ f92e782 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/fmplayer.js @ 93fa10e — verbatim from jeffdavis-studio/unison-engine ===== */
 // fmplayer.js — the PERFORMANCE half of the FM keys: a session keyboard
 // player on the FM chord strips (compA's tine EP, colour's glass and brass).
 //
@@ -7942,7 +7942,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/testPhrase.js @ f92e782 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/testPhrase.js @ 93fa10e — verbatim from jeffdavis-studio/unison-engine ===== */
 // testPhrase.js — deterministic 8-bar test phrase, ported from the bake-off
 // (phrase.js) onto the engine's canonical PRNG (core/prng.js).
 //
@@ -8036,7 +8036,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/session.js @ f92e782 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/session.js @ 93fa10e — verbatim from jeffdavis-studio/unison-engine ===== */
 // session.js — the session sheet and the arrangement realizer.
 //
 // Two tiers, in this order, each on its own stream (core/prng.js):
@@ -9275,7 +9275,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/render/renderer.js @ f92e782 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/render/renderer.js @ 93fa10e — verbatim from jeffdavis-studio/unison-engine ===== */
 // renderer.js — song assembly + the render pipeline (Technical Architecture
 // v1.2 playback model): live-first, with (a) a cheap analysis pre-render for
 // verification/metrics and (b) an on-demand full OfflineAudioContext render
@@ -9736,11 +9736,165 @@
   var DRY_KIT = { id: "jam.dry_kit", send: 0, wet: 0, damp: 3000 };
 
   // ---- one strip, one section, rendered by the engine ----
+  // ---- v2: pattern variety (Jeff 10/28: "maybe a little more variety on patterning?") ----
+  // Measured first (harness/jam-variety.mjs): in v1 a drum layer repeated one
+  // bar 30-32 times in 32 bars and a pitched layer 8 times; the engine's own
+  // songs repeat a drum bar up to 20 times. Jeff's judge is no bar more than 4
+  // times in 32. So on Fills and Lots every cycle now varies inside itself:
+  // each bar takes the layer's strip pattern(s) from the anchor pick (A) or a
+  // sibling pick from the same lane's books (B, and C on Lots), drawn by the
+  // engine's own drawSession and checked to differ from A. Bar 1 is always A,
+  // bar 8 keeps the fill. Drums splice kick, snare and hats independently
+  // (the kick moves first, the hats last). A small planner lays the 32 bars
+  // out so no bar shape (pick per strip, plus the chord for pitched layers)
+  // lands more than 4 times, preferring the fewest changes from A.
+  // Steady stays the plain loop. The engine is untouched: the page swaps the
+  // pick per bar through a getter, keyed by the bar loop's one draw per bar.
+  // What a layer splices, per bar: book picks ("picks") and, where the
+  // strip's book is one or two patterns, the engine's phrase tables
+  // ("masks": PHRASES, COUNTER_OST, GATE, indexed by sheet.masks; a sibling
+  // is the table's next entry). n = how many to use on Fills / Lots, c = the
+  // planner's cost of moving it off A (cheapest moves first).
+  // OB-Xa brass has one pattern in the engine (brassOffbeat, forced for a
+  // loop: sectionHit plays bar 1 only) and no phrase table, so it can't vary.
+  function elems(inst, vr) {
+    var L = vr === 2;
+    var E = {
+      d808: [["picks", "kick", L ? 3 : 2, 1], ["picks", "snare", L ? 3 : 2, 2], ["picks", "hats", L ? 3 : 2, 3]],
+      jcomp: [["picks", "compA", L ? 4 : 3, 1], ["masks", "comp", 3, 1.5]],
+      jpad: [["picks", "pad", 2, 1]],
+      obrass: [],
+      jlead: [["masks", "lead", L ? 6 : 4, 1]],   // the instrumental line is PHRASES shifted by 2: masks cover it
+      mriff: [["masks", "counter", 3, 1], ["picks", "counter", 2, 2]],
+    };
+    E.linn = E.d808; E.ocomp = E.jcomp; E.fkeys = E.jcomp; E.opad = E.jpad; E.mlead = E.jlead;
+    return (E[inst] || [["picks", INST_BY[inst].strips[0], L ? 3 : 2, 1]]).map(function (a) { return { o: a[0], k: a[1], n: a[2], c: a[3] }; });
+  }
+  // lead and riff phrases are degrees from the tonic, two bars long: the bar
+  // shape is the phrase half, not the chord
+  var CHORDLESS = { d808: 1, linn: 1, jlead: 1, mlead: 1, mriff: 1 }, PHRASE2 = { jlead: 1, mlead: 1, mriff: 1 };
+  // variants: Steady 0; Fills 1,2 (each played twice in 32 bars); Lots 3-6
+  var SCHED = { 1: [1, 2, 1, 2], 2: [3, 4, 5, 6] };
+  function drawPicks(seedH, lane, inst, pat) {
+    var s = U.drawSession(U.makePrng(seedH), lane), P = s.picks;
+    if (P.pad.kind === "sectionOnly") P.pad = U.PAD[0];
+    if (P.lead.kind === "soloWindow") P.lead = U.LEAD[1];
+    if (inst === "obrass") P.color = U.COLOR[1];
+    if (inst === "bgtr" && U.BASSGUITAR_NEVER[P.bass.kind]) {
+      var alt = U.BASS[lane].filter(function (e) { return !U.BASSGUITAR_NEVER[e.kind]; });
+      P.bass = alt.length ? alt[pat % alt.length] : { id: "jam.root8", kind: "rootEighths" };
+    }
+    return s;
+  }
+  function pickIds(P, inst) { return elems(inst, 1).filter(function (e) { return e.o === "picks"; }).map(function (e) { return P[e.k] ? P[e.k].id : ""; }).join("|"); }
+  // the section's anchor draw: A is v1's draw (old links keep their patterns);
+  // B gets its own draw from the same books, one that differs from A's
+  function sectionDraw(sec, lane, inst, pat) {
+    var a = drawPicks(seedHash(pat, "pat"), lane, inst, pat);
+    if (sec === "A") return a;
+    var ida = pickIds(a.picks, inst);
+    for (var j = 0; j < 12; j++) {
+      var b = drawPicks(seedHash(pat + 7919 * j, "patB"), lane, inst, pat);
+      if (pickIds(b.picks, inst) !== ida) return b;
+    }
+    return a;
+  }
+  // siblings per element: the next draws whose pick differs from those
+  // found; for a phrase table, its next entries
+  function siblings(sec, lane, inst, pat, s, E) {
+    return E.map(function (el) {
+      var a = s[el.o][el.k], got = [a];
+      if (el.o === "masks") { for (var j = 1; j < el.n; j++) got.push(a + j); return got; }
+      var ids = [a && a.id];
+      for (var j2 = 1; j2 <= 24 && got.length < el.n; j2++) {
+        var q = drawPicks(seedHash(pat * 31 + j2, "sib" + sec), lane, inst, pat).picks[el.k];
+        if (q && ids.indexOf(q.id) < 0) { got.push(q); ids.push(q.id); }
+      }
+      return got;
+    });
+  }
+  // the bar plan for every variant of one schedule: codes per bar, digit e =
+  // the pick (0 = A) for spliced strip e
+  // avail[e]: how many distinct picks strip e really has (a small book can
+  // run out of siblings); fillKey: whether bar 8's fill makes it its own
+  // shape (drums: the toms; pitched strips play bar 8 as written)
+  function planBars(vr, E, chordKey, avail, fillKey) {
+    var nE = E.length, sched = SCHED[vr], uses = {}, order = [], count = {}, plans = {}, T = 4, nCodes = 1, base = [];
+    for (var e0 = 0; e0 < nE; e0++) { base.push(nCodes); nCodes *= avail[e0]; }
+    sched.forEach(function (v) { if (!uses[v]) { uses[v] = 0; order.push(v); } uses[v]++; });
+    var digit = function (c, e) { return Math.floor(c / base[e]) % avail[e]; };
+    var key = function (b, c) { return (fillKey && b === BARS - 1 ? "F" : "") + chordKey(b) + "|" + c; };
+    var ok = function () { return true; };
+    var cost = function (c) { var x = 0; for (var e = 0; e < nE; e++) { var dg = digit(c, e); if (dg) x += E[e].c + (dg - 1) * 0.5; } return x; };
+    order.forEach(function (v) { var k0 = key(0, 0); count[k0] = (count[k0] || 0) + uses[v]; });
+    order.forEach(function (v) {
+      var codes = [0];
+      for (var b = 1; b < BARS; b++) {
+        var best = 0, bestScore = Infinity;
+        for (var c = 0; c < nCodes; c++) {
+          if (!ok(c)) continue;
+          var nc = (count[key(b, c)] || 0) + uses[v];
+          var sc = Math.max(0, nc - T) * 1e6 + cost(c) * 10 + nc;
+          if (sc < bestScore) { bestScore = sc; best = c; }
+        }
+        codes.push(best); count[key(b, best)] = (count[key(b, best)] || 0) + uses[v];
+      }
+      plans[v] = codes;
+    });
+    return plans;
+  }
+  // Pitched layers plan on the notes themselves: every candidate (each
+  // combination of picks) is captured for each variant, and the planner
+  // counts real bar shapes (16th step, pitch, velocity in quarters: the
+  // harness's measure), so a swap that changes nothing on this pattern
+  // (a gate mask on a pattern that has no gate) never counts as variety.
+  // Bar 1 stays A. A bar that would fall silent costs extra, so the planner
+  // only drops a bar out when nothing else keeps the 4-time limit.
+  var planCache = {};
+  function barSigs(ev, strips, bpm) {
+    var s16 = 60 / bpm / 4, bars = [];
+    for (var b = 0; b < BARS; b++) bars.push([]);
+    ev.forEach(function (e) {
+      if (strips.indexOf(e.s) < 0) return;
+      var st = Math.round((e.t - LEAD) / s16), b = Math.floor(st / 16);
+      if (b >= 0 && b < BARS) bars[b].push((st % 16) + ":" + (strips.length > 1 ? e.s + "/" : "") + e.m + ":" + Math.round(e.vel * 4));
+    });
+    return bars.map(function (x) { return x.sort().join(" "); });
+  }
+  function sigPlan(g, sec, inst, pat, patch, opt, vr, E, avail) {
+    var key = gKey(g) + "#" + sec + "#" + inst + "|" + pat + "|" + patch + "|" + ((opt && opt.pn) || "") + "#" + vr;
+    if (planCache[key]) return planCache[key];
+    var sched = SCHED[vr], uses = {}, order = [], nCodes = 1, base = [], T = 4, count = {}, plans = {};
+    for (var e0 = 0; e0 < E.length; e0++) { base.push(nCodes); nCodes *= avail[e0]; }
+    sched.forEach(function (v) { if (!uses[v]) { uses[v] = 0; order.push(v); } uses[v]++; });
+    var cost = function (c) { var x = 0; for (var e = 0; e < E.length; e++) { var dg = Math.floor(c / base[e]) % avail[e]; if (dg) x += E[e].c + (dg - 1) * 0.5; } return x; };
+    var strips = INST_BY[inst].strips, sig = {};
+    order.forEach(function (v) {
+      sig[v] = [];
+      for (var c = 0; c < nCodes; c++) sig[v].push(barSigs(capture(buildSheet(g, sec, inst, pat, patch, v, { pn: opt && opt.pn, forceCode: c }), pat, v, 0), strips, g.bpm));
+      var a0 = sig[v][0][0]; if (a0) count[a0] = (count[a0] || 0) + uses[v];
+    });
+    order.forEach(function (v) {
+      var codes = [0];
+      for (var b = 1; b < BARS; b++) {
+        var best = 0, bestScore = Infinity;
+        for (var c = 0; c < nCodes; c++) {
+          var x = sig[v][c][b], nc = x ? (count[x] || 0) + uses[v] : 0;
+          var sc = Math.max(0, nc - T) * 1e6 + cost(c) * 10 + nc + (!x && sig[v][0][b] ? 25 : 0);
+          if (sc < bestScore) { bestScore = sc; best = c; }
+        }
+        codes.push(best); var xb = sig[v][best][b]; if (xb) count[xb] = (count[xb] || 0) + uses[v];
+      }
+      plans[v] = codes;
+    });
+    if (Object.keys(planCache).length > 200) planCache = {};
+    return (planCache[key] = plans);
+  }
+  function vrOf(v) { return v >= 3 ? 2 : v >= 1 ? 1 : 0; }
+
   function buildSheet(g, sec, inst, pat, patch, v, opt) {
     var d = INST_BY[inst], lane = g.lane;
-    var patSeed = v === 2 ? pat + 100000 : pat;
-    var R = U.makePrng(seedHash(patSeed, "pat"));
-    var s = U.drawSession(R, lane);
+    var s = sectionDraw(sec, lane, inst, pat);
     var player = seedHash(pat, "play" + v), patchH = seedHash(patch, "patch");
     s.bpm = g.bpm; s.swing = swingFor(lane); s.tonicPc = g.key; s.mode = g.mode;
     var prog = PROG_BY[sec === "A" ? g.A : g.B].h;
@@ -9751,18 +9905,11 @@
     for (var i = 0; i < BARS; i++) bars.push({ section: sec === "A" ? "verse" : "chorus", indexInSection: i, sectionLen: BARS,
       energy: 1, last: i === BARS - 1, fillWindow: v > 0 && i === BARS - 1 });
     s.bars = bars; s.totalBars = BARS; s.barSec = 240 / g.bpm; s.lengthSec = BARS * s.barSec;
-    // loop-friendly book picks
+    // loop-friendly book picks (drawPicks)
     var P = s.picks;
-    if (P.pad.kind === "sectionOnly") P.pad = U.PAD[0];
-    if (P.lead.kind === "soloWindow") P.lead = U.LEAD[1];
-    if (inst === "obrass") P.color = U.COLOR[1];
     // voices: the house defaults, then the instrument's own
     s.bassVoice = "juno"; s.polyVoice = "juno"; s.padVoice = "juno"; s.leadVoice = "juno"; s.arpVoice = "juno"; s.counterVoice = "juno";
     d.set(s);
-    if (s.bassVoice === "bassguitar" && U.BASSGUITAR_NEVER[P.bass.kind]) {
-      var alt = U.BASS[lane].filter(function (e) { return !U.BASSGUITAR_NEVER[e.kind]; });
-      P.bass = alt.length ? alt[pat % alt.length] : { id: "jam.root8", kind: "rootEighths" };
-    }
     // mutes: only this layer's strip(s) up
     var m = {};
     U.VOICED_ROLES.concat(U.VOICED_LATE).forEach(function (id) { m[id] = true; });
@@ -9786,6 +9933,18 @@
     var fmp = U.drawFmPatches(patchH, s); if (Object.keys(fmp).length) s.fmPatches = fmp;
     s.satPeaks = null; s.satProbe = false;
     s.jamPicked = !!(opt && opt.pn && applyPick(inst, s, opt.pn, patchH));
+    var E = v > 0 ? elems(inst, vrOf(v)) : [];
+    if (E.length) {
+      var drums = d.cls === "drums";
+      var ch = function (b) { if (CHORDLESS[inst]) return PHRASE2[inst] ? "h" + (b % 2) : ""; var c = prog.chords[Math.floor(b / prog.barsPer) % prog.chords.length]; return c[0] + c[1]; };
+      var sib = siblings(sec, lane, inst, pat, s, E);
+      var avail = sib.map(function (list) { return list.length; });
+      var codes;
+      if (opt && opt.forceCode != null) { codes = []; for (var fb = 0; fb < BARS; fb++) codes.push(opt.forceCode); }
+      else if (drums) codes = planBars(vrOf(v), E, ch, avail, true)[v];
+      else codes = sigPlan(g, sec, inst, pat, patch, opt, vrOf(v), E, avail)[v];
+      s.jamPlan = { E: E, avail: avail, codes: codes, picks: sib };
+    }
     return s;
   }
 
@@ -9919,11 +10078,62 @@
     });
     try { return fn(); } finally { VOICE_MAKERS.forEach(function (n) { U[n] = saved[n]; }); }
   }
+  // the splice: the realizer makes exactly one R.r() draw at the top of each
+  // bar, so counting draws gives the bar; the spliced strips' picks become
+  // getters that answer with that bar's pick
+  function splice(s, R) {
+    var J = s.jamPlan; if (!J) return R;
+    var bar = -1, W = Object.create(R);
+    W.r = function () { bar++; return R.r(); };
+    var base = 1;
+    J.E.forEach(function (el, e) {
+      var b0 = base; base *= J.avail[e];
+      Object.defineProperty(s[el.o], el.k, { configurable: true, enumerable: true,
+        get: function () { var c = J.codes[Math.max(0, Math.min(BARS - 1, bar))]; return J.picks[e][Math.floor(c / b0) % J.avail[e]]; } });
+    });
+    return W;
+  }
+  function realize(ctx, s, pat, v, oct) {
+    var desk = U.createDesk(ctx, ctx.destination, { busTrimDb: 0 });
+    var R = splice(s, U.forkPrng(seedHash(pat, "bars" + v), "bars"));
+    var stats = withOctave(oct || 0, function () { return U.realizeSession(ctx, desk, s, R, LEAD, {}); });
+    return { desk: desk, stats: stats };
+  }
+  // harness/jam-variety.mjs: the note events one render schedules, per strip,
+  // without rendering (the same realize() call, its voices wrapped to log)
+  function captureEvents(fn) {
+    var ev = [], makers = VOICE_MAKERS.concat(["createDrumKit"]), saved = {};
+    makers.forEach(function (n) {
+      var f = saved[n] = U[n];
+      U[n] = function (c, strip) {
+        var v = f.apply(this, arguments);
+        if (v && v.flush) v.flush = function () {};   // events only: no line is synthesized
+        if (n === "createDrumKit") {
+          var fire = v.fire;
+          v.fire = function (st, voice, t, gain, acc) { ev.push({ s: st, t: t, m: voice, vel: gain }); return fire.apply(v, arguments); };
+        } else if (n === "createRhythmGuitar") {
+          var sk = v.strike;
+          v.strike = function (t, vel, stroke, chord, strings, sp, frets) { ev.push({ so: strip, t: t, m: stroke + ":" + String(chord || "") + ":" + String(strings == null ? "" : strings) + ":" + String(frets || ""), vel: vel }); return sk.apply(v, arguments); };
+        } else if (v && v.noteOn) {
+          var on = v.noteOn;
+          v.noteOn = function (t, midi, vel) { ev.push({ so: strip, t: t, m: midi, vel: vel }); return on.apply(v, arguments); };
+        }
+        return v;
+      };
+    });
+    var desk;
+    try { desk = fn(); } finally { makers.forEach(function (n) { U[n] = saved[n]; }); }
+    ev.forEach(function (e) { if (e.so) { for (var id in desk.strips) if (desk.strips[id] === e.so || desk.strips[id].input === e.so) e.s = id; delete e.so; } });
+    return ev;
+  }
+  function capture(s, pat, v, oct) {
+    var ctx = new OAC(2, 128, RATE);
+    return captureEvents(function () { return realize(ctx, s, pat, v, oct).desk; });
+  }
   function renderSheet(s, pat, v, oct) {
     var len = Math.ceil((LEAD + s.lengthSec + TAIL) * RATE);
     var ctx = new OAC(2, len, RATE);
-    var desk = U.createDesk(ctx, ctx.destination, { busTrimDb: 0 });
-    var stats = withOctave(oct || 0, function () { return U.realizeSession(ctx, desk, s, U.forkPrng(seedHash(pat, "bars" + v), "bars"), LEAD, {}); });
+    var rz = realize(ctx, s, pat, v, oct), desk = rz.desk, stats = rz.stats;
     return { stats: stats, done: ctx.startRendering().then(function (buf) {
       void stats; void desk;   // the graph must outlive the render (renderer.js note)
       return buf;
@@ -9933,7 +10143,7 @@
   // ---- buffer cache + render queue ----
   var cache = {}, busy = null;
   function bkey(g, sec, l, v) { return gKey(g) + "#" + sec + "#" + lSig(l) + "#" + v; }
-  function variantsFor(l) { return l.vr === 0 ? [0] : l.vr === 1 ? [0, 1] : [0, 1, 2]; }
+  function variantsFor(l) { return l.vr === 0 ? [0] : l.vr === 1 ? [0, 1, 2] : [0, 3, 4, 5, 6]; }
   function needs() {
     var g = gSnap(), out = [], other = G.sec === "A" ? "B" : "A";
     G.L.forEach(function (l) { out.push([g, G.sec, l, 0]); });
@@ -10013,11 +10223,7 @@
       o.end = T + 0.02;
     });
   }
-  function variantFor(l, k) {
-    if (l.vr === 0) return 0;
-    if (l.vr === 1) return k % 2 === 1 ? 1 : 0;
-    return [0, 1, 0, 2][k % 4];
-  }
+  function variantFor(l, k) { return l.vr === 0 ? 0 : SCHED[l.vr][k % 4]; }
   function fill(l, horizon) {
     var t = l.until;
     var guard = 0;
@@ -10307,7 +10513,7 @@
   // for the walk-through (harness/jam-check.mjs)
   window.__jam = { G: G, starts: starts, renderLog: renderLog, epochs: function () { return epochs; }, cache: cache,
     ctx: function () { return ctx; }, playing: function () { return playing; }, busy: function () { return busy; },
-    LEAD: LEAD, BARS: BARS, RATE: RATE, render: render, buildSheet: buildSheet, renderSheet: renderSheet, masterChain: masterChain, LEVEL_DB: LEVEL_DB, INST_IDS: INST.map(function (d) { return d.id; }) };
+    LEAD: LEAD, BARS: BARS, RATE: RATE, render: render, buildSheet: buildSheet, renderSheet: renderSheet, masterChain: masterChain, LEVEL_DB: LEVEL_DB, capture: capture, captureEvents: captureEvents, variantFor: variantFor, variantsFor: variantsFor, STRIPS: function (id) { return INST_BY[id].strips.concat(INST_BY[id].fill ? [INST_BY[id].fill] : []); }, INST_IDS: INST.map(function (d) { return d.id; }) };
 })();
 </script>
 </body>
