@@ -111,10 +111,10 @@
 <div id="bars" class="row"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
 <div id="layers"></div>
 <div id="add" class="row"><div class="lbl">Add a layer</div><div id="pal"></div></div>
-<footer title="engine @27feecc · built 2026-10-28">Unison jam &middot; every sound is synthesized in this page by the engine at 27feecc</footer>
+<footer title="engine @1f29eb6 · built 2026-10-28">Unison jam &middot; every sound is synthesized in this page by the engine at 1f29eb6</footer>
 
 <script>
-/* ===== src/core/prng.js @ 27feecc — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/prng.js @ 1f29eb6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
 // token hash, consumed in canonical draw order (Technical Architecture v1.2).
 //
@@ -187,7 +187,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/core/mix.js @ 27feecc — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/mix.js @ 1f29eb6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // mix.js — the fan-in ≤2 summing rule, as a primitive.
 //
 // Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
@@ -225,7 +225,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/desk/desk.js @ 27feecc — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/desk/desk.js @ 1f29eb6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // desk.js — the 24-track desk as a running audio graph.
 //
 // The desk is the data structure, not a metaphor (Composition Brief 2 / Tech
@@ -615,7 +615,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/production.js @ 27feecc — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/production.js @ 1f29eb6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // production.js — the production room, v0.
 //
 // PLACEMENT DECISION (Morgan's call, ratified by Jeff 2026-08-03). Production
@@ -814,7 +814,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/juno.js @ 27feecc — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/juno.js @ 1f29eb6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // juno.js — Juno-60-flavor poly voice, raw Web Audio, zero dependencies.
 // Ported from the 2026-07-21 bake-off winner (voice-raw.js), restructured to
 // live behind a desk strip: U.createJuno(ctx, strip, patchName) builds its own
@@ -1356,7 +1356,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/minimoog.js @ 27feecc — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/minimoog.js @ 1f29eb6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // minimoog.js — Minimoog Model D-lineage mono voice, zero dependencies.
 //
 // THE MONO BASS LANE (build order 808 → Juno → Minimoog → …; it also absorbs
@@ -1898,7 +1898,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/obxa.js @ 27feecc — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/obxa.js @ 1f29eb6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // obxa.js — Oberheim OB-Xa-lineage poly voice, zero dependencies.
 //
 // THE BRASS/PAD POLY LANE (build order 808 → Juno → Minimoog → OB-Xa → …).
@@ -2435,7 +2435,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/fm.js @ 27feecc — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/fm.js @ 1f29eb6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fm.js — six-operator FM keys voice (the DX7 lineage), zero dependencies.
 //
 // THE FM LANE (build order 808 → Juno → Minimoog → OB-Xa → Linn → FM).
@@ -3108,7 +3108,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/bassguitar.js @ 27feecc — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/bassguitar.js @ 1f29eb6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassguitar.js — electric bass guitar, the first session player of the human
 // rack (Rack 2), zero dependencies.
 //
@@ -3697,7 +3697,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/rhythmguitar.js @ 27feecc — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/rhythmguitar.js @ 1f29eb6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // rhythmguitar.js — clean electric rhythm guitar, the fourth and last stop of
 // the human rack (Rack 2), zero dependencies.
 //
@@ -4346,7 +4346,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/tr808.js @ 27feecc — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/tr808.js @ 1f29eb6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // tr808.js — THE MACHINE. A TR-808-lineage core voice: bass drum, snare,
 // closed hat, open hat, each with a front panel the token actually turns.
 //
@@ -5630,7 +5630,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/linn.js @ 27feecc — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/linn.js @ 1f29eb6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // linn.js — THE STUDIO MACHINE. A Linn-family (LM-1 / LinnDrum lineage)
 // drum computer: the new wave / synth-pop / 80s R&B kit.
 //
@@ -6387,7 +6387,7 @@
   U._linn = { burn, play, vca, roms, V, EPROM_HZ, RECON_HZ, SR, TOM_MID_CLOCK };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drums.js @ 27feecc — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drums.js @ 1f29eb6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drums.js — the drum machine: 808/LM-1-flavor voices, synthesized at runtime
 // into short AudioBuffers, played back as one-shots.
 //
@@ -6716,7 +6716,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/books.js @ 27feecc — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/books.js @ 1f29eb6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // books.js — Pattern Books v1, as data.
 //
 // This file IS the document: "Unison — Pattern Books v1 (draft)" (Morgan,
@@ -7338,7 +7338,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/bassplayer.js @ 27feecc — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/bassplayer.js @ 1f29eb6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassplayer.js — the PERFORMANCE half of the bass guitar: a session player.
 //
 // Rack 2's rule (kb/projects/unison.md, 2026-07-11): every human instrument is
@@ -7590,7 +7590,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/gtrplayer.js @ 27feecc — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/gtrplayer.js @ 1f29eb6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // gtrplayer.js — the PERFORMANCE half of the rhythm guitar: a session
 // guitarist on the rhythmGtr strip.
 //
@@ -7790,7 +7790,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/fmplayer.js @ 27feecc — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/fmplayer.js @ 1f29eb6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fmplayer.js — the PERFORMANCE half of the FM keys: a session keyboard
 // player on the FM chord strips (compA's tine EP, colour's glass and brass).
 //
@@ -7931,7 +7931,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/testPhrase.js @ 27feecc — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/testPhrase.js @ 1f29eb6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // testPhrase.js — deterministic 8-bar test phrase, ported from the bake-off
 // (phrase.js) onto the engine's canonical PRNG (core/prng.js).
 //
@@ -8025,7 +8025,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/session.js @ 27feecc — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/session.js @ 1f29eb6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // session.js — the session sheet and the arrangement realizer.
 //
 // Two tiers, in this order, each on its own stream (core/prng.js):
@@ -9264,7 +9264,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/render/renderer.js @ 27feecc — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/render/renderer.js @ 1f29eb6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // renderer.js — song assembly + the render pipeline (Technical Architecture
 // v1.2 playback model): live-first, with (a) a cheap analysis pre-render for
 // verification/metrics and (b) an on-demand full OfflineAudioContext render
@@ -9642,8 +9642,11 @@
   // 112 bpm): Linn -4.9, basses -9.5..-10.5, rhythm guitar -15.2, comps and
   // FM keys -11..-12, pads -18, OB-Xa brass -21, leads -13, arps -27, Moog riff
   // -33. These lift each to drums 0 / bass -6 / chords and leads -9 / pads,
-  // brass, arps -12 / riff -15.
-  var LEVEL_DB = { d808: 0, linn: 2.9, bgtr: 4.5, mbass: 3.8, jbass: 3.5, fbass: 3.8, rgtr: 5.2, jcomp: 3.1, ocomp: 3.1,
+  // brass, arps -12 / riff -15. The Linn re-read 10/28 with the kit dry
+  // (DRY_KIT below): the gated room had carried 3 dB of its RMS (-16.68 ->
+  // -19.66 dB), the 808 +0.24 dB; Linn 2.9 -> 6.1 holds it 2.0 dB under the
+  // 808, where it sat.
+  var LEVEL_DB = { d808: 0, linn: 6.1, bgtr: 4.5, mbass: 3.8, jbass: 3.5, fbass: 3.8, rgtr: 5.2, jcomp: 3.1, ocomp: 3.1,
     fkeys: 2.2, jpad: 5.9, opad: 6.3, obrass: 9, jlead: 3.6, mlead: 4.3, jarp: 14.6, marp: 14.9, mriff: 17.9 };
   function levelOf(l) { return l.mute ? 0 : Math.pow(10, (LEVEL_DB[l.inst] || 0) / 20); }
 
@@ -9695,6 +9698,18 @@
   function gSnap() { return { bpm: G.bpm, key: G.key, mode: G.mode, lane: G.lane, A: G.A, B: G.B }; }
   function lSig(l) { return l.inst + "|" + l.pat + "|" + l.patch; }
 
+  // Drum layers play with no room (Jeff 10/28, after playing it: "the snare
+  // sounds metallic"). The production draw above is one fixed draw per style
+  // and lands on prod.gated_room for new wave, synth pop, synth R&B and funk,
+  // so every kit went through the gated room and a 2.4x plate send: the
+  // snare's 5-16 kHz ring ran 350-400 ms against ~30 ms on the rig's per-hit
+  // pages, the path Jeff approved (harness/jam-snare.mjs, files/unison/
+  // jam-player-2026-10-28/RESULT-snare.md). The engine's dry_board (+66 ms of
+  // ring, saturated snare) and close_dry (+0.21 tail tonality on the 808, the
+  // plate's combs) still sat over the rig; no room puts the page's snares on
+  // the rig's numbers. Plate sends 0, no gate, no echo, no saturation.
+  var DRY_KIT = { id: "jam.dry_kit", send: 0, wet: 0, damp: 3000 };
+
   // ---- one strip, one section, rendered by the engine ----
   function buildSheet(g, sec, inst, pat, patch, v) {
     var d = INST_BY[inst], lane = g.lane;
@@ -9733,7 +9748,7 @@
     // patches: the engine's book draws, on the layer's patch seed
     var PR = U.makePrng(patchH);
     s.panel808 = U.draw808Panel(PR); s.panelLinn = U.drawLinnPanel(PR); s.polySeed = PR.ri(1, 2147483646);
-    s.production = U.drawProduction(U.makePrng(seedHash(1, "prod")), lane);
+    s.production = d.cls === "drums" ? DRY_KIT : U.drawProduction(U.makePrng(seedHash(1, "prod")), lane);
     s.productionDetail = U.drawProductionDetail(seedHash(1, "prod"));
     if (s.bassVoice === "bassguitar") { s.bassPlayer = U.drawBassPlayer(player, lane); s.bassBook = U.drawBassBook(patchH, s); }
     if (inst === "rgtr") { s.gtrPlayer = U.drawGtrPlayer(player, lane); s.gtrBook = U.drawGtrBook(patchH, s); }
@@ -9771,17 +9786,23 @@
   function render(g, sec, inst, pat, patch, v) {
     var t0 = performance.now();
     var s = buildSheet(g, sec, inst, pat, patch, v);
+    var r = renderSheet(s, pat, v);
+    var tBuild = performance.now() - t0;
+    return r.done.then(function (buf) {
+      var ms = Math.round(performance.now() - t0);
+      renderLog.push({ inst: inst, sec: sec, v: v, ms: ms, buildMs: Math.round(tBuild), events: r.stats.events });
+      return { buf: buf, patch: patchName(inst, s), pattern: patternName(inst, s) };
+    });
+  }
+  function renderSheet(s, pat, v) {
     var len = Math.ceil((LEAD + s.lengthSec + TAIL) * RATE);
     var ctx = new OAC(2, len, RATE);
     var desk = U.createDesk(ctx, ctx.destination, { busTrimDb: 0 });
     var stats = U.realizeSession(ctx, desk, s, U.forkPrng(seedHash(pat, "bars" + v), "bars"), LEAD, {});
-    var tBuild = performance.now() - t0;
-    return ctx.startRendering().then(function (buf) {
+    return { stats: stats, done: ctx.startRendering().then(function (buf) {
       void stats; void desk;   // the graph must outlive the render (renderer.js note)
-      var ms = Math.round(performance.now() - t0);
-      renderLog.push({ inst: inst, sec: sec, v: v, ms: ms, buildMs: Math.round(tBuild), events: stats.events });
-      return { buf: buf, patch: patchName(inst, s), pattern: patternName(inst, s) };
-    });
+      return buf;
+    }) };
   }
 
   // ---- buffer cache + render queue ----
@@ -9826,14 +9847,19 @@
     if (!ctx) {
       var AC = window.AudioContext || window.webkitAudioContext;
       ctx = new AC();
-      var lim = ctx.createDynamicsCompressor();
-      lim.threshold.value = -6; lim.knee.value = 0; lim.ratio.value = 20; lim.attack.value = 0.003; lim.release.value = 0.15;
-      master = ctx.createGain(); master.gain.value = 0.6;
-      var post = ctx.createGain(); post.gain.value = 0.85;   // six loud layers peak 0.9 through the limiter without it (measured)
-      master.connect(lim); lim.connect(post); post.connect(ctx.destination);
+      master = masterChain(ctx, ctx.destination);
     }
     if (ctx.state === "suspended") ctx.resume();
     return ctx;
+  }
+  // layers sum here: gain, limiter, post gain (harness/jam-snare.mjs renders through this too)
+  function masterChain(c, dest) {
+    var lim = c.createDynamicsCompressor();
+    lim.threshold.value = -6; lim.knee.value = 0; lim.ratio.value = 20; lim.attack.value = 0.003; lim.release.value = 0.15;
+    var m = c.createGain(); m.gain.value = 0.6;
+    var post = c.createGain(); post.gain.value = 0.85;   // six loud layers peak 0.9 through the limiter without it (measured)
+    m.connect(lim); lim.connect(post); post.connect(dest);
+    return m;
   }
   function barSecOf(ep) { return 240 / ep.g.bpm; }
   function curEpoch(t) {
@@ -10130,7 +10156,7 @@
   // for the walk-through (harness/jam-check.mjs)
   window.__jam = { G: G, starts: starts, renderLog: renderLog, epochs: function () { return epochs; }, cache: cache,
     ctx: function () { return ctx; }, playing: function () { return playing; }, busy: function () { return busy; },
-    LEAD: LEAD, BARS: BARS, render: render, LEVEL_DB: LEVEL_DB, INST_IDS: INST.map(function (d) { return d.id; }) };
+    LEAD: LEAD, BARS: BARS, RATE: RATE, render: render, buildSheet: buildSheet, renderSheet: renderSheet, masterChain: masterChain, LEVEL_DB: LEVEL_DB, INST_IDS: INST.map(function (d) { return d.id; }) };
 })();
 </script>
 </body>
