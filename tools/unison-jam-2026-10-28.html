@@ -25,19 +25,20 @@
   .row > *:last-child{margin-right:0}
   /* top bar */
   #top{flex:0 0 76px;height:76px}
-  #play{flex:0 0 150px;width:150px;height:68px;font-size:24px;font-weight:700;background:var(--or);border-color:var(--or);color:#1d1d1d}
+  #play{flex:0 0 124px;width:124px;height:68px;font-size:24px;font-weight:700;background:var(--or);border-color:var(--or);color:#1d1d1d}
   #play.on{background:var(--wht);border-color:var(--wht)}
   .knob{flex:0 0 auto;background:var(--panel);border-radius:10px;padding:6px 8px;height:68px}
   .knob label{display:block;font-size:12px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin:0 0 3px 2px}
   .knob .row button{width:44px;height:38px;font-size:22px;line-height:1;padding:0}
-  .knob .val{min-width:62px;text-align:center;font-size:24px;font-weight:700}
+  .knob .val{min-width:50px;text-align:center;font-size:24px;font-weight:700}
   .knob select{height:38px;font-size:17px}
+  .knob .row button.rnd{width:auto;padding:0 10px;font-size:15px;margin-left:4px}
   .seg button{-webkit-box-flex:0;flex:0 0 auto;height:38px;padding:0 12px;font-size:17px;margin-right:0;border-radius:0}
   .knob .seg button{width:auto;padding:0 14px;font-size:17px}
   .seg button:first-child{border-radius:8px 0 0 8px}
   .seg button:last-child{border-radius:0 8px 8px 0}
   .seg button.on{background:var(--or);border-color:var(--or);color:#1d1d1d}
-  #status{flex:1 1 auto;text-align:right;color:var(--dim);font-size:15px;min-width:0;overflow:hidden;white-space:nowrap}
+  #status{flex:1 1 auto;text-align:right;color:var(--dim);font-size:13px;line-height:1.25;max-height:68px;min-width:0;overflow:hidden}
   #save{flex:0 0 auto;height:68px;padding:0 16px;font-size:17px}
   /* sections + chords */
   #harm{flex:0 0 168px;height:168px;margin-top:8px}
@@ -108,9 +109,9 @@
 <body>
 <div id="top" class="row">
   <button id="play">PLAY</button>
-  <div class="knob"><label>Tempo</label><div class="row"><button id="bpmDn">&minus;</button><span class="val" id="bpm">112</span><button id="bpmUp">+</button></div></div>
+  <div class="knob"><label>Tempo</label><div class="row"><button id="bpmDn">&minus;</button><span class="val" id="bpm">112</span><button id="bpmUp">+</button><button id="bpmRnd" class="rnd" title="random tempo for this style">Random</button></div></div>
   <div class="knob"><label>Key</label><div class="row"><button id="keyDn">&minus;</button><span class="val" id="key">C</span><button id="keyUp">+</button></div></div>
-  <div class="knob"><label>Scale</label><div class="row seg" id="mode"><button data-m="major">Major</button><button data-m="minor">Minor</button></div></div>
+  <div class="knob"><label>Scale</label><div class="row"><div class="row seg" id="mode"><button data-m="major">Major</button><button data-m="minor">Minor</button></div><button id="keyRnd" class="rnd" title="random key and scale, new chords">Random key</button></div></div>
   <div class="knob"><label>Style</label><div class="row"><select id="lane"></select></div></div>
   <div id="status"></div>
   <button id="save">Save link</button>
@@ -122,10 +123,10 @@
 <div id="bars" class="row"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
 <div id="layers"></div>
 <div id="add" class="row"><div class="lbl">Add a layer</div><div id="pal"></div></div>
-<footer title="engine @61d0b52 · built 2026-10-28">Unison jam &middot; every sound is synthesized in this page by the engine at 61d0b52</footer>
+<footer title="engine @9705920 · built 2026-10-29">Unison jam &middot; every sound is synthesized in this page by the engine at 9705920</footer>
 
 <script>
-/* ===== src/core/prng.js @ 61d0b52 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/prng.js @ 9705920 — verbatim from jeffdavis-studio/unison-engine ===== */
 // prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
 // token hash, consumed in canonical draw order (Technical Architecture v1.2).
 //
@@ -198,7 +199,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/core/mix.js @ 61d0b52 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/mix.js @ 9705920 — verbatim from jeffdavis-studio/unison-engine ===== */
 // mix.js — the fan-in ≤2 summing rule, as a primitive.
 //
 // Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
@@ -236,7 +237,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/desk/desk.js @ 61d0b52 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/desk/desk.js @ 9705920 — verbatim from jeffdavis-studio/unison-engine ===== */
 // desk.js — the 24-track desk as a running audio graph.
 //
 // The desk is the data structure, not a metaphor (Composition Brief 2 / Tech
@@ -616,6 +617,19 @@
         s.insert.connect(pre); pre.connect(sh); sh.connect(post); post.connect(lp); lp.connect(s.fader);
         s.sat = { pre, sh, post, lp, drive, bias, level: lv };
       },
+      // Kit-bus compression (pass 3, production.js U.kitCompCurve): one gain
+      // curve, from t = 0, on every kit strip's insert gain. The insert is
+      // pre-fader and pre-send, so the sum of the kit strips is compressed as
+      // a bus would be, and the rooms hear the compressed kit, but no return
+      // passes through the curve: a tail is never ducked by it. No node added.
+      compressKit(curve, dt) {
+        const dur = (curve.length - 1) * dt;
+        for (const id of U.KIT_STRIPS) {
+          const s = strips[id];
+          if (s && curve.length > 1) s.insert.gain.setValueCurveAtTime(curve, 0, dur);
+        }
+        this.kitComp = { points: curve.length, dt };
+      },
       get spareCount() { return sparesUsed; },
       masterTrim,
       busTrim,
@@ -626,7 +640,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/production.js @ 61d0b52 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/production.js @ 9705920 — verbatim from jeffdavis-studio/unison-engine ===== */
 // production.js — the production room, v0.
 //
 // PLACEMENT DECISION (Morgan's call, ratified by Jeff 2026-08-03). Production
@@ -647,8 +661,10 @@
 // (send, wet, damping), the gated room on the kit (desk.js makeGatedRoom, a
 // gate scheduled per hit from the session's kit hit times), the tape echo
 // (makeTapeEcho, tempo-locked times, loop filters, wow) and saturation as the
-// first per-strip insert (desk.saturate). Not yet: chorus and compression
-// (pass 2). The style is still ONE draw on the song stream (draw 47); the only
+// first per-strip insert (desk.saturate). Pass 3: the gated room's return set
+// per song against the dry snare, the bass makeup refit, and a kit-bus
+// compressor (own math, a scheduled gain curve) built but taken by no style
+// yet. Not yet: chorus. The style is still ONE draw on the song stream (draw 47); the only
 // other randomness, the dub echo's time, is on U.forkPrng(hash, "production").
 (function (g) {
   "use strict";
@@ -672,6 +688,16 @@
   // at 0.25 it reads -7.6 / 0.0 / -2.5 dB against the snare on ee4cd9a3 /
   // a2a1aaf5 / f3671a69 (the ratio moves with hit density and the toms).
   const GATE_WET = 0.25;
+  // Pass 3 (2026-10-28): the kit-bus compressor (U.KIT_COMP below) is built
+  // and measured, and no style takes it yet. A style opts in with
+  // `comp: { ratio, belowPeakDb }`. On 2e87640d (dry_board) three settings,
+  // {3:1, 12 dB, release 1 beat}, {3:1, 12 dB, 1/4 beat} and {2:1, 9 dB,
+  // 1 beat}, lifted window crest +0.4 / +0.6 / +0.2 dB only as far as they
+  // took loudness down (-0.3 / -0.4 / -0.2 LUFS: the master limiter pins the
+  // peak, so crest moves with loudness) and took dynamic complexity down
+  // (-0.21 / -0.31 / -0.06) with the limiter working harder (+0.15 to +0.8 dB
+  // GR). The pass's own bar (crest AND dynamic complexity rise, loudness
+  // holds) failed on every setting. Numbers: stage 2 RESULT-pass3.md.
   U.PRODUCTION_STYLES = [
     { id: "prod.dry_board",   w: 26, send: 0.55, wet: 0.45, damp: 3400,
       sat: { snare: SAT_LIGHT, bass: SAT_LIGHT } },
@@ -720,7 +746,13 @@
     // the bass and an 808 snare (-0.7 at SAT_MED) can land 1 dB off: next pass
     // makes the drive follow the strip's level instead.
     makeupDb: { kick: { [SAT_LIGHT]: 1.7, [SAT_MED]: 3.1 }, snare: { [SAT_LIGHT]: 1.2, [SAT_MED]: 2.2 },
-      tomsFills: { [SAT_LIGHT]: 1.2, [SAT_MED]: 2.2 }, bass: { [SAT_LIGHT]: 0.9, [SAT_MED]: 1.8 },
+      tomsFills: { [SAT_LIGHT]: 1.2, [SAT_MED]: 2.2 },
+      // pass 3: the bass refit on its whole-song level (production-check
+      // --sat-level --whole, 9 songs): the loss at SAT_LIGHT runs -0.19 to
+      // -0.87 dB by bass voice, so the makeup sits mid-range (0.55, every song
+      // within 0.36). At SAT_MED it runs -0.45 to -1.86: 1.15 holds ±0.7, not
+      // ±0.5 (tape_slap's bass; per-voice next).
+      bass: { [SAT_LIGHT]: 0.55, [SAT_MED]: 1.15 },
       compA: { [SAT_LIGHT]: 0.2, [SAT_MED]: 0.5 } } };
   // Gated room timing, fitted to the Reference (DESIGN.md, RESULT.md): the
   // gate closes at GATE_CLOSE_BEATS of a beat after the hit (median of the
@@ -729,6 +761,31 @@
   U.GATE_CLOSE_BEATS = 0.41;
   U.GATE_CLOSE_CLAMP = [0.11, 0.40];
   U.GATE_RELEASE = 0.025;
+  // Pass 3 (2026-10-28): the gated room's return is set per song so its
+  // K-weighted mean sits GATE_VS_SNARE_DB against the dry snare's (both
+  // measured on the bus trim's pre-render; style.gate.wet is the probe's
+  // level). Pass 2's one wet read -7.6 to +3.0 dB by song. The target is the
+  // Reference: on the readable gated-drum previews (work/gate-ref.json) the
+  // backbeat's energy from 25 ms to the gate's close sits at -20.5 / -4.3 /
+  // -2.3 / -0.3 / +3.0 dB against its first 25 ms, median -2.3; -3 sits just
+  // under it, so the tail stays a tail.
+  U.GATE_VS_SNARE_DB = -3;
+  U.GATE_TRIM_CLAMP = [0.25, 4];
+
+  // KIT-BUS COMPRESSION (pass 3, 2026-10-28). One gain curve on every kit
+  // strip (a stereo-linked bus compressor: the same gain at each kit strip's
+  // insert is the gain on their sum), computed by the engine from the kit
+  // bus as the bus trim's pre-render hears it (renderer.js), scheduled with
+  // setValueCurveAtTime. Not a DynamicsCompressorNode: own math, a function of
+  // the schedule. Peak-hold detector (10 ms), soft-knee gain computer, attack
+  // and release smoothed on the gain reduction in dB. Attack slow enough to
+  // pass the kick and snare transients, release about a beat; threshold set
+  // `belowPeakDb` under the kit bus's own whole-song peak (the level read the
+  // way saturation reads its insert peak); makeup holds the kit bus's
+  // K-weighted loudness where it was.
+  U.KIT_STRIPS = ["kick", "snare", "hats", "tomsFills", "ePerc", "percTime", "percAccent"];
+  U.KIT_COMP = { attack: 0.030, releaseBeats: 1.0, kneeDb: 6, holdMs: 10, dt: 0.002 };
+
   U.ECHO_SLAP = 0.105;
   U.ECHO_WOW = 0.003;   // wow depth, a share of the delay time
 
@@ -784,7 +841,8 @@
     if (!sheet) return;
     if (style.gate) {
       const room = desk.ensureGated();
-      room.wet.gain.value = style.gate.wet;
+      room.wet.gain.value = style.gate.wet * (sheet.satProbe ? 1 : (sheet.gateTrim || 1));
+      if (sheet.satProbe) desk.gateTap = true;   // the level read: return vs dry snare
       for (const id of Object.keys(style.gate.send)) desk.sendTo(room, id, style.gate.send[id]);
       room.keys = style.gate.keys;
       const close = Math.min(U.GATE_CLOSE_CLAMP[1], Math.max(U.GATE_CLOSE_CLAMP[0], U.GATE_CLOSE_BEATS * 60 / sheet.bpm));
@@ -812,6 +870,48 @@
         desk.saturate(id, d, st.bias, st.lpHz[d], (st.makeupDb[id] || {})[d] || 0, level);
       }
     }
+    if (style.comp) {
+      if (sheet.satProbe) desk.kitTap = true;   // the level read: the kit bus, uncompressed
+      else if (sheet.kitComp) desk.compressKit(sheet.kitComp.curve, sheet.kitComp.dt);
+    }
+  };
+
+  // The kit-bus compressor's gain curve from the kit bus (L, R at `sr`):
+  // returns { curve (linear gain incl. makeup, one point per U.KIT_COMP.dt),
+  // dt, peakDb, thresholdDb, makeupDb, grMaxDb, grMeanDb }.
+  U.kitCompCurve = function (L, R, sr, bpm, amount) {
+    const K = U.KIT_COMP, n = L.length;
+    let pk = 0;
+    for (let i = 0; i < n; i++) { const a = Math.max(Math.abs(L[i]), Math.abs(R[i])); if (a > pk) pk = a; }
+    if (!(pk > 1e-6)) return null;
+    const peakDb = 20 * Math.log10(pk), thr = peakDb - amount.belowPeakDb, ratio = amount.ratio, W = K.kneeDb;
+    const aA = Math.exp(-1 / (K.attack * sr)), aR = Math.exp(-1 / (K.releaseBeats * 60 / bpm * sr));
+    const aH = Math.exp(-1 / (K.holdMs / 1000 * sr));
+    const step = Math.round(K.dt * sr), m = Math.floor((n - 1) / step) + 1;
+    const grDb = new Float32Array(m);
+    let env = 0, y = 0, grSum = 0, grMax = 0;
+    for (let i = 0; i < n; i++) {
+      const a = Math.max(Math.abs(L[i]), Math.abs(R[i]));
+      env = a > env ? a : aH * env;
+      const x = 20 * Math.log10(env + 1e-9), o = x - thr;
+      const g = o <= -W / 2 ? 0 : o >= W / 2 ? o * (1 - 1 / ratio) : (1 - 1 / ratio) * (o + W / 2) * (o + W / 2) / (2 * W);
+      y = g > y ? aA * y + (1 - aA) * g : aR * y + (1 - aR) * g;
+      if (i % step === 0) { grDb[i / step] = y; grSum += y; if (y > grMax) grMax = y; }
+    }
+    // makeup: the kit bus's K-weighted integrated loudness, compressed vs not
+    // (the curve read the way setValueCurveAtTime plays it, linear between points)
+    const g = new Float32Array(m);
+    for (let k = 0; k < m; k++) g[k] = Math.pow(10, -grDb[k] / 20);
+    const cL = new Float32Array(n), cR = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      const p = i / step, k = Math.floor(p), f = p - k, v = k + 1 < m ? g[k] + (g[k + 1] - g[k]) * f : g[m - 1];
+      cL[i] = L[i] * v; cR[i] = R[i] * v;
+    }
+    const before = U.integratedLufs([L, R], sr), after = U.integratedLufs([cL, cR], sr);
+    const makeupDb = isFinite(before) && isFinite(after) ? before - after : 0;
+    const mk = Math.pow(10, makeupDb / 20);
+    for (let k = 0; k < m; k++) g[k] *= mk;
+    return { curve: g, dt: step / sr, peakDb, thresholdDb: thr, makeupDb, grMaxDb: grMax, grMeanDb: grSum / m };
   };
 
   // After the session has scheduled every note: open the gated room on the
@@ -825,7 +925,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/juno.js @ 61d0b52 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/juno.js @ 9705920 — verbatim from jeffdavis-studio/unison-engine ===== */
 // juno.js — Juno-60-flavor poly voice, raw Web Audio, zero dependencies.
 // Ported from the 2026-07-21 bake-off winner (voice-raw.js), restructured to
 // live behind a desk strip: U.createJuno(ctx, strip, patchName) builds its own
@@ -1367,7 +1467,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/minimoog.js @ 61d0b52 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/minimoog.js @ 9705920 — verbatim from jeffdavis-studio/unison-engine ===== */
 // minimoog.js — Minimoog Model D-lineage mono voice, zero dependencies.
 //
 // THE MONO BASS LANE (build order 808 → Juno → Minimoog → …; it also absorbs
@@ -1909,7 +2009,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/obxa.js @ 61d0b52 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/obxa.js @ 9705920 — verbatim from jeffdavis-studio/unison-engine ===== */
 // obxa.js — Oberheim OB-Xa-lineage poly voice, zero dependencies.
 //
 // THE BRASS/PAD POLY LANE (build order 808 → Juno → Minimoog → OB-Xa → …).
@@ -2446,7 +2546,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/fm.js @ 61d0b52 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/fm.js @ 9705920 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fm.js — six-operator FM keys voice (the DX7 lineage), zero dependencies.
 //
 // THE FM LANE (build order 808 → Juno → Minimoog → OB-Xa → Linn → FM).
@@ -3119,7 +3219,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/bassguitar.js @ 61d0b52 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/bassguitar.js @ 9705920 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassguitar.js — electric bass guitar, the first session player of the human
 // rack (Rack 2), zero dependencies.
 //
@@ -3708,7 +3808,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/rhythmguitar.js @ 61d0b52 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/rhythmguitar.js @ 9705920 — verbatim from jeffdavis-studio/unison-engine ===== */
 // rhythmguitar.js — clean electric rhythm guitar, the fourth and last stop of
 // the human rack (Rack 2), zero dependencies.
 //
@@ -4357,7 +4457,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/tr808.js @ 61d0b52 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/tr808.js @ 9705920 — verbatim from jeffdavis-studio/unison-engine ===== */
 // tr808.js — THE MACHINE. A TR-808-lineage core voice: bass drum, snare,
 // closed hat, open hat, each with a front panel the token actually turns.
 //
@@ -5641,7 +5741,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/linn.js @ 61d0b52 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/linn.js @ 9705920 — verbatim from jeffdavis-studio/unison-engine ===== */
 // linn.js — THE STUDIO MACHINE. A Linn-family (LM-1 / LinnDrum lineage)
 // drum computer: the new wave / synth-pop / 80s R&B kit.
 //
@@ -6398,7 +6498,7 @@
   U._linn = { burn, play, vca, roms, V, EPROM_HZ, RECON_HZ, SR, TOM_MID_CLOCK };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drums.js @ 61d0b52 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drums.js @ 9705920 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drums.js — the drum machine: 808/LM-1-flavor voices, synthesized at runtime
 // into short AudioBuffers, played back as one-shots.
 //
@@ -6727,7 +6827,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/books.js @ 61d0b52 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/books.js @ 9705920 — verbatim from jeffdavis-studio/unison-engine ===== */
 // books.js — Pattern Books v1, as data.
 //
 // This file IS the document: "Unison — Pattern Books v1 (draft)" (Morgan,
@@ -7349,7 +7449,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/bassplayer.js @ 61d0b52 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/bassplayer.js @ 9705920 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassplayer.js — the PERFORMANCE half of the bass guitar: a session player.
 //
 // Rack 2's rule (kb/projects/unison.md, 2026-07-11): every human instrument is
@@ -7601,7 +7701,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/gtrplayer.js @ 61d0b52 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/gtrplayer.js @ 9705920 — verbatim from jeffdavis-studio/unison-engine ===== */
 // gtrplayer.js — the PERFORMANCE half of the rhythm guitar: a session
 // guitarist on the rhythmGtr strip.
 //
@@ -7801,7 +7901,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/fmplayer.js @ 61d0b52 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/fmplayer.js @ 9705920 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fmplayer.js — the PERFORMANCE half of the FM keys: a session keyboard
 // player on the FM chord strips (compA's tine EP, colour's glass and brass).
 //
@@ -7942,7 +8042,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/testPhrase.js @ 61d0b52 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/testPhrase.js @ 9705920 — verbatim from jeffdavis-studio/unison-engine ===== */
 // testPhrase.js — deterministic 8-bar test phrase, ported from the bake-off
 // (phrase.js) onto the engine's canonical PRNG (core/prng.js).
 //
@@ -8036,7 +8136,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/session.js @ 61d0b52 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/session.js @ 9705920 — verbatim from jeffdavis-studio/unison-engine ===== */
 // session.js — the session sheet and the arrangement realizer.
 //
 // Two tiers, in this order, each on its own stream (core/prng.js):
@@ -9275,7 +9375,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/render/renderer.js @ 61d0b52 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/render/renderer.js @ 9705920 — verbatim from jeffdavis-studio/unison-engine ===== */
 // renderer.js — song assembly + the render pipeline (Technical Architecture
 // v1.2 playback model): live-first, with (a) a cheap analysis pre-render for
 // verification/metrics and (b) an on-demand full OfflineAudioContext render
@@ -9356,7 +9456,13 @@
     // pre-render (U.songBusTrimDb), so the curve sees every song's strip at
     // the same level. The pre-render itself runs the inserts bypassed and taps
     // them (sheet.satProbe). Absent = the curve at the strip's raw level.
-    sheet.satPeaks = o.satPeaks || U.satPeakCache[hash + "|" + (forceLane || "")] || null;
+    const mixKey = hash + "|" + (forceLane || "");
+    sheet.satPeaks = o.satPeaks || U.satPeakCache[mixKey] || null;
+    // Pass 3 (2026-10-28): the kit-bus compressor's curve and the gated
+    // room's per-song return trim, from the same pre-render (U.mixProbeCache).
+    const mp = U.mixProbeCache[mixKey] || {};
+    sheet.kitComp = o.kitComp || mp.kitComp || null;
+    sheet.gateTrim = o.gateTrim || mp.gateTrim || null;
     sheet.satProbe = !!o.preBus;
     const desk = U.createDesk(ctx, ctx.destination, { busTrimDb, preBus: !!o.preBus });
     const stats = U.realizeSession(ctx, desk, sheet, Rbars, LEAD, opts);
@@ -9431,6 +9537,34 @@
   // K-weighted integrated loudness, LUFS (BS.1770-4: 400 ms blocks, 75 %
   // overlap, -70 absolute gate, -10 LU relative gate). The same filter as
   // analysis/loudness.mjs (libebur128's closed form, any rate).
+  // Ungated K-weighted mean over the whole signal, in LUFS-scaled dB (the
+  // measure render-loudness reports per strip; pass 3's gated-return trim).
+  U.kWeightedMeanDb = function (chans, sr) {
+    let p = 0;
+    for (const z of U.kWeight(chans, sr)) { let a = 0; for (let i = 0; i < z.length; i++) a += z[i] * z[i]; p += a / z.length; }
+    return p > 1e-30 ? -0.691 + 10 * Math.log10(p) : -Infinity;
+  };
+  U.kWeight = function (chans, sr) {
+    const bq = (f0, G, Q, shelf) => {
+      const K = Math.tan(Math.PI * f0 / sr), a0 = 1 + K / Q + K * K;
+      if (!shelf) return [1, -2, 1, 2 * (K * K - 1) / a0, (1 - K / Q + K * K) / a0];
+      const Vh = Math.pow(10, G / 20), Vb = Math.pow(Vh, 0.4996667741545416);
+      return [(Vh + Vb * K / Q + K * K) / a0, 2 * (K * K - Vh) / a0, (Vh - Vb * K / Q + K * K) / a0,
+        2 * (K * K - 1) / a0, (1 - K / Q + K * K) / a0];
+    };
+    const stages = [bq(1681.974450955533, 3.999843853973347, 0.7071752369554196, true),
+      bq(38.13547087602444, 0, 0.5003270373238773, false)];
+    return chans.map((x) => {
+      let y = x;
+      for (const [b0, b1, b2, a1, a2] of stages) {
+        const n = y.length, z = new Float64Array(n);
+        let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+        for (let i = 0; i < n; i++) { const v = y[i], o = b0 * v + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2; x2 = x1; x1 = v; y2 = y1; y1 = o; z[i] = o; }
+        y = z;
+      }
+      return y;
+    });
+  };
   U.integratedLufs = function (chans, sr) {
     const bq = (f0, G, Q, shelf) => {
       const K = Math.tan(Math.PI * f0 / sr), a0 = 1 + K / Q + K * K;
@@ -9473,37 +9607,82 @@
   // saturated strip's insert signal (both channels) on channels 2+, and their
   // whole-song peaks land in U.satPeakCache for the song's later builds
   // (2026-10-28, stage 2 pass 2). Channels 0-1 are the pre-bus sum either way.
+  // Pass 3 (2026-10-28): the same render also taps the kit bus (the sum of
+  // the kit strips' post-fader signals, for the kit-bus compressor's curve)
+  // and, on a gated style, the dry snare and the gated room's return (for the
+  // return's per-song trim); both land in U.mixProbeCache. A page either
+  // runs this render or plays the song without any of its reads: there is no
+  // separate bake of one of them (U.songBusTrimDb's `baked`).
   U.satPeakCache = {};
+  U.mixProbeCache = {};
   U.preBusLufs = async function (hash, forceLane, seconds, rate, mono) {
     rate = rate || U.BUS_TRIM_PRE.rate;
     const probe = U.drawSession(U.makePrng(hash), forceLane);
     if (!seconds) seconds = LEAD + probe.lengthSec + TAIL;
     const nch = mono ? 1 : 2;
-    const satIds = Object.keys((probe.production && probe.production.sat) || {});
-    const ctx = new OfflineAudioContext(nch + 2 * satIds.length, Math.ceil(seconds * rate), rate);
+    const prod = probe.production || {};
+    const satIds = Object.keys(prod.sat || {});
+    const nExtra = 2 * satIds.length + (prod.comp ? 2 : 0) + (prod.gate ? 4 : 0);
+    const ctx = new OfflineAudioContext(nch + nExtra, Math.ceil(seconds * rate), rate);
     const song = U.buildSong(ctx, hash, forceLane, { preBus: true });
-    const taps = song.desk.satTaps || [];
-    if (taps.length) {
+    const desk = song.desk;
+    const taps = desk.satTaps || [];
+    // [name, node] pairs, two channels each, in a fixed order
+    const tapNodes = taps.map((id) => ["sat:" + id, desk.strips[id].insert]);
+    if (desk.kitTap) {
+      const kitSum = ctx.createGain();
+      const kitMix = U.chainMixer(ctx, kitSum);
+      for (const id of U.KIT_STRIPS) if (desk.strips[id]) kitMix.add(desk.strips[id].fader);
+      tapNodes.push(["kit", kitSum]);
+    }
+    if (desk.gateTap && desk.gated) {
+      tapNodes.push(["snare", desk.strips.snare.fader]);
+      tapNodes.push(["gated", desk.gated.wet]);
+    }
+    const chOf = {};
+    if (tapNodes.length) {
       ctx.destination.channelInterpretation = "discrete";
-      const merger = ctx.createChannelMerger(nch + 2 * taps.length);
-      taps.forEach((id, k) => {
+      const merger = ctx.createChannelMerger(nch + 2 * tapNodes.length);
+      tapNodes.forEach(([name, node], k) => {
         const sp = ctx.createChannelSplitter(2);
-        song.desk.strips[id].insert.connect(sp);
+        node.connect(sp);
         sp.connect(merger, 0, nch + 2 * k); sp.connect(merger, 1, nch + 2 * k + 1);
+        chOf[name] = nch + 2 * k;
       });
       merger.connect(ctx.destination);
     }
     const buf = await ctx.startRendering();
     void song;   // the graph must outlive the render (see U.renderSong)
     const ch = []; for (let c = 0; c < nch; c++) ch.push(buf.getChannelData(c));
-    if (taps.length && seconds >= LEAD + probe.lengthSec + TAIL) {   // whole song only
-      const peaks = {};
-      taps.forEach((id, k) => {
-        let pk = 0;
-        for (const c of [nch + 2 * k, nch + 2 * k + 1]) { const x = buf.getChannelData(c); for (let i = 0; i < x.length; i++) { const a = Math.abs(x[i]); if (a > pk) pk = a; } }
-        peaks[id] = pk;
-      });
-      U.satPeakCache[hash + "|" + (forceLane || "")] = peaks;
+    const key = hash + "|" + (forceLane || "");
+    if (tapNodes.length && seconds >= LEAD + probe.lengthSec + TAIL) {   // whole song only
+      const two = (name) => [buf.getChannelData(chOf[name]), buf.getChannelData(chOf[name] + 1)];
+      if (taps.length) {
+        const peaks = {};
+        taps.forEach((id) => {
+          let pk = 0;
+          for (const x of two("sat:" + id)) for (let i = 0; i < x.length; i++) { const a = Math.abs(x[i]); if (a > pk) pk = a; }
+          peaks[id] = pk;
+        });
+        U.satPeakCache[key] = peaks;
+      }
+      const mp = {};
+      if (chOf.kit !== undefined) {
+        const [L, R] = two("kit");
+        mp.kitComp = U.kitCompCurve(L, R, rate, probe.bpm, prod.comp);
+      }
+      if (chOf.gated !== undefined) {
+        // mono fold-downs, as render-loudness taps them (a panned snare
+        // against a centred room would otherwise read differently)
+        const mono = ([A, B]) => A.map((v, i) => 0.5 * (v + B[i]));
+        const s = U.kWeightedMeanDb([mono(two("snare"))], rate), r = U.kWeightedMeanDb([mono(two("gated"))], rate);
+        if (isFinite(s) && isFinite(r)) {
+          const t = Math.pow(10, (U.GATE_VS_SNARE_DB - (r - s)) / 20);
+          mp.gateTrim = Math.min(U.GATE_TRIM_CLAMP[1], Math.max(U.GATE_TRIM_CLAMP[0], t));
+          mp.gateVsSnareProbeDb = r - s;
+        }
+      }
+      U.mixProbeCache[key] = mp;
     }
     return U.integratedLufs(ch, rate);
   };
@@ -9512,8 +9691,20 @@
   // plays and exports the same song measures it once.
   const busTrimCache = {};
   U.busPreLufs = {};   // what the measurement read, per hash|lane (for the checks)
-  U.songBusTrimDb = function (hash, forceLane) {
+  //
+  // `baked` (pass 3, 2026-10-28): a page's baked trim for this song. Used only
+  // when the song's style reads nothing else off the pre-render; a style that
+  // saturates, compresses the kit or gates a room needs that render's reads
+  // (U.satPeakCache, U.mixProbeCache) as well, so the render runs and the
+  // baked number is ignored (the measured one is the same number). One path:
+  // a page cannot play a baked trim with the reads missing.
+  U.songNeedsMixProbe = function (hash, forceLane) {
+    const p = U.drawSession(U.makePrng(hash), forceLane).production || {};
+    return !!(p.sat || p.comp || p.gate);
+  };
+  U.songBusTrimDb = function (hash, forceLane, baked) {
     const key = hash + "|" + (forceLane || "");
+    if (typeof baked === "number" && !busTrimCache[key] && !U.songNeedsMixProbe(hash, forceLane)) return Promise.resolve(baked);
     if (!busTrimCache[key]) busTrimCache[key] = (async () => {
       const m = await U.preBusLufs(hash, forceLane, U.BUS_TRIM_PRE.seconds, U.BUS_TRIM_PRE.rate);
       U.busPreLufs[key] = m;
@@ -10377,6 +10568,22 @@
   function setDb(l, db) { l.db = Math.max(DB_MIN, Math.min(DB_MAX, Math.round(+db || 0))); applyGain(l); save(); drawLayers(); }
   function setOct(l, o) { o = clampOct(l.inst, o); if (o === (l.oct || 0)) return; l.oct = o; changed(); }
   function setSection(s) { G.sec = s; changed(); }
+  // v3 (Jeff 10/28): Random key draws tonic and scale together, every tonic
+  // and both scales equally likely, and always redraws A and B so the tap is
+  // heard even when the same key comes up. Random tempo is the engine's own
+  // song-tempo draw (session.js): SONG_TEMPO's band, shaped by the style's bpmBias.
+  function drawTempo(lane, r) { var T = U.SONG_TEMPO; return Math.round(T.bpm[0] + (T.bpm[1] - T.bpm[0]) * U.biasedPos(r, U.LANE_FEEL[lane].bpmBias)); }
+  function randomKey() {
+    var a0 = G.A, b0 = G.B;
+    G.key = Math.floor(Math.random() * 12); G.mode = Math.random() < 0.5 ? "major" : "minor";
+    for (var t = 0; t < 8; t++) { G.hs++; G.A = drawA(G.mode, G.lane, G.hs); G.B = deriveB(G.A, G.hs); if (G.A !== a0 || G.B !== b0) break; }
+    changed();
+  }
+  function randomTempo() {
+    var b = G.bpm;
+    for (var t = 0; t < 8 && b === G.bpm; t++) b = drawTempo(G.lane, Math.random());
+    setG("bpm", b);
+  }
   function setG(k, v) {
     G[k] = v;
     if (k === "mode" || k === "lane") { G.hs++; G.A = drawA(G.mode, G.lane, G.hs); G.B = deriveB(G.A, G.hs); }
@@ -10533,6 +10740,8 @@
   $("play").onclick = function () { if (playing) stop(); else start(); };
   $("bpmDn").onclick = function () { setG("bpm", Math.max(70, G.bpm - 4)); };
   $("bpmUp").onclick = function () { setG("bpm", Math.min(160, G.bpm + 4)); };
+  $("bpmRnd").onclick = randomTempo;
+  $("keyRnd").onclick = randomKey;
   $("keyDn").onclick = function () { setG("key", (G.key + 11) % 12); };
   $("keyUp").onclick = function () { setG("key", (G.key + 1) % 12); };
   Array.prototype.forEach.call($("mode").children, function (b) { b.onclick = function () { setG("mode", b.getAttribute("data-m")); }; });
@@ -10564,7 +10773,7 @@
   // for the walk-through (harness/jam-check.mjs)
   window.__jam = { G: G, starts: starts, renderLog: renderLog, epochs: function () { return epochs; }, cache: cache,
     ctx: function () { return ctx; }, playing: function () { return playing; }, busy: function () { return busy; },
-    LEAD: LEAD, BARS: BARS, RATE: RATE, render: render, buildSheet: buildSheet, renderSheet: renderSheet, masterChain: masterChain, LEVEL_DB: LEVEL_DB, pickIds: pickIds, capture: capture, captureEvents: captureEvents, variantFor: variantFor, variantsFor: variantsFor, STRIPS: function (id) { return INST_BY[id].strips.concat(INST_BY[id].fill ? [INST_BY[id].fill] : []); }, INST_IDS: INST.map(function (d) { return d.id; }) };
+    LEAD: LEAD, BARS: BARS, drawTempo: drawTempo, MAXL: MAXL, RATE: RATE, render: render, buildSheet: buildSheet, renderSheet: renderSheet, masterChain: masterChain, LEVEL_DB: LEVEL_DB, pickIds: pickIds, capture: capture, captureEvents: captureEvents, variantFor: variantFor, variantsFor: variantsFor, STRIPS: function (id) { return INST_BY[id].strips.concat(INST_BY[id].fill ? [INST_BY[id].fill] : []); }, INST_IDS: INST.map(function (d) { return d.id; }) };
 })();
 </script>
 </body>
