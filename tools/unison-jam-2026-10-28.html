@@ -25,9 +25,9 @@
   .row > *:last-child{margin-right:0}
   /* top bar */
   #top{flex:0 0 76px;height:76px}
-  #top.row > *{margin-right:8px}
+  #top.row > *{margin-right:6px}
   #top.row > *:last-child{margin-right:0}
-  #play{flex:0 0 108px;width:108px;height:68px;font-size:24px;font-weight:700;background:var(--or);border-color:var(--or);color:#1d1d1d}
+  #play{flex:0 0 104px;width:104px;height:68px;font-size:24px;font-weight:700;background:var(--or);border-color:var(--or);color:#1d1d1d}
   #play.on{background:var(--wht);border-color:var(--wht)}
   .knob{flex:0 0 auto;background:var(--panel);border-radius:10px;padding:6px 8px;height:68px}
   .knob label{display:block;font-size:12px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin:0 0 3px 2px}
@@ -53,6 +53,8 @@
   #ends #save{margin-bottom:4px}
   #clear.arm{background:var(--red);border-color:var(--red);font-weight:700}
   #swing .seg button{padding:0 7px;font-size:14px}
+  #lock .seg button{padding:0 16px;font-size:15px}
+  #lock label{font-size:11px;letter-spacing:.04em}
   /* sections + chords */
   #harm{flex:0 0 168px;height:168px;margin-top:8px}
   .sec{flex:1 1 0;width:0;height:100%;background:var(--panel);border:3px solid var(--panel);border-radius:12px;padding:8px 10px;position:relative}
@@ -138,11 +140,11 @@
 <body>
 <div id="top" class="row">
   <button id="play">PLAY</button>
-  <div class="knob"><label>Tempo</label><div class="row"><button id="bpmDn">&minus;</button><span class="val" id="bpm">112</span><button id="bpmUp">+</button><button id="bpmRnd" class="rnd" title="random tempo for this style">Random</button></div></div>
+  <div class="knob"><label>Tempo</label><div class="row"><button id="bpmDn">&minus;</button><span class="val" id="bpm">112</span><button id="bpmUp">+</button><button id="bpmRnd" class="rnd" title="random tempo, 96-142">Random</button></div></div>
   <div class="knob"><label>Key</label><div class="row"><button id="keyDn">&minus;</button><span class="val" id="key">C</span><button id="keyUp">+</button></div></div>
   <div class="knob"><label>Scale</label><div class="row"><div class="row seg" id="mode"><button data-m="major">Major</button><button data-m="minor">Minor</button></div><button id="keyRnd" class="rnd" title="random key and scale, new chords">Random key</button></div></div>
-  <div class="knob"><label>Style</label><div class="row"><select id="lane"></select></div></div>
   <div class="knob" id="swing"><label>Swing <span id="swv"></span></label><div class="row seg"><button data-w="s">Straight</button><button data-w="l">Light</button><button data-w="h">Heavy</button><button data-w="r">Random</button></div></div>
+  <div class="knob" id="lock"><label>Lock bass + drums</label><div class="row seg"><button data-k="1">On</button><button data-k="0">Off</button></div></div>
   <div class="spacer"></div>
   <div id="ends"><button id="save">Save link</button><button id="clear" title="tap twice to clear every layer">Clear</button></div>
 </div>
@@ -153,10 +155,10 @@
 <div id="bars" class="row"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><div id="status"></div></div>
 <div id="layers"></div>
 <div id="add" class="row"><div class="lbl">Add a layer</div><div id="pal"></div></div>
-<footer title="engine @024d18d · built 2026-10-29">Unison jam &middot; every sound is synthesized in this page by the engine at 024d18d</footer>
+<footer title="engine @41109f6 · built 2026-10-29">Unison jam &middot; every sound is synthesized in this page by the engine at 41109f6</footer>
 
 <script>
-/* ===== src/core/prng.js @ 024d18d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/prng.js @ 41109f6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
 // token hash, consumed in canonical draw order (Technical Architecture v1.2).
 //
@@ -229,7 +231,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/core/mix.js @ 024d18d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/mix.js @ 41109f6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // mix.js — the fan-in ≤2 summing rule, as a primitive.
 //
 // Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
@@ -267,7 +269,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/desk/desk.js @ 024d18d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/desk/desk.js @ 41109f6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // desk.js — the 24-track desk as a running audio graph.
 //
 // The desk is the data structure, not a metaphor (Composition Brief 2 / Tech
@@ -670,7 +672,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/production.js @ 024d18d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/production.js @ 41109f6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // production.js — the production room, v0.
 //
 // PLACEMENT DECISION (Morgan's call, ratified by Jeff 2026-08-03). Production
@@ -955,7 +957,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/juno.js @ 024d18d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/juno.js @ 41109f6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // juno.js — Juno-60-flavor poly voice, raw Web Audio, zero dependencies.
 // Ported from the 2026-07-21 bake-off winner (voice-raw.js), restructured to
 // live behind a desk strip: U.createJuno(ctx, strip, patchName) builds its own
@@ -1497,7 +1499,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/minimoog.js @ 024d18d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/minimoog.js @ 41109f6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // minimoog.js — Minimoog Model D-lineage mono voice, zero dependencies.
 //
 // THE MONO BASS LANE (build order 808 → Juno → Minimoog → …; it also absorbs
@@ -2039,7 +2041,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/obxa.js @ 024d18d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/obxa.js @ 41109f6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // obxa.js — Oberheim OB-Xa-lineage poly voice, zero dependencies.
 //
 // THE BRASS/PAD POLY LANE (build order 808 → Juno → Minimoog → OB-Xa → …).
@@ -2576,7 +2578,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/fm.js @ 024d18d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/fm.js @ 41109f6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fm.js — six-operator FM keys voice (the DX7 lineage), zero dependencies.
 //
 // THE FM LANE (build order 808 → Juno → Minimoog → OB-Xa → Linn → FM).
@@ -3249,7 +3251,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/bassguitar.js @ 024d18d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/bassguitar.js @ 41109f6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassguitar.js — electric bass guitar, the first session player of the human
 // rack (Rack 2), zero dependencies.
 //
@@ -3838,7 +3840,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/rhythmguitar.js @ 024d18d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/rhythmguitar.js @ 41109f6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // rhythmguitar.js — clean electric rhythm guitar, the fourth and last stop of
 // the human rack (Rack 2), zero dependencies.
 //
@@ -4487,7 +4489,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/tr808.js @ 024d18d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/tr808.js @ 41109f6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // tr808.js — THE MACHINE. A TR-808-lineage core voice: bass drum, snare,
 // closed hat, open hat, each with a front panel the token actually turns.
 //
@@ -5771,7 +5773,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/linn.js @ 024d18d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/linn.js @ 41109f6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // linn.js — THE STUDIO MACHINE. A Linn-family (LM-1 / LinnDrum lineage)
 // drum computer: the new wave / synth-pop / 80s R&B kit.
 //
@@ -6528,7 +6530,7 @@
   U._linn = { burn, play, vca, roms, V, EPROM_HZ, RECON_HZ, SR, TOM_MID_CLOCK };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drums.js @ 024d18d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drums.js @ 41109f6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drums.js — the drum machine: 808/LM-1-flavor voices, synthesized at runtime
 // into short AudioBuffers, played back as one-shots.
 //
@@ -6857,7 +6859,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/books.js @ 024d18d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/books.js @ 41109f6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // books.js — Pattern Books v1, as data.
 //
 // This file IS the document: "Unison — Pattern Books v1 (draft)" (Morgan,
@@ -7479,7 +7481,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/bassplayer.js @ 024d18d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/bassplayer.js @ 41109f6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassplayer.js — the PERFORMANCE half of the bass guitar: a session player.
 //
 // Rack 2's rule (kb/projects/unison.md, 2026-07-11): every human instrument is
@@ -7731,7 +7733,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/gtrplayer.js @ 024d18d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/gtrplayer.js @ 41109f6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // gtrplayer.js — the PERFORMANCE half of the rhythm guitar: a session
 // guitarist on the rhythmGtr strip.
 //
@@ -7931,7 +7933,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/fmplayer.js @ 024d18d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/fmplayer.js @ 41109f6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fmplayer.js — the PERFORMANCE half of the FM keys: a session keyboard
 // player on the FM chord strips (compA's tine EP, colour's glass and brass).
 //
@@ -8072,7 +8074,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/testPhrase.js @ 024d18d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/testPhrase.js @ 41109f6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // testPhrase.js — deterministic 8-bar test phrase, ported from the bake-off
 // (phrase.js) onto the engine's canonical PRNG (core/prng.js).
 //
@@ -8166,7 +8168,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/session.js @ 024d18d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/session.js @ 41109f6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // session.js — the session sheet and the arrangement realizer.
 //
 // Two tiers, in this order, each on its own stream (core/prng.js):
@@ -9405,7 +9407,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/render/renderer.js @ 024d18d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/render/renderer.js @ 41109f6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // renderer.js — song assembly + the render pipeline (Technical Architecture
 // v1.2 playback model): live-first, with (a) a cheap analysis pre-render for
 // verification/metrics and (b) an on-demand full OfflineAudioContext render
@@ -9845,7 +9847,6 @@
   var RATE = 44100, LEAD = 0.05, TAIL = 1.6, BARS = 8, MAXL = 8, AHEAD = 6;
   var PC = ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"];
   var SUFFIX = { m: "m", M: "", m7: "m7", M7: "maj7", d7: "7", m9: "m9", d9: "9", m7b5: "m7b5", sus4: "sus4", sus2: "sus2" };
-  var LANE_NAMES = { newWave: "New wave", synthPop: "Synth pop", synthRnB: "Synth R&B", earlyHipHop: "Hip-hop", funk: "Funk" };
 
   // ---- the kit after the stage 0 removals (no retired/ voices) ----
   var INST = [
@@ -9931,15 +9932,24 @@
     if (!pool.length) return aId;
     return U.pickWeighted(U.makePrng(seedHash(seed, "hb")), pool).id;
   }
-  function drawA(mode, lane, seed) {
-    var pool = PROGS.filter(function (p) { return p.mode === mode && !p.isChorus; });
-    var own = pool.filter(function (p) { return p.lane === lane; });
-    if (own.length && seed % 3 !== 2) pool = own;    // mostly the style's own book
-    return U.pickWeighted(U.makePrng(seedHash(seed, "ha")), pool.map(function (p) { return { id: p.id, w: p.h.w || 10 }; })).id;
+  // v4 (Jeff 10/28: "no style setting and all possibilities are available
+  // everywhere"): every style's book in the scale, pooled. Each book keeps its
+  // own weights inside it and counts as many entries as it has in that scale,
+  // so a big-weight book (hip-hop's parked, w 44) can't drown a small one,
+  // and a book with one entry in the scale (synth R&B's one major) doesn't
+  // take half of every major draw, as drawing the book first would make it.
+  function drawA(mode, seed) {
+    var pool = PROGS.filter(function (p) { return p.mode === mode && !p.isChorus; }), tot = {}, n = {};
+    pool.forEach(function (p) { tot[p.lane] = (tot[p.lane] || 0) + (p.h.w || 10); n[p.lane] = (n[p.lane] || 0) + 1; });
+    return U.pickWeighted(U.makePrng(seedHash(seed, "ha")), pool.map(function (p) { return { id: p.id, w: (p.h.w || 10) / tot[p.lane] * n[p.lane] }; })).id;
   }
 
   // ---- state ----
-  var G = { bpm: 112, key: 0, mode: "major", lane: "synthPop", hs: 1, A: "sp.h.pop_axis", B: null, sec: "A", L: [], n: 1, sw: 0, swb: "l" };
+  // v4: no style. Each layer carries its own hidden lanes (ln: the books its
+  // pattern draws from; pl: the patch books' lane weights), drawn at random
+  // and saved. prl: the production room of a v1-v3 link's style, so an old
+  // jam keeps its room; null = the jam's one room (PLATE, below).
+  var G = { bpm: 112, key: 0, mode: "major", hs: 1, A: "sp.h.pop_axis", B: null, sec: "A", L: [], n: 1, sw: 0, swb: "l", lock: true, fam: null, prl: null };
   G.B = deriveB(G.A, G.hs);
   // v4 (Jeff 10/28): swing is one global control, the clock's, saved in the
   // link. The engine's swing range (U.SONG_TEMPO.swing, the delay of every
@@ -9951,10 +9961,24 @@
   function swingPct(w) { return Math.round(50 + 50 * w) + "%"; }
 
   function swingFor(lane) { var T = U.SONG_TEMPO; return +(T.swing[0] + (T.swing[1] - T.swing[0]) * Math.min(0.6, U.LANE_FEEL[lane].swingBias)).toFixed(3); }
-  function gKey(g) { return [g.bpm, g.key, g.mode, g.lane, g.A, g.B, g.sw == null ? "" : g.sw].join("|"); }
-  function gSnap() { return { bpm: G.bpm, key: G.key, mode: G.mode, lane: G.lane, A: G.A, B: G.B, sw: G.sw }; }
-  function lSig(l) { return l.inst + "|" + l.pat + "|" + l.patch + "|" + (l.oct || 0) + "|" + (l.pn || ""); }
-  function lOpt(l) { return { oct: l.oct || 0, pn: l.pn || null }; }
+  function gKey(g) { return [g.bpm, g.key, g.mode, g.lane || "", g.A, g.B, g.sw == null ? "" : g.sw, g.prl || ""].join("|"); }
+  function gSnap() { return { bpm: G.bpm, key: G.key, mode: G.mode, A: G.A, B: G.B, sw: G.sw, prl: G.prl }; }
+  function lSig(l) { return l.inst + "|" + l.pat + "|" + l.patch + "|" + (l.oct || 0) + "|" + l.ln + "|" + l.pl + "|" + (l.pn || ""); }
+  function lOpt(l) { return { oct: l.oct || 0, pn: l.pn || null, ln: l.ln, pl: l.pl }; }
+  function anyLane() { return U.LANES[Math.floor(Math.random() * U.LANES.length)]; }
+  // v4 (Jeff 10/28: "a lock switch for bass/drum patterns"): with the lock on,
+  // every bass and drum layer draws its patterns from one hidden family (a
+  // lane's books), so New pattern keeps them matched; off, each draws its own.
+  // The family is drawn again when the lock goes on, on Clear, and when the
+  // board has no bass or drum layer left. The rhythm guitar and every other
+  // pitched layer are outside the lock.
+  var LOCKED = { d808: 1, linn: 1, bgtr: 1, mbass: 1, jbass: 1, fbass: 1 };
+  function lockedLayers() { return G.L.filter(function (l) { return LOCKED[l.inst]; }); }
+  function patternLane(inst) {
+    if (!(G.lock && LOCKED[inst])) return anyLane();
+    if (!G.fam || !lockedLayers().length) G.fam = anyLane();
+    return G.fam;
+  }
 
   // Drum layers play with no room (Jeff 10/28, after playing it: "the snare
   // sounds metallic"). The production draw above is one fixed draw per style
@@ -10109,11 +10133,11 @@
     });
     return bars.map(function (x) { return x.sort().join(" "); });
   }
-  function planKey(g, sec, inst, pat, patch, opt, vr) { return gKey(g) + "#" + sec + "#" + inst + "|" + pat + "|" + patch + "|" + ((opt && opt.pn) || "") + "#" + vr; }
+  function planKey(g, sec, inst, pat, patch, opt, vr) { return gKey(g) + "#" + sec + "#" + inst + "|" + pat + "|" + patch + "|" + ((opt && opt.pn) || "") + "|" + laneOf(g, opt) + "|" + ((opt && opt.pl) || "") + "#" + vr; }
   function planOrder(vr) { var uses = {}, order = []; SCHED[vr].forEach(function (v) { if (!uses[v]) { uses[v] = 0; order.push(v); } uses[v]++; }); return { uses: uses, order: order }; }
   function nCodesOf(avail) { var n = 1; avail.forEach(function (a) { n *= a; }); return n; }
   function sigOf(g, sec, inst, pat, patch, opt, v, c) {
-    return barSigs(capture(buildSheet(g, sec, inst, pat, patch, v, { pn: opt && opt.pn, forceCode: c }), pat, v, 0), INST_BY[inst].strips, g.bpm);
+    return barSigs(capture(buildSheet(g, sec, inst, pat, patch, v, { pn: opt && opt.pn, ln: opt && opt.ln, pl: opt && opt.pl, forceCode: c }), pat, v, 0), INST_BY[inst].strips, g.bpm);
   }
   function sigPlan(g, sec, inst, pat, patch, opt, vr, E, avail) {
     var key = planKey(g, sec, inst, pat, patch, opt, vr);
@@ -10128,7 +10152,7 @@
   function planAsync(g, sec, inst, pat, patch, opt, v) {
     var vr = vrOf(v), key = planKey(g, sec, inst, pat, patch, opt, vr);
     if (!v || INST_BY[inst].cls === "drums" || planCache[key] || !elems(inst, vr).length) return Promise.resolve();
-    var J = buildSheet(g, sec, inst, pat, patch, v, { pn: opt && opt.pn, forceCode: 0 }).jamPlan;
+    var J = buildSheet(g, sec, inst, pat, patch, v, { pn: opt && opt.pn, ln: opt && opt.ln, pl: opt && opt.pl, forceCode: 0 }).jamPlan;
     var po = planOrder(vr), nCodes = nCodesOf(J.avail), sig = {}, tasks = [];
     po.order.forEach(function (vv) { sig[vv] = []; for (var c = 0; c < nCodes; c++) tasks.push([vv, c]); });
     return new Promise(function (done) {
@@ -10159,13 +10183,21 @@
     });
     return plans;
   }
+  // the harnesses pass a lane on g (v3's call shape); the page passes the layer's
+  function laneOf(g, opt) { return (opt && opt.ln) || g.lane || "synthPop"; }
+  // v4: the one room for pitched layers. With no style, a draw per hidden lane
+  // would put one layer in five through hip-hop's tape slap (echo and
+  // saturation on bass, lead, chords and guitar) next to the others' gated
+  // room plate, so a board would mix rooms; every pitched layer gets the
+  // engine's plate wash instead. Drums stay dry (DRY_KIT).
+  var PLATE = U.PRODUCTION_STYLES.filter(function (x) { return x.id === "prod.plate_wash"; })[0];
   function vrOf(v) { return v >= 3 ? 2 : v >= 1 ? 1 : 0; }
 
   function buildSheet(g, sec, inst, pat, patch, v, opt) {
-    var d = INST_BY[inst], lane = g.lane;
+    var d = INST_BY[inst], lane = laneOf(g, opt), pl = (opt && opt.pl) || lane;
     var s = sectionDraw(sec, lane, inst, pat);
     var player = seedHash(pat, "play" + v), patchH = seedHash(patch, "patch");
-    s.bpm = g.bpm; s.swing = g.sw != null ? g.sw : swingFor(lane); s.tonicPc = g.key; s.mode = g.mode;
+    s.bpm = g.bpm; s.swing = g.sw != null ? g.sw : swingFor(g.lane || "synthPop"); s.tonicPc = g.key; s.mode = g.mode;
     var prog = PROG_BY[sec === "A" ? g.A : g.B].h;
     s.harmony = { id: prog.id, barsPer: prog.barsPer, chords: prog.chords };
     s.influence = null; s.influenceBlend = 0; s.influencePatches = [];
@@ -10191,15 +10223,19 @@
     if (opt && opt.pn && /^kit:\d+$/.test(opt.pn)) patchH = seedHash(+opt.pn.slice(4), "kit");
     var PR = U.makePrng(patchH);
     s.panel808 = U.draw808Panel(PR); s.panelLinn = U.drawLinnPanel(PR); s.polySeed = PR.ri(1, 2147483646);
-    s.production = d.cls === "drums" ? DRY_KIT : U.drawProduction(U.makePrng(seedHash(1, "prod")), lane);
+    s.production = d.cls === "drums" ? DRY_KIT : g.prl ? U.drawProduction(U.makePrng(seedHash(1, "prod")), g.prl) : PLATE;
     s.productionDetail = U.drawProductionDetail(seedHash(1, "prod"));
     if (s.bassVoice === "bassguitar") { s.bassPlayer = U.drawBassPlayer(player, lane); s.bassBook = U.drawBassBook(patchH, s); }
     if (inst === "rgtr") { s.gtrPlayer = U.drawGtrPlayer(player, lane); s.gtrBook = U.drawGtrBook(patchH, s); }
     if (s.polyVoice === "fm") s.fmPlayer = U.drawFmPlayer(player, lane);
-    s.junoPatches = U.drawJunoPatches(patchH, s);
-    if (s.polyVoice === "obxa") s.obxaPatches = U.drawObxaPatches(patchH, s);
-    s.minimoogPatches = U.drawMinimoogPatches(patchH, s);
-    var fmp = U.drawFmPatches(patchH, s); if (Object.keys(fmp).length) s.fmPatches = fmp;
+    // the synth patch draws weight their books by the layer's hidden patch
+    // lane (pl), drawn apart from the pattern's; the bass guitar's and the
+    // guitar's books follow the line they play, so they stay on its lane
+    var PS = s; if (pl !== lane) { PS = Object.create(s); PS.lane = pl; }
+    s.junoPatches = U.drawJunoPatches(patchH, PS);
+    if (s.polyVoice === "obxa") s.obxaPatches = U.drawObxaPatches(patchH, PS);
+    s.minimoogPatches = U.drawMinimoogPatches(patchH, PS);
+    var fmp = U.drawFmPatches(patchH, PS); if (Object.keys(fmp).length) s.fmPatches = fmp;
     s.satPeaks = null; s.satProbe = false;
     s.jamPicked = !!(opt && opt.pn && applyPick(inst, s, opt.pn, patchH));
     var E = v > 0 ? elems(inst, vrOf(v)) : [];
@@ -10592,7 +10628,8 @@
     if (G.L.length >= MAXL) return;
     audio();
     var n = G.n++;
-    G.L.push({ id: n, inst: inst, pat: n * 7 + G.hs, patch: n * 13 + 1, vr: 1, mute: false, oct: 0, db: 0, pn: null });
+    var ln = patternLane(inst);
+    G.L.push({ id: n, inst: inst, pat: n * 7 + G.hs, patch: n * 13 + 1, vr: 1, mute: false, oct: 0, db: 0, pn: null, ln: ln, pl: anyLane() });
     if (!playing) start();
     changed();
   }
@@ -10616,18 +10653,30 @@
   // and both scales equally likely, and always redraws A and B so the tap is
   // heard even when the same key comes up. Random tempo is the engine's own
   // song-tempo draw (session.js): SONG_TEMPO's band, shaped by the style's bpmBias.
-  function drawTempo(lane, r) { var T = U.SONG_TEMPO; return Math.round(T.bpm[0] + (T.bpm[1] - T.bpm[0]) * U.biasedPos(r, U.LANE_FEEL[lane].bpmBias)); }
+  // v4: no style, so no bias: every whole bpm in SONG_TEMPO's band equally likely
+  function drawTempo(r) { var T = U.SONG_TEMPO; return Math.min(T.bpm[1], T.bpm[0] + Math.floor(r * (T.bpm[1] - T.bpm[0] + 1))); }
   function randomKey() {
     var a0 = G.A, b0 = G.B;
     G.key = Math.floor(Math.random() * 12); G.mode = Math.random() < 0.5 ? "major" : "minor";
-    for (var t = 0; t < 8; t++) { G.hs++; G.A = drawA(G.mode, G.lane, G.hs); G.B = deriveB(G.A, G.hs); if (G.A !== a0 || G.B !== b0) break; }
+    for (var t = 0; t < 8; t++) { G.hs++; G.A = drawA(G.mode, G.hs); G.B = deriveB(G.A, G.hs); if (G.A !== a0 || G.B !== b0) break; }
     changed();
   }
   function randomTempo() {
     var b = G.bpm;
-    for (var t = 0; t < 8 && b === G.bpm; t++) b = drawTempo(G.lane, Math.random());
+    for (var t = 0; t < 8 && b === G.bpm; t++) b = drawTempo(Math.random());
     setG("bpm", b);
   }
+  function setLock(on) {
+    if (on === G.lock) return;
+    G.lock = on;
+    if (on) {   // a fresh family, and every bass and drum layer re-patterned from it
+      G.fam = anyLane();
+      lockedLayers().forEach(function (l) { l.ln = G.fam; l.pat += 1 + (G.n % 5); G.n++; });
+    }
+    changed();
+  }
+  function newPattern(l) { l.pat += 1 + (G.n % 5); G.n++; l.ln = patternLane(l.inst); changed(); }
+  function newSound(l) { l.patch += 1 + (G.n % 3); l.pn = null; G.n++; l.pl = anyLane(); changed(); }
   function setSwing(b) {
     var w = SWING[b];
     if (b === "r") { w = G.sw; for (var t = 0; t < 8 && w === G.sw; t++) w = +(SW_T[0] + (SW_T[1] - SW_T[0]) * Math.random()).toFixed(3); }
@@ -10657,7 +10706,7 @@
     });
     void t;
     epochs = []; G.L = [];
-    G.bpm = 112; G.key = 0; G.mode = "major"; G.lane = "synthPop"; G.hs = 1; G.A = "sp.h.pop_axis"; G.B = deriveB(G.A, G.hs); G.sec = "A";
+    G.bpm = 112; G.key = 0; G.mode = "major"; G.hs = 1; G.fam = null; G.prl = null; G.lock = true; G.A = "sp.h.pop_axis"; G.B = deriveB(G.A, G.hs); G.sec = "A";
     G.swb = "l"; G.sw = SWING.l;
     for (var k in cache) delete cache[k];
     starts.length = 0;
@@ -10665,15 +10714,17 @@
   }
   function setG(k, v) {
     G[k] = v;
-    if (k === "mode" || k === "lane") { G.hs++; G.A = drawA(G.mode, G.lane, G.hs); G.B = deriveB(G.A, G.hs); }
+    if (k === "mode") { G.hs++; G.A = drawA(G.mode, G.hs); G.B = deriveB(G.A, G.hs); }
     changed();
   }
 
   // ---- snapshot in the URL ----
   function save() {
-    var o = { b: G.bpm, k: G.key, m: G.mode === "minor" ? 1 : 0, l: G.lane, h: G.hs, A: G.A, B: G.B, s: G.sec,
-      w: G.sw, wb: G.swb,
-      L: G.L.map(function (l) { return [l.inst, l.pat, l.patch, l.vr, l.mute ? 1 : 0, l.oct || 0, l.db || 0, l.pn || ""]; }) };
+    // v4 fields: w/wb swing, lk lock, f family, p an old link's room; per layer [8] pattern lane, [9] patch lane (U.LANES index)
+    var o = { b: G.bpm, k: G.key, m: G.mode === "minor" ? 1 : 0, h: G.hs, A: G.A, B: G.B, s: G.sec,
+      w: G.sw, wb: G.swb, lk: G.lock ? 1 : 0, f: G.fam ? U.LANES.indexOf(G.fam) : -1,
+      L: G.L.map(function (l) { return [l.inst, l.pat, l.patch, l.vr, l.mute ? 1 : 0, l.oct || 0, l.db || 0, l.pn || "", U.LANES.indexOf(l.ln), U.LANES.indexOf(l.pl)]; }) };
+    if (G.prl) o.p = G.prl;
     var s = btoa(JSON.stringify(o)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
     try { history.replaceState(null, "", "#j=" + s); } catch (e) { location.hash = "j=" + s; }
   }
@@ -10686,20 +10737,25 @@
       if (o.b) G.bpm = Math.max(70, Math.min(160, +o.b));
       if (o.k >= 0 && o.k < 12) G.key = o.k;
       G.mode = o.m ? "minor" : "major";
-      if (U.LANES.indexOf(o.l) > -1) G.lane = o.l;
+      // a v1-v3 link names its style: its layers, its lock family and its room keep it
+      var old = U.LANES.indexOf(o.l) > -1 ? o.l : null, lane = function (i) { return U.LANES[i] || old || anyLane(); };
+      G.prl = old || (U.LANES.indexOf(o.p) > -1 ? o.p : null);
+      G.lock = o.lk === undefined ? true : !!o.lk;
+      G.fam = old || U.LANES[o.f] || null;
       if (o.h) G.hs = o.h;
       if (PROG_BY[o.A]) G.A = o.A;
       G.B = PROG_BY[o.B] ? o.B : deriveB(G.A, G.hs);
       G.sec = o.s === "B" ? "B" : "A";
       // v4 swing; a v1-v3 link has none and played its style's swing, so it keeps that value
       if (typeof o.w === "number" && o.w >= SW_T[0] && o.w <= SW_T[1]) { G.sw = o.w; G.swb = SWING[o.wb] === o.w || o.wb === "r" ? o.wb : "r"; }
-      else { G.sw = swingFor(G.lane); G.swb = "r"; for (var b in SWING) if (SWING[b] === G.sw) G.swb = b; }
+      else { G.sw = swingFor(old || "synthPop"); G.swb = "r"; for (var b in SWING) if (SWING[b] === G.sw) G.swb = b; }
       G.L = [];
       (o.L || []).slice(0, MAXL).forEach(function (a) {
         if (!INST_BY[a[0]]) return;
         // v1 links carry five fields; octave, fader and chosen patch default to 0, 0 and the seed's draw
         G.L.push({ id: G.n++, inst: a[0], pat: +a[1] || 1, patch: +a[2] || 1, vr: Math.max(0, Math.min(2, +a[3] || 0)), mute: !!a[4],
-          oct: clampOct(a[0], a[5]), db: Math.max(DB_MIN, Math.min(DB_MAX, Math.round(+a[6] || 0))), pn: typeof a[7] === "string" && a[7] ? a[7] : null });
+          oct: clampOct(a[0], a[5]), db: Math.max(DB_MIN, Math.min(DB_MAX, Math.round(+a[6] || 0))), pn: typeof a[7] === "string" && a[7] ? a[7] : null,
+          ln: lane(a[8]), pl: lane(a[9]) });
       });
       return true;
     } catch (e) { console.error("snapshot unreadable", e); return false; }
@@ -10724,12 +10780,12 @@
       (l.patchOpts || []).forEach(function (op) { var o = el("option", null, op.label); o.value = op.id; sel.appendChild(o); });
       if (cur && !(l.patchOpts || []).some(function (op) { return op.id === cur; })) { var ox = el("option", null, l.pn); ox.value = cur; sel.appendChild(ox); }
       sel.value = cur;
-      sel.onchange = function () { if (sel.value) { l.pn = sel.value; } else { l.pn = null; l.patch += 1 + (G.n % 3); G.n++; } changed(); };
+      sel.onchange = function () { if (sel.value) { l.pn = sel.value; changed(); } else newSound(l); };
       hd.appendChild(sel); c.appendChild(hd);
       c.appendChild(el("div", "sub", l.patternName ? "pattern: " + l.patternName : "rendering…"));
       var r1 = el("div", "row ctl");
-      var bPat = el("button", "pat", "New pattern"); bPat.onclick = function () { l.pat += 1 + (G.n % 5); G.n++; changed(); };
-      var bPatch = el("button", "patch", "New sound"); bPatch.onclick = function () { l.patch += 1 + (G.n % 3); l.pn = null; G.n++; changed(); };
+      var bPat = el("button", "pat", "New pattern"); bPat.onclick = function () { newPattern(l); };
+      var bPatch = el("button", "patch", "New sound"); bPatch.onclick = function () { newSound(l); };
       r1.appendChild(bPat); r1.appendChild(bPatch);
       if (d.cls !== "drums") {   // octave: pitched layers only
         var orng = octRange(l.inst), ov = l.oct || 0, ob = el("div", "oct");
@@ -10763,7 +10819,7 @@
     $("play").textContent = playing ? "STOP" : "PLAY"; $("play").className = playing ? "on" : "";
     $("bpm").textContent = G.bpm; $("key").textContent = PC[G.key];
     Array.prototype.forEach.call($("mode").children, function (b) { b.className = b.getAttribute("data-m") === G.mode ? "on" : ""; });
-    $("lane").value = G.lane;
+    Array.prototype.forEach.call(document.querySelectorAll("#lock .seg button"), function (b) { b.className = (b.getAttribute("data-k") === "1") === G.lock ? "on" : ""; });
     Array.prototype.forEach.call(document.querySelectorAll("#swing .seg button"), function (b) { b.className = b.getAttribute("data-w") === G.swb ? "on" : ""; });
     $("swv").textContent = swingPct(G.sw);
   }
@@ -10821,7 +10877,6 @@
   INST.forEach(function (d) {
     var b = el("button", d.cls, d.label); b.onclick = function () { addLayer(d.id); }; $("pal").appendChild(b);
   });
-  U.LANES.forEach(function (l) { var o = el("option", null, LANE_NAMES[l]); o.value = l; $("lane").appendChild(o); });
   $("play").onclick = function () { if (playing) stop(); else start(); };
   $("bpmDn").onclick = function () { setG("bpm", Math.max(70, G.bpm - 4)); };
   $("bpmUp").onclick = function () { setG("bpm", Math.min(160, G.bpm + 4)); };
@@ -10830,7 +10885,7 @@
   $("keyDn").onclick = function () { setG("key", (G.key + 11) % 12); };
   $("keyUp").onclick = function () { setG("key", (G.key + 1) % 12); };
   Array.prototype.forEach.call($("mode").children, function (b) { b.onclick = function () { setG("mode", b.getAttribute("data-m")); }; });
-  $("lane").onchange = function () { setG("lane", $("lane").value); };
+  Array.prototype.forEach.call(document.querySelectorAll("#lock .seg button"), function (b) { b.onclick = function () { setLock(b.getAttribute("data-k") === "1"); }; });
   Array.prototype.forEach.call(document.querySelectorAll("#swing .seg button"), function (b) { b.onclick = function () { setSwing(b.getAttribute("data-w")); }; });
   $("clear").onclick = tapClear;
   ["A", "B"].forEach(function (s) {
@@ -10841,8 +10896,8 @@
     };
     box.querySelector(".roll").onclick = function () {
       G.hs++;
-      if (s === "A") { G.A = drawA(G.mode, G.lane, G.hs); G.B = deriveB(G.A, G.hs); }
-      else { var b = deriveB(G.A, G.hs); var tries = 0; while (b === G.B && tries++ < 6) b = deriveB(G.A, G.hs + 1000 * tries); if (b === G.B) b = drawA(G.mode, G.lane, G.hs + 7); G.B = b; }
+      if (s === "A") { G.A = drawA(G.mode, G.hs); G.B = deriveB(G.A, G.hs); }
+      else { var b = deriveB(G.A, G.hs); var tries = 0; while (b === G.B && tries++ < 6) b = deriveB(G.A, G.hs + 1000 * tries); if (b === G.B) b = drawA(G.mode, G.hs + 7); G.B = b; }
       changed();
     };
   });
@@ -10860,7 +10915,7 @@
   // for the walk-through (harness/jam-check.mjs)
   window.__jam = { G: G, starts: starts, renderLog: renderLog, epochs: function () { return epochs; }, cache: cache,
     ctx: function () { return ctx; }, playing: function () { return playing; }, busy: function () { return busy; },
-    LEAD: LEAD, BARS: BARS, SWING: SWING, drawTempo: drawTempo, MAXL: MAXL, RATE: RATE, render: render, buildSheet: buildSheet, renderSheet: renderSheet, masterChain: masterChain, LEVEL_DB: LEVEL_DB, pickIds: pickIds, capture: capture, captureEvents: captureEvents, variantFor: variantFor, variantsFor: variantsFor, STRIPS: function (id) { return INST_BY[id].strips.concat(INST_BY[id].fill ? [INST_BY[id].fill] : []); }, INST_IDS: INST.map(function (d) { return d.id; }) };
+    LEAD: LEAD, BARS: BARS, SWING: SWING, LOCKED: LOCKED, drawA: drawA, PROG_BY: PROG_BY, newPattern: newPattern, setLock: setLock, drawTempo: drawTempo, MAXL: MAXL, RATE: RATE, render: render, buildSheet: buildSheet, renderSheet: renderSheet, masterChain: masterChain, LEVEL_DB: LEVEL_DB, pickIds: pickIds, capture: capture, captureEvents: captureEvents, variantFor: variantFor, variantsFor: variantsFor, STRIPS: function (id) { return INST_BY[id].strips.concat(INST_BY[id].fill ? [INST_BY[id].fill] : []); }, INST_IDS: INST.map(function (d) { return d.id; }) };
 })();
 </script>
 </body>
