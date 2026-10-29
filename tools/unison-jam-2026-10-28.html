@@ -125,7 +125,9 @@
   .empty{color:var(--dim);font-size:20px;padding:30px 10px}
   /* add palette */
   #add{flex:0 0 112px;height:112px;margin-top:4px}
-  #add .lbl{flex:0 0 66px;width:66px;color:var(--dim);font-size:13px;text-transform:uppercase;letter-spacing:.08em;line-height:1.3}
+  #add .lbl{flex:0 0 66px;width:66px;color:var(--dim);font-size:13px;text-transform:uppercase;letter-spacing:.08em;line-height:1.3;display:-webkit-box;display:flex;-webkit-box-orient:vertical;flex-direction:column;justify-content:space-between}
+  #add .lbl button{flex:0 0 38px;height:38px;width:60px;margin:0;padding:0 4px;font-size:13px;text-transform:none;letter-spacing:0;color:var(--ink)}
+  #add .lbl button:disabled{opacity:.35;cursor:default}
   #pal{flex:1 1 auto;display:-webkit-box;display:flex;flex-wrap:wrap;height:112px;align-content:space-between}
   #pal button{width:calc((100% - 72px) / 9);height:52px;margin:0 9px 0 0;font-size:16px;padding:0 4px;line-height:1.1}
   #pal button:nth-child(9n){margin-right:0}
@@ -154,7 +156,7 @@
 </div>
 <div id="bars" class="row"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><div id="status"></div></div>
 <div id="layers"></div>
-<div id="add" class="row"><div class="lbl">Add a layer</div><div id="pal"></div></div>
+<div id="add" class="row"><div class="lbl">Add a layer<button id="palRnd" title="add a random instrument (one you don't have yet, while any are left)">Random</button></div><div id="pal"></div></div>
 <footer title="engine @044e691 · built 2026-10-29">Unison jam &middot; every sound is synthesized in this page by the engine at 044e691</footer>
 
 <script>
@@ -10819,6 +10821,7 @@
     });
     var full = G.L.length >= MAXL;
     Array.prototype.forEach.call($("pal").children, function (b) { b.disabled = full; });
+    $("palRnd").disabled = full;
   }
   function drawTop() {
     $("play").textContent = playing ? "STOP" : "PLAY"; $("play").className = playing ? "on" : "";
@@ -10883,6 +10886,23 @@
     var b = el("button", d.cls, d.label); b.onclick = function () { addLayer(d.id); }; $("pal").appendChild(b);
   });
   $("play").onclick = function () { if (playing) stop(); else start(); };
+  // v5 (Jeff 10/29): Random adds an instrument you don't have yet (any, once all 18 are in);
+  // the space bar toggles play/pause unless a text field has focus.
+  function randomLayer() {
+    if (G.L.length >= MAXL) return;
+    var have = {}; G.L.forEach(function (l) { have[l.inst] = 1; });
+    var pool = INST.filter(function (d) { return !have[d.id]; });
+    if (!pool.length) pool = INST;
+    addLayer(pool[Math.floor(Math.random() * pool.length)].id);
+  }
+  $("palRnd").onclick = randomLayer;
+  document.addEventListener("keydown", function (e) {
+    if ((e.code !== "Space" && e.key !== " ") || e.repeat) return;
+    var tag = e.target && e.target.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+    e.preventDefault();
+    if (playing) stop(); else start();
+  });
   $("bpmDn").onclick = function () { setG("bpm", Math.max(70, G.bpm - 4)); };
   $("bpmUp").onclick = function () { setG("bpm", Math.min(160, G.bpm + 4)); };
   $("bpmRnd").onclick = randomTempo;
