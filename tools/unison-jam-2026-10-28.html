@@ -10903,6 +10903,13 @@
     e.preventDefault();
     if (playing) stop(); else start();
   });
+  // v5 (Jeff 10/29): A and B keys switch sections (takes effect on the next bar, like the buttons).
+  document.addEventListener("keydown", function (e) {
+    var tag = e.target && e.target.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || e.metaKey || e.ctrlKey || e.altKey) return;
+    var k = (e.key || "").toUpperCase();
+    if (k === "A" || k === "B") { e.preventDefault(); setSection(k); }
+  });
   $("bpmDn").onclick = function () { setG("bpm", Math.max(70, G.bpm - 4)); };
   $("bpmUp").onclick = function () { setG("bpm", Math.min(160, G.bpm + 4)); };
   $("bpmRnd").onclick = randomTempo;
