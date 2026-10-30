@@ -10462,8 +10462,41 @@
     ev.forEach(function (e) { if (e.so) { for (var id in desk.strips) if (desk.strips[id] === e.so || desk.strips[id].input === e.so) e.s = id; delete e.so; } });
     return ev;
   }
+  // The variant planner only logs note events here; nothing is heard. Each
+  // capture used to build its whole voice and desk graph in a fresh
+  // OfflineAudioContext that was never rendered, and WebKit never frees those
+  // (+14 MB a capture; a long jam made ~650 of them and Safari's page ran out
+  // of memory and froze: harness/jam-freeze-micro.mjs, RESULT-freeze.md
+  // 2026-10-30). So captures get a stand-in context: its nodes take
+  // connections, settings and automation and do nothing, and its buffers are
+  // plain AudioBuffers the page can drop. The events are the same
+  // (harness/jam-capture-ident.mjs, every instrument, Chrome and WebKit).
+  var STUB_DEF = { gain: 1, Q: 1, playbackRate: 1, offset: 1, threshold: -24, knee: 30, ratio: 12, attack: 0.003, release: 0.25 };
+  var STUB_AUTO = ["setValueAtTime", "linearRampToValueAtTime", "exponentialRampToValueAtTime", "setTargetAtTime", "setValueCurveAtTime", "cancelScheduledValues", "cancelAndHoldAtTime"];
+  var STUB_FNS = { connect: function (d) { return d; }, disconnect: function () {}, start: function () {}, stop: function () {}, setPeriodicWave: function () {},
+    addEventListener: function () {}, removeEventListener: function () {}, getFrequencyResponse: function () {} };
+  function stubParam(v) { var p = { value: v, defaultValue: v }; STUB_AUTO.forEach(function (m) { p[m] = function () { return p; }; }); return p; }
+  function stubNode(ctx, kind) {
+    var o = { context: ctx, channelCount: 2, numberOfInputs: 1, numberOfOutputs: 1 };
+    return new Proxy(o, { get: function (t, k) {
+      if (k in t) return t[k];
+      if (typeof k !== "string") return undefined;
+      if (STUB_FNS[k]) return STUB_FNS[k];
+      return (t[k] = stubParam(k in STUB_DEF ? STUB_DEF[k] : k === "frequency" ? (kind === "createOscillator" ? 440 : 350) : 0));
+    } });
+  }
+  var bufCtx = null;   // makes buffers only; no node is ever made in it
+  function captureCtx(rate) {
+    var c = { sampleRate: rate, currentTime: 0, length: 128, state: "suspended" };
+    c.destination = stubNode(c, "destination");
+    c.createBuffer = function (ch, len, sr) { if (!bufCtx) bufCtx = new OAC(1, 128, RATE); return bufCtx.createBuffer(ch, len, sr); };
+    c.createPeriodicWave = function () { return {}; };
+    ["createGain", "createDelay", "createBiquadFilter", "createOscillator", "createBufferSource", "createDynamicsCompressor", "createChannelMerger", "createChannelSplitter",
+      "createWaveShaper", "createConstantSource", "createStereoPanner", "createConvolver"].forEach(function (m) { c[m] = function () { return stubNode(c, m); }; });
+    return c;
+  }
   function capture(s, pat, v, oct) {
-    var ctx = new OAC(2, 128, RATE);
+    var ctx = window.__jamRealCapture ? new OAC(2, 128, RATE) : captureCtx(RATE);   // __jamRealCapture: harness/jam-capture-ident.mjs only
     return captureEvents(function () { return realize(ctx, s, pat, v, oct).desk; });
   }
   function renderSheet(s, pat, v, oct) {
@@ -10508,6 +10541,13 @@
     needs().forEach(function (n) { keep[bkey(n[0], n[1], n[2], n[3])] = 1; });
     epochs.forEach(function (ep) { G.L.concat(gone).forEach(function (l) { variantsFor(l).forEach(function (v) { keep[bkey(ep.g, ep.sec, l, v)] = 1; }); }); });
     for (var k in cache) if (!keep[k] && !inUse(k)) delete cache[k];
+  }
+  // for harness/jam-check.mjs --probe: cache size and the render jobs still to do
+  function cacheStats() {
+    var n = 0, bytes = 0, want = {}, pending = 0;
+    for (var k in cache) { n++; var b = cache[k].buf; bytes += b.length * b.numberOfChannels * 4; }
+    needs().forEach(function (x) { var k = bkey(x[0], x[1], x[2], x[3]); if (!want[k]) { want[k] = 1; if (!cache[k]) pending++; } });
+    return { entries: n, mb: Math.round(bytes / 1048576), pending: pending, plans: Object.keys(planCache).length, busy: busy };
   }
   function inUse(k) { for (var i = 0; i < G.L.length; i++) if (G.L[i].used && G.L[i].used[k]) return true; return false; }
 
@@ -10963,7 +11003,7 @@
 
   // for the walk-through (harness/jam-check.mjs)
   window.__jam = { G: G, starts: starts, renderLog: renderLog, epochs: function () { return epochs; }, cache: cache,
-    ctx: function () { return ctx; }, playing: function () { return playing; }, busy: function () { return busy; },
+    cacheStats: cacheStats, ctx: function () { return ctx; }, playing: function () { return playing; }, busy: function () { return busy; },
     LEAD: LEAD, BARS: BARS, SWING: SWING, LOCKED: LOCKED, drawA: drawA, PROG_BY: PROG_BY, newPattern: newPattern, drawTempo: drawTempo, MAXL: MAXL, RATE: RATE, render: render, buildSheet: buildSheet, renderSheet: renderSheet, masterChain: masterChain, LEVEL_DB: LEVEL_DB, pickIds: pickIds, capture: capture, captureEvents: captureEvents, variantFor: variantFor, variantsFor: variantsFor, STRIPS: function (id) { return INST_BY[id].strips.concat(INST_BY[id].fill ? [INST_BY[id].fill] : []); }, INST_IDS: INST.map(function (d) { return d.id; }) };
 })();
 </script>
