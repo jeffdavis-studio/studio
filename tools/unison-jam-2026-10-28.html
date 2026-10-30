@@ -43,7 +43,7 @@
   .seg button:first-child{border-radius:8px 0 0 8px}
   .seg button:last-child{border-radius:0 8px 8px 0}
   .seg button.on{background:var(--or);border-color:var(--or);color:#1d1d1d}
-  /* v4: the status line sits at the end of the bar counter, freeing the top bar for Swing, Lock and Clear */
+  /* v4: the status line sits at the end of the bar counter, freeing the top bar for Swing and Clear */
   #status{flex:0 0 330px;width:330px;height:22px;text-align:right;color:var(--dim);font-size:13px;line-height:22px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   #top .spacer{flex:1 1 auto;min-width:0}
   #save{flex:0 0 auto;height:68px;padding:0 16px;font-size:17px}
@@ -53,8 +53,6 @@
   #ends #save{margin-bottom:4px}
   #clear.arm{background:var(--red);border-color:var(--red);font-weight:700}
   #swing .seg button{padding:0 7px;font-size:14px}
-  #lock .seg button{padding:0 16px;font-size:15px}
-  #lock label{font-size:11px;letter-spacing:.04em}
   /* sections + chords */
   #harm{flex:0 0 168px;height:168px;margin-top:8px}
   .sec{flex:1 1 0;width:0;height:100%;background:var(--panel);border:3px solid var(--panel);border-radius:12px;padding:8px 10px;position:relative}
@@ -148,7 +146,6 @@
   <div class="knob"><label>Key</label><div class="row"><button id="keyDn">&minus;</button><span class="val" id="key">C</span><button id="keyUp">+</button></div></div>
   <div class="knob"><label>Scale</label><div class="row"><div class="row seg" id="mode"><button data-m="major">Major</button><button data-m="minor">Minor</button></div><button id="keyRnd" class="rnd" title="random key and scale, new chords">Random key</button></div></div>
   <div class="knob" id="swing"><label>Swing <span id="swv"></span></label><div class="row seg"><button data-w="s">Straight</button><button data-w="l">Light</button><button data-w="h">Heavy</button><button data-w="r">Random</button></div></div>
-  <div class="knob" id="lock"><label>Lock bass + drums</label><div class="row seg"><button data-k="1">On</button><button data-k="0">Off</button></div></div>
   <div class="spacer"></div>
   <div id="ends"><button id="save">Save link</button><button id="clear" title="tap twice to clear every layer">Clear</button></div>
 </div>
@@ -160,7 +157,7 @@
 <div id="bars" class="row"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><div id="status"></div></div>
 <div id="layers"></div>
 <div id="add" class="row"><div class="lbl">Add a layer<button id="palRnd" title="add a random instrument (one you don't have yet, while any are left)">Random</button></div><div id="pal"></div></div>
-<footer title="engine @044e691 · built 2026-10-29">Unison jam &middot; every sound is synthesized in this page by the engine at 044e691</footer>
+<footer title="engine @044e691 · built 2026-10-30">Unison jam &middot; every sound is synthesized in this page by the engine at 044e691</footer>
 
 <script>
 /* ===== src/core/prng.js @ 044e691 — verbatim from jeffdavis-studio/unison-engine ===== */
@@ -9967,7 +9964,7 @@
   // pattern draws from; pl: the patch books' lane weights), drawn at random
   // and saved. prl: the production room of a v1-v3 link's style, so an old
   // jam keeps its room; null = the jam's one room (PLATE, below).
-  var G = { bpm: 112, key: 0, mode: "major", hs: 1, A: "sp.h.pop_axis", B: null, sec: "A", L: [], n: 1, sw: 0, swb: "l", lock: true, fam: null, prl: null };
+  var G = { bpm: 112, key: 0, mode: "major", hs: 1, A: "sp.h.pop_axis", B: null, sec: "A", L: [], n: 1, sw: 0, swb: "l", fam: null, prl: null };
   G.B = deriveB(G.A, G.hs); G.C = deriveC(G.A, G.B, G.hs);
   // v4 (Jeff 10/28): swing is one global control, the clock's, saved in the
   // link. The engine's swing range (U.SONG_TEMPO.swing, the delay of every
@@ -9984,16 +9981,16 @@
   function lSig(l) { return l.inst + "|" + l.pat + "|" + l.patch + "|" + (l.oct || 0) + "|" + l.ln + "|" + l.pl + "|" + (l.pn || ""); }
   function lOpt(l) { return { oct: l.oct || 0, pn: l.pn || null, ln: l.ln, pl: l.pl }; }
   function anyLane() { return U.LANES[Math.floor(Math.random() * U.LANES.length)]; }
-  // v4 (Jeff 10/28: "a lock switch for bass/drum patterns"): with the lock on,
-  // every bass and drum layer draws its patterns from one hidden family (a
-  // lane's books), so New pattern keeps them matched; off, each draws its own.
-  // The family is drawn again when the lock goes on, on Clear, and when the
-  // board has no bass or drum layer left. The rhythm guitar and every other
-  // pitched layer are outside the lock.
+  // v4 (Jeff 10/28: "a lock switch for bass/drum patterns"); v5.1 (Jeff 10/29:
+  // "leave the bass and drums locked") makes it permanent, no switch: every bass
+  // and drum layer draws its patterns from one hidden family (a lane's books),
+  // so New pattern keeps them matched. The family is drawn again on Clear and
+  // when the board has no bass or drum layer left. The rhythm guitar and every
+  // other pitched layer are outside the lock.
   var LOCKED = { d808: 1, linn: 1, bgtr: 1, mbass: 1, jbass: 1, fbass: 1 };
   function lockedLayers() { return G.L.filter(function (l) { return LOCKED[l.inst]; }); }
   function patternLane(inst) {
-    if (!(G.lock && LOCKED[inst])) return anyLane();
+    if (!LOCKED[inst]) return anyLane();
     if (!G.fam || !lockedLayers().length) G.fam = anyLane();
     return G.fam;
   }
@@ -10698,15 +10695,6 @@
     for (var t = 0; t < 8 && b === G.bpm; t++) b = drawTempo(Math.random());
     setG("bpm", b);
   }
-  function setLock(on) {
-    if (on === G.lock) return;
-    G.lock = on;
-    if (on) {   // a fresh family, and every bass and drum layer re-patterned from it
-      G.fam = anyLane();
-      lockedLayers().forEach(function (l) { l.ln = G.fam; l.pat += 1 + (G.n % 5); G.n++; });
-    }
-    changed();
-  }
   function newPattern(l) { l.pat += 1 + (G.n % 5); G.n++; l.ln = patternLane(l.inst); changed(); }
   function newSound(l) { l.patch += 1 + (G.n % 3); l.pn = null; G.n++; l.pl = anyLane(); changed(); }
   function setSwing(b) {
@@ -10738,7 +10726,7 @@
     });
     void t;
     epochs = []; G.L = [];
-    G.bpm = 112; G.key = 0; G.mode = "major"; G.hs = 1; G.fam = null; G.prl = null; G.lock = true; G.A = "sp.h.pop_axis"; G.B = deriveB(G.A, G.hs); G.C = deriveC(G.A, G.B, G.hs); G.sec = "A";
+    G.bpm = 112; G.key = 0; G.mode = "major"; G.hs = 1; G.fam = null; G.prl = null; G.A = "sp.h.pop_axis"; G.B = deriveB(G.A, G.hs); G.C = deriveC(G.A, G.B, G.hs); G.sec = "A";
     G.swb = "l"; G.sw = SWING.l;
     for (var k in cache) delete cache[k];
     starts.length = 0;
@@ -10752,9 +10740,9 @@
 
   // ---- snapshot in the URL ----
   function save() {
-    // v4 fields: w/wb swing, lk lock, f family, p an old link's room; per layer [8] pattern lane, [9] patch lane (U.LANES index)
+    // v4 fields: w/wb swing, f family, p an old link's room (v5.1: no lk, the lock is permanent); per layer [8] pattern lane, [9] patch lane (U.LANES index)
     var o = { b: G.bpm, k: G.key, m: G.mode === "minor" ? 1 : 0, h: G.hs, A: G.A, B: G.B, C: G.C, s: G.sec,
-      w: G.sw, wb: G.swb, lk: G.lock ? 1 : 0, f: G.fam ? U.LANES.indexOf(G.fam) : -1,
+      w: G.sw, wb: G.swb, f: G.fam ? U.LANES.indexOf(G.fam) : -1,
       L: G.L.map(function (l) { return [l.inst, l.pat, l.patch, l.vr, l.mute ? 1 : 0, l.oct || 0, l.db || 0, l.pn || "", U.LANES.indexOf(l.ln), U.LANES.indexOf(l.pl)]; }) };
     if (G.prl) o.p = G.prl;
     var s = btoa(JSON.stringify(o)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
@@ -10772,7 +10760,7 @@
       // a v1-v3 link names its style: its layers, its lock family and its room keep it
       var old = U.LANES.indexOf(o.l) > -1 ? o.l : null, lane = function (i) { return U.LANES[i] || old || anyLane(); };
       G.prl = old || (U.LANES.indexOf(o.p) > -1 ? o.p : null);
-      G.lock = o.lk === undefined ? true : !!o.lk;
+      // v5.1: lk ignored, the lock is permanent; lk:0 links load locked
       G.fam = old || U.LANES[o.f] || null;
       if (o.h) G.hs = o.h;
       if (PROG_BY[o.A]) G.A = o.A;
@@ -10790,6 +10778,10 @@
           oct: clampOct(a[0], a[5]), db: Math.max(DB_MIN, Math.min(DB_MAX, Math.round(+a[6] || 0))), pn: typeof a[7] === "string" && a[7] ? a[7] : null,
           ln: lane(a[8]), pl: lane(a[9]) });
       });
+      // a v4 link saved with the lock off can carry bass and drums on different
+      // lanes: they take its family (or the first one's lane), patterns kept
+      var lk = lockedLayers();
+      if (lk.length) { if (!G.fam) G.fam = lk[0].ln; lk.forEach(function (l) { l.ln = G.fam; }); }
       return true;
     } catch (e) { console.error("snapshot unreadable", e); return false; }
   }
@@ -10853,7 +10845,6 @@
     $("play").textContent = playing ? "STOP" : "PLAY"; $("play").className = playing ? "on" : "";
     $("bpm").textContent = G.bpm; $("key").textContent = PC[G.key];
     Array.prototype.forEach.call($("mode").children, function (b) { b.className = b.getAttribute("data-m") === G.mode ? "on" : ""; });
-    Array.prototype.forEach.call(document.querySelectorAll("#lock .seg button"), function (b) { b.className = (b.getAttribute("data-k") === "1") === G.lock ? "on" : ""; });
     Array.prototype.forEach.call(document.querySelectorAll("#swing .seg button"), function (b) { b.className = b.getAttribute("data-w") === G.swb ? "on" : ""; });
     $("swv").textContent = swingPct(G.sw);
   }
@@ -10943,7 +10934,6 @@
   $("keyDn").onclick = function () { setG("key", (G.key + 11) % 12); };
   $("keyUp").onclick = function () { setG("key", (G.key + 1) % 12); };
   Array.prototype.forEach.call($("mode").children, function (b) { b.onclick = function () { setG("mode", b.getAttribute("data-m")); }; });
-  Array.prototype.forEach.call(document.querySelectorAll("#lock .seg button"), function (b) { b.onclick = function () { setLock(b.getAttribute("data-k") === "1"); }; });
   Array.prototype.forEach.call(document.querySelectorAll("#swing .seg button"), function (b) { b.onclick = function () { setSwing(b.getAttribute("data-w")); }; });
   $("clear").onclick = tapClear;
   SECS.forEach(function (s) {
@@ -10974,7 +10964,7 @@
   // for the walk-through (harness/jam-check.mjs)
   window.__jam = { G: G, starts: starts, renderLog: renderLog, epochs: function () { return epochs; }, cache: cache,
     ctx: function () { return ctx; }, playing: function () { return playing; }, busy: function () { return busy; },
-    LEAD: LEAD, BARS: BARS, SWING: SWING, LOCKED: LOCKED, drawA: drawA, PROG_BY: PROG_BY, newPattern: newPattern, setLock: setLock, drawTempo: drawTempo, MAXL: MAXL, RATE: RATE, render: render, buildSheet: buildSheet, renderSheet: renderSheet, masterChain: masterChain, LEVEL_DB: LEVEL_DB, pickIds: pickIds, capture: capture, captureEvents: captureEvents, variantFor: variantFor, variantsFor: variantsFor, STRIPS: function (id) { return INST_BY[id].strips.concat(INST_BY[id].fill ? [INST_BY[id].fill] : []); }, INST_IDS: INST.map(function (d) { return d.id; }) };
+    LEAD: LEAD, BARS: BARS, SWING: SWING, LOCKED: LOCKED, drawA: drawA, PROG_BY: PROG_BY, newPattern: newPattern, drawTempo: drawTempo, MAXL: MAXL, RATE: RATE, render: render, buildSheet: buildSheet, renderSheet: renderSheet, masterChain: masterChain, LEVEL_DB: LEVEL_DB, pickIds: pickIds, capture: capture, captureEvents: captureEvents, variantFor: variantFor, variantsFor: variantsFor, STRIPS: function (id) { return INST_BY[id].strips.concat(INST_BY[id].fill ? [INST_BY[id].fill] : []); }, INST_IDS: INST.map(function (d) { return d.id; }) };
 })();
 </script>
 </body>
