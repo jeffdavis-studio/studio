@@ -157,10 +157,10 @@
 <div id="bars" class="row"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><div id="status"></div></div>
 <div id="layers"></div>
 <div id="add" class="row"><div class="lbl">Add a layer<button id="palRnd" title="add a random instrument (one you don't have yet, while any are left)">Random</button></div><div id="pal"></div></div>
-<footer title="engine @044e691 · built 2026-10-30">Unison jam &middot; every sound is synthesized in this page by the engine at 044e691</footer>
+<footer title="engine @d661e2f · built 2026-10-31">Unison jam &middot; every sound is synthesized in this page by the engine at d661e2f</footer>
 
 <script>
-/* ===== src/core/prng.js @ 044e691 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/prng.js @ d661e2f — verbatim from jeffdavis-studio/unison-engine ===== */
 // prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
 // token hash, consumed in canonical draw order (Technical Architecture v1.2).
 //
@@ -233,7 +233,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/core/mix.js @ 044e691 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/mix.js @ d661e2f — verbatim from jeffdavis-studio/unison-engine ===== */
 // mix.js — the fan-in ≤2 summing rule, as a primitive.
 //
 // Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
@@ -253,6 +253,7 @@
   // accumulator and `out`, so every summing node sums exactly two signals in a
   // fixed order. Order of add() calls is part of the deterministic contract.
   U.chainMixer = function (ctx, out) {
+    if (ctx.__jit) return jitMixer(ctx, out);
     let acc = null;
     let count = 0;
     return {
@@ -269,9 +270,139 @@
       get count() { return count; },
     };
   };
+
+  // ---- the offline renders' just-in-time chain (2026-10-30, Asana 1220079964641124) ----
+  // A chain link never finishes, so the offline renderer pulls and sums every
+  // link every 128-sample quantum, notes long over and notes not yet started
+  // alike. A song's Juno notes and drum hits each add a link, so render work
+  // went as (notes x quanta), the square of song length: an 8-minute song
+  // took 90 minutes (files/unison/render-time-2026-10-30, work/probe.log:
+  // 20,000 dead links cost +458 s on an 82 s song; the same nodes flat, +9.5 s).
+  //
+  // On an offline context that U.jitAttach marked, add(node, tOn, tOff) takes
+  // the window in which `node` can be non-silent, and the chain holds only the
+  // links whose window is near: U.jitRender re-splices it at quantum-aligned
+  // suspend points. The sum stays a left fold in add() order over the same
+  // nodes; a link that left was adding exact silence (x + 0 = x), and a node
+  // joins before its start. Measured, not argued: suspend/resume, dropping
+  // finished links and late-joining drum hits leave every SHA unchanged. A
+  // Juno note's chain joining late does not, unless its filter was pulled
+  // from the top (U.jitPrime below; pass 2, files/unison/render-time-2026-10-30
+  // RESULT.md). An add() with no window is permanent. Every link is still
+  // created at add() time, in the same order.
+  function jitMixer(ctx, out) {
+    const J = ctx.__jit, entries = [];
+    const m = {
+      add(node, tOn, tOff) {
+        const link = ctx.createGain();
+        const timed = typeof tOn === "number";
+        entries.push({ node, link, tOn: timed ? tOn : -Infinity, tOff: timed ? tOff : Infinity, timed, prev: null, inNode: false, toOut: false, on: false });
+        J.dirty = true;
+      },
+      get count() { return entries.length; },
+      // re-splice for the window around `now` (seconds)
+      sync(now) {
+        const lo = now - J.margin, hi = now + J.lead;
+        const want = [];
+        let anyTimed = false;
+        for (const e of entries) {
+          if (!e.timed || (e.tOn < hi && e.tOff > lo)) { want.push(e); if (e.timed) anyTimed = true; }
+        }
+        // never let a chain with notes go empty of them: keep the nearest
+        // one (the last begun, else the first), silent, as the full chain was
+        if (!anyTimed) {
+          let keep = null;
+          for (const e of entries) if (e.timed && (!keep || e.tOn <= now)) keep = e;
+          if (keep) { const w = entries.filter((e) => e === keep || !e.timed); want.length = 0; want.push(...w); }
+        }
+        const prevOf = new Map();
+        for (let i = 0; i < want.length; i++) prevOf.set(want[i], i ? want[i - 1] : null);
+        const tail = want.length ? want[want.length - 1] : null;
+        // Connect first, then disconnect: a node that loses its last input
+        // is disabled at once (Chrome), and the re-enable is not free of side
+        // effects downstream, so no node in the live graph is ever left
+        // without an input, even inside one sync.
+        for (const e of want) {
+          const p = prevOf.get(e);
+          if (e.prev !== p) { if (p) p.link.connect(e.link); e.oldPrev = e.prev; e.prev = p; }
+          if (!e.inNode) { e.node.connect(e.link); e.inNode = true; }
+          if (e === tail && !e.toOut) { e.link.connect(out); e.toOut = true; }
+        }
+        for (const e of entries) {
+          if (e.oldPrev) { e.oldPrev.link.disconnect(e.link); e.oldPrev = null; }
+          if (!e.on && !prevOf.has(e)) continue;
+          if (!prevOf.has(e)) {
+            if (e.prev) { e.prev.link.disconnect(e.link); e.prev = null; }
+            if (e.inNode) { e.node.disconnect(e.link); e.inNode = false; }
+            e.on = false;
+          } else e.on = true;
+          if (e.toOut && e !== tail) { e.link.disconnect(out); e.toOut = false; }
+        }
+      },
+    };
+    J.mixers.push(m);
+    return m;
+  }
+
+  // Prime: connect `node` to a silent sink (a gain into an AnalyserNode with
+  // no output, which the renderer pulls on its own and which feeds nothing,
+  // so its fan-in is outside the summing rule) for the render's first
+  // `prime` seconds (released at the first re-splice past it). Measured: a
+  // Juno note's biquad first pulled mid-render shifts the plate's predelay output by ~1e-6 although
+  // its input is identical (Chromium-internal; cause not pinned); one pulled
+  // at the start, even briefly, leaves every bit as the full chain did.
+  U.jitPrime = function (ctx, node) {
+    const J = ctx.__jit;
+    if (!J || !J.prime) return;
+    if (!J.sink) { J.sink = ctx.createGain(); J.sink.connect(ctx.createAnalyser()); }
+    node.connect(J.sink);
+    J.primed.push(node);
+  };
+
+  // Hold: like a prime that is never released (a node the full chain pulled
+  // every quantum of the render through nodes the JIT chain lets go).
+  U.jitHold = function (ctx, node) {
+    const J = ctx.__jit;
+    if (!J) return;
+    if (!J.sink) { J.sink = ctx.createGain(); J.sink.connect(ctx.createAnalyser()); }
+    node.connect(J.sink);
+  };
+
+  // Mark an OfflineAudioContext for just-in-time chains. Call before the song
+  // is built (U.chainMixer reads the mark when the mixer is made).
+  // step: seconds between re-splices; lead: how far ahead a note joins;
+  // margin: how long after its window a note stays (filter and delay tails).
+  // prime: seconds a primed node stays on the sink (0 = no priming, a probe:
+  // moves bits). junoLate false: Juno notes in the chain from the top (probe).
+  U.RENDER_JIT = { on: true, step: 1, lead: 2, margin: 1, prime: 1, junoLate: true };
+  U.jitAttach = function (ctx) {
+    // Firefox has no OfflineAudioContext.suspend (2026-10-31): there the
+    // song renders on the full chain, as before.
+    if (!U.RENDER_JIT.on || typeof ctx.suspend !== "function") return ctx;
+    ctx.__jit = { prime: U.RENDER_JIT.prime, primed: [], sink: null, mixers: [], step: U.RENDER_JIT.step, lead: U.RENDER_JIT.lead, margin: U.RENDER_JIT.margin, dirty: true };
+    return ctx;
+  };
+  // startRendering() with the re-splices scheduled. A context without the
+  // mark renders exactly as before.
+  U.jitRender = function (ctx) {
+    const J = ctx.__jit;
+    if (!J) return ctx.startRendering();
+    const sync = (now) => {
+      for (const m of J.mixers) m.sync(now);
+      // primed nodes leave the sink at the first re-splice past J.prime
+      if (J.primed.length && now >= J.prime) { for (const n of J.primed) n.disconnect(J.sink); J.primed.length = 0; }
+      if (U.RENDER_JIT.hook) U.RENDER_JIT.hook(ctx, now);
+    };
+    sync(0);
+    const end = ctx.length / ctx.sampleRate;
+    for (let T = J.step; T < end; T += J.step) {
+      ctx.suspend(T).then(() => { sync(ctx.currentTime); ctx.resume(); });
+    }
+    return ctx.startRendering();
+  };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/desk/desk.js @ 044e691 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/desk/desk.js @ d661e2f — verbatim from jeffdavis-studio/unison-engine ===== */
 // desk.js — the 24-track desk as a running audio graph.
 //
 // The desk is the data structure, not a metaphor (Composition Brief 2 / Tech
@@ -311,7 +442,7 @@
     { id: "kick",       fader: 1.00, send: 0.00, hp: false, mute: 0.000 },
     { id: "snare",      fader: 0.90, send: 0.20, hp: true,  mute: 0.000 },
     { id: "hats",       fader: 0.55, send: 0.06, hp: true,  mute: 0.094 }, // ← hats.silence w10/106
-    { id: "tomsFills",  fader: 0.70, send: 0.14, hp: true,  mute: 0.520 }, // ← fills.silence w52/100
+    { id: "tomsFills",  fader: 0.70, send: 0.14, hp: true,  mute: 0     }, // was 0.520 (fills.silence w52/100); 0 since 2026-10-30: the form's fill roll per window replaces it (form.js)
     { id: "ePerc",      fader: 0.60, send: 0.10, hp: true,  mute: 0.480 }, // ← eperc.silence w48/100
     { id: "percTime",   fader: 0.45, send: 0.06, hp: true,  mute: 0.480 }, // ← perctime.silence w48/100
     { id: "percAccent", fader: 0.50, send: 0.10, hp: true,  mute: 0.640 }, // ← percaccent.silence w64/100
@@ -361,7 +492,7 @@
     const COMBS = [
       [0.0297, 0.79], [0.0371, 0.78], [0.0411, 0.77], [0.0437, 0.76],
     ];
-    const damps = [];
+    const damps = [], combDs = [];
     for (const [time, fb] of COMBS) {
       const d = ctx.createDelay(0.1); d.delayTime.value = time;
       const damp = ctx.createBiquadFilter(); damp.type = "lowpass"; damp.frequency.value = 4200;
@@ -371,7 +502,7 @@
       damp.connect(fbG);
       fbG.connect(d);
       combSum.add(damp);         // tap post-damping
-      damps.push(damp);
+      damps.push(damp); combDs.push(d);
     }
     diff1.output.connect(diff2.input);
     const wet = ctx.createGain(); wet.gain.value = 0.55;
@@ -379,7 +510,7 @@
     wet.connect(out);
     // `damps` and `wet` are the production room's handles on the plate — see
     // production/production.js. Nothing else may touch them.
-    return { input, wet, damps };
+    return { input, wet, damps, _probe: { pre, combDs, diff1: diff1.output, diff2: diff2.output } };
   }
 
   // Allpass-style diffusion stage: feedback comb + inverted feedforward.
@@ -674,7 +805,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/production.js @ 044e691 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/production.js @ d661e2f — verbatim from jeffdavis-studio/unison-engine ===== */
 // production.js — the production room, v0.
 //
 // PLACEMENT DECISION (Morgan's call, ratified by Jeff 2026-08-03). Production
@@ -787,7 +918,14 @@
       // within 0.36). At SAT_MED it runs -0.45 to -1.86: 1.15 holds ±0.7, not
       // ±0.5 (tape_slap's bass; per-voice next).
       bass: { [SAT_LIGHT]: 0.55, [SAT_MED]: 1.15 },
-      compA: { [SAT_LIGHT]: 0.2, [SAT_MED]: 0.5 } } };
+      compA: { [SAT_LIGHT]: 0.2, [SAT_MED]: 0.5 } },
+    // pass 4 (2026-10-29): at SAT_MED the bass loss runs by voice, so the
+    // makeup does too (production-check --sat-level --whole, whole-song level,
+    // 14 songs): juno -0.45 / -0.62 / -0.66 / -0.80 / -1.04 (sub), bass guitar -1.73 /
+    // -1.74 / -1.86, fm -1.25 / -1.25, minimoog -0.45 / -0.50 / -0.80.
+    // Every voice within 0.5 dB with its own number; a voice not listed keeps
+    // the one-number makeup above.
+    makeupByVoice: { bass: { [SAT_MED]: { juno: 0.75, bassguitar: 1.78, fm: 1.25, minimoog: 0.62 } } } };
   // Gated room timing, fitted to the Reference (DESIGN.md, RESULT.md): the
   // gate closes at GATE_CLOSE_BEATS of a beat after the hit (median of the
   // readable gated-drum previews 0.41 beat, 205 ms), inside the clamp, with a
@@ -901,7 +1039,10 @@
         if (sheet.satProbe) { (desk.satTaps = desk.satTaps || []).push(id); continue; }   // the level read: bypassed, tapped
         const pk = sheet.satPeaks && sheet.satPeaks[id];
         const level = pk > 0 && st.refPeak[id] ? st.refPeak[id] / pk : 1;
-        desk.saturate(id, d, st.bias, st.lpHz[d], (st.makeupDb[id] || {})[d] || 0, level);
+        const byVoice = ((st.makeupByVoice || {})[id] || {})[d];
+        const voice = id === "bass" ? sheet.bassVoice : null;
+        const mk = byVoice && voice in byVoice ? byVoice[voice] : (st.makeupDb[id] || {})[d] || 0;
+        desk.saturate(id, d, st.bias, st.lpHz[d], mk, level);
       }
     }
     if (style.comp) {
@@ -959,7 +1100,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/juno.js @ 044e691 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/juno.js @ d661e2f — verbatim from jeffdavis-studio/unison-engine ===== */
 // juno.js — Juno-60-flavor poly voice, raw Web Audio, zero dependencies.
 // Ported from the 2026-07-21 bake-off winner (voice-raw.js), restructured to
 // live behind a desk strip: U.createJuno(ctx, strip, patchName) builds its own
@@ -1391,6 +1532,11 @@
     const sawL = p.saw === undefined ? 1 : p.saw, pulseL = p.pulse || 0;
     const plain = sawL === 1 && !pulseL;
     const pwmPath = pulseL > 0 && p.pwm > 0;
+    // On the full chain every PWM note's delay pulls the LFO each quantum
+    // from the top, and an oscillator's phase only advances when pulled; on
+    // the JIT chain only notes near their window are pulled, so a gap would
+    // stall it. Tie it to the sink for the whole render instead (mix.js).
+    if (pwmPath && lfo) U.jitHold(ctx, lfo);
     // A fixed-width pulse is its own oscillator on a band-limited PeriodicWave
     // (cheaper than the delay line: about the cost of the saw). Fourier series
     // of a pulse of duty pw, peak-to-peak 2 like the saw-difference pulse:
@@ -1488,7 +1634,14 @@
         held.push(vg);
       }
       filt.connect(amp);
-      voiceMix.add(amp);
+      // JIT chain (mix.js): joins near its start, leaves after the oscillators'
+      // stop. A Juno chain whose filter is first pulled mid-render moves the
+      // plate's bits (by under 1e-5, render-time-2026-10-30 RESULT.md pass 2);
+      // primed, its filter is pulled over the render's first stretch, as the
+      // full chain did, and the render is bit-identical. junoLate false puts
+      // the note in the chain from the top (the pre-JIT graph, a probe).
+      U.jitPrime(ctx, filt);
+      voiceMix.add(amp, U.RENDER_JIT.junoLate ? t : -Infinity, offT + p.r + 0.05);
       for (const o of srcs) { o.start(t); o.stop(offT + p.r + 0.05); }
       held.push(saw, sub, subG, filt, amp);
     }
@@ -1501,7 +1654,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/minimoog.js @ 044e691 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/minimoog.js @ d661e2f — verbatim from jeffdavis-studio/unison-engine ===== */
 // minimoog.js — Minimoog Model D-lineage mono voice, zero dependencies.
 //
 // THE MONO BASS LANE (build order 808 → Juno → Minimoog → …; it also absorbs
@@ -2043,7 +2196,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/obxa.js @ 044e691 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/obxa.js @ d661e2f — verbatim from jeffdavis-studio/unison-engine ===== */
 // obxa.js — Oberheim OB-Xa-lineage poly voice, zero dependencies.
 //
 // THE BRASS/PAD POLY LANE (build order 808 → Juno → Minimoog → OB-Xa → …).
@@ -2580,7 +2733,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/fm.js @ 044e691 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/fm.js @ d661e2f — verbatim from jeffdavis-studio/unison-engine ===== */
 // fm.js — six-operator FM keys voice (the DX7 lineage), zero dependencies.
 //
 // THE FM LANE (build order 808 → Juno → Minimoog → OB-Xa → Linn → FM).
@@ -3253,7 +3406,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/bassguitar.js @ 044e691 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/bassguitar.js @ d661e2f — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassguitar.js — electric bass guitar, the first session player of the human
 // rack (Rack 2), zero dependencies.
 //
@@ -3842,7 +3995,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/rhythmguitar.js @ 044e691 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/rhythmguitar.js @ d661e2f — verbatim from jeffdavis-studio/unison-engine ===== */
 // rhythmguitar.js — clean electric rhythm guitar, the fourth and last stop of
 // the human rack (Rack 2), zero dependencies.
 //
@@ -4491,7 +4644,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/tr808.js @ 044e691 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/tr808.js @ d661e2f — verbatim from jeffdavis-studio/unison-engine ===== */
 // tr808.js — THE MACHINE. A TR-808-lineage core voice: bass drum, snare,
 // closed hat, open hat, each with a front panel the token actually turns.
 //
@@ -5775,7 +5928,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/linn.js @ 044e691 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/linn.js @ d661e2f — verbatim from jeffdavis-studio/unison-engine ===== */
 // linn.js — THE STUDIO MACHINE. A Linn-family (LM-1 / LinnDrum lineage)
 // drum computer: the new wave / synth-pop / 80s R&B kit.
 //
@@ -6532,7 +6685,7 @@
   U._linn = { burn, play, vca, roms, V, EPROM_HZ, RECON_HZ, SR, TOM_MID_CLOCK };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drums.js @ 044e691 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drums.js @ d661e2f — verbatim from jeffdavis-studio/unison-engine ===== */
 // drums.js — the drum machine: 808/LM-1-flavor voices, synthesized at runtime
 // into short AudioBuffers, played back as one-shots.
 //
@@ -6852,7 +7005,7 @@
         }
       }
       src.connect(g);
-      bus.mix.add(g);
+      bus.mix.add(g, t, t + src.buffer.duration);   // its window: the hit to the buffer's end (mix.js, the JIT chain)
       src.start(t);
       held.push(src, g);
     }
@@ -6861,7 +7014,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/books.js @ 044e691 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/books.js @ d661e2f — verbatim from jeffdavis-studio/unison-engine ===== */
 // books.js — Pattern Books v1, as data.
 //
 // This file IS the document: "Unison — Pattern Books v1 (draft)" (Morgan,
@@ -6958,7 +7111,7 @@
     afrobeat:   ["percTime", "percAccent"],
     motorik:    ["kick", "hats", "noFills"],
     disco:      ["kick", "hats", "bass"],
-    sixtiesPop: ["form"],
+    sixtiesPop: ["form"],      // inert since 2026-10-30: the form book has no style override (form.js)
   };
 
   // ---- chord vocabulary ---------------------------------------------------
@@ -7483,7 +7636,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/bassplayer.js @ 044e691 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/bassplayer.js @ d661e2f — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassplayer.js — the PERFORMANCE half of the bass guitar: a session player.
 //
 // Rack 2's rule (kb/projects/unison.md, 2026-07-11): every human instrument is
@@ -7735,7 +7888,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/gtrplayer.js @ 044e691 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/gtrplayer.js @ d661e2f — verbatim from jeffdavis-studio/unison-engine ===== */
 // gtrplayer.js — the PERFORMANCE half of the rhythm guitar: a session
 // guitarist on the rhythmGtr strip.
 //
@@ -7935,7 +8088,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/fmplayer.js @ 044e691 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/fmplayer.js @ d661e2f — verbatim from jeffdavis-studio/unison-engine ===== */
 // fmplayer.js — the PERFORMANCE half of the FM keys: a session keyboard
 // player on the FM chord strips (compA's tine EP, colour's glass and brass).
 //
@@ -8076,7 +8229,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/testPhrase.js @ 044e691 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/testPhrase.js @ d661e2f — verbatim from jeffdavis-studio/unison-engine ===== */
 // testPhrase.js — deterministic 8-bar test phrase, ported from the bake-off
 // (phrase.js) onto the engine's canonical PRNG (core/prng.js).
 //
@@ -8170,7 +8323,328 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/session.js @ 044e691 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/form.js @ d661e2f — verbatim from jeffdavis-studio/unison-engine ===== */
+// form.js — the song's form: the book of returns (2026-10-30, Asana
+// 1220073468300418; design files/unison/structure-design-2026-10-30 in the
+// morgan repo, DESIGN.md + draw.py, transcribed here as written).
+//
+// U.drawForm(hash, bpm) → { id, sections, ... }. Reads ONLY its own fork,
+// U.forkPrng(hash, "form"), and a variable number of values from it (median
+// ~64), so a form edit moves nothing else on the sheet. bpm (song-stream draw
+// 2) is read, never drawn: the cap and the interstitial's 120 s limit are in
+// seconds at the drawn tempo, and the dance-cut weights lean on it.
+//
+// A section is [name, bars] or [name, bars, loop]: a looped section (a ride, a
+// repeat-out, a coda vamp) keeps its own name and carries its loop period as a
+// third field, so code keying on "chorus"/"bridge" keeps working and tier 2
+// can later repeat the loop instead of varying every bar. Names: intro, verse,
+// pre (the pre-chorus), chorus, bridge, break, outro. Parallel arrays carry
+// what the bar map and the census read: parts (which material the section
+// plays; a later verse can be new material in the verse's role, the intro
+// riff can come back as the break), out (the repeat-out, energy 0.95) and fill
+// (the fill roll for the window at the section's end; the last is false).
+//
+// DRAW ORDER on the "form" fork (the contract for this module):
+//   1  interstitial? (U.FORM_BOOK.interstitial), then, if so, its shape and
+//      its lengths (drawInterstitial) and nothing else
+//   else the full-song book, as draw.py: grain, cycles, hasPre, hasBridge,
+//      hasBreak, withhold, turnaround, doubleVerse, doubleChorus, intro length,
+//      intro riff returns (only if intro > 0 and break or turnaround), cold open
+//      on the chorus (only if intro 0); then the cycles walk (verse variant from
+//      cycle 2, the verse, its pair, pre, chorus, its double, the turnaround;
+//      before the last cycle the break and the bridge, its second); the closing
+//      chorus; the ending; floor and cap (no reads); one fill roll per window.
+//      Every drawn length passes through the tag roll and the ride roll.
+(function (g) {
+  "use strict";
+  const U = (g.U = g.U || {});
+
+  // THE BOOK, draw.py's BOOK dict. Tables are [value, weight] pairs (weights
+  // relative), in draw.py's order: a JS object would reorder integer keys.
+  // BUILD TUNING (2026-10-30, the hundred-roll judge's variety read; the
+  // design's numbers are in the trailing comments, the record is
+  // files/unison/structure-book-2026-10-30/DESIGN-BUILD.md in the morgan repo):
+  // cycles, verseVariant and verseOnlyParts spread the order strings (one pop
+  // formula repeated 4-8 times per 100 rolls as transcribed); turnLen, rideP,
+  // repeatOut and the slow table bring the dance-cut share from 39% to the
+  // 20-30% target, the cut falling on the songs under 112 BPM first.
+  const BOOK = {
+    cycles: [[1, 4], [2, 14], [3, 28], [4, 22], [5, 16], [6, 16]],   // design 7/20/27/18/13/15
+    introLen: [[0, 8], [2, 8], [4, 28], [8, 28], [12, 6], [16, 12], [24, 5], [32, 5]],
+    coldOpenOnChorus: 0.50,
+    introRiffReturns: 0.15,
+    grain: [[1, 75], [0.5, 25]],
+    len: {
+      verse:  [[4, 8], [8, 44], [12, 10], [16, 32], [24, 6]],
+      pre:    [[2, 20], [4, 55], [8, 25]],
+      chorus: [[4, 14], [8, 56], [12, 6], [16, 24]],
+      bridge: [[4, 20], [8, 55], [12, 10], [16, 15]],
+      break:  [[2, 14], [4, 34], [8, 34], [16, 18]],
+    },
+    hasPre: 0.50, preEachCycle: 0.85,
+    hasBridge: 0.55, secondBridge: 0.15,
+    doubleVerse: 0.30,
+    hasBreak: 0.45,
+    turnaround: 0.60,
+    turnLen: [[2, 40], [4, 54], [8, 6]],      // design 35/45/20
+    doubleChorus: 0.30,
+    habit: 0.85,
+    verseVariant: 0.45,                         // design 0.20
+    verseOnlyParts: true,                       // new: a cycle before the chorus arrives keeps its pre and turnaround
+    withhold: [[0, 58], [1, 12], [2, 8], [3, 5], ["end", 17]],
+    tagP: 0.22, tag: [[2, 50], [1, 10], [-1, 10], [-2, 20], [4, 10]],
+    rideP: 0.06, loop: [[4, 75], [8, 23], [12, 2]], rideTotal: [20, 48],
+    repeatOut: 0.44, repeatOutTotal: [17, 72],   // design rideP 0.08 (above), repeatOut 0.48
+    outAsChoruses: 0.30,
+    afterRepeatOut: [["none", 55], ["tag", 45]],
+    tagLen: [[2, 40], [4, 45], [8, 15]],
+    outroLen: [[2, 14], [4, 26], [8, 20], [12, 8], [16, 8], ["coda", 24]],
+    codaTotal: [20, 52],
+    fillP: { intoChorus: 0.30, intoPre: 0.15, loopSame: 0.05, other: 0.12 },
+    floorBars: 72,
+    capSec: 490,                       // Jeff 2026-10-30: 8:10, covers the reference's 8:06
+    // INTERSTITIALS (Jeff 2026-10-30: "the short odd tracks on an album"):
+    // drawn first; an interstitial skips the book. Three shapes, equal weight.
+    // under 112 BPM (song-stream draw 2, already on the sheet) the dance
+    // weights drop: ride, break, the repeat-out, the 8-bar turnaround, the coda
+    slow: { below: 112, book: {
+      rideP: 0.03, hasBreak: 0.25, repeatOut: 0.36,
+      turnLen: [[2, 40], [4, 56], [8, 4]],
+      outroLen: [[2, 14], [4, 26], [8, 20], [12, 8], [16, 8], ["coda", 8]],
+    } },
+    interstitial: 0.10,                         // brief 7% (6-10% allowed); at 7-9% one shape went missing in 3 of 10 100-roll runs
+    interMaxSec: 120,
+  };
+  U.FORM_BOOK = BOOK;
+
+  // energies the bar map reads for the names the book adds (session.js
+  // SECTION_ENERGY), and the repeat-out's lean-back
+  U.FORM_ENERGY = { pre: 0.78, break: 0.50, repeatOut: 0.95 };
+
+  function makeR(P) {
+    return {
+      r: () => P.r(),
+      p: (prob) => P.r() < prob,
+      pick(table) {
+        let tot = 0; for (const [, w] of table) tot += w;
+        let x = P.r() * tot, k = table[table.length - 1][0];
+        for (const [v, w] of table) { if (x < w) { k = v; break; } x -= w; }
+        return k;
+      },
+      ri: (lo, hi) => lo + Math.floor(P.r() * (hi - lo + 1)),
+    };
+  }
+
+  function loopBlock(R, lo, hi) {
+    const loop = R.pick(BOOK.loop);
+    const n = Math.max(2, Math.ceil(lo / loop)), nmax = Math.floor(hi / loop);
+    return [loop * R.ri(n, Math.max(n, nmax)), loop];
+  }
+
+  // ---- the full song: draw.py draw(), line for line ----
+  function drawSong(R, bpm) {
+    // below U.FORM_BOOK.slow.below BPM the dance weights (ride, break, coda)
+    // read the slow table: no extra PRNG reads, nothing else moves
+    const B = bpm < BOOK.slow.below ? Object.assign({}, BOOK, BOOK.slow.book) : BOOK, S = [];   // { name, part, bars, loop, out, rep }
+    let grain = 1;
+    const sec = (name, part, bars) => {
+      let L = bars != null ? bars : Math.max(2, Math.trunc(R.pick(B.len[name]) * grain));
+      if (bars == null && R.p(B.tagP)) L = Math.max(2, L + R.pick(B.tag));
+      let loop = 0;
+      if (bars == null && R.p(B.rideP)) [L, loop] = loopBlock(R, B.rideTotal[0], B.rideTotal[1]);
+      S.push({ name, part: part || name, bars: L, loop, out: false, rep: false });
+      return S[S.length - 1];
+    };
+    grain = R.pick(B.grain);
+    const k = R.pick(B.cycles);
+    const hasPre = R.p(B.hasPre), hasBridge = R.p(B.hasBridge), hasBreak = R.p(B.hasBreak);
+    let withhold = R.pick(B.withhold); withhold = withhold === "end" ? k : Math.min(withhold, k - 1);
+    const turn = R.p(B.turnaround), dv = R.p(B.doubleVerse), dc = R.p(B.doubleChorus);
+    const il = R.pick(B.introLen);
+    const riff = il > 0 && (hasBreak || turn) && R.p(B.introRiffReturns);
+    if (il > 0) S.push({ name: "intro", part: "intro", bars: il, loop: 0, out: false, rep: false });
+    else if (R.p(B.coldOpenOnChorus) && withhold === 0) sec("chorus");
+    let verseVar = 0;
+    for (let c = 0; c < k; c++) {
+      let vpart = "verse";
+      if (c > 0 && R.p(B.verseVariant)) { verseVar++; vpart = "verse~" + verseVar; }
+      sec("verse", vpart);
+      if (dv && R.p(B.habit)) sec("verse", vpart);
+      if (c >= withhold) {
+        if (hasPre && R.p(B.preEachCycle)) sec("pre");
+        sec("chorus");
+        if (dc && R.p(B.habit)) sec("chorus");
+        if (turn && c < k - 1) sec("break", riff ? "intro" : "turn", R.pick(B.turnLen));
+      } else if (B.verseOnlyParts) {
+        // a cycle before the chorus arrives still lifts and turns around
+        if (hasPre && R.p(B.preEachCycle)) sec("pre");
+        if (turn && c < k - 1) sec("break", riff ? "intro" : "turn", R.pick(B.turnLen));
+      }
+      if (c === k - 2 || (k === 1 && c === 0)) {
+        if (hasBreak) sec("break", riff ? "intro" : "break");
+        if (hasBridge) {
+          sec("bridge");
+          if (R.p(B.secondBridge)) sec("bridge", "bridge~2");
+        }
+      }
+    }
+    if (withhold >= k || !S.slice(-3).some((s) => s.name === "chorus")) sec("chorus");
+    let ending;
+    if (R.p(B.repeatOut)) {
+      if (R.p(B.outAsChoruses)) {
+        let L = 0; for (const s of S) if (s.name === "chorus") L = s.bars;
+        const n = R.ri(2, 6);
+        for (let i = 0; i < n; i++) S.push({ name: "chorus", part: "chorus", bars: L, loop: 0, out: false, rep: true });
+        ending = "choruses";
+      } else {
+        const [L, loop] = loopBlock(R, B.repeatOutTotal[0], B.repeatOutTotal[1]);
+        S.push({ name: "chorus", part: "chorus", bars: L, loop, out: true, rep: false });
+        ending = "repeatOut";
+      }
+      if (R.pick(B.afterRepeatOut) === "tag") S.push({ name: "outro", part: "outro", bars: R.pick(B.tagLen), loop: 0, out: false, rep: false });
+    } else {
+      const ol = R.pick(B.outroLen);
+      if (ol === "coda") {
+        const [L, loop] = loopBlock(R, B.codaTotal[0], B.codaTotal[1]);
+        S.push({ name: "outro", part: "outro", bars: L, loop, out: false, rep: false });
+        ending = "coda";
+      } else { S.push({ name: "outro", part: "outro", bars: ol, loop: 0, out: false, rep: false }); ending = "outro"; }
+    }
+    const total = () => S.reduce((a, s) => a + s.bars, 0);
+    // the floor: a short draw rides its last chorus out (no reads)
+    let floorRides = 0;
+    while (total() < B.floorBars) {
+      floorRides++;
+      let j = -1; for (let i = 0; i < S.length; i++) if (S[i].name === "chorus") j = i;
+      if (!S[j].out) { S[j].bars += 4; S[j].loop = S[j].loop || 4; S[j].out = true; }
+      else S[j].bars += S[j].loop;
+    }
+    // the cap: deterministic trims, no reads (repeat-out, rides, the longest
+    // plain section, a middle cycle)
+    const capBars = Math.floor(B.capSec * bpm / 240);
+    let capTrims = 0;
+    while (total() > capBars && capTrims < 1000) {
+      capTrims++;
+      const out = S.find((s) => s.out && s.bars - s.loop >= 17);
+      const ride = S.find((s) => s.loop && !s.out && s.bars - s.loop >= 16);
+      let big = null; for (const s of S) if (!s.loop && s.bars >= 12 && (!big || s.bars > big.bars)) big = s;
+      if (out) out.bars -= out.loop;
+      else if (ride) ride.bars -= ride.loop;
+      else if (big) big.bars -= 4;
+      else {
+        const vs = []; S.forEach((s, i) => { if (s.name === "verse") vs.push(i); });
+        if (vs.length >= 3) S.splice(vs[1], vs[2] - vs[1]);
+        else { let j = 0; for (let i = 1; i < S.length; i++) if (S[i].bars > S[j].bars) j = i; S[j].bars -= 4; }
+      }
+    }
+    return { S, ending, floorRides, capTrims };
+  }
+
+  // ---- interstitials: three shapes from the existing names, 16-56 bars,
+  // never over 120 s at the drawn tempo ----
+  const INTER_SHAPES = [["vamp", 1], ["oneSection", 1], ["fragment", 1]];
+  function drawInterstitial(R, bpm) {
+    const S = [];
+    const add = (name, bars, loop, out) => S.push({ name, part: name, bars, loop: loop || 0, out: !!out, rep: false });
+    const shape = R.pick(INTER_SHAPES);
+    if (shape === "vamp") {
+      // (a) the riff vamp: an intro riff of 4 or 8 bars looped as a ride for
+      // 16-40 bars, then a 2-4 bar outro tag or nothing (an abrupt end)
+      const loop = R.pick([[4, 1], [8, 1]]);
+      const n = R.ri(Math.ceil(16 / loop), Math.floor(40 / loop));
+      add("intro", loop * n, loop);
+      const tag = R.pick([[0, 1], [2, 1], [4, 1]]);
+      if (tag) add("outro", tag);
+    } else if (shape === "oneSection") {
+      // (b) one section played two or three times, a cold open or a short
+      // count-in, then out
+      const name = R.pick([["verse", 1], ["break", 1]]);
+      const L = R.pick([[8, 50], [12, 15], [16, 35]]);
+      const times = R.ri(2, 3);
+      const intro = R.pick([[0, 2], [2, 1], [4, 1]]);
+      if (intro) add("intro", intro);
+      for (let i = 0; i < times; i++) add(name, L);
+    } else {
+      // (c) the fragment: intro, one chorus (doubled 30%), then a repeat-out
+      // or a tag
+      add("intro", R.pick([[4, 1], [8, 1]]));
+      const L = R.pick([[8, 50], [12, 15], [16, 35]]);
+      add("chorus", L); if (R.p(0.30)) add("chorus", L);
+      if (R.p(0.5)) add("chorus", R.pick([[8, 1], [12, 1], [16, 1]]), 4, true);
+      else add("outro", R.pick([[2, 1], [4, 1]]));
+      if (S.reduce((a, s) => a + s.bars, 0) < 16) S[1].bars += 4;
+    }
+    // the 120 s limit: trim the loop, then a repeat, then the tag (no reads)
+    const capBars = Math.floor(BOOK.interMaxSec * bpm / 240);
+    const total = () => S.reduce((a, s) => a + s.bars, 0);
+    let capTrims = 0;
+    while (total() > capBars && capTrims < 100) {
+      capTrims++;
+      const lp = S.find((s) => s.loop && s.bars - s.loop >= s.loop);
+      const last = S[S.length - 1];
+      const repeated = S.length > 2 && S[S.length - 2].name === last.name && S[S.length - 2].bars === last.bars && !last.loop;
+      if (lp) lp.bars -= lp.loop;
+      else if (repeated) S.pop();
+      else if (last.name === "outro" && S.length > 1) S.pop();
+      else break;
+    }
+    return { S, shape, capTrims };
+  }
+
+  // the dance cut, measured on the drawn form (Jeff 2026-10-30, "more dance or
+  // beat-oriented tracks"): at least one ride (a looped section mid-song) or
+  // one break of 8+ bars, AND an ending that is a repeat-out (the looped out,
+  // or the chorus played on as a run) or a coda vamp of 16+ bars
+  function danceCut(S) {
+    const lastIdx = S.length - 1;
+    const tagged = S[lastIdx].name === "outro" && !S[lastIdx].loop && lastIdx > 0;
+    const endAt = tagged ? lastIdx - 1 : lastIdx;
+    let endBars = 0;
+    const e = S[endAt];
+    if (e.out || (e.name === "outro" && e.loop)) endBars = e.bars;
+    else if (e.rep) { for (let i = endAt; i >= 0 && S[i].rep; i--) endBars += S[i].bars; }
+    let mid = false;
+    for (let i = 0; i < endAt; i++) {
+      const s = S[i];
+      if ((s.loop && !s.out) || (s.name === "break" && s.bars >= 8)) mid = true;
+    }
+    return mid && endBars >= 16;
+  }
+
+  U.drawForm = function (hash, bpm) {
+    const R = makeR(U.forkPrng(hash, "form"));
+    const interstitial = R.p(BOOK.interstitial);
+    let S, id, info;
+    if (interstitial) {
+      info = drawInterstitial(R, bpm); S = info.S; id = "form.interstitial." + info.shape;
+    } else {
+      info = drawSong(R, bpm); S = info.S; id = "form.book";
+    }
+    // fills: one roll per window (every section end but the last), after the
+    // floor and cap, by what comes next
+    const fill = S.map(() => false);
+    let expFills = 0;
+    for (let i = 0; i < S.length - 1; i++) {
+      const a = S[i], b = S[i + 1];
+      const key = a.part === b.part ? "loopSame" : b.name === "chorus" ? "intoChorus" : b.name === "pre" ? "intoPre" : "other";
+      expFills += BOOK.fillP[key];
+      fill[i] = R.p(BOOK.fillP[key]);
+    }
+    return {
+      id, interstitial, shape: interstitial ? info.shape : null,
+      sections: S.map((s) => (s.loop ? [s.name, s.bars, s.loop] : [s.name, s.bars])),
+      parts: S.map((s) => s.part),
+      out: S.map((s) => s.out),
+      fill,
+      ending: interstitial ? null : info.ending,
+      danceCut: !interstitial && danceCut(S),
+      capTrims: info.capTrims, floorRides: info.floorRides || 0,
+      expFills: +expFills.toFixed(3),
+    };
+  };
+})(typeof window !== "undefined" ? window : globalThis);
+
+/* ===== src/session/session.js @ d661e2f — verbatim from jeffdavis-studio/unison-engine ===== */
 // session.js — the session sheet and the arrangement realizer.
 //
 // Two tiers, in this order, each on its own stream (core/prng.js):
@@ -8188,15 +8662,15 @@
 //     bar's variation draw; on its own fork, it cannot.
 //
 // ===========================================================================
-// CANONICAL DRAW ORDER — THE CONTRACT (revised 2026-09-29)
+// CANONICAL DRAW ORDER — THE CONTRACT (revised 2026-10-30)
 // ===========================================================================
-// Tier 1 consumes exactly 87 values (44 through 2026-08-03, plus the 808 panel
+// Tier 1 consumes exactly 86 values (44 through 2026-08-03, plus the 808 panel
 // block appended 2026-08-10 and extended 2026-08-17, plus the bass-voice draw
 // inserted 2026-09-24, plus the poly-voice and poly-slop draws inserted
 // 2026-09-29, plus the drum-machine draw and the Linn panel appended
-// 2026-09-29, plus the rhythm guitar's three draws appended 2026-10-03), in
-// this order, for EVERY song. The count is fixed: nothing here is drawn
-// conditionally. New draws go where they belong in the order and the column
+// 2026-09-29, plus the rhythm guitar's three draws appended 2026-10-03, less
+// the form draw at 6, which moved to its own fork 2026-10-30), in this order,
+// for EVERY song. The count is fixed: nothing here is drawn conditionally. New draws go where they belong in the order and the column
 // below is renumbered to stay true: in development there is no backward hash
 // stability (Jeff, 2026-09-24 — "It's totally fine if code updates produce new
 // results with the same hash while we are in development"). What holds is
@@ -8207,46 +8681,45 @@
 //    3  swing position within the global swing range
 //    4  tonic pitch class
 //    5  harmony book
-//    6  form
-//    7  foreground (lead vs bass)
-//    8  density (sparse ↔ dense)
-//    9  influence GATE          — stage 1: is this song influenced at all?
-//   10  influence selection     — stage 2, used only if 9 passed
-//   11  influence blend         — how much of the patch set lands, used only if 9 passed
-//   12  kick pattern            ┐
-//   13  snare pattern           │
-//   14  hats pattern            │
-//   15  tomsFills pattern       │
-//   16  ePerc pattern           │
-//   17  percTime pattern        │  one pattern pick per VOICED desk role,
-//   18  percAccent pattern      │  in U.DESK_ROLES order, with each role's
-//   19  bass pattern            │  mask draw immediately after its pick
-//   20  bass mask               │
-//   21  bass VOICE              │  ← which instrument the bass strip patches
-//   22  compA pattern           │    in: Juno, Minimoog or FM (U.BASS_VOICE
-//   23  comp mask               │    [lane], books.js). Added 2026-09-24; FM
+//    6  foreground (lead vs bass)
+//    7  density (sparse ↔ dense)
+//    8  influence GATE          — stage 1: is this song influenced at all?
+//    9  influence selection     — stage 2, used only if 8 passed
+//   10  influence blend         — how much of the patch set lands, used only if 8 passed
+//   11  kick pattern            ┐
+//   12  snare pattern           │
+//   13  hats pattern            │
+//   14  tomsFills pattern       │
+//   15  ePerc pattern           │
+//   16  percTime pattern        │  one pattern pick per VOICED desk role,
+//   17  percAccent pattern      │  in U.DESK_ROLES order, with each role's
+//   18  bass pattern            │  mask draw immediately after its pick
+//   19  bass mask               │
+//   20  bass VOICE              │  ← which instrument the bass strip patches
+//   21  compA pattern           │    in: Juno, Minimoog or FM (U.BASS_VOICE
+//   22  comp mask               │    [lane], books.js). Added 2026-09-24; FM
 //                               │    joined 2026-10-01 (no new draw). The
 //                               │    BASS GUITAR takes a share of it through
 //                               │    the roll's residual (2026-10-01, no new
 //                               │    draw; U.BASSGUITAR_SHARE, books.js).
-//   24  pad pattern             │
-//   25  arp pattern             │
-//   26  lead pattern            │
-//   27  lead phrase mask        │
-//   28  counter pattern         │
-//   29  counter phrase mask     │
-//   30  color pattern           ┘
-//   31  POLY VOICE — which poly synth the chord strips (pad, compA, color)
+//   23  pad pattern             │
+//   24  arp pattern             │
+//   25  lead pattern            │
+//   26  lead phrase mask        │
+//   27  counter pattern         │
+//   28  counter phrase mask     │
+//   29  color pattern           ┘
+//   30  POLY VOICE — which poly synth the chord strips (pad, compA, color)
 //       patch in: Juno, OB-Xa or FM (U.POLY_VOICE[lane], books.js). Added
 //       2026-09-29, after the patterns it voices; FM joined 2026-10-01 as a
 //       third entry (no new draw; on an FM song the pad stays Juno).
-//   32  poly slop seed — the OB-Xa's voice-card slop table (obxa.js). Drawn
+//   31  poly slop seed — the OB-Xa's voice-card slop table (obxa.js). Drawn
 //       for every song, Juno or not, so the count stays flat.
-//   33–46  strip mutes — one per voiced role, in U.DESK_ROLES order:
+//   32–45  strip mutes — one per voiced role, in U.DESK_ROLES order:
 //          kick, snare, hats, tomsFills, ePerc, percTime, percAccent,
 //          bass, compA, pad, arp, lead, counter, color
-//   47  production style
-//   48–68  the 808 front panel (instruments/tr808.js U.draw808Panel), twenty-
+//   46  production style
+//   47–67  the 808 front panel (instruments/tr808.js U.draw808Panel), twenty-
 //          one knobs in a fixed block: BD tune/decay/tone/level, SD
 //          tune/snappy/tone/level, CH decay/tone/level, OH decay/tone/level,
 //          the machine's global accent (appended 2026-08-10), then LT/MT/HT
@@ -8255,27 +8728,36 @@
 //          note in the README chased). Drawn for EVERY song, including songs
 //          whose kit is not the 808 — the panel is discarded there, and the
 //          count stays flat.
-//   69  DRUM MACHINE — which machine the kit strips play: the 808 or the
+//   68  DRUM MACHINE — which machine the kit strips play: the 808 or the
 //       Linn-family machine (U.DRUM_MACHINE[lane], books.js). Added
 //       2026-09-29. Its residual chose the Linn ride song (2026-09-30)
 //       until the crash and ride were removed (2026-10-27); unused now.
-//   70–84  the Linn-family panel (instruments/linn.js U.drawLinnPanel),
+//   69–83  the Linn-family panel (instruments/linn.js U.drawLinnPanel),
 //          fifteen trims: kick/snare/hat tune, hat decay, three tom tunes,
 //          conga tune, and the level trims. Appended 2026-09-29. Drawn for
 //          EVERY song; discarded where the machine is the 808.
-//   85  RHYTHM GUITAR pattern — U.pickWeighted over U.rhythmGtrBook(lane)
+//   84  RHYTHM GUITAR pattern — U.pickWeighted over U.rhythmGtrBook(lane)
 //       (books.js U.RHYTHMGTR). Appended 2026-10-03 (the human rack's last
 //       stop), so nothing above moved.
-//   86  rhythm guitar phrase mask — which bars of a four-bar phrase it
-//       plays (U.GTR_PHRASE), as the comp mask at 23
-//   87  rhythmGtr strip mute — uniform against U.RHYTHMGTR_MUTE[lane]. The
-//       strip is U.VOICED_LATE (desk.js), NOT in the 33–46 loop. All three
+//   85  rhythm guitar phrase mask — which bars of a four-bar phrase it
+//       plays (U.GTR_PHRASE), as the comp mask at 22
+//   86  rhythmGtr strip mute — uniform against U.RHYTHMGTR_MUTE[lane]. The
+//       strip is U.VOICED_LATE (desk.js), NOT in the 32–45 loop. All three
 //       drawn for EVERY song, muted or not, 808 or Linn.
 //
 // Tier 2: one variation draw per bar, in bar order, from the "bars" fork
-// (2026-10-03; before that, from R after draw 87).
+// (2026-10-03; before that, from R after the last tier-1 draw).
 //
-// Draws 10 and 11 are taken whether or not the gate at 9 passed, and discarded
+// THE FORM (2026-10-30, Asana 1220073468300418): drawn by src/session/form.js
+// (U.drawForm) from its own fork, U.forkPrng(hash, "form"), right after draw
+// 5, reading the bpm from draw 2. It reads a variable number of values (the
+// book of returns: interstitial, grain, cycles, parts, lengths, ending, one
+// fill roll per window; its order is at the top of form.js), which is why it
+// is off the song stream: until 2026-10-30 it was draw 6, a pick from four
+// fixed 40-48 bar forms. The other tier-1 forks (auxPerc, moogRoles,
+// padVoice) are read below as before.
+//
+// Draws 9 and 10 are taken whether or not the gate at 8 passed, and discarded
 // when it did not. That is the module's standing "draw first, discard if unused"
 // discipline (prng.js) and it is what keeps the count flat — the two
 // stages are still two independent decisions with their own dials, and no
@@ -8283,7 +8765,8 @@
 //
 // NOT VOICED (deliberate, flagged rather than faked): compB. It draws neither
 // a pattern nor a mute, so wiring it later adds its draws to the order (see
-// the rule above). rhythmGtr was voiced 2026-10-03 through draws 85–87.
+// the rule above). rhythmGtr was voiced 2026-10-03 through draws 84–86
+// (85–87 until the form left the stream, 2026-10-30).
 //
 // This order REPLACES the 2026-07-29 order. Every render made before 2026-08-03
 // — including the nine sample songs — draws differently now and cannot be
@@ -8297,22 +8780,23 @@
   const SCALES = { minor: [0, 2, 3, 5, 7, 8, 10], major: [0, 2, 4, 5, 7, 9, 11] };
 
   // ---- form -----------------------------------------------------------------
-  // The doc's form section, plus the sixtiesPop influence's middle-8 shape.
-  const FORMS = [
-    { id: "form.standard", w: 30, s: [["intro", 4], ["verse", 8], ["chorus", 8], ["verse", 8], ["chorus", 8], ["outro", 4]] },
-    { id: "form.long_verse", w: 20, s: [["intro", 4], ["verse", 16], ["chorus", 8], ["verse", 8], ["chorus", 8], ["outro", 4]] },
-    { id: "form.vamp_out", w: 18, s: [["intro", 4], ["verse", 8], ["chorus", 8], ["verse", 8], ["chorus", 8], ["verse", 4], ["outro", 4]] },
-    { id: "form.middle_eight", w: 16, s: [["intro", 4], ["verse", 8], ["chorus", 8], ["verse", 8], ["bridge", 8], ["chorus", 8], ["outro", 4]] },
-  ];
+  // The form is drawn by src/session/form.js (U.drawForm) on its own fork,
+  // U.forkPrng(hash, "form"): the book of returns (2026-10-30, Asana
+  // 1220073468300418). The four fixed FORMS and song-stream draw 6 are gone,
+  // and so is the sixtiesPop influence's form override (its one patch).
 
-  const SECTION_ENERGY = { intro: 0.30, verse: 0.60, chorus: 1.00, bridge: 0.70, outro: 0.45 };
+  // pre (the pre-chorus) and break added 2026-10-30 with the form book; a
+  // repeat-out plays at U.FORM_ENERGY.repeatOut (0.95), the chorus leaning back
+  const SECTION_ENERGY = { intro: 0.30, verse: 0.60, pre: 0.78, chorus: 1.00, bridge: 0.70, break: 0.50, outro: 0.45 };
 
   // Section level — a macro-dynamic scalar on every velocity and drum gain.
   // Added 2026-07-28 after the first full renders measured a loudness range of
   // 0.3–3.2 LU, i.e. almost none: strip entry alone doesn't make a chorus feel
   // like a chorus, because the players don't lean in. This is the players
   // leaning in. It is NOT a mix move — the desk faders are untouched.
-  const SECTION_LEVEL = { intro: 0.72, verse: 0.86, chorus: 1.00, bridge: 0.90, outro: 0.76 };
+  // pre and break (2026-10-30) sit where their energies sit: pre between the
+  // verse and the chorus, break between the intro and the verse
+  const SECTION_LEVEL = { intro: 0.72, verse: 0.86, pre: 0.93, chorus: 1.00, bridge: 0.90, break: 0.79, outro: 0.76 };
 
   // Energy at or above which a strip enters. This is the arrangement — the
   // reason a verse sounds like a verse. Tuning these is a listening job.
@@ -8396,16 +8880,19 @@
     const tonicPc = R.ri(0, 11);                                      // draw 4
     const mode = feel.mode;
     const harmony = U.pickWeighted(R, U.HARMONY[lane]);               // draw 5
-    const form = U.pickWeighted(R, FORMS);                            // draw 6
-    // draw 7 — foreground: which voice the song is "about". Early hip-hop and
+    // the form: its own fork, after the tempo it reads (form.js)
+    if (!R.hash) throw new Error("drawSession: the form fork needs the stream's hash (U.makePrng)");
+    if (!U.drawForm) throw new Error("drawSession: src/session/form.js is not loaded");
+    const form = U.drawForm(R.hash, bpm);
+    // draw 6 — foreground: which voice the song is "about". Early hip-hop and
     // funk lean bass; synth pop leans lead. Hip-hop's 0.14 is part of the
     // drum-forward pass (Jeff 8/03) — that lane's star is the beat, and the
     // bass is the closest thing this binary has to it.
     const leadBias = { newWave: 0.50, synthPop: 0.68, synthRnB: 0.55, earlyHipHop: 0.14, funk: 0.25 }[lane];
     const foreground = R.r() < leadBias ? "lead" : "bass";
-    const density = +R.r().toFixed(3);                                // draw 8 — sparse↔dense
+    const density = +R.r().toFixed(3);                                // draw 7 — sparse↔dense
 
-    // draws 9,10,11 — the two-stage influence draw. Stage 1 is a plain boolean
+    // draws 8,9,10 — the two-stage influence draw. Stage 1 is a plain boolean
     // gate; stage 2 selects; the blend dial then decides how much of the chosen
     // influence's patch set lands. 10 and 11 are always drawn and discarded when
     // the gate fails, so the stream count stays fixed (see the header).
@@ -8422,8 +8909,8 @@
     }
     const has = (patch) => influencePatches.indexOf(patch) > -1;
 
-    // draws 12..30 — one pattern pick per voiced desk role, in U.DESK_ROLES
-    // order (plus the bass voice at 21). Books no longer carry silence entries: every one of these returns a
+    // draws 11..29 — one pattern pick per voiced desk role, in U.DESK_ROLES
+    // order (plus the bass voice at 20). Books no longer carry silence entries: every one of these returns a
     // real pattern, and whether the strip is up is the mute draw further down.
     const picks = {};
     picks.kick = U.pickWeighted(R, U.KICK[lane]);
@@ -8435,16 +8922,16 @@
     // pickWeighted takes exactly one value however long the list is — so tier 1
     // stays at its fixed count and the canonical order above is untouched.
     picks.ePerc = U.pickWeighted(R, U.forLane(U.EPERC, lane));
-    // draw 17 — the percTime pattern (its residual carried the human shakers
+    // draw 16 — the percTime pattern (its residual carried the human shakers
     // until 2026-10-27; one draw either way)
     picks.percTime = U.pickWeighted(R, U.PERCTIME);
-    // draw 18 — the percAccent pattern (its residual carried the human congas
+    // draw 17 — the percAccent pattern (its residual carried the human congas
     // until 2026-10-27; one draw either way)
     picks.percAccent = U.pickWeighted(R, U.PERCACCENT);
     picks.bass = U.pickWeighted(R, U.BASS[lane]);
     const bassMask = R.ri(0, 63);          // one draw, decoded per bass kind
-    // draw 21 — the bass voice. U.pickWeighted's exact walk, kept open so the
-    // residual is readable (as draw 69): a residual under the lane's
+    // draw 20 — the bass voice. U.pickWeighted's exact walk, kept open so the
+    // residual is readable (as draw 68): a residual under the lane's
     // U.BASSGUITAR_SHARE makes it a bass-guitar song, unless the pattern is
     // one a string cannot play (U.BASSGUITAR_NEVER). No new draw.
     const bvList = U.BASS_VOICE[lane];
@@ -8454,7 +8941,7 @@
     const bassVoice = !U.BASSGUITAR_NEVER[picks.bass.kind] && bvResidual < (U.BASSGUITAR_SHARE[lane] || 0) ? "bassguitar" : bvPick.id;
     picks.compA = U.pickWeighted(R, U.forLane(U.COMP, lane));
     const compMask = R.ri(0, 63);
-    // compB — not voiced, no draws (see header). rhythmGtr: draws 85–87 below.
+    // compB — not voiced, no draws (see header). rhythmGtr: draws 84–86 below.
     picks.pad = U.pickWeighted(R, U.PAD);
     picks.arp = U.pickWeighted(R, U.ARP);
     picks.lead = U.pickWeighted(R, U.LEAD);
@@ -8462,11 +8949,11 @@
     picks.counter = U.pickWeighted(R, U.COUNTER);
     const counterPhrase = R.ri(0, 63);
     picks.color = U.pickWeighted(R, U.COLOR);
-    // draws 31, 32 — the poly synth on the chord strips, and its slop seed
+    // draws 30, 31 — the poly synth on the chord strips, and its slop seed
     const polyVoice = U.pickWeighted(R, U.POLY_VOICE[lane]).id;
     const polySeed = R.ri(1, 2147483646);
 
-    // draws 33..46 — strip mutes, one per voiced role in U.DESK_ROLES order.
+    // draws 32..45 — strip mutes, one per voiced role in U.DESK_ROLES order.
     // ALWAYS drawn, even where the probability is zero, so retuning a mute
     // weight can never shift the stream. This is the mixing board deciding what
     // is up, which is the only place a strip goes quiet (Jeff, 8/03).
@@ -8483,18 +8970,18 @@
     // override now, same intent.
     if (harmony.forceColor) mutes.color = false;
 
-    // draw 47 — production style (production/production.js). Genre biases the
+    // draw 46 — production style (production/production.js). Genre biases the
     // weights; the effects themselves never leave the production room.
     const production = U.drawProduction(R, lane);
 
-    // draws 48–62 — the 808 front panel. Always drawn, whatever the kit: a
+    // draws 47–67 — the 808 front panel. Always drawn, whatever the kit: a
     // machine-flavour song plays it, a studio-flavour song discards it, and the
     // draw count is identical either way. That is the same "draw first, discard
     // if unused" discipline the influence gate uses, and it is what will let the
     // Linn's own panel append cleanly at 61 without moving anything.
     const panel808 = U.draw808Panel(R);
 
-    // draw 69 — the drum machine (U.DRUM_MACHINE, books.js), and draws 70–84 —
+    // draw 68 — the drum machine (U.DRUM_MACHINE, books.js), and draws 69–83 —
     // the Linn-family panel, appended where the note above said it would go.
     // Both always drawn; the panel is discarded on an 808 song.
     // (U.pickWeighted's exact walk, kept open so the residual is readable)
@@ -8503,19 +8990,19 @@
     let dmX = R.r() * dmTotal, dmPick = dmList[dmList.length - 1], dmResidual = 0;
     for (const e of dmList) { if (dmX - e.w < 0) { dmPick = e; dmResidual = dmX / e.w; break; } dmX -= e.w; }
     const drumMachine = dmPick.id;
-    // (draw 69's residual chose the Linn ride song until 2026-10-27, when the
+    // (draw 68's residual chose the Linn ride song until 2026-10-27, when the
     // crash and ride were removed; it is read by nothing now)
     const panelLinn = U.drawLinnPanel(R);
     // the 808 has no cowbell (removed 2026-10-27): a cowbell ePerc pick
     // (books.js `linnOnly`) mutes the strip on any song not on the Linn
     const eNoMachine = picks.ePerc.linnOnly && drumMachine !== "linn";
 
-    // draws 85–87 — the RHYTHM GUITAR (2026-10-03), APPENDED after the Linn
-    // panel so every earlier draw stays where it was: 85 the rhythmGtr
+    // draws 84–86 — the RHYTHM GUITAR (2026-10-03), APPENDED after the Linn
+    // panel so every earlier draw stays where it was: 84 the rhythmGtr
     // pattern (U.rhythmGtrBook(lane), books.js), 86 its phrase mask (as the
-    // comp mask at 23), 87 its strip mute (uniform against the lane's
+    // comp mask at 22), 86 its strip mute (uniform against the lane's
     // U.RHYTHMGTR_MUTE). Always all three, for every song, muted or not. The
-    // strip is NOT in U.VOICED_ROLES (that list drives the mutes at 33–46);
+    // strip is NOT in U.VOICED_ROLES (that list drives the mutes at 32–45);
     // it is U.VOICED_LATE (desk.js), drawn here.
     picks.rhythmGtr = U.pickWeighted(R, U.rhythmGtrBook(lane));
     const gtrMask = R.ri(0, 63);
@@ -8558,7 +9045,7 @@
     // books' weights) and the level is the 10/04 trims (TRIM_808_PERC_DB,
     // TRIM_LINN_PERC_DB). Two rolls from a FORK, U.forkPrng(hash, "auxPerc"),
     // read for EVERY song in this order whether or not anything is up, so
-    // tier 1 stays 87 draws. An influence patch that forces a strip up
+    // tier 1 stays 86 draws. An influence patch that forces a strip up
     // (afrobeat's percAccent) is the song's one aux voice, rate exempt.
     if (!R.hash) throw new Error("drawSession: the auxPerc fork needs the stream's hash (U.makePrng)");
     const AG = U.forkPrng(R.hash, "auxPerc");
@@ -8579,7 +9066,7 @@
     // Juno or the Minimoog, P(Minimoog) = U.MOOG_ROLES[lane][strip] (books.js,
     // Juno majority everywhere). A FORK, U.forkPrng(hash, "moogRoles"), read
     // for EVERY song, three rolls in this fixed order whether or not the strip
-    // is up, so tier 1 stays 87 draws and no strip's voice depends on another.
+    // is up, so tier 1 stays 86 draws and no strip's voice depends on another.
     if (!R.hash) throw new Error("drawSession: the moogRoles fork needs the stream's hash (U.makePrng)");
     const MG = U.forkPrng(R.hash, "moogRoles");
     const moogW = U.MOOG_ROLES[lane];
@@ -8595,25 +9082,26 @@
     const padVoice = polyVoice === "obxa" && padRoll < U.OBXA_PAD_SHARE ? "obxa" : "juno";
     // the rhythmGtr strip's voicing for its pattern (heard only when the strip is up)
     const gtrVoicing = U.GTR_FOR_PATTERN(picks.rhythmGtr.id, lane);
-    const sixties = influence === "sixtiesPop" && has("form");
-    const sections = sixties ? FORMS[3].s : form.s;
-
-    // bar map
+    // bar map. A looped section (ride, repeat-out, coda vamp) keeps its name
+    // and carries its loop period (b.loop, 0 when not looped) and its material
+    // (b.part: a later verse can be new material, read by nothing yet); the repeat-out
+    // plays at U.FORM_ENERGY.repeatOut. fillWindow is the form's fill roll for
+    // the section's end, not every section end.
     const bars = [];
-    for (const [name, len] of sections) {
-      for (let i = 0; i < len; i++) bars.push({ section: name, indexInSection: i, sectionLen: len });
-    }
+    form.sections.forEach(([name, len, loop], si) => {
+      for (let i = 0; i < len; i++) bars.push({ section: name, part: form.parts[si], indexInSection: i, sectionLen: len, loop: loop || 0, sectionIndex: si });
+    });
     for (let i = 0; i < bars.length; i++) {
       const b = bars[i];
-      b.energy = SECTION_ENERGY[b.section];
+      b.energy = form.out[b.sectionIndex] ? U.FORM_ENERGY.repeatOut : SECTION_ENERGY[b.section];
       b.last = b.indexInSection === b.sectionLen - 1;
-      b.fillWindow = b.last && i < bars.length - 1;
+      b.fillWindow = b.last && i < bars.length - 1 && form.fill[b.sectionIndex];
     }
 
     const barSec = 4 * (60 / bpm);
     return {
       lane, laneLabel: U.LANE_LABEL[lane], bpm, swing, tonicPc, mode,
-      harmony, form: sixties ? FORMS[3] : form,
+      harmony, form,
       foreground, density,
       influence, influenceBlend, influencePatches,
       picks, bassVoice, polyVoice, polySeed, mutes, production, panel808, drumMachine, panelLinn, gtrVoicing,
@@ -8636,7 +9124,7 @@
   //   the drawn 808 panel. Exists so the same hash can be rendered both ways
   //   for an A/B listen. Like forceLane, it changes what you hear, not what
   //   was drawn.
-  // Minimoog bass (sheet.bassVoice === "minimoog", draw 21): which lane patch
+  // Minimoog bass (sheet.bassVoice === "minimoog", draw 20): which lane patch
   // plays which drawn bass pattern. The rule since 2026-09-24; no extra draw.
   const MOOG_BASS_FOR_KIND = {
     sub808: "round", pedal: "round", rootQuarters: "round", walk: "round",
@@ -8764,7 +9252,7 @@
   const MOOG_ROLES_TRIM_DB = { lead: 2.8, counter: -5.8, arp: -4.9 };
   U.MOOG_ROLES_TRIM_DB = MOOG_ROLES_TRIM_DB;
 
-  // OB-Xa on the chord strips (sheet.polyVoice === "obxa", draw 31): which
+  // OB-Xa on the chord strips (sheet.polyVoice === "obxa", draw 30): which
   // patch each strip plays. No extra draw.
   const OBXA_FOR_STRIP = {
     compA: () => "comp",
@@ -8787,7 +9275,7 @@
   U.OBXA_TRIM_DB = OBXA_TRIM_DB;
   U.OBXA_FOR_STRIP = OBXA_FOR_STRIP;
 
-  // FM keys on the chord strips (sheet.polyVoice === "fm", draw 31): compA
+  // FM keys on the chord strips (sheet.polyVoice === "fm", draw 30): compA
   // plays the tine EP, colour plays glass on section hits and FM brass on the
   // brass offbeats. The PAD is not an FM strip: it stays on the Juno pad
   // (null here). No extra draw.
@@ -8827,7 +9315,7 @@
   U.FM_FOR_STRIP = FM_FOR_STRIP;
   U.MOOG_BASS_FOR_KIND = MOOG_BASS_FOR_KIND;
 
-  // Bass guitar on the bass strip (sheet.bassVoice === "bassguitar", draw 21's
+  // Bass guitar on the bass strip (sheet.bassVoice === "bassguitar", draw 20's
   // residual): the voicing per pattern kind, by lane. Finger is the default
   // session bass; funk slaps its 16th lines, riffs and one-note grooves; new
   // wave picks its octaves, eighths and riffs; synth-pop palm-mutes its
@@ -8857,8 +9345,8 @@
   const BASSGUITAR_TRIM_DB = { finger: -1.5, pick: 1.2, muted: 11.1, slap: 1.1 };
   U.BASSGUITAR_TRIM_DB = BASSGUITAR_TRIM_DB;
 
-  // The rhythm guitar on the rhythmGtr strip (draws 85–87, 2026-10-03). The
-  // phrase mask (draw 86) picks which bars of each four-bar phrase the guitar
+  // The rhythm guitar on the rhythmGtr strip (draws 84–86, 2026-10-03). The
+  // phrase mask (draw 85) picks which bars of each four-bar phrase the guitar
   // plays: mostly every bar (a rhythm part is a part), sometimes laying out
   // for a bar, sometimes every other bar.
   const GTR_PHRASE = ["xxxx", "xxxx", "xxxx", "xxx.", "xx.x", ".xxx", "x.x.", "xxxx"];
@@ -8942,7 +9430,7 @@
     // --- instruments ---
     const kitStrips = {};
     for (const id of ["kick", "snare", "hats", "tomsFills", "ePerc", "percTime", "percAccent"]) kitStrips[id] = desk.strips[id];
-    // The kit's machine is drawn (draw 69, U.DRUM_MACHINE): the 808 on the
+    // The kit's machine is drawn (draw 68, U.DRUM_MACHINE): the 808 on the
     // machine lanes, the Linn-family machine on the studio lanes, either on
     // funk. legacyDrums still builds the generic drums.js kit for an A/B.
     // A Linn kit carries its measured K-weighted trim per strip (LINN_TRIM_DB
@@ -8962,7 +9450,7 @@
     // the closed hat on a ride song) were removed 2026-10-27; the hats strip
     // plays the closed and open hat only, on both machines.
 
-    // The bass strip's instrument is drawn (draw 21, U.BASS_VOICE). Juno:
+    // The bass strip's instrument is drawn (draw 20, U.BASS_VOICE). Juno:
     // "sub" on sub808 patterns, "bass" otherwise. Minimoog: the lane patch for
     // the pattern kind, with its measured trim on the strip.
     // The Juno's patch on a strip: the patch-book record drawn for this song
@@ -8999,10 +9487,10 @@
     } else {
       bassInst = U.createJuno(ctx, desk.strips.bass, junoPatch("bass", P.bass.kind === "sub808" ? "sub" : "bass"));
     }
-    // The chord strips' poly synth is drawn too (draw 31, U.POLY_VOICE). OB-Xa:
+    // The chord strips' poly synth is drawn too (draw 30, U.POLY_VOICE). OB-Xa:
     // the patch for the strip (colour follows its pattern: brass on the brass
     // offbeats, stab on section hits), its measured trim on the strip, and one
-    // slop seed (draw 32) for all three strips — one machine on the session.
+    // slop seed (draw 31) for all three strips — one machine on the session.
     // FM: the strip's FM patch and its measured trim; the pad stays Juno.
     const poly = (strip, role) => {
       if (sheet.polyVoice === "fm") {
@@ -9025,7 +9513,7 @@
       desk.strips[strip].trim.gain.value = Math.pow(10, OBXA_TRIM_DB[op] / 20);
       return U.createObxa(ctx, desk.strips[strip], rec ? rec.params : op, null, sheet.polySeed);
     };
-    // The rhythmGtr strip's instrument (draws 85–87): the rhythm guitar in the
+    // The rhythmGtr strip's instrument (draws 84–86): the rhythm guitar in the
     // voicing for its pattern, played through the session guitarist
     // (sheet.gtrPlayer, a fork of the hash, gtrplayer.js). Created only when
     // the strip is up, so a song whose guitar is muted builds exactly the
@@ -9409,7 +9897,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/render/renderer.js @ 044e691 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/render/renderer.js @ d661e2f — verbatim from jeffdavis-studio/unison-engine ===== */
 // renderer.js — song assembly + the render pipeline (Technical Architecture
 // v1.2 playback model): live-first, with (a) a cheap analysis pre-render for
 // verification/metrics and (b) an on-demand full OfflineAudioContext render
@@ -9564,8 +10052,17 @@
   // costs one offline render of the song. The target is the pre-bus level that
   // leaves the Linn songs' median where it was (Jeff's 10/04 and 10/06
   // listens) and brings the hot 808 songs down to the set.
-  U.BUS_TARGET_LUFS = -11.8;   // the 22 Linn songs of the 10/14 kit-judge set, pre-bus median -11.83
-  U.BUS_TRIM_MAX_DB = 9;       // ±6 left 67da6ab8 (-8.8) and b3be9bc6 (-8.4) on the rail, 2.5-3 LU hot
+  // 2026-10-29 (stage 2 pass 4, Asana 1219959496261786): the target comes
+  // down from -11.8 (the level-preserving number of 10/16, never a loudness
+  // Jeff chose) to drive the glue and limiter the way the Unison Reference is
+  // driven. Measured on the kit judge's 20-hash sample (stage 2 folder,
+  // work/p4): the 30 s window loudness moves ~0.7 LU per dB of target (the
+  // limiter gives back what it stops taking), so -13.0 and -13.5 leave the
+  // median ~0.85 / ~0.45 LU over the Reference's -14.6 (4-song paired reads)
+  // and -14.0 lands it inside 0.3 LU; the limiter works ~1.3 dB less and
+  // crest rises ~1 dB.
+  U.BUS_TARGET_LUFS = -14.0;
+  U.BUS_TRIM_MAX_DB = 11.1;    // ±9 (10/16) held them at -11.8; at -14.0 67da6ab8 wants -11.1, b3be9bc6 -11.0
   U.BUS_TRIM_PRE = { seconds: null, rate: RATE };   // seconds null = whole song
 
   // K-weighted integrated loudness, LUFS (BS.1770-4: 400 ms blocks, 75 %
@@ -9657,7 +10154,7 @@
     const prod = probe.production || {};
     const satIds = Object.keys(prod.sat || {});
     const nExtra = 2 * satIds.length + (prod.comp ? 2 : 0) + (prod.gate ? 4 : 0);
-    const ctx = new OfflineAudioContext(nch + nExtra, Math.ceil(seconds * rate), rate);
+    const ctx = U.jitAttach(new OfflineAudioContext(nch + nExtra, Math.ceil(seconds * rate), rate));
     const song = U.buildSong(ctx, hash, forceLane, { preBus: true });
     const desk = song.desk;
     const taps = desk.satTaps || [];
@@ -9685,7 +10182,7 @@
       });
       merger.connect(ctx.destination);
     }
-    const buf = await ctx.startRendering();
+    const buf = await U.jitRender(ctx);
     void song;   // the graph must outlive the render (see U.renderSong)
     const ch = []; for (let c = 0; c < nch; c++) ch.push(buf.getChannelData(c));
     const key = hash + "|" + (forceLane || "");
@@ -9756,9 +10253,9 @@
     if (typeof opts.busTrimDb !== "number") opts.busTrimDb = await U.songBusTrimDb(hash, forceLane);
     const probe = U.drawSession(U.makePrng(hash), forceLane);   // length probe only
     const dur = LEAD + probe.lengthSec + TAIL;
-    const ctx = new OfflineAudioContext(2, Math.ceil(dur * RATE), RATE);
+    const ctx = U.jitAttach(new OfflineAudioContext(2, Math.ceil(dur * RATE), RATE));
     const song = U.buildSong(ctx, hash, forceLane, opts);
-    const buf = await ctx.startRendering();
+    const buf = await U.jitRender(ctx);
     // song (and through it stats.retain) must outlive the render — dropping it
     // lets Chrome GC finished source nodes mid-render, which is bit-visible.
     const sha = await U.sha256OfBuffer(buf);
@@ -9772,9 +10269,9 @@
   U.analysisPrerender = async function (hash, seconds, rate, forceLane, busTrimDb) {
     seconds = seconds || 8; rate = rate || 11025;
     if (typeof busTrimDb !== "number") busTrimDb = await U.songBusTrimDb(hash, forceLane);
-    const ctx = new OfflineAudioContext(1, Math.ceil(seconds * rate), rate);
+    const ctx = U.jitAttach(new OfflineAudioContext(1, Math.ceil(seconds * rate), rate));
     const song = U.buildSong(ctx, hash, forceLane, { busTrimDb });
-    const buf = await ctx.startRendering();
+    const buf = await U.jitRender(ctx);
     void song;
     const { peak, rms } = U.peakAndRms(buf);
     return { peak, rms, clipped: peak >= 0.999, busTrimDb };
@@ -9884,8 +10381,11 @@
   // brass, arps -12 / riff -15. The Linn re-read 10/28 with the kit dry
   // (DRY_KIT below): the gated room had carried 3 dB of its RMS (-16.68 ->
   // -19.66 dB), the 808 +0.24 dB; Linn 2.9 -> 6.1 holds it 2.0 dB under the
-  // 808, where it sat.
-  var LEVEL_DB = { d808: 0, linn: 6.1, bgtr: 4.5, mbass: 3.8, jbass: 3.5, fbass: 3.8, rgtr: 5.2, jcomp: 3.1, ocomp: 3.1,
+  // 808, where it sat. Engine 044e691 -> 7921e6e (10/31, stage 2 pass 4's
+  // per-voice bass makeup): bass guitar came up 1.79 dB re the 808, so
+  // 4.5 -> 2.7 holds the balance the page had; every other layer moved under
+  // 1.5 dB and stays (RESULT-engine.md).
+  var LEVEL_DB = { d808: 0, linn: 6.1, bgtr: 2.7, mbass: 3.8, jbass: 3.5, fbass: 3.8, rgtr: 5.2, jcomp: 3.1, ocomp: 3.1,
     fkeys: 2.2, jpad: 5.9, opad: 6.3, obrass: 9, jlead: 3.6, mlead: 4.3, jarp: 14.6, marp: 14.9, mriff: 17.9 };
   // v2 (Jeff 10/28): the card's fader is an offset in dB on top of this
   // table, -12..+12; 0 is the table. A gain node, so it never re-renders.
