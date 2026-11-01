@@ -157,10 +157,10 @@
 <div id="bars" class="row"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><div id="status"></div></div>
 <div id="layers"></div>
 <div id="add" class="row"><div class="lbl">Add a layer<button id="palRnd" title="add a random instrument (one you don't have yet, while any are left)">Random</button></div><div id="pal"></div></div>
-<footer title="engine @e0bb664 · built 2026-11-01">Unison jam &middot; every sound is synthesized in this page by the engine at e0bb664</footer>
+<footer title="engine @b3c1f7d · built 2026-11-01">Unison jam &middot; every sound is synthesized in this page by the engine at b3c1f7d</footer>
 
 <script>
-/* ===== src/core/prng.js @ e0bb664 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/prng.js @ b3c1f7d — verbatim from jeffdavis-studio/unison-engine ===== */
 // prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
 // token hash, consumed in canonical draw order (Technical Architecture v1.2).
 //
@@ -233,7 +233,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/core/mix.js @ e0bb664 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/mix.js @ b3c1f7d — verbatim from jeffdavis-studio/unison-engine ===== */
 // mix.js — the fan-in ≤2 summing rule, as a primitive.
 //
 // Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
@@ -402,7 +402,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/desk/desk.js @ e0bb664 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/desk/desk.js @ b3c1f7d — verbatim from jeffdavis-studio/unison-engine ===== */
 // desk.js — the 24-track desk as a running audio graph.
 //
 // The desk is the data structure, not a metaphor (Composition Brief 2 / Tech
@@ -805,7 +805,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/production.js @ e0bb664 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/production.js @ b3c1f7d — verbatim from jeffdavis-studio/unison-engine ===== */
 // production.js — the production room, v0.
 //
 // PLACEMENT DECISION (Morgan's call, ratified by Jeff 2026-08-03). Production
@@ -1100,7 +1100,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/juno.js @ e0bb664 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/juno.js @ b3c1f7d — verbatim from jeffdavis-studio/unison-engine ===== */
 // juno.js — Juno-60-flavor poly voice, raw Web Audio, zero dependencies.
 // Ported from the 2026-07-21 bake-off winner (voice-raw.js), restructured to
 // live behind a desk strip: U.createJuno(ctx, strip, patchName) builds its own
@@ -1897,7 +1897,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/minimoog.js @ e0bb664 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/minimoog.js @ b3c1f7d — verbatim from jeffdavis-studio/unison-engine ===== */
 // minimoog.js — Minimoog Model D-lineage mono voice, zero dependencies.
 //
 // THE MONO BASS LANE (build order 808 → Juno → Minimoog → …; it also absorbs
@@ -2439,7 +2439,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/obxa.js @ e0bb664 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/obxa.js @ b3c1f7d — verbatim from jeffdavis-studio/unison-engine ===== */
 // obxa.js — Oberheim OB-Xa-lineage poly voice, zero dependencies.
 //
 // THE BRASS/PAD POLY LANE (build order 808 → Juno → Minimoog → OB-Xa → …).
@@ -2600,6 +2600,9 @@
         range: { fA: [0.18, 0.34], cutoff: [400, 580] }, note: "filter attack up: each chord blooms in, 4-pole" },
       { name: "saw + pulse horn section", w: 12, base: ob("brass", { vco2: [0, 1, 0.38, 0.75], detune: 12, cutoff: 470, envAmt: 3.1, fS: 0.5 }),
         range: { "vco2.2": [0.3, 0.45], detune: [9, 15] }, note: "VCO 2 on a narrow pulse, 2-pole: a reedier, thinner section" },
+      { name: "Prophet-5 poly brass", w: 8, base: ob("brass", { pole: 4, detune: 8, cutoff: 900, res: 0.22, kbd: 0.6, envAmt: 2.6, fA: 0.12, fD: 0.6, fS: 0.5, fR: 0.3, a: 0.01, d: 0.5, s: 0.9, r: 0.25, slop: 0.6 }),
+        range: { cutoff: [760, 1100], fA: [0.08, 0.16], detune: [5, 11] },
+        note: "PROPHET-5 SUB-FAMILY. Family traits: 4-pole (the Prophet's 24 dB), two VCOs on saw, narrow detune (5-11c), no chorus, slop 0.6 (steadier than the OB's voice cards). The patch's own: the brighter filter (cutoff 900, kbd 0.6) and a filter-envelope swell (fA 0.12, envAmt 2.6) with sustain at half: program 1-1 Brass's shape, not a session dump" },
     ],
     pad: [
       { name: "OB pad", w: 26, base: OBP.pad, range: { cutoff: [440, 620], pwmDepth: [0.25, 0.4], a: [0.4, 0.7] },
@@ -2612,6 +2615,12 @@
         range: { pwmRate: [0.4, 0.9], cutoff: [700, 960] }, note: "both VCOs on pulse, slow PWM, 4-pole: hollow and moving" },
       { name: "4-pole resonant sweep pad", w: 8, base: ob("pad", { pole: 4, vco2: [1, 0, 0.5, 0.7], pwmDepth: 0, cutoff: 360, res: 0.38, envAmt: 2.2, fA: 1.8, fD: 2.4, fS: 0.45, fR: 1.4, a: 1.0 }),
         range: { res: [0.3, 0.45], fA: [1.3, 2.4] }, note: "resonance up, a slow filter envelope opening each chord: the sweep pad" },
+      { name: "Jupiter-8 wide pad", w: 8, base: ob("pad", { pole: 4, vco1: [1, 0, 0.5, 0.7], vco2: [1, 0, 0.5, 0.7], detune: 30, pwmDepth: 0, cutoff: 1000, res: 0.12, kbd: 0.5, envAmt: 0.6, fA: 1.0, fD: 1.5, fS: 0.8, fR: 1.4, a: 0.85, d: 1.0, s: 0.95, r: 1.4, slop: 0.6 }),
+        range: { detune: [24, 36], cutoff: [820, 1200], a: [0.6, 1.1] },
+        note: "JUPITER-8 SUB-FAMILY. Family traits: 4-pole (the Jupiter's 24 dB), two VCOs on saw detuned wide (24-36c), no chorus, slop 0.6. The patch's own: slow attack (a 0.85), filter open and still (cutoff 1000, envAmt 0.6), long release" },
+      { name: "Low Strings", w: 6, base: ob("pad", { vco1: [1, 0, 0.5, 0.7], vco2: [1, 0, 0.5, 0.6], vco2Semi: -12, detune: 10, pwmDepth: 0, cutoff: 650, res: 0.08, kbd: 0.4, envAmt: 0.4, fA: 0.3, fD: 1.0, fS: 0.85, fR: 0.9, a: 0.25, d: 0.8, s: 0.9, r: 0.8 }),
+        range: { cutoff: [540, 780], a: [0.18, 0.35] },
+        note: "the surviving OB-Xa factory book's Low Strings (name only; its panel is not transcribed here): two saws, VCO 2 an octave down for the low register, 2-pole open, a bowed attack" },
     ],
     comp: [
       { name: "OB comp", w: 28, base: OBP.comp, range: { cutoff: [1300, 1750], fD: [0.18, 0.28] },
@@ -2624,6 +2633,9 @@
         range: { res: [0.4, 0.58], fD: [0.11, 0.18] }, note: "resonance up, filter env doing the work: the envelope-quack comp" },
       { name: "4-pole dark keys", w: 10, base: ob("comp", { pole: 4, cutoff: 750, envAmt: 1.4, fD: 0.5, fS: 0.3, d: 0.55, s: 0.22, r: 0.35 }),
         range: { cutoff: [640, 900], d: [0.45, 0.7] }, note: "4-pole, slower decay: an electric-piano stand-in" },
+      { name: "Prophet-5 poly comp", w: 7, base: ob("comp", { pole: 4, vco1: [1, 0, 0.5, 0.75], vco2: [1, 0, 0.5, 0.65], detune: 6, cutoff: 1100, res: 0.3, kbd: 0.6, envAmt: 2.4, fD: 0.2, fS: 0.2, d: 0.3, s: 0.4, r: 0.18, slop: 0.6 }),
+        range: { cutoff: [900, 1350], fD: [0.15, 0.26] },
+        note: "PROPHET-5 SUB-FAMILY (traits as on Prophet-5 poly brass: 4-pole, two saws, narrow detune, no chorus, slop 0.6). The patch's own: resonance 0.3 and a short filter envelope doing the pluck, sustain low: the poly comp" },
     ],
     stab: [
       { name: "OB stab", w: 28, base: OBP.stab, range: { cutoff: [280, 400], fD: [0.16, 0.26] },
@@ -2637,8 +2649,179 @@
       { name: "4-pole resonant zap stab", w: 8, base: ob("stab", { pole: 4, cutoff: 320, res: 0.4, envAmt: 4.4, fD: 0.12, fS: 0.05, d: 0.18, s: 0.25 }),
         range: { res: [0.34, 0.42], envAmt: [4.0, 4.6] }, note: "4-pole resonance and a deep, fast filter sweep: the zap" },
     ],
+    // BASS and LEAD (slice 2, 2026-11-01). No strip draws an OB-Xa bass or
+    // lead yet (the bass strip draws Juno / Minimoog / FM, the lead strip its
+    // own voices); these are tagged, levelled and playable by name until the
+    // patch-to-part lock comes out. Levels reference the house Juno bass on
+    // bass lines and the house Juno lead on lead lines (obxa-book-level.mjs).
+    bass: [
+      { name: "OB-Xa bass", w: 10, base: ob("brass", { vco1: [1, 0, 0.5, 0.8], vco2: [0, 1, 0.45, 0.7], detune: 6, cutoff: 360, res: 0.18, kbd: 0.5, envAmt: 2.6, fA: 0.002, fD: 0.3, fS: 0.35, fR: 0.12, a: 0.002, d: 0.5, s: 0.85, r: 0.1, slop: 0.5 }),
+        range: { cutoff: [290, 450], fD: [0.22, 0.4] },
+        note: "the Thompson Twins bass (Bailey: the OB-Xa's convincing bass, RECORD): saw + pulse, 2-pole, a filter blip on each note over a held body" },
+      { name: "Prophet-5 round bass", w: 8, base: ob("brass", { pole: 4, detune: 4, cutoff: 320, res: 0.15, kbd: 0.5, envAmt: 2.0, fA: 0.002, fD: 0.35, fS: 0.35, fR: 0.12, a: 0.002, d: 0.6, s: 0.9, r: 0.1, slop: 0.6 }),
+        range: { cutoff: [260, 400], envAmt: [1.6, 2.4] },
+        note: "PROPHET-5 SUB-FAMILY (traits: 4-pole, two saws, narrow detune, no chorus, slop 0.6). The patch's own: filter low, a soft envelope: the round bass" },
+      { name: "2-pole pluck bass", w: 7, base: ob("brass", { vco1: [1, 0, 0.5, 0.8], vco2: [0, 1, 0.3, 0.6], detune: 5, cutoff: 260, res: 0.35, kbd: 0.5, envAmt: 3.6, fA: 0.002, fD: 0.14, fS: 0.08, fR: 0.08, a: 0.002, d: 0.3, s: 0.4, r: 0.08, slop: 0.5 }),
+        range: { cutoff: [230, 320], fD: [0.115, 0.19] },
+        note: "saw + narrow pulse, 2-pole with resonance, a deep fast filter envelope and a short amp: the brighter pluck bass" },
+    ],
+    lead: [
+      { name: "Prophet-5 poly lead", w: 8, base: ob("brass", { pole: 4, detune: 7, cutoff: 900, res: 0.2, kbd: 0.7, envAmt: 2.6, fA: 0.03, fD: 0.35, fS: 0.5, fR: 0.2, a: 0.005, d: 0.3, s: 0.8, r: 0.2, slop: 0.6 }),
+        range: { cutoff: [750, 1100], fS: [0.4, 0.6] },
+        note: "PROPHET-5 SUB-FAMILY (traits: 4-pole, two saws, narrow detune, no chorus, slop 0.6). The patch's own: the Genius of Love line (Weymouth's 'one, one preset' points to program 1-1 Brass, RECORD for the Prophet-5, not a session dump): brass shape, faster filter attack, keyboard tracking up for a line" },
+      { name: "mono sync lead", w: 6, base: ob("brass", { sync: 1, vco2Semi: 9, detune: 0, vco1: [1, 0, 0.5, 0.5], vco2: [1, 0, 0.5, 0.9], cutoff: 1400, res: 0.2, kbd: 0.7, envAmt: 1.6, fA: 0.01, fD: 0.4, fS: 0.6, fR: 0.15, a: 0.004, d: 0.3, s: 0.85, r: 0.15, slop: 0.5 }),
+        range: { vco2Semi: [5, 14], cutoff: [1150, 1700] },
+        note: "VCO 2 hard-synced to VCO 1, 2-pole open: the rack's route to the ARP 2600 / Odyssey sync lead (the Minimoog cannot sync). The circuit has no VCO 2 pitch envelope, so the sweep is the per-song vco2Semi draw; one voice because the lead lines are monophonic (no unison switch in the model)" },
+      { name: "Rock Unison", w: 5, base: ob("brass", { detune: 22, cutoff: 1300, res: 0.15, kbd: 0.7, envAmt: 1.8, fA: 0.01, fD: 0.5, fS: 0.65, fR: 0.2, a: 0.004, d: 0.4, s: 0.9, r: 0.2 }),
+        range: { detune: [16, 28], cutoff: [1050, 1550] },
+        note: "the surviving OB-Xa factory book's Rock Unison (name only): the OB-Xa's unison stacks voice cards on one note, which this model does not do, so two saws detuned wide on one card, 2-pole open, stand in for the stack" },
+    ],
   };
   for (const role in U.OBXA_BOOK) for (const a of U.OBXA_BOOK[role]) a.role = role;
+
+  // THE TWO COLUMNS (slice 2, 2026-11-01, Asana 1220084766500650; juno.js has
+  // the definitions above U.JUNO_BOOK_ROLES). Neither moves a draw or a
+  // sample: the draw still reads w, range and role above.
+  // roles: how well the patch serves each of seven parts, 0 to 1 (bass,
+  // chords, pad, arpeggio, lead, color, comp). ref: which of the hundred carry
+  // the sound, generated from the census (parts.json), never typed:
+  // [{ track, player, chain, often }] or "listen". A stand-in says so in its chain.
+  const R = (bass, chords, pad, arpeggio, lead, color, comp) => ({ bass, chords, pad, arpeggio, lead, color, comp });
+  U.OBXA_BOOK_ROLES = {
+    "OB brass": R(0, 0.7, 0.3, 0, 0.4, 1, 0.5),
+    "open 2-pole brass": R(0, 0.5, 0.1, 0, 0.4, 1, 0.6),
+    "4-pole round brass": R(0, 0.8, 0.5, 0, 0.3, 0.8, 0.4),
+    "4-pole slow swell brass": R(0, 0.8, 0.7, 0, 0.2, 0.7, 0.1),
+    "saw + pulse horn section": R(0, 0.6, 0.2, 0, 0.3, 0.9, 0.5),
+    "OB pad": R(0, 0.7, 1, 0, 0, 0.2, 0.1),
+    "4-pole round pad": R(0, 0.7, 1, 0, 0, 0.1, 0.1),
+    "detuned string pad": R(0, 0.8, 0.9, 0, 0.4, 0.3, 0.1),
+    "4-pole PWM pad": R(0, 0.6, 0.9, 0, 0.1, 0.3, 0.1),
+    "4-pole resonant sweep pad": R(0, 0.4, 0.9, 0, 0, 0.5, 0),
+    "OB comp": R(0, 0.9, 0.3, 0.3, 0.2, 0.5, 1),
+    "4-pole round comp": R(0, 0.9, 0.4, 0.3, 0.2, 0.4, 0.8),
+    "pulse comp": R(0, 0.5, 0.1, 0.4, 0.2, 0.4, 0.9),
+    "2-pole funk quack comp": R(0.1, 0.2, 0, 0.5, 0.3, 0.6, 1),
+    "4-pole dark keys": R(0, 0.8, 0.3, 0.3, 0.2, 0.3, 0.7),
+    "OB stab": R(0, 0.2, 0, 0, 0, 1, 0.7),
+    "open 2-pole stab": R(0, 0.3, 0, 0, 0.1, 1, 0.7),
+    "4-pole thud stab": R(0.2, 0.2, 0, 0, 0, 0.9, 0.6),
+    "sync stab": R(0, 0.1, 0, 0.1, 0.3, 0.9, 0.4),
+    "4-pole resonant zap stab": R(0, 0, 0, 0.2, 0.1, 0.9, 0.4),
+    "Prophet-5 poly brass": R(0, 0.7, 0.3, 0, 0.5, 0.9, 0.5),
+    "Jupiter-8 wide pad": R(0, 0.7, 1, 0, 0, 0.3, 0),
+    "Low Strings": R(0.2, 0.7, 0.9, 0, 0.2, 0.2, 0),
+    "Prophet-5 poly comp": R(0, 0.7, 0.1, 0.4, 0.3, 0.5, 1),
+    "OB-Xa bass": R(1, 0, 0, 0.3, 0.1, 0.1, 0),
+    "Prophet-5 round bass": R(1, 0, 0, 0.2, 0, 0, 0),
+    "2-pole pluck bass": R(0.9, 0, 0, 0.5, 0.2, 0.2, 0.1),
+    "Prophet-5 poly lead": R(0, 0.3, 0, 0.3, 1, 0.5, 0.2),
+    "mono sync lead": R(0, 0, 0, 0.2, 0.9, 0.7, 0),
+    "Rock Unison": R(0.1, 0.1, 0, 0.2, 1, 0.4, 0),
+  };
+  // BEGIN OBXA_BOOK_REFS (generated: files/unison/patch-books-2026-10-31/obxa-gen-refs.mjs)
+  U.OBXA_BOOK_REFS = {
+    "OB brass": [
+      { track: 54, player: "not named (session players; the Pointer Sisters are a vocal group)", chain: "OB-8 (census track)", often: "carrying, chords part" },
+    ],
+    "open 2-pole brass": "listen",
+    "4-pole round brass": "listen",
+    "4-pole slow swell brass": "listen",
+    "saw + pulse horn section": "listen",
+    "Prophet-5 poly brass": [
+      { track: 3, player: "John Crawford / David Diamond (synthesizers)", chain: "Prophet-5 (RECORD); stand-in on the OB-Xa; brass, comp or pad voicing: listen; Prophet-5 is album-level RECORD (Mix); no verified patch", often: "carrying, chords part" },
+      { track: 6, player: "Greg Hawkes", chain: "Prophet-5 (PERIOD); stand-in on the OB-Xa; brass, comp or pad voicing: listen; Prophet-5 is a period association with Hawkes; the track's source is OPEN", often: "carrying, chords part" },
+      { track: 51, player: "Larry Fast (synthesizers)", chain: "Prophet-5 (census track); stand-in on the OB-Xa; brass, comp or pad voicing: listen", often: "carrying, chords part" },
+      { track: 92, player: "Larry Smith (producer)", chain: "Prophet-5 (album, track OPEN) (RECORD); stand-in on the OB-Xa; brass, comp or pad voicing: listen; album-level; Prophet-5 on this track OPEN (dossier)", often: "not carrying, chords part" },
+      { track: 93, player: "Ed Fletcher", chain: "Prophet-5 (RECORD); stand-in on the OB-Xa; brass, comp or pad voicing: listen", often: "carrying, chords part" },
+      { track: 100, player: "Steve Winwood", chain: "Prophet-5 (RECORD); stand-in on the OB-Xa; brass, comp or pad voicing: listen; Multimoog / Prophet-5 split by part unresolved", often: "carrying, chords part" },
+    ],
+    "OB pad": [
+      { track: 4, player: "not named", chain: "synth pads (ear)", often: "carrying, chords part" },
+      { track: 42, player: "Naked Eyes, Tony Mansfield producing", chain: "OB-X (census track); the dossier: OB-Xa washes on Emotion in Motion, Prophet kept for bass", often: "carrying, chords part" },
+    ],
+    "4-pole round pad": "listen",
+    "detuned string pad": [
+      { track: 16, player: "Annie Lennox (the OB-X part, Stewart's account)", chain: "OB-X strings, release cut (RECORD)", often: "carrying, chords part" },
+      { track: 17, player: "Michael Kamen (orchestra)", chain: "orchestra, trumpet (Kamen) (census album); stand-in on the OB-Xa", often: "not carrying, color part" },
+      { track: 21, player: "Gary Numan", chain: "viola (census album); stand-in on the OB-Xa", often: "not carrying, color part" },
+      { track: 33, player: "Fred Zarr", chain: "synth string line (census track)", often: "carrying, lead part" },
+      { track: 67, player: "Genesis P-Orridge (violin), Cosey Fanni Tutti (guitar)", chain: "violin, guitar (census album); stand-in on the OB-Xa", often: "not carrying, color part" },
+    ],
+    "4-pole PWM pad": "listen",
+    "4-pole resonant sweep pad": "listen",
+    "Jupiter-8 wide pad": [
+      { track: 10, player: "Devo (Mark Mothersbaugh, Gerald Casale, Bob Casale: synthesizers)", chain: "Jupiter-8 / Prophet-5 (PERIOD); stand-in on the OB-Xa", often: "carrying, chords part" },
+      { track: 24, player: "The Human League (period live setup)", chain: "Jupiter-8 (period) (PERIOD); stand-in on the OB-Xa", often: "carrying, chords part" },
+      { track: 28, player: "Stuart Neale", chain: "Jupiter-8 (census track); stand-in on the OB-Xa", often: "carrying, chords part" },
+      { track: 46, player: "OMD (Paul Humphreys, Andy McCluskey, Martin Cooper: keyboards)", chain: "Fairlight / Jupiter-8 (RECORD); stand-in on the OB-Xa", often: "carrying, chords part" },
+      { track: 76, player: "Jack Hues / Nick Feldman / Darren Costin (keyboards shared)", chain: "Jupiter-8 / Prophet-5 (RECORD); stand-in on the OB-Xa", often: "carrying, chords part" },
+      { track: 77, player: "Jack Hues / Nick Feldman / Darren Costin (keyboards shared)", chain: "Jupiter-8 / PPG (RECORD); stand-in on the OB-Xa", often: "carrying, chords part" },
+      { track: 78, player: "Jack Hues / Nick Feldman / Darren Costin (keyboards shared)", chain: "Jupiter-8 / PPG (RECORD); stand-in on the OB-Xa", often: "carrying, chords part" },
+      { track: 79, player: "Jack Hues / Nick Feldman / Darren Costin (keyboards shared)", chain: "Jupiter-8 / PPG (RECORD); stand-in on the OB-Xa", often: "carrying, chords part" },
+    ],
+    "Low Strings": "listen",
+    "OB comp": [
+      { track: 32, player: "Fred Zarr", chain: "OB-X (census album); brass, comp or pad voicing: listen", often: "carrying, chords part" },
+      { track: 34, player: "Fred Zarr", chain: "OB-X (census track); brass, comp or pad voicing: listen", often: "carrying, chords part" },
+      { track: 35, player: "Fred Zarr", chain: "OB-X (census album); brass, comp or pad voicing: listen", often: "carrying, chords part" },
+      { track: 64, player: "Tom Bailey", chain: "OB-Xa (RECORD); brass, comp or pad voicing: listen", often: "carrying, chords part" },
+      { track: 65, player: "Tom Bailey", chain: "OB-Xa (RECORD); brass, comp or pad voicing: listen", often: "carrying, chords part" },
+      { track: 66, player: "Tom Bailey", chain: "OB-Xa (RECORD); brass, comp or pad voicing: listen; layered OB-Xa bass with bass-guitar slaps (dossier)", often: "carrying, chords part" },
+    ],
+    "4-pole round comp": "listen",
+    "pulse comp": "listen",
+    "2-pole funk quack comp": "listen",
+    "4-pole dark keys": "listen",
+    "Prophet-5 poly comp": [
+      { track: 3, player: "John Crawford / David Diamond (synthesizers)", chain: "Prophet-5 (RECORD); stand-in on the OB-Xa; brass, comp or pad voicing: listen; Prophet-5 is album-level RECORD (Mix); no verified patch", often: "carrying, chords part" },
+      { track: 6, player: "Greg Hawkes", chain: "Prophet-5 (PERIOD); stand-in on the OB-Xa; brass, comp or pad voicing: listen; Prophet-5 is a period association with Hawkes; the track's source is OPEN", often: "carrying, chords part" },
+      { track: 44, player: "Bernard Sumner / Gillian Gilbert", chain: "synth stabs (OPEN); stand-in on the OB-Xa; voicing: stab chords on the comp patch", often: "carrying, chords part" },
+      { track: 51, player: "Larry Fast (synthesizers)", chain: "Prophet-5 (census track); stand-in on the OB-Xa; brass, comp or pad voicing: listen", often: "carrying, chords part" },
+      { track: 92, player: "Larry Smith (producer)", chain: "Prophet-5 (album, track OPEN) (RECORD); stand-in on the OB-Xa; brass, comp or pad voicing: listen; album-level; Prophet-5 on this track OPEN (dossier)", often: "not carrying, chords part" },
+      { track: 93, player: "Ed Fletcher", chain: "Prophet-5 (RECORD); stand-in on the OB-Xa; brass, comp or pad voicing: listen", often: "carrying, chords part" },
+      { track: 100, player: "Steve Winwood", chain: "Prophet-5 (RECORD); stand-in on the OB-Xa; brass, comp or pad voicing: listen; Multimoog / Prophet-5 split by part unresolved", often: "carrying, chords part" },
+    ],
+    "OB stab": "listen",
+    "open 2-pole stab": "listen",
+    "4-pole thud stab": "listen",
+    "sync stab": "listen",
+    "4-pole resonant zap stab": "listen",
+    "OB-Xa bass": [
+      { track: 64, player: "Tom Bailey", chain: "OB-Xa bass (RECORD); stand-in on the OB-Xa", often: "carrying, bass part" },
+      { track: 65, player: "Tom Bailey", chain: "OB-Xa bass (RECORD); stand-in on the OB-Xa", often: "carrying, bass part" },
+      { track: 66, player: "Tom Bailey", chain: "layered OB-Xa bass (RECORD); stand-in on the OB-Xa; layered OB-Xa bass with bass-guitar slaps (dossier)", often: "carrying, bass part" },
+    ],
+    "Prophet-5 round bass": [
+      { track: 40, player: "Naked Eyes, Tony Mansfield producing", chain: "Prophet bass (census album); stand-in on the OB-Xa", often: "carrying, bass part" },
+      { track: 41, player: "Naked Eyes, Tony Mansfield producing", chain: "Prophet bass (census album); stand-in on the OB-Xa", often: "carrying, bass part" },
+      { track: 42, player: "Naked Eyes, Tony Mansfield producing", chain: "Prophet bass (census album); stand-in on the OB-Xa; the dossier: OB-Xa washes on Emotion in Motion, Prophet kept for bass", often: "carrying, bass part" },
+    ],
+    "2-pole pluck bass": "listen",
+    "Prophet-5 poly lead": [
+      { track: 3, player: "John Crawford / David Diamond (synthesizers)", chain: "Prophet-5 hook (RECORD); stand-in on the OB-Xa; Prophet-5 is album-level RECORD (Mix); no verified patch", often: "carrying, lead part" },
+      { track: 6, player: "Greg Hawkes", chain: "Prophet-5 line (PERIOD); stand-in on the OB-Xa; Prophet-5 is a period association with Hawkes; the track's source is OPEN", often: "carrying, lead part" },
+      { track: 40, player: "Naked Eyes, Tony Mansfield producing", chain: "Prophet hook (census album); stand-in on the OB-Xa", often: "carrying, lead part" },
+      { track: 41, player: "Naked Eyes, Tony Mansfield producing", chain: "synth line (census album); stand-in on the OB-Xa", often: "carrying, lead part" },
+      { track: 42, player: "Naked Eyes, Tony Mansfield producing", chain: "synth line (census album); stand-in on the OB-Xa; the dossier: OB-Xa washes on Emotion in Motion, Prophet kept for bass", often: "carrying, lead part" },
+      { track: 51, player: "Larry Fast (synthesizers)", chain: "Prophet-5 riff (census track); stand-in on the OB-Xa", often: "carrying, lead part" },
+      { track: 70, player: "Tom Tom Club, Weymouth / Frantz / Stanley producing", chain: "Prophet-5 signature line (RECORD); stand-in on the OB-Xa; the signature line on the Prophet-5 (RECORD); Weymouth's 'one, one preset' points to program 1-1 Brass, not a session dump", often: "carrying, lead part" },
+      { track: 77, player: "Jack Hues / Nick Feldman / Darren Costin (keyboards shared)", chain: "Prophet-5 line (RECORD); stand-in on the OB-Xa", often: "carrying, lead part" },
+      { track: 78, player: "Jack Hues / Nick Feldman / Darren Costin (keyboards shared)", chain: "Prophet-5 line (RECORD); stand-in on the OB-Xa", often: "carrying, lead part" },
+      { track: 93, player: "Ed Fletcher", chain: "Prophet-5 riff (RECORD); stand-in on the OB-Xa", often: "carrying, lead part" },
+      { track: 94, player: "not named", chain: "Prophet-5 line (Genius of Love) (census album); stand-in on the OB-Xa; the Genius of Love line; the dossier leaves It's Nasty's models open", often: "carrying, lead part" },
+    ],
+    "mono sync lead": [
+      { track: 9, player: "Vince Clarke", chain: "ARP 2600 noises (census album); stand-in on the OB-Xa", often: "not carrying, color part" },
+      { track: 90, player: "Vince Clarke", chain: "ARP 2600 (census track); stand-in on the OB-Xa", often: "not carrying, color part" },
+    ],
+    "Rock Unison": "listen",
+  };
+  // END OBXA_BOOK_REFS
+  for (const role in U.OBXA_BOOK) for (const a of U.OBXA_BOOK[role]) {
+    if (U.OBXA_BOOK_ROLES[a.name]) a.roles = U.OBXA_BOOK_ROLES[a.name];
+    if (U.OBXA_BOOK_REFS[a.name]) a.ref = U.OBXA_BOOK_REFS[a.name];
+  }
 
   // Measured loudness offsets, dB (harness/obxa-book-level.mjs, data in
   // analysis/fits/obxa-book-level-2026-10-05.json). Absent = 0.
@@ -2659,6 +2842,18 @@
     "4-pole thud stab": 1.2,
     "sync stab": -1.3,
     "4-pole resonant zap stab": 1.3,
+    // slice 2, 2026-11-01: analysis/fits/obxa-book-level-2026-11-01-new.json
+    // (bass against the Juno bass on bass lines, lead against the Juno lead)
+    "Prophet-5 poly brass": 1.4,
+    "Jupiter-8 wide pad": -0.5,
+    "Low Strings": 1,
+    "Prophet-5 poly comp": 3.9,
+    "OB-Xa bass": 1,
+    "Prophet-5 round bass": 4.9,
+    "2-pole pluck bass": 6.8,
+    "Prophet-5 poly lead": 3.5,
+    "mono sync lead": 1.1,
+    "Rock Unison": 0.5,
   };
 
   // Lane bias: weight multipliers on a few archetypes per lane. Small on
@@ -2976,7 +3171,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/fm.js @ e0bb664 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/fm.js @ b3c1f7d — verbatim from jeffdavis-studio/unison-engine ===== */
 // fm.js — six-operator FM keys voice (the DX7 lineage), zero dependencies.
 //
 // THE FM LANE (build order 808 → Juno → Minimoog → OB-Xa → Linn → FM).
@@ -3649,7 +3844,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/bassguitar.js @ e0bb664 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/bassguitar.js @ b3c1f7d — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassguitar.js — electric bass guitar, the first session player of the human
 // rack (Rack 2), zero dependencies.
 //
@@ -4238,7 +4433,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/rhythmguitar.js @ e0bb664 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/rhythmguitar.js @ b3c1f7d — verbatim from jeffdavis-studio/unison-engine ===== */
 // rhythmguitar.js — clean electric rhythm guitar, the fourth and last stop of
 // the human rack (Rack 2), zero dependencies.
 //
@@ -4887,7 +5082,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/tr808.js @ e0bb664 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/tr808.js @ b3c1f7d — verbatim from jeffdavis-studio/unison-engine ===== */
 // tr808.js — THE MACHINE. A TR-808-lineage core voice: bass drum, snare,
 // closed hat, open hat, each with a front panel the token actually turns.
 //
@@ -6171,7 +6366,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/linn.js @ e0bb664 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/linn.js @ b3c1f7d — verbatim from jeffdavis-studio/unison-engine ===== */
 // linn.js — THE STUDIO MACHINE. A Linn-family (LM-1 / LinnDrum lineage)
 // drum computer: the new wave / synth-pop / 80s R&B kit.
 //
@@ -6928,7 +7123,7 @@
   U._linn = { burn, play, vca, roms, V, EPROM_HZ, RECON_HZ, SR, TOM_MID_CLOCK };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drums.js @ e0bb664 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drums.js @ b3c1f7d — verbatim from jeffdavis-studio/unison-engine ===== */
 // drums.js — the drum machine: 808/LM-1-flavor voices, synthesized at runtime
 // into short AudioBuffers, played back as one-shots.
 //
@@ -7257,7 +7452,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/books.js @ e0bb664 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/books.js @ b3c1f7d — verbatim from jeffdavis-studio/unison-engine ===== */
 // books.js — Pattern Books v1, as data.
 //
 // This file IS the document: "Unison — Pattern Books v1 (draft)" (Morgan,
@@ -7888,7 +8083,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/bassplayer.js @ e0bb664 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/bassplayer.js @ b3c1f7d — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassplayer.js — the PERFORMANCE half of the bass guitar: a session player.
 //
 // Rack 2's rule (kb/projects/unison.md, 2026-07-11): every human instrument is
@@ -8140,7 +8335,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/gtrplayer.js @ e0bb664 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/gtrplayer.js @ b3c1f7d — verbatim from jeffdavis-studio/unison-engine ===== */
 // gtrplayer.js — the PERFORMANCE half of the rhythm guitar: a session
 // guitarist on the rhythmGtr strip.
 //
@@ -8340,7 +8535,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/fmplayer.js @ e0bb664 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/fmplayer.js @ b3c1f7d — verbatim from jeffdavis-studio/unison-engine ===== */
 // fmplayer.js — the PERFORMANCE half of the FM keys: a session keyboard
 // player on the FM chord strips (compA's tine EP, colour's glass and brass).
 //
@@ -8481,7 +8676,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/testPhrase.js @ e0bb664 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/testPhrase.js @ b3c1f7d — verbatim from jeffdavis-studio/unison-engine ===== */
 // testPhrase.js — deterministic 8-bar test phrase, ported from the bake-off
 // (phrase.js) onto the engine's canonical PRNG (core/prng.js).
 //
@@ -8575,7 +8770,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/form.js @ e0bb664 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/form.js @ b3c1f7d — verbatim from jeffdavis-studio/unison-engine ===== */
 // form.js — the song's form: the book of returns (2026-10-30, Asana
 // 1220073468300418; design files/unison/structure-design-2026-10-30 in the
 // morgan repo, DESIGN.md + draw.py, transcribed here as written).
@@ -8896,7 +9091,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/session.js @ e0bb664 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/session.js @ b3c1f7d — verbatim from jeffdavis-studio/unison-engine ===== */
 // session.js — the session sheet and the arrangement realizer.
 //
 // Two tiers, in this order, each on its own stream (core/prng.js):
@@ -10149,7 +10344,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/render/renderer.js @ e0bb664 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/render/renderer.js @ b3c1f7d — verbatim from jeffdavis-studio/unison-engine ===== */
 // renderer.js — song assembly + the render pipeline (Technical Architecture
 // v1.2 playback model): live-first, with (a) a cheap analysis pre-render for
 // verification/metrics and (b) an on-demand full OfflineAudioContext render
