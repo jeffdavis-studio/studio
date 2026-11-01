@@ -157,10 +157,10 @@
 <div id="bars" class="row"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><div id="status"></div></div>
 <div id="layers"></div>
 <div id="add" class="row"><div class="lbl">Add a layer<button id="palRnd" title="add a random instrument (one you don't have yet, while any are left)">Random</button></div><div id="pal"></div></div>
-<footer title="engine @b3c1f7d · built 2026-11-01">Unison jam &middot; every sound is synthesized in this page by the engine at b3c1f7d</footer>
+<footer title="engine @282b65b · built 2026-11-01">Unison jam &middot; every sound is synthesized in this page by the engine at 282b65b</footer>
 
 <script>
-/* ===== src/core/prng.js @ b3c1f7d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/prng.js @ 282b65b — verbatim from jeffdavis-studio/unison-engine ===== */
 // prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
 // token hash, consumed in canonical draw order (Technical Architecture v1.2).
 //
@@ -233,7 +233,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/core/mix.js @ b3c1f7d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/mix.js @ 282b65b — verbatim from jeffdavis-studio/unison-engine ===== */
 // mix.js — the fan-in ≤2 summing rule, as a primitive.
 //
 // Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
@@ -402,7 +402,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/desk/desk.js @ b3c1f7d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/desk/desk.js @ 282b65b — verbatim from jeffdavis-studio/unison-engine ===== */
 // desk.js — the 24-track desk as a running audio graph.
 //
 // The desk is the data structure, not a metaphor (Composition Brief 2 / Tech
@@ -805,7 +805,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/production.js @ b3c1f7d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/production.js @ 282b65b — verbatim from jeffdavis-studio/unison-engine ===== */
 // production.js — the production room, v0.
 //
 // PLACEMENT DECISION (Morgan's call, ratified by Jeff 2026-08-03). Production
@@ -1100,7 +1100,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/juno.js @ b3c1f7d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/juno.js @ 282b65b — verbatim from jeffdavis-studio/unison-engine ===== */
 // juno.js — Juno-60-flavor poly voice, raw Web Audio, zero dependencies.
 // Ported from the 2026-07-21 bake-off winner (voice-raw.js), restructured to
 // live behind a desk strip: U.createJuno(ctx, strip, patchName) builds its own
@@ -1897,7 +1897,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/minimoog.js @ b3c1f7d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/minimoog.js @ 282b65b — verbatim from jeffdavis-studio/unison-engine ===== */
 // minimoog.js — Minimoog Model D-lineage mono voice, zero dependencies.
 //
 // THE MONO BASS LANE (build order 808 → Juno → Minimoog → …; it also absorbs
@@ -2146,6 +2146,20 @@
         range: { cutoff: [800, 1050], a: [0.02, 0.045] }, note: "square + triangle an octave up, little filter movement, a soft attack, decay off: the hollow flute lead" },
       { name: "screaming resonant lead", w: 12, base: mm("lead", { cutoff: 820, emphasis: 0.68, amount: 1.9, fD: 0.6, fS: 0.5, glide: 0.06 }),
         range: { emphasis: [0.6, 0.74], cutoff: [740, 920] }, note: "emphasis high, filter tracking the keyboard: the resonant scream, decay on" },
+      // THE LEAD PAGE (slice 3, 2026-11-01, Asana 1220084766500650): the Model D
+      // sound-chart families the book lacked (rack census, patchbooks.md). Each
+      // note is the panel recipe, so a later reader can set a real Model D from
+      // it. Named by chart family, never by song: the Model D had no presets.
+      { name: "oboe lead", w: 7, base: mm("lead", { osc: [[0, "pulse", 0.75, 0, 0.18], [0, "saw", 0.2, 3, 0.5], [0, "tri", 0, 0, 0.5]], cutoff: 520, emphasis: 0.35, kbd: 1, amount: 1.3, fA: 0.07, fD: 0.35, fS: 0.45, a: 0.04, d: 0.3, s: 0.9, decaySw: false, glide: 0.02, level: 0.19, modRate: 5.2, modFilter: 0.1 }),
+        range: { cutoff: [470, 580], fA: [0.05, 0.09] }, note: "the chart oboe: VCO 1 a narrow pulse (~18%) at 8', VCO 2 a quiet saw a few cents up, VCO 3 off the mixer as the mod source; filter low with full keyboard tracking, emphasis moderate, a slow-ish filter attack into a mid sustain; mod wheel a touch of osc 3 (5 Hz triangle) to the filter for the reed's wobble; decay off" },
+      { name: "clarinet lead", w: 7, base: mm("lead", { osc: [[0, "sq", 0.8, 0, 0.5], [0, "tri", 0.3, 2, 0.5], [0, "tri", 0, 0, 0.5]], cutoff: 440, emphasis: 0.15, kbd: 2 / 3, amount: 0.6, fA: 0.05, fD: 0.4, fS: 0.7, a: 0.035, d: 0.3, s: 0.92, decaySw: false, glide: 0, level: 0.17 }),
+        range: { cutoff: [400, 490], a: [0.025, 0.045] }, note: "the chart clarinet: square-led (odd harmonics, the hollow tone) with a triangle under it at 8', VCO 3 off; filter mostly closed, little emphasis, little contour; a soft loudness attack; decay off" },
+      { name: "bassoon lead", w: 5, base: mm("lead", { osc: [[-1, "saw", 0.65, 0, 0.5], [-2, "sq", 0.55, 2, 0.5], [0, "tri", 0, 0, 0.5]], cutoff: 300, emphasis: 0.25, kbd: 2 / 3, amount: 1.2, fA: 0.05, fD: 0.35, fS: 0.45, a: 0.05, d: 0.35, s: 0.85, decaySw: true, glide: 0, level: 0.24 }),
+        range: { cutoff: [270, 340], a: [0.04, 0.065] }, note: "the chart bassoon: low register, VCO 1 a saw at 16' with VCO 2 a square an octave under it at 32', VCO 3 off; filter low, a little emphasis, a gentle contour; a soft loudness attack; decay on" },
+      { name: "brass solo lead", w: 8, base: mm("lead", { osc: [[0, "saw", 0.7, 0, 0.5], [0, "saw", 0.6, 7, 0.5], [-1, "saw", 0.15, -3, 0.5]], cutoff: 420, emphasis: 0.3, kbd: 1, amount: 2.2, fA: 0.06, fD: 0.3, fS: 0.5, a: 0.02, d: 0.3, s: 0.85, decaySw: true, glide: 0.02, level: 0.29 }),
+        range: { fA: [0.045, 0.08], cutoff: [380, 470] }, note: "the chart trumpet: two saws at 8' a few cents apart and a quiet third an octave down; filter closed-ish with full keyboard tracking, moderate emphasis, the filter contour swelling open on the attack (~60 ms) and settling; decay on" },
+      { name: "whistle lead", w: 5, base: mm("lead", { osc: [[0, "tri", 0.04, 0, 0.5], [0, "saw", 0, 0, 0.5], [0, "tri", 0, 0, 0.5]], noise: 0.03, cutoff: 130.8, emphasis: 1, kbd: 1, amount: 0, fA: 0.01, fD: 0.3, fS: 1, a: 0.03, d: 0.3, s: 0.9, decaySw: true, glide: 0.04, level: 0.34, modRate: 6.5, modFilter: 0.04 }),
+        range: { emphasis: [0.985, 1], glide: [0.03, 0.06] }, note: "the chart whistle: emphasis full so the filter rings as a sine, cutoff on C3 with full keyboard tracking so the ring sits on the played note; oscillators down to a trace (VCO 1 triangle 0.04, enough to seed the ring at the note's pitch) and a breath of noise; no contour; osc 3 to the filter as a 6.5 Hz flutter; a touch of glide; decay on" },
     ],
     counter: [
       { name: "hook riff", w: 28, base: MP.riff, range: { cutoff: [340, 430], fD: [0.1, 0.15] },
@@ -2169,8 +2183,233 @@
       { name: "filter blip arp", w: 12, base: mm("riff", { cutoff: 300, emphasis: 0.66, amount: 3.6, fD: 0.09, fS: 0.0 }), range: { emphasis: [0.6, 0.72], amount: [3.3, 3.9] },
         note: "filter nearly shut, deep fast contour, emphasis up, decay off: each step is a resonant blip" },
     ],
+    // SYNTH PERCUSSION and NOISE EFFECTS (slice 3, 2026-11-01): the Pro-One
+    // method in the dossier (short envelopes, noise, a fast filter movement)
+    // on the Model D. New role keys; no strip draws them until the
+    // patch-to-part lock comes out. At the panel's emphasis 1.0 this ladder
+    // rings but does not quite sustain on its own, so every ringing patch
+    // seeds it with a trace of oscillator (the pitch it rings at) or noise.
+    perc: [
+      { name: "filter kick", w: 10, base: mm("pluck", { osc: [[-2, "tri", 0.2, 0, 0.5], [0, "saw", 0, 0, 0.5], [0, "tri", 0, 0, 0.5]], noise: 0, cutoff: 50, emphasis: 1, kbd: 1 / 3, amount: 3.2, fA: 0.001, fD: 0.05, fS: 0, a: 0.001, d: 0.28, s: 0, decaySw: false, glide: 0, level: 0.8 }),
+        range: { amount: [2.9, 3.5], fD: [0.04, 0.065] }, note: "filter kick: emphasis full, cutoff at the bottom (50 Hz), keyboard 1/3; VCO 1 a triangle two octaves down as the seed, VCOs 2 and 3 off; filter contour amount ~3 oct with instant attack and a 50 ms decay to zero, so the ring drops in pitch onto the thump; loudness instant attack, short decay, no sustain; decay off" },
+      { name: "synth tom", w: 8, base: mm("pluck", { osc: [[-1, "tri", 0.15, 0, 0.5], [0, "saw", 0, 0, 0.5], [0, "tri", 0, 0, 0.5]], noise: 0, cutoff: 50, emphasis: 0.98, kbd: 1, amount: 1.6, fA: 0.001, fD: 0.1, fS: 0, a: 0.001, d: 0.35, s: 0, decaySw: true, glide: 0, level: 1.1 }),
+        range: { amount: [1.3, 1.9], d: [0.28, 0.42] }, note: "pitch-swept tom (the Synare / Syncussion sound): emphasis nearly full, full keyboard tracking so the key sets the drum's pitch, VCO 1 a triangle an octave down as the seed; filter contour ~1.6 oct over 100 ms down to zero, the downward sweep; loudness short, no sustain; decay on so the tail rings past the key" },
+      { name: "noise snare", w: 8, base: mm("pluck", { osc: [[0, "tri", 0.25, 0, 0.5], [0, "saw", 0, 0, 0.5], [0, "tri", 0, 0, 0.5]], noise: 1, cutoff: 900, emphasis: 0.35, kbd: 0, amount: 2.2, fA: 0.001, fD: 0.07, fS: 0, a: 0.001, d: 0.22, s: 0, decaySw: false, glide: 0, level: 2.4 }),
+        range: { cutoff: [800, 1000], d: [0.19, 0.25] }, note: "noise snare: noise full in the mixer with a quiet triangle for the drum's body; filter at 900 Hz, no keyboard tracking, some emphasis; a 70 ms filter burst of ~2 oct; loudness instant attack, 220 ms decay, no sustain; decay off" },
+    ],
+    fx: [
+      { name: "wind", w: 8, base: mm("lead", { osc: [[0, "saw", 0, 0, 0.5], [0, "saw", 0, 0, 0.5], [0, "tri", 0, 0, 0.5]], noise: 1, cutoff: 500, emphasis: 0.75, kbd: 1 / 3, amount: 0, fA: 0.001, fD: 0.05, fS: 0, a: 0.6, d: 1.5, s: 0.9, decaySw: true, glide: 0, level: 1.3, modRate: 0.3, modFilter: 1.2 }),
+        range: { modRate: [0.22, 0.4], cutoff: [440, 570] }, note: "wind: noise only, emphasis high so the band whistles, filter at 500 Hz; osc 3 off the mixer as a slow (0.3 Hz) triangle to the filter, a 1.2 oct gust; no filter contour; loudness 600 ms attack, high sustain, decay on so it dies away over 1.5 s" },
+      { name: "surf", w: 6, base: mm("lead", { osc: [[0, "saw", 0, 0, 0.5], [0, "saw", 0, 0, 0.5], [0, "tri", 0, 0, 0.5]], noise: 1, cutoff: 250, emphasis: 0.2, kbd: 0, amount: 3, fA: 1.2, fD: 2, fS: 0.15, a: 1, d: 2.5, s: 0.4, decaySw: true, glide: 0, level: 2.4 }),
+        range: { fA: [0.9, 1.5], d: [2.1, 3] }, note: "surf: noise only, filter low (250 Hz), little emphasis; the filter contour swells ~3 oct over 1.2 s and falls over 2 s, the wave coming in and drawing back; loudness 1 s attack, long decay to a low sustain, decay on" },
+      { name: "zap", w: 6, base: mm("pluck", { osc: [[0, "saw", 0.06, 0, 0.5], [0, "saw", 0, 0, 0.5], [0, "tri", 0, 0, 0.5]], noise: 0, cutoff: 180, emphasis: 0.9, kbd: 2 / 3, amount: 4.5, fA: 0.001, fD: 0.16, fS: 0, a: 0.001, d: 0.5, s: 0, decaySw: false, glide: 0, level: 3.3 }),
+        range: { fD: [0.15, 0.17], amount: [4.35, 4.65] }, note: "zap: emphasis at 9, ringing just under self-oscillation (at full emphasis the ring's attack peaked 6 dB over the fx gate on low keys), cutoff 180 Hz with keyboard 2/3, VCO 1 a trace of saw as the seed; the filter contour throws the ring ~4.5 oct up and drops it over 160 ms, the laser fall; loudness instant attack, 500 ms decay, no sustain; decay off" },
+    ],
   };
   for (const role in U.MINIMOOG_BOOK) for (const a of U.MINIMOOG_BOOK[role]) a.role = role;
+
+  // THE TWO COLUMNS (slice 3, 2026-11-01, Asana 1220084766500650; juno.js has
+  // the definitions above U.JUNO_BOOK_ROLES). Neither moves a draw or a
+  // sample: the draw still reads w, range and role above.
+  // roles: how well the patch serves each of seven parts, 0 to 1 (bass,
+  // chords, pad, arpeggio, lead, color, comp); a mono synth scores chords and
+  // pad at or near 0. ref: which of the hundred carry the sound, generated from
+  // the census (parts.json), never typed: [{ track, player, chain, often }] or
+  // "listen". A stand-in (the Minimoog playing a Pro-One, SH or Prodigy part)
+  // says so in its chain.
+  const R = (bass, chords, pad, arpeggio, lead, color, comp) => ({ bass, chords, pad, arpeggio, lead, color, comp });
+  U.MINIMOOG_BOOK_ROLES = {
+    "round sub bass": R(1, 0, 0, 0.1, 0, 0, 0),
+    "round bass, decay off": R(1, 0, 0, 0.1, 0, 0, 0),
+    "triangle sub, filter shut": R(1, 0, 0, 0, 0, 0, 0),
+    "warm thumb bass": R(1, 0, 0, 0.2, 0, 0, 0.1),
+    "funk pluck bass": R(1, 0, 0, 0.4, 0.1, 0.1, 0.2),
+    "decay-on ringing funk bass": R(1, 0, 0, 0.3, 0.1, 0.1, 0.1),
+    "short gated pluck": R(0.9, 0, 0, 0.5, 0.1, 0.2, 0.2),
+    "rubber pluck, decay on": R(1, 0, 0, 0.3, 0.2, 0.2, 0.1),
+    "resonant squelch bass": R(0.9, 0, 0, 0.5, 0.3, 0.4, 0.1),
+    "acid squelch, decay on": R(0.9, 0, 0, 0.5, 0.3, 0.5, 0),
+    "wah sweep bass": R(0.9, 0, 0, 0.3, 0.2, 0.4, 0.1),
+    "fat unison bass": R(1, 0, 0, 0.1, 0.4, 0.1, 0),
+    "fat bass, decay off": R(1, 0, 0, 0.2, 0.3, 0.1, 0),
+    "growl bass, osc 3 up": R(0.9, 0, 0, 0.2, 0.5, 0.3, 0),
+    "Model D lead": R(0, 0, 0, 0.3, 1, 0.4, 0),
+    "glide lead, decay off": R(0, 0, 0, 0.2, 1, 0.3, 0),
+    "osc 3 vibrato lead": R(0, 0, 0.1, 0.1, 1, 0.3, 0),
+    "square flute lead": R(0, 0, 0.1, 0.3, 0.9, 0.4, 0),
+    "screaming resonant lead": R(0, 0, 0, 0.2, 0.9, 0.7, 0),
+    "hook riff": R(0.2, 0, 0, 0.7, 0.6, 0.5, 0.3),
+    "hook riff, decay on": R(0.2, 0, 0, 0.6, 0.6, 0.5, 0.2),
+    "brassy synth-funk riff": R(0.1, 0.1, 0, 0.4, 0.7, 0.6, 0.3),
+    "staccato square riff": R(0.2, 0, 0, 0.7, 0.5, 0.5, 0.4),
+    "riff arp": R(0.2, 0, 0, 1, 0.4, 0.4, 0.2),
+    "dry staccato arp": R(0.1, 0, 0, 1, 0.2, 0.4, 0.3),
+    "ringing arp, decay on": R(0.1, 0, 0.1, 0.9, 0.3, 0.5, 0.1),
+    "narrow pulse arp": R(0, 0, 0, 0.9, 0.3, 0.5, 0.2),
+    "filter blip arp": R(0.1, 0, 0, 0.9, 0.2, 0.7, 0.2),
+    "oboe lead": R(0, 0, 0.1, 0.1, 1, 0.5, 0),
+    "clarinet lead": R(0, 0, 0.1, 0.1, 1, 0.4, 0),
+    "bassoon lead": R(0.4, 0, 0, 0.2, 0.8, 0.4, 0),
+    "brass solo lead": R(0, 0.1, 0, 0.1, 1, 0.6, 0.1),
+    "whistle lead": R(0, 0, 0.1, 0, 0.9, 0.6, 0),
+    // percussion and effects are not one of the seven parts: they score as colour
+    "filter kick": R(0.2, 0, 0, 0, 0, 0.6, 0),
+    "synth tom": R(0, 0, 0, 0.1, 0, 0.8, 0),
+    "noise snare": R(0, 0, 0, 0, 0, 0.7, 0.1),
+    "wind": R(0, 0, 0.3, 0, 0, 1, 0),
+    "surf": R(0, 0, 0.4, 0, 0, 1, 0),
+    "zap": R(0, 0, 0, 0.1, 0.1, 1, 0),
+  };
+  // BEGIN MINIMOOG_BOOK_REFS (generated: files/unison/patch-books-2026-10-31/minimoog-gen-refs.mjs)
+  U.MINIMOOG_BOOK_REFS = {
+    "round sub bass": "listen",
+    "round bass, decay off": "listen",
+    "triangle sub, filter shut": "listen",
+    "warm thumb bass": "listen",
+    "funk pluck bass": [
+      { track: 5, player: "Richard H. Kirk", chain: "sequenced synth bass (census album); stand-in on the Minimoog; family (round / pluck / squelch / fat) by the song's bass pattern: listen", often: "carrying, bass part" },
+      { track: 9, player: "Vince Clarke", chain: "Moog Prodigy (PERIOD); stand-in on the Minimoog; family (round / pluck / squelch / fat) by the song's bass pattern: listen", often: "carrying, bass part" },
+      { track: 13, player: "Dave Stewart", chain: "Roland SH bass (census album); stand-in on the Minimoog; family (round / pluck / squelch / fat) by the song's bass pattern: listen", often: "carrying, bass part" },
+      { track: 15, player: "Dave Stewart", chain: "sequenced SH bass (census album); stand-in on the Minimoog; family (round / pluck / squelch / fat) by the song's bass pattern: listen", often: "carrying, bass part" },
+      { track: 16, player: "Dave Stewart", chain: "SH-101 sequence (RECORD); stand-in on the Minimoog; family (round / pluck / squelch / fat) by the song's bass pattern: listen", often: "carrying, bass part" },
+      { track: 17, player: "Dave Stewart", chain: "synth bass (census track); stand-in on the Minimoog; family (round / pluck / squelch / fat) by the song's bass pattern: listen", often: "carrying, bass part" },
+      { track: 22, player: "The Human League, Martin Rushent producing", chain: "System-700 bass (census track); stand-in on the Minimoog; family (round / pluck / squelch / fat) by the song's bass pattern: listen", often: "carrying, bass part" },
+      { track: 23, player: "The Human League, Martin Rushent producing", chain: "synth bass (census track); stand-in on the Minimoog; family (round / pluck / squelch / fat) by the song's bass pattern: listen", often: "carrying, bass part" },
+      { track: 25, player: "The Human League (Travelogue rerecording, with Richard Manwaring)", chain: "Korg 700S bass (census track); stand-in on the Minimoog; family (round / pluck / squelch / fat) by the song's bass pattern: listen", often: "carrying, bass part" },
+      { track: 29, player: "Martin Rushent (League Unlimited Orchestra remix)", chain: "synth bass (census album); stand-in on the Minimoog; family (round / pluck / squelch / fat) by the song's bass pattern: listen", often: "carrying, bass part" },
+      { track: 30, player: "Martin Rushent (League Unlimited Orchestra remix)", chain: "synth bass (census album); stand-in on the Minimoog; family (round / pluck / squelch / fat) by the song's bass pattern: listen", often: "carrying, bass part" },
+      { track: 43, player: "Bernard Sumner / Gillian Gilbert", chain: "synth bass (OPEN); stand-in on the Minimoog; family (round / pluck / squelch / fat) by the song's bass pattern: listen", often: "not carrying, bass part" },
+      { track: 44, player: "Bernard Sumner / Gillian Gilbert", chain: "sequenced synth bass (OPEN); stand-in on the Minimoog; family (round / pluck / squelch / fat) by the song's bass pattern: listen", often: "carrying, bass part" },
+      { track: 48, player: "OMD (Paul Humphreys, Andy McCluskey, Martin Cooper: keyboards)", chain: "synth bass (census track); stand-in on the Minimoog; family (round / pluck / squelch / fat) by the song's bass pattern: listen", often: "carrying, bass part" },
+      { track: 67, player: "Chris Carter", chain: "sequenced synth bass (census track); stand-in on the Minimoog; family (round / pluck / squelch / fat) by the song's bass pattern: listen", often: "carrying, bass part" },
+      { track: 68, player: "Chris Carter / Cosey Fanni Tutti", chain: "sequenced synth bass (census album); stand-in on the Minimoog; family (round / pluck / squelch / fat) by the song's bass pattern: listen", often: "carrying, bass part" },
+      { track: 82, player: "Vince Clarke", chain: "Pro-One bass (census track); stand-in on the Minimoog; family (round / pluck / squelch / fat) by the song's bass pattern: listen", often: "carrying, bass part" },
+      { track: 83, player: "Vince Clarke", chain: "Pro-One bass (census album); stand-in on the Minimoog; family (round / pluck / squelch / fat) by the song's bass pattern: listen", often: "carrying, bass part" },
+      { track: 84, player: "Vince Clarke", chain: "Pro-One bass (census album); stand-in on the Minimoog; family (round / pluck / squelch / fat) by the song's bass pattern: listen", often: "carrying, bass part" },
+      { track: 85, player: "Vince Clarke", chain: "Pro-One bass (census track); stand-in on the Minimoog; family (round / pluck / squelch / fat) by the song's bass pattern: listen", often: "carrying, bass part" },
+      { track: 86, player: "Vince Clarke", chain: "Pro-One bass (census album); stand-in on the Minimoog; family (round / pluck / squelch / fat) by the song's bass pattern: listen", often: "carrying, bass part" },
+      { track: 87, player: "Vince Clarke", chain: "Pro-One bass (census album); stand-in on the Minimoog; family (round / pluck / squelch / fat) by the song's bass pattern: listen", often: "carrying, bass part" },
+      { track: 88, player: "Vince Clarke", chain: "Pro-One bass (census album); stand-in on the Minimoog; family (round / pluck / squelch / fat) by the song's bass pattern: listen", often: "carrying, bass part" },
+      { track: 89, player: "not named", chain: "synth bass (heard) (OPEN); stand-in on the Minimoog; family (round / pluck / squelch / fat) by the song's bass pattern: listen", often: "carrying, bass part" },
+      { track: 90, player: "Vince Clarke", chain: "Moog Prodigy (census track); stand-in on the Minimoog; family (round / pluck / squelch / fat) by the song's bass pattern: listen", often: "carrying, bass part" },
+    ],
+    "decay-on ringing funk bass": "listen",
+    "short gated pluck": "listen",
+    "rubber pluck, decay on": "listen",
+    "resonant squelch bass": "listen",
+    "acid squelch, decay on": "listen",
+    "wah sweep bass": "listen",
+    "fat unison bass": [
+      { track: 7, player: "David \"Hawk\" Wolinski (keyboard and bass parts played, not sequenced)", chain: "synth bass (Wolinski) (ear); family (round / pluck / squelch / fat) by the song's bass pattern: listen", often: "carrying, bass part" },
+      { track: 10, player: "Devo (Mark Mothersbaugh, Gerald Casale, Bob Casale: synthesizers)", chain: "modified Minimoog / Moog Source bass (census track); family (round / pluck / squelch / fat) by the song's bass pattern: listen; a modified Minimoog in the early-1982 rig (PERIOD); not a stock unit", often: "carrying, bass part" },
+      { track: 11, player: "not named", chain: "synth bass (OPEN); family (round / pluck / squelch / fat) by the song's bass pattern: listen", often: "carrying, bass part" },
+      { track: 26, player: "not named", chain: "synth bass (ear); family (round / pluck / squelch / fat) by the song's bass pattern: listen", often: "carrying, bass part" },
+      { track: 27, player: "not named", chain: "synth bass (ear); family (round / pluck / squelch / fat) by the song's bass pattern: listen", often: "carrying, bass part" },
+      { track: 32, player: "Fred Zarr (keyboards, arranger, programmer)", chain: "Moog bass (census track); family (round / pluck / squelch / fat) by the song's bass pattern: listen; the dossier: a 'Moog bass' recollection without a model is not automatically a Minimoog", often: "carrying, bass part" },
+      { track: 33, player: "Fred Zarr (keyboards, arranger, programmer)", chain: "synth bass and bass guitar (census track); family (round / pluck / squelch / fat) by the song's bass pattern: listen", often: "carrying, bass part" },
+      { track: 34, player: "Fred Zarr (keyboards, arranger, programmer)", chain: "Moog bass (census track); family (round / pluck / squelch / fat) by the song's bass pattern: listen; the dossier: a 'Moog bass' recollection without a model is not automatically a Minimoog", often: "carrying, bass part" },
+      { track: 35, player: "Fred Zarr (keyboards, arranger, programmer)", chain: "Moog bass (census album); family (round / pluck / squelch / fat) by the song's bass pattern: listen; the dossier: a 'Moog bass' recollection without a model is not automatically a Minimoog", often: "carrying, bass part" },
+      { track: 38, player: "not named", chain: "bass and synth bass (census album); family (round / pluck / squelch / fat) by the song's bass pattern: listen", often: "carrying, bass part" },
+      { track: 39, player: "not named", chain: "synth bass (census album); family (round / pluck / squelch / fat) by the song's bass pattern: listen", often: "carrying, bass part" },
+      { track: 52, player: "David Frank", chain: "synth bass (census track); family (round / pluck / squelch / fat) by the song's bass pattern: listen; RECORD: two tracks of Minimoog bass (Padgham's suggestion): a doubled part", often: "carrying, bass part" },
+      { track: 54, player: "not named", chain: "Minimoog (census track); family (round / pluck / squelch / fat) by the song's bass pattern: listen; the dossier: the Pointer Sisters' Minimoog credit trail needs part-level care", often: "carrying, bass part" },
+      { track: 55, player: "John Van Tongeren (Minimoog/synthesizer credit)", chain: "Minimoog bass (census track); family (round / pluck / squelch / fat) by the song's bass pattern: listen; Minimoog credit from release data; sleeve check pending", often: "carrying, bass part" },
+      { track: 56, player: "not named", chain: "synth bass (OPEN); family (round / pluck / squelch / fat) by the song's bass pattern: listen", often: "carrying, bass part" },
+      { track: 57, player: "Howie Rice (Minimoog/synthesizer credit)", chain: "synth bass (census track); family (round / pluck / squelch / fat) by the song's bass pattern: listen; Minimoog credit from release data; sleeve check pending", often: "carrying, bass part" },
+      { track: 58, player: "not named", chain: "synth bass (ear); family (round / pluck / squelch / fat) by the song's bass pattern: listen", often: "carrying, bass part" },
+      { track: 61, player: "not named", chain: "synth bass (census track); family (round / pluck / squelch / fat) by the song's bass pattern: listen", often: "carrying, bass part" },
+      { track: 75, player: "not named", chain: "synth bass (OPEN); family (round / pluck / squelch / fat) by the song's bass pattern: listen", often: "carrying, bass part" },
+      { track: 96, player: "not named (Ralf Hütter and Florian Schneider producing)", chain: "Minimoog sequence (census track); family (round / pluck / squelch / fat) by the song's bass pattern: listen", often: "carrying, bass part" },
+      { track: 98, player: "not named", chain: "Minimoog bass (RECORD); family (round / pluck / squelch / fat) by the song's bass pattern: listen; RECORD (Andrews oral history): Minimoog bass; no player named", often: "carrying, bass part" },
+      { track: 100, player: "Steve Winwood", chain: "Multimoog bass (RECORD); family (round / pluck / squelch / fat) by the song's bass pattern: listen; a Multimoog on the record: stand-in on the Minimoog; Multimoog / Prophet-5 split by part unresolved", often: "carrying, bass part" },
+    ],
+    "fat bass, decay off": "listen",
+    "growl bass, osc 3 up": "listen",
+    "Model D lead": [
+      { track: 10, player: "Devo (Mark Mothersbaugh, Gerald Casale, Bob Casale: synthesizers)", chain: "Moog Source line (PERIOD); stand-in on the Minimoog", often: "carrying, lead part" },
+      { track: 13, player: "Dave Stewart", chain: "synth line (census album); stand-in on the Minimoog", often: "carrying, lead part" },
+      { track: 18, player: "Dave Stewart", chain: "synth line (census album); stand-in on the Minimoog", often: "carrying, lead part" },
+      { track: 19, player: "Dave Stewart", chain: "synth line (census album); stand-in on the Minimoog", often: "carrying, lead part" },
+      { track: 21, player: "Gary Numan", chain: "Minimoog (census album); census album: the rented Minimoog of the Replicas accounts is album-level", often: "carrying, lead part" },
+      { track: 22, player: "The Human League, Martin Rushent producing", chain: "synth lead (RECORD); stand-in on the Minimoog", often: "carrying, lead part" },
+      { track: 25, player: "The Human League (Travelogue rerecording, with Richard Manwaring)", chain: "System-100 line (census track); stand-in on the Minimoog", often: "carrying, lead part" },
+      { track: 29, player: "Martin Rushent (League Unlimited Orchestra remix)", chain: "synth line through Harmonizer (census album); stand-in on the Minimoog", often: "carrying, lead part" },
+      { track: 30, player: "Martin Rushent (League Unlimited Orchestra remix)", chain: "synth line (census album); stand-in on the Minimoog", often: "carrying, lead part" },
+      { track: 48, player: "OMD (Paul Humphreys, Andy McCluskey, Martin Cooper: keyboards)", chain: "Korg Micro-Preset line (PERIOD); stand-in on the Minimoog", often: "carrying, lead part" },
+      { track: 54, player: "not named", chain: "Minimoog (census track); the dossier: the Pointer Sisters' Minimoog credit trail needs part-level care", often: "carrying, lead part" },
+      { track: 55, player: "John Van Tongeren (Minimoog/synthesizer credit)", chain: "Minimoog (census track); Minimoog credit from release data; sleeve check pending", often: "carrying, lead part" },
+      { track: 57, player: "Howie Rice (Minimoog/synthesizer credit)", chain: "Minimoog (census track); Minimoog credit from release data; sleeve check pending", often: "carrying, lead part" },
+      { track: 67, player: "Chris Carter", chain: "synth melody (census track); stand-in on the Minimoog", often: "carrying, lead part" },
+      { track: 68, player: "Chris Carter / Cosey Fanni Tutti", chain: "synth line (census album); stand-in on the Minimoog", often: "carrying, lead part" },
+      { track: 71, player: "Gary Numan", chain: "Minimoog (census track); rented Minimoog (production-history accounts)", often: "carrying, lead part" },
+      { track: 83, player: "Vince Clarke", chain: "mono synth line (census album); stand-in on the Minimoog", often: "carrying, lead part" },
+      { track: 85, player: "Vince Clarke", chain: "Pro-One melody (census track); stand-in on the Minimoog", often: "carrying, lead part" },
+      { track: 86, player: "Vince Clarke", chain: "mono synth line (census album); stand-in on the Minimoog", often: "carrying, lead part" },
+      { track: 87, player: "Vince Clarke", chain: "synth line (census track); stand-in on the Minimoog", often: "carrying, lead part" },
+      { track: 88, player: "Vince Clarke", chain: "mono synth line (census album); stand-in on the Minimoog", often: "carrying, lead part" },
+      { track: 96, player: "not named (Ralf Hütter and Florian Schneider producing)", chain: "Minimoog / Odyssey line (census album)", often: "carrying, extra part" },
+      { track: 100, player: "Steve Winwood", chain: "Multimoog lead lines (RECORD); a Multimoog on the record: stand-in on the Minimoog; Multimoog / Prophet-5 split by part unresolved", often: "carrying, lead part" },
+    ],
+    "glide lead, decay off": "listen",
+    "osc 3 vibrato lead": "listen",
+    "square flute lead": "listen",
+    "screaming resonant lead": [
+      { track: 9, player: "Vince Clarke", chain: "ARP 2600 noises (census album); stand-in on the Minimoog", often: "not carrying, color part" },
+      { track: 90, player: "Vince Clarke", chain: "ARP 2600 (census track); stand-in on the Minimoog", often: "not carrying, color part" },
+    ],
+    "oboe lead": "listen",
+    "clarinet lead": "listen",
+    "bassoon lead": "listen",
+    "brass solo lead": "listen",
+    "whistle lead": "listen",
+    "hook riff": [
+      { track: 9, player: "Vince Clarke", chain: "Kawai 100F riff (PERIOD); stand-in on the Minimoog", often: "carrying, lead part" },
+      { track: 14, player: "Dave Stewart", chain: "synth riff (census album); stand-in on the Minimoog", often: "carrying, lead part" },
+      { track: 15, player: "Dave Stewart", chain: "synth riff (census album); stand-in on the Minimoog", often: "carrying, lead part" },
+      { track: 16, player: "Dave Stewart", chain: "SH-101 riff (RECORD); stand-in on the Minimoog", often: "carrying, lead part" },
+      { track: 17, player: "Dave Stewart", chain: "synth riff (census album); stand-in on the Minimoog", often: "carrying, lead part" },
+      { track: 23, player: "The Human League, Martin Rushent producing", chain: "synth riff (census track); stand-in on the Minimoog", often: "carrying, lead part" },
+      { track: 25, player: "The Human League (Travelogue rerecording, with Richard Manwaring)", chain: "System-100 stabs (census track); stand-in on the Minimoog", often: "carrying, chords part" },
+      { track: 67, player: "Chris Carter", chain: "Carter's synth (census track); stand-in on the Minimoog", often: "carrying, chords part" },
+      { track: 82, player: "Vince Clarke", chain: "ARP 2600 riff (census track); stand-in on the Minimoog", often: "carrying, lead part" },
+      { track: 90, player: "Vince Clarke", chain: "Kawai 100F / CS5 riff (census track); stand-in on the Minimoog", often: "carrying, lead part" },
+    ],
+    "hook riff, decay on": "listen",
+    "brassy synth-funk riff": "listen",
+    "staccato square riff": "listen",
+    "riff arp": "listen",
+    "dry staccato arp": "listen",
+    "ringing arp, decay on": "listen",
+    "narrow pulse arp": "listen",
+    "filter blip arp": "listen",
+    "filter kick": [
+      { track: 3, player: "not named", chain: "electronic percussion (census album); stand-in on the Minimoog; kick, tom or snare voicing: listen", often: "not carrying, color part" },
+      { track: 10, player: "Devo (Mark Mothersbaugh, Gerald Casale, Bob Casale: synthesizers)", chain: "electronic drums (census track); stand-in on the Minimoog; kick, tom or snare voicing: listen", often: "not carrying, color part" },
+    ],
+    "synth tom": [
+      { track: 3, player: "not named", chain: "electronic percussion (census album); stand-in on the Minimoog; kick, tom or snare voicing: listen", often: "not carrying, color part" },
+      { track: 10, player: "Devo (Mark Mothersbaugh, Gerald Casale, Bob Casale: synthesizers)", chain: "electronic drums (census track); stand-in on the Minimoog; kick, tom or snare voicing: listen", often: "not carrying, color part" },
+      { track: 21, player: "Gary Numan", chain: "Synare (census album); stand-in on the Minimoog", often: "not carrying, color part" },
+      { track: 54, player: "not named", chain: "Syncussion (census album); stand-in on the Minimoog", often: "not carrying, color part" },
+      { track: 72, player: "not named", chain: "Syncussion (album) (census album); stand-in on the Minimoog", often: "not carrying, color part" },
+    ],
+    "noise snare": [
+      { track: 3, player: "not named", chain: "electronic percussion (census album); stand-in on the Minimoog; kick, tom or snare voicing: listen", often: "not carrying, color part" },
+      { track: 10, player: "Devo (Mark Mothersbaugh, Gerald Casale, Bob Casale: synthesizers)", chain: "electronic drums (census track); stand-in on the Minimoog; kick, tom or snare voicing: listen", often: "not carrying, color part" },
+    ],
+    "wind": "listen",
+    "surf": [
+      { track: 19, player: "Dave Stewart", chain: "backwards dulcimer and xylophone, water (census track); stand-in on the Minimoog", often: "not carrying, color part" },
+    ],
+    "zap": [
+      { track: 9, player: "Vince Clarke", chain: "ARP 2600 noises (census album); stand-in on the Minimoog", often: "not carrying, color part" },
+    ],
+  };
+  // END MINIMOOG_BOOK_REFS
+  for (const role in U.MINIMOOG_BOOK) for (const a of U.MINIMOOG_BOOK[role]) {
+    if (U.MINIMOOG_BOOK_ROLES[a.name]) a.roles = U.MINIMOOG_BOOK_ROLES[a.name];
+    if (U.MINIMOOG_BOOK_REFS[a.name]) a.ref = U.MINIMOOG_BOOK_REFS[a.name];
+  }
 
   // Measured loudness offsets, dB (harness/minimoog-book-level.mjs, data in
   // analysis/fits/minimoog-book-level-2026-10-06.json). Absent = 0. The
@@ -2198,6 +2437,22 @@
     "ringing arp, decay on": 0.2,
     "narrow pulse arp": -1,
     "filter blip arp": -0.7,
+    // slice 3 (2026-11-01, Asana 1220084766500650): analysis/fits/
+    // minimoog-book-level-2026-11-01-new.json. The leads against the house
+    // "lead" on lead lines; perc and fx PROVISIONAL, against the same stand-in
+    // reference (harness header) until the lock-removal slice knows which
+    // strip draws them and re-measures against it.
+    "oboe lead": 3.7,
+    "clarinet lead": 2.7,
+    "bassoon lead": 0.9,
+    "brass solo lead": 0.4,
+    "whistle lead": 2.4,
+    "filter kick": 2.5,
+    "synth tom": 0.5,
+    "noise snare": -1,
+    "wind": -1.1,
+    "surf": 0.9,
+    "zap": 2.6,
   };
 
   // Lane bias: weight multipliers on a few archetypes per lane. Small on
@@ -2439,7 +2694,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/obxa.js @ b3c1f7d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/obxa.js @ 282b65b — verbatim from jeffdavis-studio/unison-engine ===== */
 // obxa.js — Oberheim OB-Xa-lineage poly voice, zero dependencies.
 //
 // THE BRASS/PAD POLY LANE (build order 808 → Juno → Minimoog → OB-Xa → …).
@@ -3171,7 +3426,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/fm.js @ b3c1f7d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/fm.js @ 282b65b — verbatim from jeffdavis-studio/unison-engine ===== */
 // fm.js — six-operator FM keys voice (the DX7 lineage), zero dependencies.
 //
 // THE FM LANE (build order 808 → Juno → Minimoog → OB-Xa → Linn → FM).
@@ -3844,7 +4099,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/bassguitar.js @ b3c1f7d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/bassguitar.js @ 282b65b — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassguitar.js — electric bass guitar, the first session player of the human
 // rack (Rack 2), zero dependencies.
 //
@@ -4433,7 +4688,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/rhythmguitar.js @ b3c1f7d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/rhythmguitar.js @ 282b65b — verbatim from jeffdavis-studio/unison-engine ===== */
 // rhythmguitar.js — clean electric rhythm guitar, the fourth and last stop of
 // the human rack (Rack 2), zero dependencies.
 //
@@ -5082,7 +5337,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/tr808.js @ b3c1f7d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/tr808.js @ 282b65b — verbatim from jeffdavis-studio/unison-engine ===== */
 // tr808.js — THE MACHINE. A TR-808-lineage core voice: bass drum, snare,
 // closed hat, open hat, each with a front panel the token actually turns.
 //
@@ -6366,7 +6621,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/linn.js @ b3c1f7d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/linn.js @ 282b65b — verbatim from jeffdavis-studio/unison-engine ===== */
 // linn.js — THE STUDIO MACHINE. A Linn-family (LM-1 / LinnDrum lineage)
 // drum computer: the new wave / synth-pop / 80s R&B kit.
 //
@@ -7123,7 +7378,7 @@
   U._linn = { burn, play, vca, roms, V, EPROM_HZ, RECON_HZ, SR, TOM_MID_CLOCK };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drums.js @ b3c1f7d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drums.js @ 282b65b — verbatim from jeffdavis-studio/unison-engine ===== */
 // drums.js — the drum machine: 808/LM-1-flavor voices, synthesized at runtime
 // into short AudioBuffers, played back as one-shots.
 //
@@ -7452,7 +7707,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/books.js @ b3c1f7d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/books.js @ 282b65b — verbatim from jeffdavis-studio/unison-engine ===== */
 // books.js — Pattern Books v1, as data.
 //
 // This file IS the document: "Unison — Pattern Books v1 (draft)" (Morgan,
@@ -8083,7 +8338,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/bassplayer.js @ b3c1f7d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/bassplayer.js @ 282b65b — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassplayer.js — the PERFORMANCE half of the bass guitar: a session player.
 //
 // Rack 2's rule (kb/projects/unison.md, 2026-07-11): every human instrument is
@@ -8335,7 +8590,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/gtrplayer.js @ b3c1f7d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/gtrplayer.js @ 282b65b — verbatim from jeffdavis-studio/unison-engine ===== */
 // gtrplayer.js — the PERFORMANCE half of the rhythm guitar: a session
 // guitarist on the rhythmGtr strip.
 //
@@ -8535,7 +8790,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/fmplayer.js @ b3c1f7d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/fmplayer.js @ 282b65b — verbatim from jeffdavis-studio/unison-engine ===== */
 // fmplayer.js — the PERFORMANCE half of the FM keys: a session keyboard
 // player on the FM chord strips (compA's tine EP, colour's glass and brass).
 //
@@ -8676,7 +8931,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/testPhrase.js @ b3c1f7d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/testPhrase.js @ 282b65b — verbatim from jeffdavis-studio/unison-engine ===== */
 // testPhrase.js — deterministic 8-bar test phrase, ported from the bake-off
 // (phrase.js) onto the engine's canonical PRNG (core/prng.js).
 //
@@ -8770,7 +9025,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/form.js @ b3c1f7d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/form.js @ 282b65b — verbatim from jeffdavis-studio/unison-engine ===== */
 // form.js — the song's form: the book of returns (2026-10-30, Asana
 // 1220073468300418; design files/unison/structure-design-2026-10-30 in the
 // morgan repo, DESIGN.md + draw.py, transcribed here as written).
@@ -9091,7 +9346,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/session.js @ b3c1f7d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/session.js @ 282b65b — verbatim from jeffdavis-studio/unison-engine ===== */
 // session.js — the session sheet and the arrangement realizer.
 //
 // Two tiers, in this order, each on its own stream (core/prng.js):
@@ -10344,7 +10599,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/render/renderer.js @ b3c1f7d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/render/renderer.js @ 282b65b — verbatim from jeffdavis-studio/unison-engine ===== */
 // renderer.js — song assembly + the render pipeline (Technical Architecture
 // v1.2 playback model): live-first, with (a) a cheap analysis pre-render for
 // verification/metrics and (b) an on-demand full OfflineAudioContext render
