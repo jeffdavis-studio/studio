@@ -157,10 +157,10 @@
 <div id="bars" class="row"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><div id="status"></div></div>
 <div id="layers"></div>
 <div id="add" class="row"><div class="lbl">Add a layer<button id="palRnd" title="add a random instrument (one you don't have yet, while any are left)">Random</button></div><div id="pal"></div></div>
-<footer title="engine @282b65b · built 2026-11-01">Unison jam &middot; every sound is synthesized in this page by the engine at 282b65b</footer>
+<footer title="engine @f565e4b · built 2026-11-01">Unison jam &middot; every sound is synthesized in this page by the engine at f565e4b</footer>
 
 <script>
-/* ===== src/core/prng.js @ 282b65b — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/prng.js @ f565e4b — verbatim from jeffdavis-studio/unison-engine ===== */
 // prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
 // token hash, consumed in canonical draw order (Technical Architecture v1.2).
 //
@@ -233,7 +233,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/core/mix.js @ 282b65b — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/mix.js @ f565e4b — verbatim from jeffdavis-studio/unison-engine ===== */
 // mix.js — the fan-in ≤2 summing rule, as a primitive.
 //
 // Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
@@ -402,7 +402,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/desk/desk.js @ 282b65b — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/desk/desk.js @ f565e4b — verbatim from jeffdavis-studio/unison-engine ===== */
 // desk.js — the 24-track desk as a running audio graph.
 //
 // The desk is the data structure, not a metaphor (Composition Brief 2 / Tech
@@ -805,7 +805,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/production.js @ 282b65b — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/production.js @ f565e4b — verbatim from jeffdavis-studio/unison-engine ===== */
 // production.js — the production room, v0.
 //
 // PLACEMENT DECISION (Morgan's call, ratified by Jeff 2026-08-03). Production
@@ -1100,7 +1100,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/juno.js @ 282b65b — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/juno.js @ f565e4b — verbatim from jeffdavis-studio/unison-engine ===== */
 // juno.js — Juno-60-flavor poly voice, raw Web Audio, zero dependencies.
 // Ported from the 2026-07-21 bake-off winner (voice-raw.js), restructured to
 // live behind a desk strip: U.createJuno(ctx, strip, patchName) builds its own
@@ -1897,7 +1897,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/minimoog.js @ 282b65b — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/minimoog.js @ f565e4b — verbatim from jeffdavis-studio/unison-engine ===== */
 // minimoog.js — Minimoog Model D-lineage mono voice, zero dependencies.
 //
 // THE MONO BASS LANE (build order 808 → Juno → Minimoog → …; it also absorbs
@@ -2694,7 +2694,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/obxa.js @ 282b65b — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/obxa.js @ f565e4b — verbatim from jeffdavis-studio/unison-engine ===== */
 // obxa.js — Oberheim OB-Xa-lineage poly voice, zero dependencies.
 //
 // THE BRASS/PAD POLY LANE (build order 808 → Juno → Minimoog → OB-Xa → …).
@@ -3426,7 +3426,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/fm.js @ 282b65b — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/fm.js @ f565e4b — verbatim from jeffdavis-studio/unison-engine ===== */
 // fm.js — six-operator FM keys voice (the DX7 lineage), zero dependencies.
 //
 // THE FM LANE (build order 808 → Juno → Minimoog → OB-Xa → Linn → FM).
@@ -3457,6 +3457,13 @@
 //               16  one carrier with three branches 2→1, 4→3→1, 6→5→1 (fb 6)
 //                   — bass
 //               22  2→1, and 6 modulating 3, 4 and 5 together (fb 6) — brass
+//               32  six parallel carriers, no modulation, feedback on 6 (its
+//                   own phase) — the drawbar organ: each operator a drawbar
+//                   at its footage ratio, one with a fast envelope for the
+//                   percussion click (added 2026-11-01, patch-book slice 4,
+//                   Asana 1220084766500650; a table row only: noteSetup and
+//                   the operator loop are unchanged, so every patch naming 5,
+//                   16 or 22 renders as before)
 //              Others are not modelled; a patch naming one throws.
 //   ENVELOPES  per operator, the four-rate / four-level generator: levels and
 //              motion in the log (dB) domain, 0.75 dB per level step, speed
@@ -3632,7 +3639,7 @@
   // are entries at their exact values and levelDb 0: resolved at base each IS
   // the old patch, sample for sample (harness/fm-book-selftest.mjs). A ratio
   // change that turns one sound into another is a different archetype, never
-  // a range. Algorithms: only 5, 16 and 22, the ones the voice already models.
+  // a range. Algorithms: 5, 16, 22 and (slice 4) 32, the ones the voice models.
   // TOUCH: every keys archetype carries a narrow map no wider than the 10/05
   // band (width <= 0.24, Jeff: consistency over range); the house brass keeps
   // identity (its swing measured under 1 dB, 10/05); the bass is not keys.
@@ -3675,6 +3682,17 @@
         ], {}, EP_TOUCH),
         range: { bright: [-3, 3], decay: [0.8, 1.2] },
         note: "bright and nasal, held while the key is down and cut short on release: the FM take on a clavinet, for funk comps" },
+      { name: "hard FM piano", w: 12,
+        base: fmNew(5, 5, 0.35, [
+          { r: 1, lvl: 99, vs: 3, rs: 3, eg: [98, 35, 25, 55, 99, 85, 0, 0] },
+          { r: 1, lvl: 82, vs: 5, rs: 3, eg: [98, 50, 30, 55, 99, 70, 0, 0], bp: 60, rd: 20, rc: "-lin" },
+          { r: 2, det: 3, lvl: 88, vs: 3, rs: 3, eg: [98, 38, 26, 55, 99, 80, 0, 0] },
+          { r: 1, lvl: 78, vs: 6, rs: 3, eg: [99, 60, 35, 60, 99, 60, 0, 0], bp: 60, rd: 15, rc: "-lin" },
+          { r: 1, det: -3, lvl: 90, vs: 3, rs: 3, eg: [98, 35, 25, 55, 99, 84, 0, 0] },
+          { r: 5, lvl: 72, vs: 7, rs: 4, eg: [99, 75, 50, 70, 99, 30, 0, 0] },
+        ], {}, EP_TOUCH),
+        range: { bright: [-3, 3], decay: [0.85, 1.2] },
+        note: "voiced toward the DX7 PIANO 1 family: a harder, more acoustic-leaning FM piano than the reedy one, still an electric by ear. Algorithm 5, feedback 5 on op 6. Op 1 carrier ratio 1 level 99, op 2 its modulator ratio 1 level 82 (falls to 70 fast, right depth 20 above C4); op 3 carrier ratio 2 (+3 cents) level 88, op 4 its modulator ratio 1 level 78; op 5 carrier ratio 1 (-3 cents) level 90, op 6 the hammer, ratio 5 level 72 velocity 7, gone in a quarter second, carries the attack. Every carrier decays to silence while held (no sustain level) and rate scaling 3 shortens the top. A DX substitute: the census piano rows stay holes" },
     ],
     glass: [
       { name: "glass keys", w: 30, base: FP.glass, range: { bright: [-3, 3], release: [0.8, 1.25] },
@@ -3725,6 +3743,28 @@
         note: "carriers an octave up, small and sweet with a quick tink: a celesta / music-box bell" },
       { name: "crystal bell", w: 10, base: fmv("glass", { fb: 5 }, { 1: { lvl: 84 }, 5: { lvl: 70 } }), range: { bright: [-2, 3], release: [0.9, 1.3] },
         note: "the house glass with its modulators and feedback pushed: a harder, more metallic crystal bell" },
+      { name: "steel drum", w: 8,
+        base: fmNew(5, 0, 0.5, [
+          { r: 1, lvl: 99, vs: 2, rs: 3, eg: [99, 38, 28, 50, 99, 80, 0, 0] },
+          { r: 2, lvl: 76, vs: 5, rs: 3, eg: [99, 60, 40, 60, 99, 40, 0, 0] },
+          { r: 2, det: 4, lvl: 86, vs: 2, rs: 3, eg: [99, 42, 30, 50, 99, 76, 0, 0] },
+          { r: 3.01, lvl: 70, vs: 5, rs: 3, eg: [99, 65, 45, 60, 99, 30, 0, 0] },
+          { r: 3, lvl: 74, vs: 2, rs: 3, eg: [99, 50, 36, 55, 99, 60, 0, 0] },
+          { r: 1, lvl: 60, vs: 4, rs: 3, eg: [99, 70, 50, 60, 99, 0, 0, 0] },
+        ], {}, GLASS_TOUCH),
+        range: { decay: [0.85, 1.2], bright: [-3, 3] },
+        note: "voiced toward the DX7 STEEL DRUM family: the pan's fundamental, octave and twelfth. Algorithm 5, no feedback. Op 1 carrier ratio 1 level 99 with op 2 ratio 2 level 76 on it; op 3 carrier ratio 2 (+4 cents) level 86 with op 4 ratio 3.01 level 70, the slightly-off partial that gives the metal; op 5 carrier ratio 3 level 74 with op 6 ratio 1 level 60. The modulators fall away inside 0.2 s (the strike); the carriers drop to level 76-80 and ring on for a second and more with no sustain (a longer ring than the first voicing, which at its measured loudness peaked over full scale on a four-note chord). The rack's steel drum (census track 46), where the marimba stood in" },
+      { name: "harpsichord", w: 8,
+        base: fmNew(5, 6, 0.4, [
+          { r: 1, lvl: 99, vs: 1, rs: 3, eg: [99, 40, 30, 70, 99, 80, 0, 0] },
+          { r: 3, lvl: 85, vs: 2, rs: 3, eg: [99, 45, 30, 70, 99, 70, 0, 0], bp: 60, rd: 15, rc: "-lin" },
+          { r: 2, lvl: 86, vs: 1, rs: 3, eg: [99, 42, 30, 70, 99, 78, 0, 0] },
+          { r: 5, lvl: 78, vs: 2, rs: 3, eg: [99, 50, 35, 70, 99, 60, 0, 0] },
+          { r: 4, lvl: 70, vs: 1, rs: 3, eg: [99, 50, 35, 70, 99, 60, 0, 0] },
+          { r: 1, lvl: 75, vs: 2, rs: 3, eg: [99, 60, 40, 70, 99, 50, 0, 0] },
+        ], {}, GLASS_TOUCH),
+        range: { bright: [-3, 2], decay: [0.85, 1.2] },
+        note: "voiced toward the DX7 HARPSICH 1 family, as a keys-colour sound: bright, buzzy, plucked, almost no touch (velocity 1-2 on every operator). Algorithm 5, feedback 6 on op 6 (the buzz). Op 1 carrier ratio 1 level 99 with op 2 ratio 3 level 85 (right depth 15 above C4); op 3 carrier ratio 2 level 86 with op 4 ratio 5 level 78; op 5 carrier ratio 4 level 70 with op 6 ratio 1 level 75. Everything decays while held and cuts off fast on release (rate 70), the jack falling back" },
     ],
     brass: [
       { name: "FM brass section", w: 30, base: FP.brass, range: { bright: [-3, 3], spread: [0.8, 1.3] },
@@ -3758,8 +3798,310 @@
       { name: "round sub FM bass", w: 12, base: fmv("bass", { bright: -2 }, { 1: { lvl: 70 }, 2: { lvl: 60 }, 3: { lvl: 40 }, 4: { lvl: 50 } }), range: { bright: [-4, 0], release: [0.8, 1.2] },
         note: "every modulator low: nearly a sine, the round sub under a sparse line" },
     ],
+    strings: [
+      { name: "bright FM strings", w: 14,
+        base: fmNew(22, 6, 0.4, [
+          { r: 1, lvl: 92, vs: 1, rs: 2, eg: [60, 35, 20, 55, 99, 92, 90, 0] },
+          { r: 1, lvl: 80, vs: 2, rs: 2, eg: [58, 35, 20, 55, 99, 92, 88, 0] },
+          { r: 1, det: 6, lvl: 92, vs: 1, rs: 2, eg: [60, 35, 20, 55, 99, 92, 90, 0] },
+          { r: 1, det: -6, lvl: 92, vs: 1, rs: 2, eg: [60, 35, 20, 55, 99, 92, 90, 0] },
+          { r: 2, det: 2, lvl: 84, vs: 1, rs: 2, eg: [60, 35, 20, 55, 99, 92, 90, 0] },
+          { r: 1, lvl: 80, vs: 2, rs: 2, eg: [58, 35, 20, 55, 99, 92, 88, 0], bp: 60, rd: 20, rc: "-lin" },
+        ], { vib: 6, lfoRate: 5.5, lfoDelay: 0.3 }, EP_TOUCH),
+        range: { bright: [-3, 3], release: [0.8, 1.3] },
+        note: "voiced toward the brighter, faster DX7 strings (the STRINGS family's quicker voicings): slow FM strings' algorithm 22 and wiring, the modulators up (ops 2 and 6 at 80) and a quick attack (rate 58-60, about 0.1 s), release about a second. A DX substitute: the OB-Xa covers census track 33's string line" },
+      { name: "slow FM strings", w: 20,
+        base: fmNew(22, 6, 0.4, [
+          { r: 1, lvl: 92, vs: 1, rs: 2, eg: [38, 30, 20, 48, 99, 92, 90, 0] },
+          { r: 1, lvl: 72, vs: 2, rs: 2, eg: [36, 30, 20, 48, 99, 90, 86, 0] },
+          { r: 1, det: 7, lvl: 92, vs: 1, rs: 2, eg: [38, 30, 20, 48, 99, 92, 90, 0] },
+          { r: 1, det: -7, lvl: 92, vs: 1, rs: 2, eg: [38, 30, 20, 48, 99, 92, 90, 0] },
+          { r: 2, det: 2, lvl: 80, vs: 1, rs: 2, eg: [38, 30, 20, 48, 99, 92, 90, 0] },
+          { r: 1, lvl: 72, vs: 2, rs: 2, eg: [36, 30, 20, 48, 99, 90, 86, 0], bp: 60, rd: 20, rc: "-lin" },
+        ], { vib: 8, lfoRate: 5.2, lfoDelay: 0.4 }, EP_TOUCH),
+        range: { bright: [-3, 3], release: [0.8, 1.3] },
+        note: "voiced toward the DX7 STRINGS 1 family: a slow-attack ensemble. Algorithm 22, feedback 6 on op 6 (the saw edge). Op 1 carrier ratio 1 level 92 under op 2 ratio 1 level 72; op 6 ratio 1 level 72 feeds three carriers, op 3 and op 4 ratio 1 at +7 and -7 cents (the section) and op 5 ratio 2 level 80 (an octave above). Every operator swells in over about a second (rate 36-38), holds near full and releases over about two; vibrato 8 cents at 5.2 Hz after 0.4 s. A DX substitute for orchestral strings and the string machines: the Juno and OB-Xa string pads are the rack's named stand-ins" },
+    ],
+    organ: [
+      { name: "three-stack organ", w: 20,
+        base: fmNew(5, 4, 0.2, [
+          { r: 0.5, lvl: 92, eg: [99, 99, 99, 75, 99, 99, 99, 0] },
+          { r: 1, lvl: 45, eg: [99, 99, 99, 75, 99, 99, 99, 0] },
+          { r: 1, lvl: 99, eg: [99, 99, 99, 75, 99, 99, 99, 0] },
+          { r: 3, lvl: 50, eg: [99, 99, 99, 75, 99, 99, 99, 0] },
+          { r: 2, lvl: 90, eg: [99, 99, 99, 75, 99, 99, 99, 0] },
+          { r: 1, lvl: 55, eg: [99, 60, 99, 75, 99, 70, 70, 0] },
+        ], {}, EP_TOUCH),
+        range: { bright: [-3, 3], "ops.0.lvl": [88, 95] },
+        note: "voiced toward the DX7 E. ORGAN 1 family on algorithm 5, as the rack-parts doc asks: three stacks as three footages. Op 1 carrier ratio 0.5 (16') level 92 with op 2 ratio 1 at a trace (45); op 3 carrier ratio 1 (8') level 99 with op 4 ratio 3 level 50; op 5 carrier ratio 2 (4') level 90 with op 6 ratio 1 level 55, feedback 4, dropping from full to 70 in the first 50 ms: the key click. No velocity on any operator (an organ), gates on and off (rate 99 attack, rate 75 release, about 0.1 s). A DX substitute for the census organ parts; no rotary speaker" },
+      { name: "drawbar organ", w: 16,
+        base: fmNew(32, 3, 0.36, [
+          { r: 0.5, lvl: 95, eg: [99, 99, 99, 75, 99, 99, 99, 0] },
+          { r: 1.5, lvl: 88, eg: [99, 99, 99, 75, 99, 99, 99, 0] },
+          { r: 1, lvl: 99, eg: [99, 99, 99, 75, 99, 99, 99, 0] },
+          { r: 2, lvl: 90, eg: [99, 99, 99, 75, 99, 99, 99, 0] },
+          { r: 3, lvl: 84, eg: [99, 60, 50, 75, 99, 0, 0, 0] },
+          { r: 4, lvl: 80, eg: [99, 99, 99, 75, 99, 99, 99, 0] },
+        ], { vib: 4, lfoRate: 6.8, lfoDelay: 0 }, EP_TOUCH),
+        range: { "ops.4.lvl": [78, 88], "ops.5.lvl": [74, 84] },
+        note: "a drawbar organ on algorithm 32 (six carriers, the extension): each operator a drawbar at its footage ratio, 16' 0.5 at level 95, 5 1/3' 1.5 at 88, 8' 1 at 99, 4' 2 at 90, 2' 4 at 80 with feedback 3 on it for a little edge; op 5, 2 2/3' at ratio 3 level 84, is the percussion: it falls to nothing in about half a second (rate 60), so every chord speaks with the third-harmonic click. No velocity, gate envelopes (rate 99 on, rate 75 off), vibrato 4 cents at 6.8 Hz from the start. The six carriers sum under the EP's chord peak (render-fm's chord check). A DX substitute for the Hammond parts; no rotary speaker" },
+    ],
+    wind: [
+      { name: "FM flute", w: 20,
+        base: fmNew(5, 7, 0.45, [
+          { r: 1, lvl: 99, vs: 2, rs: 1, eg: [65, 40, 30, 60, 99, 95, 92, 0] },
+          { r: 1, lvl: 60, vs: 4, rs: 1, eg: [70, 45, 30, 60, 99, 80, 70, 0] },
+          { r: 2, lvl: 62, vs: 2, rs: 1, eg: [65, 40, 30, 60, 99, 90, 85, 0] },
+          { r: 1, lvl: 40, vs: 2, rs: 1, eg: [70, 45, 30, 60, 99, 80, 70, 0] },
+          { r: 1, lvl: 58, vs: 2, rs: 1, eg: [99, 65, 40, 60, 99, 60, 40, 0] },
+          { r: 1, lvl: 78, vs: 3, rs: 1, eg: [99, 60, 40, 60, 99, 70, 55, 0] },
+        ], { vib: 10, lfoRate: 5, lfoDelay: 0.4 }, BRASS_TOUCH),
+        range: { vib: [6, 14], decay: [0.85, 1.2] },
+        note: "voiced toward the DX7 FLUTE 1 family. Algorithm 5. Op 1 carrier ratio 1 level 99 under a soft op 2 (ratio 1, level 60): the tone, nearly a sine; op 3 carrier ratio 2 level 62 under op 4 at a trace, a little second harmonic; op 5 carrier ratio 1 level 58 under op 6 ratio 1 level 78 at feedback 7, which turns op 6 to noise: the breath, loudest in the chiff on the attack and falling to a low sustained hiss. Attack about 40 ms (rate 65), held, vibrato 10 cents at 5 Hz after 0.4 s. Brass's narrow touch" },
+      { name: "FM oboe", w: 14,
+        base: fmNew(16, 6, 0.18, [
+          { r: 1, lvl: 99, vs: 2, rs: 1, eg: [70, 40, 30, 62, 99, 95, 92, 0] },
+          { r: 1, lvl: 80, vs: 4, rs: 1, eg: [72, 45, 30, 62, 99, 92, 88, 0] },
+          { r: 3, lvl: 70, vs: 3, rs: 1, eg: [72, 45, 30, 62, 99, 92, 86, 0] },
+          { r: 1, lvl: 50, vs: 2, rs: 1, eg: [72, 45, 30, 62, 99, 90, 85, 0] },
+          { r: 2, lvl: 65, vs: 3, rs: 1, eg: [72, 45, 30, 62, 99, 90, 85, 0] },
+          { r: 1, lvl: 60, vs: 3, rs: 1, eg: [72, 45, 30, 62, 99, 90, 85, 0] },
+        ], { vib: 8, lfoRate: 5.3, lfoDelay: 0.35 }, BRASS_TOUCH),
+        range: { bright: [-3, 3], vib: [5, 11] },
+        note: "a double reed, voiced toward the DX7 OBOE: algorithm 16, one carrier and three branches. Op 1 carrier ratio 1 level 99; op 2 ratio 1 level 80 (the body); op 3 ratio 3 level 70 with op 4 ratio 1 level 50 on it (the nasal third-harmonic formant); op 5 ratio 2 level 65 with op 6 ratio 1 level 60 at feedback 6 (the reed's edge). Attack about 25 ms, held, vibrato 8 cents after 0.35 s. Brass's narrow touch. A DX substitute: it stands in for a clarinet credit (census track 5) and does not close the sax hole, which is a player, not a patch" },
+    ],
+    pluck: [
+      { name: "koto", w: 16,
+        base: fmNew(5, 3, 0.45, [
+          { r: 1, lvl: 99, vs: 3, rs: 3, eg: [99, 45, 30, 60, 99, 70, 0, 0] },
+          { r: 3, lvl: 80, vs: 6, rs: 3, eg: [99, 65, 40, 60, 99, 40, 0, 0] },
+          { r: 3, lvl: 75, vs: 3, rs: 3, eg: [99, 55, 35, 60, 99, 50, 0, 0] },
+          { r: 1, lvl: 70, vs: 6, rs: 3, eg: [99, 70, 45, 60, 99, 20, 0, 0] },
+          { r: 1, det: 4, lvl: 88, vs: 3, rs: 3, eg: [99, 48, 32, 60, 99, 65, 0, 0] },
+          { r: 7, lvl: 70, vs: 7, rs: 3, eg: [99, 80, 50, 60, 99, 0, 0, 0] },
+        ], {}, { centre: 0.45, width: 0.4 }),
+        range: { bright: [-3, 3], decay: [0.85, 1.2] },
+        note: "voiced toward the DX7 KOTO family: a bright, twangy pluck. Algorithm 5, feedback 3 on op 6. Op 1 carrier ratio 1 level 99 with op 2 ratio 3 level 80; op 3 carrier ratio 3 level 75 with op 4 ratio 1 level 70; op 5 carrier ratio 1 (+4 cents) level 88 with op 6 ratio 7 level 70, velocity 7, gone in 0.1 s: the plectrum, which carries the attack. Carriers decay over about a second with no sustain. The touch is wider than the keys' on purpose (centre 0.45, width 0.4): a plucked string's brightness follows how hard it is plucked" },
+      { name: "FM harp", w: 14,
+        base: fmNew(5, 0, 0.45, [
+          { r: 1, lvl: 99, vs: 2, rs: 2, eg: [99, 35, 25, 50, 99, 75, 0, 0] },
+          { r: 1, lvl: 72, vs: 5, rs: 2, eg: [99, 55, 35, 50, 99, 40, 0, 0] },
+          { r: 2, lvl: 80, vs: 2, rs: 2, eg: [99, 42, 28, 50, 99, 60, 0, 0] },
+          { r: 4, lvl: 55, vs: 6, rs: 2, eg: [99, 75, 45, 50, 99, 0, 0, 0] },
+          { r: 1, det: -3, lvl: 90, vs: 2, rs: 2, eg: [99, 36, 26, 50, 99, 74, 0, 0] },
+          { r: 1, lvl: 60, vs: 3, rs: 2, eg: [99, 50, 30, 50, 99, 40, 0, 0] },
+        ], {}, { centre: 0.42, width: 0.36 }),
+        range: { decay: [0.85, 1.25], bright: [-3, 3] },
+        note: "voiced toward the DX7 HARP family: a round pluck with a long ring. Algorithm 5, no feedback. Op 1 carrier ratio 1 level 99 with op 2 ratio 1 level 72 (falls fast); op 3 carrier ratio 2 level 80 with op 4 ratio 4 level 55, a short finger click; op 5 carrier ratio 1 (-3 cents) level 90 with op 6 ratio 1 level 60. Carriers ring about two seconds, no sustain, release 50 (strings left to ring). Wider touch on purpose (centre 0.42, width 0.36)" },
+      { name: "plucked FM guitar", w: 16,
+        base: fmNew(5, 4, 0.4, [
+          { r: 1, lvl: 99, vs: 3, rs: 3, eg: [99, 44, 32, 65, 99, 80, 0, 0] },
+          { r: 3, lvl: 84, vs: 6, rs: 3, eg: [99, 70, 45, 65, 99, 45, 0, 0], bp: 60, rd: 15, rc: "-lin" },
+          { r: 1, det: 5, lvl: 90, vs: 3, rs: 3, eg: [99, 46, 32, 65, 99, 78, 0, 0] },
+          { r: 1, lvl: 82, vs: 6, rs: 3, eg: [99, 62, 40, 65, 99, 55, 0, 0] },
+          { r: 2, lvl: 72, vs: 3, rs: 3, eg: [99, 58, 40, 65, 99, 50, 0, 0] },
+          { r: 5, lvl: 70, vs: 7, rs: 3, eg: [99, 85, 60, 65, 99, 0, 0, 0] },
+        ], {}, { centre: 0.45, width: 0.4 }),
+        range: { bright: [-3, 3], decay: [0.85, 1.2] },
+        note: "voiced toward the DX7 GUITAR 1 family: a plucked nylon-or-steel-ish string, fast-decaying carriers and a bright modulator on the attack. Algorithm 5, feedback 4 on op 6. Op 1 carrier ratio 1 level 99 with op 2 ratio 3 level 84 (falls in 0.15 s, right depth 15); op 3 carrier ratio 1 (+5 cents) level 90 with op 4 ratio 1 level 82; op 5 carrier ratio 2 level 72 with op 6 ratio 5 level 70, velocity 7: the pick. Carriers drop to level 78-80 and decay over about a second, no sustain, release 65 (a longer ring than the first voicing, which peaked over full scale on a four-note chord at its measured loudness). Wider touch on purpose (centre 0.45, width 0.4)" },
+    ],
+    voice: [
+      { name: "breathy FM voice", w: 20,
+        base: fmNew(5, 7, 0.4, [
+          { r: 1, lvl: 99, vs: 1, rs: 1, eg: [45, 35, 25, 48, 99, 94, 92, 0] },
+          { r: 1, lvl: 60, vs: 2, rs: 1, eg: [45, 35, 25, 48, 99, 90, 88, 0] },
+          { r: 3, lvl: 80, vs: 1, rs: 1, eg: [42, 35, 25, 48, 99, 92, 90, 0], bp: 60, rd: 25, rc: "-exp" },
+          { r: 1, lvl: 55, vs: 2, rs: 1, eg: [42, 35, 25, 48, 99, 90, 88, 0] },
+          { r: 1, det: 6, lvl: 66, vs: 1, rs: 1, eg: [45, 35, 25, 48, 99, 92, 90, 0] },
+          { r: 1, lvl: 76, vs: 2, rs: 1, eg: [45, 35, 25, 48, 99, 88, 82, 0] },
+        ], { vib: 10, lfoRate: 5, lfoDelay: 0.5 }, EP_TOUCH),
+        range: { vib: [6, 14], release: [0.8, 1.3] },
+        note: "voiced toward the DX7 VOICE 1 family: the breathy FM vowel. Algorithm 5. Op 1 carrier ratio 1 level 99 under a soft op 2 (ratio 1, 60): the fundamental; op 3 carrier ratio 3 level 80 under op 4 at a trace, the vowel's formant, falling away above C4 (right depth 25, -exp) so high notes do not shriek; op 5 carrier ratio 1 (+6 cents) level 66 under op 6 ratio 1 level 76 at feedback 7: the breath noise. Everything swells in over about a third of a second (rate 42-45), holds, releases over about two; vibrato 10 cents at 5 Hz after 0.5 s. A DX substitute for a sampled voice" },
+      { name: "FM choir", w: 16,
+        base: fmNew(32, 6, 0.7, [
+          { r: 1, det: 7, lvl: 95, vs: 1, rs: 1, eg: [40, 35, 25, 48, 99, 94, 92, 0] },
+          { r: 1, det: -7, lvl: 95, vs: 1, rs: 1, eg: [40, 35, 25, 48, 99, 94, 92, 0] },
+          { r: 2, det: 3, lvl: 85, vs: 1, rs: 1, eg: [40, 35, 25, 48, 99, 92, 90, 0] },
+          { r: 3, lvl: 78, vs: 1, rs: 1, eg: [38, 35, 25, 48, 99, 92, 90, 0], bp: 60, rd: 25, rc: "-exp" },
+          { r: 4, lvl: 70, vs: 1, rs: 1, eg: [38, 35, 25, 48, 99, 92, 90, 0], bp: 60, rd: 30, rc: "-exp" },
+          { r: 1, lvl: 80, vs: 1, rs: 1, eg: [40, 35, 25, 48, 99, 90, 86, 0] },
+        ], { vib: 7, lfoRate: 5.2, lfoDelay: 0.4 }, EP_TOUCH),
+        range: { release: [0.8, 1.3], vib: [4, 10] },
+        note: "a choir-like stack on algorithm 32 (six carriers, the extension): two voices at ratio 1, +7 and -7 cents, level 95 (the section); ratio 2 at 85, 3 at 78 and 4 at 70 as a fixed vowel shape, the upper two falling away above C4 (-exp); op 6 ratio 1 level 80 at feedback 6 on its own phase, the breathy edge. Swells in over about half a second, holds, releases over about two; vibrato 7 cents after 0.4 s. A DX substitute for a sampled choir: the Juno choir pad is the rack's named stand-in" },
+    ],
   };
   for (const role in U.FM_BOOK) for (const a of U.FM_BOOK[role]) a.role = role;
+
+  // THE TWO COLUMNS (slice 4, 2026-11-01, Asana 1220084766500650; juno.js has
+  // the definitions above U.JUNO_BOOK_ROLES). Neither moves a draw or a
+  // sample: the draw still reads w, range and role above.
+  // roles: how well the patch serves each of seven parts, 0 to 1 (bass,
+  // chords, pad, arpeggio, lead, color, comp). ref: which of the hundred carry
+  // the sound, generated from the census (parts.json), never typed:
+  // [{ track, player, chain, often }] or "listen". A DX substitute for a
+  // sampled or acoustic part (strings, choir, organ, piano) says stand-in in
+  // its chain; a census hole (piano, sax) stays a hole and the chain says so.
+  const R = (bass, chords, pad, arpeggio, lead, color, comp) => ({ bass, chords, pad, arpeggio, lead, color, comp });
+  U.FM_BOOK_ROLES = {
+    "tine EP": R(0, 0.9, 0.3, 0.4, 0.3, 0.4, 1),
+    "bright tine EP": R(0, 0.8, 0.2, 0.5, 0.4, 0.5, 1),
+    "mellow EP, low tine": R(0, 1, 0.4, 0.3, 0.2, 0.3, 0.9),
+    "bell-tone EP": R(0, 0.7, 0.3, 0.5, 0.3, 0.6, 0.8),
+    "reedy FM piano": R(0, 0.8, 0.1, 0.4, 0.3, 0.5, 0.8),
+    "punchy tine EP": R(0, 0.6, 0, 0.5, 0.2, 0.3, 1),
+    "FM clav": R(0.1, 0.4, 0, 0.6, 0.3, 0.4, 1),
+    "glass keys": R(0, 0.5, 0.4, 0.6, 0.3, 1, 0.3),
+    "tubular bell": R(0, 0.1, 0.2, 0.2, 0.2, 1, 0),
+    "marimba": R(0, 0.2, 0, 0.9, 0.4, 1, 0.3),
+    "vibes": R(0, 0.5, 0.3, 0.6, 0.4, 1, 0.3),
+    "celesta": R(0, 0.3, 0.1, 0.8, 0.4, 1, 0.1),
+    "crystal bell": R(0, 0.3, 0.2, 0.5, 0.3, 1, 0.1),
+    "FM brass section": R(0, 0.7, 0.3, 0, 0.5, 0.8, 0.5),
+    "synth brass stab": R(0, 0.6, 0, 0, 0.3, 0.9, 0.7),
+    "soft horn swell": R(0, 0.6, 0.7, 0, 0.3, 0.6, 0.2),
+    "bright brass, more feedback": R(0, 0.6, 0.2, 0, 0.6, 0.8, 0.5),
+    "muted horn": R(0, 0.5, 0.2, 0, 0.6, 0.7, 0.4),
+    "solid FM bass": R(1, 0, 0, 0.3, 0, 0, 0),
+    "slap FM bass": R(1, 0, 0, 0.3, 0.1, 0.1, 0.1),
+    "wood bass": R(1, 0, 0, 0.1, 0, 0, 0),
+    "growl FM bass": R(1, 0, 0, 0.3, 0.1, 0.1, 0),
+    "round sub FM bass": R(1, 0, 0, 0.1, 0, 0, 0),
+    // slice 4 additions
+    "hard FM piano": R(0, 1, 0.2, 0.4, 0.3, 0.5, 0.9),
+    "steel drum": R(0, 0.2, 0, 0.8, 0.5, 1, 0.3),
+    "harpsichord": R(0, 0.6, 0, 0.8, 0.3, 0.9, 0.6),
+    "bright FM strings": R(0, 0.9, 0.8, 0.2, 0.4, 0.6, 0.5),
+    "slow FM strings": R(0, 0.7, 1, 0, 0.2, 0.5, 0.1),
+    "three-stack organ": R(0, 1, 0.5, 0.2, 0.2, 0.4, 1),
+    "drawbar organ": R(0, 1, 0.6, 0.1, 0.3, 0.5, 0.9),
+    "FM flute": R(0, 0, 0.2, 0.3, 1, 0.8, 0),
+    "FM oboe": R(0, 0, 0.1, 0.3, 1, 0.8, 0),
+    "koto": R(0, 0.2, 0, 1, 0.5, 0.9, 0.3),
+    "FM harp": R(0, 0.3, 0.1, 1, 0.3, 0.8, 0.2),
+    "plucked FM guitar": R(0, 0.4, 0, 1, 0.4, 0.8, 0.6),
+    "breathy FM voice": R(0, 0.3, 1, 0, 0.4, 0.9, 0),
+    "FM choir": R(0, 0.5, 1, 0, 0.1, 0.8, 0),
+  };
+  // BEGIN FM_BOOK_REFS (generated: files/unison/patch-books-2026-10-31/fm-gen-refs.mjs)
+  U.FM_BOOK_REFS = {
+    "tine EP": [
+      { track: 31, player: "Level 42 (Mark King, Mike Lindup, Phil Gould, Boon Gould), Wally Badarou collaborating", chain: "electric piano and synth (ear)", often: "carrying, lead part" },
+      { track: 80, player: "George Michael", chain: "DX7 (album) (census album)", often: "not carrying, color part" },
+      { track: 99, player: "Scritti Politti (Green Gartside, David Gamson, Fred Maher producing)", chain: "keyboards (census track)", often: "carrying, chords part" },
+    ],
+    "bright tine EP": "listen",
+    "mellow EP, low tine": [
+      { track: 32, player: "Fred Zarr (keyboards, arranger, programmer)", chain: "electric piano, piano (census track); stand-in on the FM; tine EP or mellow EP: listen", often: "not carrying, color part" },
+      { track: 33, player: "Fred Zarr (keyboards, arranger, programmer)", chain: "electric piano (census track); stand-in on the FM; tine EP or mellow EP: listen", often: "carrying, color part" },
+      { track: 34, player: "Fred Zarr (keyboards, arranger, programmer)", chain: "Rhodes (census track); stand-in on the FM; tine EP or mellow EP: listen", often: "not carrying, color part" },
+      { track: 37, player: "not named", chain: "Rhodes and synth (census track); stand-in on the FM; tine EP or mellow EP: listen", often: "carrying, chords part" },
+      { track: 49, player: "not named", chain: "Rhodes (census track); stand-in on the FM; tine EP or mellow EP: listen", often: "carrying, chords part" },
+      { track: 59, player: "not named", chain: "electric piano (census track); stand-in on the FM; tine EP or mellow EP: listen", often: "carrying, chords part" },
+    ],
+    "bell-tone EP": "listen",
+    "reedy FM piano": [
+      { track: 16, player: "Dave Stewart", chain: "piano (census track); stand-in on the FM", often: "not carrying, color part" },
+      { track: 28, player: "not named", chain: "piano (heard); stand-in on the FM", often: "not carrying, color part" },
+      { track: 48, player: "OMD (Paul Humphreys, Andy McCluskey, Martin Cooper: keyboards)", chain: "piano (census track); stand-in on the FM", often: "not carrying, color part" },
+      { track: 62, player: "not named", chain: "piano (heard); stand-in on the FM", often: "not carrying, color part" },
+      { track: 73, player: "UB40, Ray \"Pablo\" Falconer producing", chain: "piano (heard); stand-in on the FM", often: "not carrying, color part" },
+      { track: 81, player: "not named", chain: "piano (ear); stand-in on the FM", often: "not carrying, color part" },
+      { track: 82, player: "Vince Clarke", chain: "piano, Miller noises (census track); stand-in on the FM", often: "not carrying, color part" },
+      { track: 86, player: "Vince Clarke", chain: "piano (census album); stand-in on the FM", often: "not carrying, color part" },
+      { track: 89, player: "not named", chain: "piano (heard) (OPEN); stand-in on the FM", often: "not carrying, color part" },
+      { track: 98, player: "not named", chain: "piano (heard); stand-in on the FM", often: "not carrying, color part" },
+    ],
+    "punchy tine EP": "listen",
+    "FM clav": "listen",
+    "hard FM piano": [
+      { track: 33, player: "Fred Zarr (keyboards, arranger, programmer)", chain: "piano (census track); a hole: the DX piano is a substitute and does not close it (the piano player is the open call)", often: "carrying, chords part" },
+      { track: 34, player: "Fred Zarr (keyboards, arranger, programmer)", chain: "piano break (Zarr) (census track); a hole: the DX piano is a substitute and does not close it (the piano player is the open call)", often: "carrying, color part" },
+      { track: 35, player: "Fred Zarr (keyboards, arranger, programmer)", chain: "staccato piano intro (census track); a hole: the DX piano is a substitute and does not close it (the piano player is the open call)", often: "carrying, color part" },
+      { track: 56, player: "not named (the Pointer Sisters, Richard Perry producing)", chain: "piano and organ (census track); a hole: the DX piano is a substitute and does not close it (the piano player is the open call)", often: "carrying, chords part" },
+    ],
+    "glass keys": [
+      { track: 12, player: "not named", chain: "Synclavier ostinato (Dorsey) (RECORD); stand-in on the FM", often: "carrying, chords part" },
+      { track: 60, player: "not named", chain: "Synclavier (census album); stand-in on the FM", often: "carrying, chords part" },
+    ],
+    "tubular bell": "listen",
+    "marimba": [
+      { track: 30, player: "not named", chain: "Casio VL-Tone (census album); which FM mallet: listen", often: "not carrying, color part" },
+      { track: 47, player: "OMD (Paul Humphreys, Andy McCluskey, Martin Cooper: keyboards)", chain: "marimba (census album)", often: "not carrying, color part" },
+      { track: 64, player: "Tom Bailey", chain: "xylophone (census album)", often: "not carrying, color part" },
+    ],
+    "vibes": "listen",
+    "celesta": "listen",
+    "crystal bell": "listen",
+    "steel drum": [
+      { track: 46, player: "OMD (Paul Humphreys, Andy McCluskey, Martin Cooper: keyboards)", chain: "steel drums (census track); stand-in on the FM (the census stand-in was the marimba)", often: "carrying, color part" },
+    ],
+    "harpsichord": "listen",
+    "FM brass section": [
+      { track: 7, player: "not named", chain: "horns (census album); stand-in on the FM", often: "not carrying, color part" },
+      { track: 8, player: "not named", chain: "horns and sax (census album); stand-in on the FM", often: "not carrying, color part" },
+      { track: 11, player: "not named", chain: "horns (census track); stand-in on the FM", often: "not carrying, color part" },
+      { track: 14, player: "Dave Stewart", chain: "horns, woodwind (census album); stand-in on the FM", often: "not carrying, color part" },
+      { track: 20, player: "Dave Stewart", chain: "horns (census track); stand-in on the FM", often: "carrying, lead part" },
+      { track: 36, player: "not named", chain: "horns and sax (census album); stand-in on the FM", often: "carrying, lead part" },
+      { track: 39, player: "not named", chain: "horns (census album); stand-in on the FM", often: "not carrying, color part" },
+      { track: 46, player: "OMD (Paul Humphreys, Andy McCluskey, Martin Cooper: keyboards)", chain: "brass section riff (census track); stand-in on the FM", often: "carrying, lead part" },
+      { track: 52, player: "David Frank", chain: "horn section (Phenix Horns) (census track); stand-in on the FM", often: "carrying, lead part" },
+      { track: 56, player: "not named (the Pointer Sisters, Richard Perry producing)", chain: "synth / Emulator horn line (census track); stand-in on the FM", often: "carrying, lead part" },
+      { track: 72, player: "UB40, Ray \"Pablo\" Falconer producing", chain: "sax and trumpet line (census track); stand-in on the FM", often: "carrying, lead part" },
+      { track: 74, player: "not named", chain: "horns (census album); stand-in on the FM", often: "not carrying, color part" },
+      { track: 81, player: "not named", chain: "horns (census track); stand-in on the FM", often: "carrying, lead part" },
+      { track: 94, player: "not named", chain: "horns (census album); stand-in on the FM", often: "not carrying, color part" },
+    ],
+    "synth brass stab": [
+      { track: 27, player: "not named", chain: "horn stabs (ear); stand-in on the FM", often: "carrying, lead part" },
+      { track: 37, player: "not named", chain: "horn section stabs (census track); stand-in on the FM", often: "carrying, lead part" },
+    ],
+    "soft horn swell": "listen",
+    "bright brass, more feedback": "listen",
+    "muted horn": "listen",
+    "solid FM bass": [
+      { track: 99, player: "Scritti Politti (Green Gartside, David Gamson, Fred Maher producing)", chain: "synth bass (OPEN)", often: "carrying, bass part" },
+    ],
+    "slap FM bass": "listen",
+    "wood bass": "listen",
+    "growl FM bass": "listen",
+    "round sub FM bass": "listen",
+    "bright FM strings": [
+      { track: 33, player: "Fred Zarr (keyboards, arranger, programmer)", chain: "synth string line (census track); stand-in: a DX substitute for the part (the rack's named stand-in: obxa)", often: "carrying, lead part" },
+    ],
+    "slow FM strings": [
+      { track: 17, player: "Dave Stewart", chain: "orchestra, trumpet (Kamen) (census album); stand-in: a DX substitute for the part (the rack's named stand-in: juno strings / obxa detuned string pad)", often: "not carrying, color part" },
+      { track: 21, player: "Gary Numan", chain: "viola (census album); stand-in: a DX substitute for the part (the rack's named stand-in: juno strings / obxa detuned string pad)", often: "not carrying, color part" },
+      { track: 48, player: "OMD (Paul Humphreys, Andy McCluskey, Martin Cooper: keyboards)", chain: "Mellotron / organ (census track); stand-in: a DX substitute for the part (the rack's named stand-in: juno strings, chorus II)", often: "carrying, chords part" },
+      { track: 67, player: "not named", chain: "violin, guitar (census album); stand-in: a DX substitute for the part (the rack's named stand-in: juno strings / obxa detuned string pad)", often: "not carrying, color part" },
+      { track: 96, player: "not named (Ralf Hütter and Florian Schneider producing)", chain: "Orchestron / string machine (census album); stand-in: a DX substitute for the part (the rack's named stand-in: juno strings, chorus II)", often: "carrying, chords part" },
+    ],
+    "three-stack organ": [
+      { track: 72, player: "UB40, Ray \"Pablo\" Falconer producing", chain: "organ bubble (census track); stand-in: a DX substitute for the part (the rack's named stand-in: juno organ patches)", often: "carrying, chords part" },
+    ],
+    "drawbar organ": [
+      { track: 56, player: "not named (the Pointer Sisters, Richard Perry producing)", chain: "piano and organ (census track); the organ half on the FM, a DX substitute; the piano half stays a hole; no rotary speaker modelled", often: "carrying, chords part" },
+      { track: 73, player: "UB40, Ray \"Pablo\" Falconer producing", chain: "organ (census track); stand-in: a DX substitute for the part (the rack's named stand-in: juno organ patches (no drawbars, no rotary)); no rotary speaker modelled", often: "carrying, chords part" },
+      { track: 100, player: "Steve Winwood", chain: "Hammond B-3 (census track); stand-in: a DX substitute for the part (the rack's named stand-in: juno organ patches (no drawbars, no rotary)); no rotary speaker modelled", often: "carrying, color part" },
+    ],
+    "FM flute": "listen",
+    "FM oboe": [
+      { track: 5, player: "Richard H. Kirk", chain: "clarinet / sax (credited) (census track); the FM reed stands in for the clarinet only; the sax half stays a hole (a player, not a patch)", often: "not carrying, color part" },
+    ],
+    "koto": "listen",
+    "FM harp": "listen",
+    "plucked FM guitar": "listen",
+    "breathy FM voice": "listen",
+    "FM choir": [
+      { track: 40, player: "Naked Eyes, Tony Mansfield producing", chain: "VP-330 choir-strings (census track); stand-in: a DX substitute for the part (the rack's named stand-in: juno choir pad)", often: "carrying, color part" },
+      { track: 45, player: "not named", chain: "Emulator choir / strings (ear); stand-in: a DX substitute for the part (the rack's named stand-in: juno choir pad)", often: "carrying, chords part" },
+    ],
+  };
+  // END FM_BOOK_REFS
+  for (const role in U.FM_BOOK) for (const a of U.FM_BOOK[role]) {
+    if (U.FM_BOOK_ROLES[a.name]) a.roles = U.FM_BOOK_ROLES[a.name];
+    if (U.FM_BOOK_REFS[a.name]) a.ref = U.FM_BOOK_REFS[a.name];
+  }
 
   // levelDb per archetype (harness/fm-book-level.mjs, K-weighted against the
   // role's pre-book patch on real strip lines): multiplies the base level so
@@ -3775,6 +4117,20 @@
     "tubular bell": -1.7, "marimba": 4.5, "vibes": 2.0, "celesta": 4.0, "crystal bell": -0.1,
     "synth brass stab": 1.7, "soft horn swell": 1.3, "bright brass, more feedback": 0.7, "muted horn": -0.3,
     "slap FM bass": 0.4, "wood bass": 4.1, "growl FM bass": 0.2, "round sub FM bass": -0.5,
+    // slice 4, MEASURED 2026-11-01 (analysis/fits/fm-book-level-2026-11-01-new.json):
+    // the ep and glass additions against the house tine EP / glass on their
+    // own strips' lines; strings, organ, wind, pluck and voice PROVISIONAL
+    // (no strip draws them yet): strings, organ and voice against the house
+    // tine EP on compA lines (strings and voice on the hold lines only), wind
+    // and pluck against the house glass on colour section-hit lines
+    // (harness/fm-book-level.mjs header). Re-measured when the lock comes out.
+    "hard FM piano": 3.8,
+    "steel drum": 4.0, "harpsichord": 3.4,
+    "bright FM strings": 0, "slow FM strings": 0.1,
+    "three-stack organ": -1.1, "drawbar organ": -0.7,
+    "FM flute": 4.0, "FM oboe": 2.9,
+    "koto": 6.4, "FM harp": 0.2, "plucked FM guitar": 6.6,
+    "breathy FM voice": -4.7, "FM choir": -3.8,
   };
 
   // Lane bias: weight multipliers on a few archetypes per lane, small on
@@ -3831,7 +4187,7 @@
     "bright brass, more feedback": "voiced: by ear to written targets (no real-hardware recording of it passed verification)",
     "muted horn": "voiced: by ear to written targets (no real-hardware recording of it passed verification)",
   };
-  U.FM_BOOK_NOTE = "<b>The patch book (October 6):</b> 23 patches in four parts: seven electric pianos and keys, six glass, bell and mallet sounds, five brass and five basses, each level-matched, K-weighted, to the patch its part played before, on that part's real song lines, so the strip trims hold. Every keys patch keeps the narrow touch. The reference pack still has only a DX7 electric piano and DX7 bass notes (a new search on October 6 found no other real-hardware recording that passed its checks), so the house EP and bass are measured against the machine, their variants are scored against it, and glass, bells, mallets and brass are voiced by ear to written targets for attack, sustain, tail, brightness and how bell-like the tone is.";
+  U.FM_BOOK_NOTE = "<b>The patch book (October 6, extended November 1):</b> 37 patches. Four parts the songs play: eight electric pianos and keys (a harder FM piano added), eight glass, bell and mallet sounds (a steel drum and a harpsichord added), five brass and five basses, each level-matched, K-weighted, to the patch its part played before, on that part's real song lines, so the strip trims hold. Five new parts no song plays yet (two strings, two organs, a flute and an oboe, three plucked strings, two voices), level-matched for now against the house EP or glass on those strips' lines, re-measured when a song reaches them. Every keys patch keeps the narrow touch. The reference pack still has only a DX7 electric piano and DX7 bass notes (a new search on October 6 found no other real-hardware recording that passed its checks), so the house EP and bass are measured against the machine, their variants are scored against it, and glass, bells, mallets and brass are voiced by ear to written targets for attack, sustain, tail, brightness and how bell-like the tone is.";
 
   U.fmArchetype = function (name) {
     for (const role in U.FM_BOOK) for (const a of U.FM_BOOK[role]) if (a.name === name) return a;
@@ -3875,6 +4231,7 @@
     5: { mods: [[1], [], [3], [], [5], []], car: [0, 2, 4], fbOp: 5 },
     16: { mods: [[1, 2, 4], [], [3], [], [5], []], car: [0], fbOp: 5 },
     22: { mods: [[1], [], [5], [5], [5], []], car: [0, 2, 3, 4], fbOp: 5 },
+    32: { mods: [[], [], [], [], [], []], car: [0, 1, 2, 3, 4, 5], fbOp: 5 },
   };
   U.FM_ALGOS = ALGOS;
 
@@ -4099,7 +4456,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/bassguitar.js @ 282b65b — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/bassguitar.js @ f565e4b — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassguitar.js — electric bass guitar, the first session player of the human
 // rack (Rack 2), zero dependencies.
 //
@@ -4688,7 +5045,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/rhythmguitar.js @ 282b65b — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/rhythmguitar.js @ f565e4b — verbatim from jeffdavis-studio/unison-engine ===== */
 // rhythmguitar.js — clean electric rhythm guitar, the fourth and last stop of
 // the human rack (Rack 2), zero dependencies.
 //
@@ -5337,7 +5694,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/tr808.js @ 282b65b — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/tr808.js @ f565e4b — verbatim from jeffdavis-studio/unison-engine ===== */
 // tr808.js — THE MACHINE. A TR-808-lineage core voice: bass drum, snare,
 // closed hat, open hat, each with a front panel the token actually turns.
 //
@@ -6621,7 +6978,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/linn.js @ 282b65b — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/linn.js @ f565e4b — verbatim from jeffdavis-studio/unison-engine ===== */
 // linn.js — THE STUDIO MACHINE. A Linn-family (LM-1 / LinnDrum lineage)
 // drum computer: the new wave / synth-pop / 80s R&B kit.
 //
@@ -7378,7 +7735,7 @@
   U._linn = { burn, play, vca, roms, V, EPROM_HZ, RECON_HZ, SR, TOM_MID_CLOCK };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drums.js @ 282b65b — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drums.js @ f565e4b — verbatim from jeffdavis-studio/unison-engine ===== */
 // drums.js — the drum machine: 808/LM-1-flavor voices, synthesized at runtime
 // into short AudioBuffers, played back as one-shots.
 //
@@ -7707,7 +8064,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/books.js @ 282b65b — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/books.js @ f565e4b — verbatim from jeffdavis-studio/unison-engine ===== */
 // books.js — Pattern Books v1, as data.
 //
 // This file IS the document: "Unison — Pattern Books v1 (draft)" (Morgan,
@@ -8338,7 +8695,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/bassplayer.js @ 282b65b — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/bassplayer.js @ f565e4b — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassplayer.js — the PERFORMANCE half of the bass guitar: a session player.
 //
 // Rack 2's rule (kb/projects/unison.md, 2026-07-11): every human instrument is
@@ -8590,7 +8947,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/gtrplayer.js @ 282b65b — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/gtrplayer.js @ f565e4b — verbatim from jeffdavis-studio/unison-engine ===== */
 // gtrplayer.js — the PERFORMANCE half of the rhythm guitar: a session
 // guitarist on the rhythmGtr strip.
 //
@@ -8790,7 +9147,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/fmplayer.js @ 282b65b — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/fmplayer.js @ f565e4b — verbatim from jeffdavis-studio/unison-engine ===== */
 // fmplayer.js — the PERFORMANCE half of the FM keys: a session keyboard
 // player on the FM chord strips (compA's tine EP, colour's glass and brass).
 //
@@ -8931,7 +9288,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/testPhrase.js @ 282b65b — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/testPhrase.js @ f565e4b — verbatim from jeffdavis-studio/unison-engine ===== */
 // testPhrase.js — deterministic 8-bar test phrase, ported from the bake-off
 // (phrase.js) onto the engine's canonical PRNG (core/prng.js).
 //
@@ -9025,7 +9382,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/form.js @ 282b65b — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/form.js @ f565e4b — verbatim from jeffdavis-studio/unison-engine ===== */
 // form.js — the song's form: the book of returns (2026-10-30, Asana
 // 1220073468300418; design files/unison/structure-design-2026-10-30 in the
 // morgan repo, DESIGN.md + draw.py, transcribed here as written).
@@ -9346,7 +9703,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/session.js @ 282b65b — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/session.js @ f565e4b — verbatim from jeffdavis-studio/unison-engine ===== */
 // session.js — the session sheet and the arrangement realizer.
 //
 // Two tiers, in this order, each on its own stream (core/prng.js):
@@ -10599,7 +10956,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/render/renderer.js @ 282b65b — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/render/renderer.js @ f565e4b — verbatim from jeffdavis-studio/unison-engine ===== */
 // renderer.js — song assembly + the render pipeline (Technical Architecture
 // v1.2 playback model): live-first, with (a) a cheap analysis pre-render for
 // verification/metrics and (b) an on-demand full OfflineAudioContext render
