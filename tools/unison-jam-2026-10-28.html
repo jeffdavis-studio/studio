@@ -157,10 +157,10 @@
 <div id="bars" class="row"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><div id="status"></div></div>
 <div id="layers"></div>
 <div id="add" class="row"><div class="lbl">Add a layer<button id="palRnd" title="add a random instrument (one you don't have yet, while any are left)">Random</button></div><div id="pal"></div></div>
-<footer title="engine @33831c7 · built 2026-10-31">Unison jam &middot; every sound is synthesized in this page by the engine at 33831c7</footer>
+<footer title="engine @e0bb664 · built 2026-11-01">Unison jam &middot; every sound is synthesized in this page by the engine at e0bb664</footer>
 
 <script>
-/* ===== src/core/prng.js @ 33831c7 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/prng.js @ e0bb664 — verbatim from jeffdavis-studio/unison-engine ===== */
 // prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
 // token hash, consumed in canonical draw order (Technical Architecture v1.2).
 //
@@ -233,7 +233,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/core/mix.js @ 33831c7 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/mix.js @ e0bb664 — verbatim from jeffdavis-studio/unison-engine ===== */
 // mix.js — the fan-in ≤2 summing rule, as a primitive.
 //
 // Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
@@ -402,7 +402,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/desk/desk.js @ 33831c7 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/desk/desk.js @ e0bb664 — verbatim from jeffdavis-studio/unison-engine ===== */
 // desk.js — the 24-track desk as a running audio graph.
 //
 // The desk is the data structure, not a metaphor (Composition Brief 2 / Tech
@@ -805,7 +805,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/production.js @ 33831c7 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/production.js @ e0bb664 — verbatim from jeffdavis-studio/unison-engine ===== */
 // production.js — the production room, v0.
 //
 // PLACEMENT DECISION (Morgan's call, ratified by Jeff 2026-08-03). Production
@@ -1100,7 +1100,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/juno.js @ 33831c7 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/juno.js @ e0bb664 — verbatim from jeffdavis-studio/unison-engine ===== */
 // juno.js — Juno-60-flavor poly voice, raw Web Audio, zero dependencies.
 // Ported from the 2026-07-21 bake-off winner (voice-raw.js), restructured to
 // live behind a desk strip: U.createJuno(ctx, strip, patchName) builds its own
@@ -1216,6 +1216,17 @@
         range: { filterQ: [3.2, 4.8], fD: [0.12, 0.2], cutoffEnv: [2500, 3500] }, note: "RES up: the quacky envelope comp" },
       { name: "soft keys comp", w: 10, base: from("comp", { subLevel: 0.25, cutoffBase: 300, cutoffEnv: 1200, fD: 0.5, fS: 0.3, d: 0.5, s: 0.4, r: 0.35, chorusMode: 2 }),
         range: { cutoffBase: [260, 360], fD: [0.4, 0.65], r: [0.28, 0.45] }, note: "dark, slow-decaying, chorus II: an electric-piano stand-in" },
+      // --- 2026-10-31, the rebuild (Asana 1220084766500650): the families the
+      // census found missing (files/unison/rack-census-2026-10-30/patchbooks.md),
+      // at modest w so the default draw still lands on the book above. The
+      // Jupiter-4 and -6 are Juno sub-families (Jeff's default on the rack
+      // doc's call 2): their voicings on the Juno's one DCO and 2-pole filter.
+      { name: "pulse keys, chorus off", w: 6, base: from("comp", { saw: 0, pulse: 1, pw: 0.4, subLevel: 0, cutoffBase: 450, cutoffEnv: 2200, filterQ: 1.2, fA: 0.003, fD: 0.24, fS: 0.18, a: 0.002, d: 0.24, s: 0.18, r: 0.12, chorus: false }),
+        range: { pw: [0.35, 0.45], d: [0.18, 0.3], cutoffBase: [380, 540] }, note: "the atlas's Recipe G (Everything She Wants): pulse only, narrow, short decay, dry" },
+      { name: "mellow piano", w: 5, base: from("comp", { saw: 0.6, pulse: 0.6, pw: 0.3, subLevel: 0.15, kbdTrack: 0.5, cutoffBase: 350, cutoffEnv: 1800, filterQ: 0.8, fA: 0.003, fD: 0.7, fS: 0.1, a: 0.003, d: 1.1, s: 0.05, r: 0.3 }),
+        range: { cutoffEnv: [1400, 2300], d: [0.9, 1.4] }, note: "the cassette bank's Mellow Piano: struck, decays to nothing, KYBD half up, chorus I" },
+      { name: "Jupiter-4 poly comp", w: 6, base: from("comp", { subLevel: 0, hpf: 120, cutoffBase: 520, cutoffEnv: 2600, filterQ: 2.2, fA: 0.004, fD: 0.3, fS: 0.4, a: 0.004, d: 0.25, s: 0.6, r: 0.25, chorusMode: 2 }),
+        range: { cutoffBase: [440, 620], filterQ: [1.8, 2.6], fD: [0.22, 0.38] }, note: "Jupiter-4 sub-family: saw, sub off, RES up, the ensemble as chorus II" },
     ],
     organ: [
       { name: "chorus II organ", w: 7, base: Object.assign({}, ORGAN, { chorusMode: 2 }), range: { cutoffBase: [1300, 2000], subLevel: [0.35, 0.65] },
@@ -1234,38 +1245,42 @@
         range: { cutoffBase: [750, 1100], a: [0.2, 0.38], r: [0.55, 0.9] }, note: "saw, sub off, HPF 1, chorus II" },
       { name: "PWM strings", w: 16, base: from("pad", { saw: 0, pulse: 1, pw: 0.5, pwm: 0.6, lfoRate: 0.7, subLevel: 0.1, cutoffBase: 800, cutoffEnv: 500, fA: 0.3, fS: 0.8, a: 0.3 }),
         range: { pwm: [0.45, 0.8], lfoRate: [0.5, 1.0], cutoffBase: [650, 950] }, note: "pulse with slow PWM, chorus I" },
-      { name: "warm pad, chorus II", w: 12, base: from("pad", { subLevel: 0.45, cutoffBase: 260, cutoffEnv: 800, a: 0.5, r: 1.1, chorusMode: 2 }),
-        range: { cutoffBase: [240, 290], subLevel: [0.4, 0.5], r: [1.0, 1.2] }, note: "darker, more sub, chorus II" },
       { name: "slow sweep pad", w: 10, base: from("pad", { cutoffBase: 220, cutoffEnv: 2200, filterQ: 2.0, fA: 1.6, fD: 2.2, fS: 0.4, a: 0.6, s: 0.9, r: 1.2 }),
         range: { fA: [1.2, 2.2], filterQ: [1.5, 2.6], cutoffEnv: [1800, 2700] }, note: "the filter opens over two seconds" },
       { name: "airy pad, chorus I+II", w: 8, base: from("pad", { saw: 0.7, pulse: 0.5, pw: 0.3, subLevel: 0, hpf: 400, cutoffBase: 1400, cutoffEnv: 800, fA: 0.5, a: 0.5, chorusMode: 3 }),
         range: { cutoffBase: [1100, 1800], hpf: [300, 500] }, note: "bottom off, top open, both chorus buttons" },
       { name: "choir pad", w: 8, base: from("pad", { saw: 0, pulse: 1, pw: 0.25, subLevel: 0.15, cutoffBase: 650, cutoffEnv: 400, filterQ: 3.0, fA: 0.4, a: 0.45, chorusMode: 2, vib: 6, lfoRate: 5, vibDelay: 0.6 }),
         range: { filterQ: [2.8, 3.2], cutoffBase: [620, 685] }, note: "narrow pulse, RES up, a little delayed vibrato" },
+      { name: "string ensemble, chorus I+II", w: 8, base: from("pad", { subLevel: 0, hpf: 250, cutoffBase: 1600, cutoffEnv: 300, filterQ: 0.5, fA: 0.2, fD: 1.0, fS: 0.9, a: 0.15, d: 0.3, s: 1, r: 0.8, chorusMode: 3 }),
+        range: { a: [0.1, 0.25], cutoffBase: [1300, 2000] }, note: "string-machine stand-in (Solina, Orchestron): saw, bottom off, flat filter, both chorus buttons" },
+      { name: "Vox Humana stand-in", w: 6, base: from("pad", { saw: 0.5, pulse: 0.9, pw: 0.35, pwm: 0.35, lfoRate: 0.8, vib: 5, vibDelay: 0.5, subLevel: 0, hpf: 250, cutoffBase: 1000, cutoffEnv: 300, filterQ: 2.4, fA: 0.3, fD: 1.0, fS: 0.8, a: 0.3, d: 0.4, s: 0.9, r: 0.8, chorusMode: 3 }),
+        range: { pwm: [0.25, 0.45], cutoffBase: [850, 1200] }, note: "the Polymoog Vox Humana on a Juno: saw + PWM pulse, RES hump, both chorus buttons" },
+      { name: "Jupiter-4 pad, RES up", w: 6, base: from("pad", { subLevel: 0, hpf: 120, cutoffBase: 500, cutoffEnv: 1400, filterQ: 2.6, fA: 0.6, fD: 1.5, fS: 0.5, a: 0.35, s: 0.85, r: 1.0, chorusMode: 2 }),
+        range: { cutoffBase: [420, 600], fA: [0.45, 0.8] }, note: "Jupiter-4 sub-family: sub off, RES up, the filter swells in, ensemble as chorus II" },
     ],
     brass: [
       { name: "Juno brass", w: 30, base: BRASS, range: { fA: [0.03, 0.08], cutoffEnv: [2500, 3500], fS: [0.35, 0.55] },
         note: "saw, filter attack swells the note, chorus I" },
-      { name: "plain synth brass", w: 20, base: Object.assign({}, BRASS, { fA: 0.07, cutoffBase: 320, chorus: false }), range: { fA: [0.05, 0.1], cutoffBase: [280, 380] },
-        note: "the same with the chorus off: drier, more direct" },
       { name: "bright brass stab", w: 20, base: Object.assign({}, BRASS, { cutoffBase: 450, cutoffEnv: 4500, filterQ: 1.6, fA: 0.02, fD: 0.2, fS: 0.3, a: 0.01, d: 0.15, s: 0.5, r: 0.12 }),
         range: { cutoffEnv: [3800, 5200], fD: [0.15, 0.26] }, note: "fast attack, big env: the horn-section stab" },
       { name: "soft horn section, chorus II", w: 15, base: Object.assign({}, BRASS, { subLevel: 0.2, cutoffBase: 280, cutoffEnv: 2000, filterQ: 0.9, fA: 0.12, fD: 0.4, fS: 0.6, a: 0.08, d: 0.3, s: 0.8, r: 0.25, chorusMode: 2 }),
         range: { fA: [0.09, 0.16], cutoffEnv: [1600, 2400] }, note: "slow swell, round, chorus II" },
       { name: "sub brass", w: 10, base: Object.assign({}, BRASS, { subLevel: 0.7, cutoffBase: 260, cutoffEnv: 2400, filterQ: 1.4, fA: 0.04, fD: 0.25, fS: 0.4, a: 0.02, d: 0.2, s: 0.6, r: 0.15, chorus: false }),
         range: { subLevel: [0.6, 0.8], cutoffEnv: [2100, 2750] }, note: "sub up, low brass" },
+      { name: "Phase Brass", w: 10, base: Object.assign({}, BRASS, { saw: 0.4, pulse: 1, pw: 0.5, pwm: 0.55, lfoRate: 0.9, subLevel: 0.2, cutoffBase: 340, cutoffEnv: 2800, fA: 0.06, fD: 0.3, fS: 0.5, a: 0.03, d: 0.2, s: 0.75, r: 0.2 }),
+        range: { pwm: [0.4, 0.7], lfoRate: [0.6, 1.3], fA: [0.04, 0.09] }, note: "the cassette bank's Phase Brass: PWM brass, the pulse phasing under the swell" },
     ],
     stab: [
       { name: "Juno stab", w: 30, base: PATCH.stab, range: { cutoffEnv: [3600, 4800], fD: [0.11, 0.17], filterQ: [1.7, 2.3] },
         note: "the ORCH5 homage: instant attack, hard decay, dry" },
-      { name: "chord hit, chorus I", w: 20, base: from("stab", { chorus: true, cutoffBase: 450, fD: 0.18 }), range: { cutoffEnv: [3600, 4800], fD: [0.14, 0.22] },
-        note: "the stab with the chorus on" },
       { name: "resonant zap stab", w: 12, base: from("stab", { filterQ: 6.0, cutoffBase: 300, cutoffEnv: 5200, fD: 0.08, fS: 0.05, d: 0.1, s: 0.15 }),
         range: { filterQ: [5, 7], fD: [0.06, 0.11] }, note: "RES high, env fast: the zap" },
       { name: "square stab, HPF up", w: 14, base: from("stab", { saw: 0, pulse: 1, pw: 0.5, hpf: 250, subLevel: 0.2, cutoffBase: 600, cutoffEnv: 3000 }),
         range: { pw: [0.4, 0.5], cutoffEnv: [2500, 3600] }, note: "hollow, thin stab" },
       { name: "dark thud stab", w: 12, base: from("stab", { subLevel: 0.7, cutoffBase: 250, cutoffEnv: 1800, filterQ: 1.2, fD: 0.12 }),
         range: { cutoffEnv: [1500, 2150], subLevel: [0.6, 0.8] }, note: "sub up, filter down: the hip-hop chord thud" },
+      { name: "Jupiter-4 poly stab", w: 6, base: from("stab", { subLevel: 0, cutoffBase: 420, cutoffEnv: 4000, filterQ: 2.8, fD: 0.12, fS: 0.15, d: 0.14, s: 0.3, r: 0.18, chorus: true, chorusMode: 2 }),
+        range: { cutoffEnv: [3400, 4600], fD: [0.09, 0.15] }, note: "Jupiter-4 sub-family: sub off, RES up, ensemble as chorus II" },
     ],
     bass: [
       { name: "Juno bass", w: 34, base: PATCH.bass, range: { cutoffBase: [190, 260], cutoffEnv: [1150, 1700], fD: [0.1, 0.15] },
@@ -1278,6 +1293,8 @@
         range: { cutoffBase: [150, 210], subLevel: [0.55, 0.75] }, note: "filter down, sustain up" },
       { name: "funk pluck bass, KYBD up", w: 14, base: from("bass", { kbdTrack: 0.5, cutoffBase: 260, cutoffEnv: 1800, filterQ: 1.8, fD: 0.1, fS: 0.15, d: 0.12, s: 0.45 }),
         range: { kbdTrack: [0.35, 0.65], fD: [0.08, 0.13] }, note: "keyboard tracking half up: high notes brighter" },
+      { name: "Jupiter-6 bass", w: 6, base: from("bass", { saw: 0.8, pulse: 0.6, pw: 0.3, subLevel: 0.35, kbdTrack: 0.3, cutoffBase: 200, cutoffEnv: 1700, filterQ: 1.6, fA: 0.002, fD: 0.14, fS: 0.2, a: 0.002, d: 0.14, s: 0.5, r: 0.07 }),
+        range: { cutoffEnv: [1400, 2100], pw: [0.25, 0.35] }, note: "Jupiter-6 sub-family: its second DCO is the pulse beside the saw (one DCO a voice here)" },
     ],
     sub: [
       { name: "Juno sub", w: 40, base: PATCH.sub, range: { cutoffBase: [85, 110], r: [0.24, 0.38] }, note: "the 808-lineage sub" },
@@ -1297,6 +1314,10 @@
         note: "RES up: the squelchy sequence" },
       { name: "soft bell arp, KYBD up", w: 12, base: from("arp", { saw: 0.4, pulse: 0.8, pw: 0.2, hpf: 300, kbdTrack: 0.5, cutoffBase: 1000, cutoffEnv: 2000, d: 0.2, s: 0.2, r: 0.25, chorusMode: 2 }),
         range: { pw: [0.15, 0.28], r: [0.18, 0.35] }, note: "narrow pulse, HPF, chorus II: a soft bell" },
+      { name: "celesta", w: 6, base: from("arp", { saw: 0, pulse: 1, pw: 0.5, subLevel: 0, hpf: 500, kbdTrack: 0.6, cutoffBase: 1400, cutoffEnv: 2500, filterQ: 1.0, fA: 0.001, fD: 0.25, fS: 0, a: 0.001, d: 0.9, s: 0, r: 0.6 }),
+        range: { d: [0.7, 1.1], cutoffBase: [1200, 1700] }, note: "the cassette bank's Celesta: square, HPF 3, a long bell decay to nothing, chorus I" },
+      { name: "synth harp strum", w: 5, base: from("arp", { saw: 0.8, pulse: 0.5, pw: 0.4, subLevel: 0.1, hpf: 120, kbdTrack: 0.4, cutoffBase: 500, cutoffEnv: 3000, filterQ: 1.1, fA: 0.002, fD: 0.35, fS: 0.05, a: 0.002, d: 0.8, s: 0, r: 0.7, chorusMode: 2 }),
+        range: { fD: [0.28, 0.45], r: [0.5, 0.9] }, note: "the cassette bank's Synthesizer Harp: plucked, ringing, chorus II" },
     ],
     lead: [
       { name: "Juno lead", w: 26, base: PATCH.lead, range: { cutoffBase: [540, 720], cutoffEnv: [2500, 3500], filterQ: [1.3, 1.9] }, note: "the house lead" },
@@ -1316,6 +1337,219 @@
   };
   for (const role in U.JUNO_BOOK) for (const a of U.JUNO_BOOK[role]) a.role = role;
 
+  // THE TWO COLUMNS (2026-10-31, Asana 1220084766500650; the rack doc's "The
+  // patch books"). Neither moves a draw or a sample: the draw still reads w,
+  // range and role above. They are what the lock-free draw will read.
+  // roles: how well the patch serves each of seven parts, 0 to 1. bass (bass
+  // and sub lines), chords (held voicings), pad (the bed under a section),
+  // arpeggio (arp, counter, the motor), lead (hook, line, solo), color
+  // (section hits, brass offbeats, effects), comp (rhythmic chord comping).
+  // ref: which of the hundred carry the sound, from the census (parts.json)
+  // and the dossier, never from memory: [{ track, player, chain, often }], or
+  // "listen" where the record cannot say. A stand-in says so in its chain.
+  const R = (bass, chords, pad, arpeggio, lead, color, comp) => ({ bass, chords, pad, arpeggio, lead, color, comp });
+  U.JUNO_BOOK_ROLES = {
+    "Juno comp": R(0.1, 0.9, 0.5, 0.4, 0.2, 0.4, 0.9),
+    "chorus I pluck comp": R(0.1, 0.5, 0.1, 0.6, 0.2, 0.5, 1),
+    "square comp": R(0.1, 0.7, 0.4, 0.4, 0.3, 0.4, 0.8),
+    "PWM comp, chorus II": R(0, 0.9, 0.7, 0.3, 0.2, 0.3, 0.8),
+    "clav-style comp, HPF up": R(0.1, 0.2, 0, 0.5, 0.2, 0.5, 1),
+    "resonant funk comp": R(0.2, 0.3, 0, 0.5, 0.3, 0.6, 0.9),
+    "soft keys comp": R(0, 0.9, 0.5, 0.2, 0.2, 0.2, 0.7),
+    "chorus II organ": R(0, 0.9, 0.6, 0.1, 0.2, 0.3, 0.8),
+    "chorus I+II organ": R(0, 0.8, 0.6, 0.1, 0.2, 0.4, 0.7),
+    "percussive organ, chorus I": R(0, 0.6, 0.2, 0.3, 0.2, 0.4, 0.9),
+    "reed organ, HPF up": R(0, 0.8, 0.5, 0.1, 0.3, 0.3, 0.6),
+    "Juno pad": R(0, 0.7, 1, 0, 0, 0.2, 0.2),
+    "Juno strings": R(0, 0.8, 0.9, 0, 0.3, 0.3, 0.2),
+    "PWM strings": R(0, 0.8, 0.9, 0, 0.2, 0.3, 0.2),
+    "slow sweep pad": R(0, 0.4, 0.9, 0, 0, 0.5, 0),
+    "airy pad, chorus I+II": R(0, 0.5, 0.8, 0, 0, 0.4, 0.1),
+    "choir pad": R(0, 0.5, 0.8, 0, 0.2, 0.5, 0),
+    "Juno brass": R(0, 0.6, 0.3, 0, 0.4, 0.9, 0.6),
+    "bright brass stab": R(0, 0.3, 0, 0, 0.2, 1, 0.7),
+    "soft horn section, chorus II": R(0, 0.7, 0.5, 0, 0.3, 0.7, 0.4),
+    "sub brass": R(0.3, 0.4, 0.1, 0, 0.1, 0.8, 0.5),
+    "Juno stab": R(0, 0.1, 0, 0.1, 0, 1, 0.7),
+    "resonant zap stab": R(0, 0, 0, 0.2, 0.1, 0.9, 0.4),
+    "square stab, HPF up": R(0, 0.1, 0, 0.2, 0, 0.8, 0.7),
+    "dark thud stab": R(0.2, 0.2, 0, 0, 0, 0.8, 0.6),
+    "Juno bass": R(1, 0, 0, 0.4, 0.1, 0, 0),
+    "square bass": R(0.9, 0, 0, 0.3, 0.1, 0, 0),
+    "resonant pluck bass": R(0.9, 0, 0, 0.5, 0.2, 0.1, 0),
+    "round bass": R(1, 0, 0, 0.1, 0, 0, 0),
+    "funk pluck bass, KYBD up": R(1, 0, 0, 0.4, 0.2, 0, 0.1),
+    "Juno sub": R(1, 0, 0, 0, 0, 0, 0),
+    "square sub": R(0.9, 0, 0, 0, 0, 0, 0),
+    "long sub": R(1, 0, 0.1, 0, 0, 0, 0),
+    "punchy sub": R(1, 0, 0, 0.1, 0, 0.1, 0),
+    "Juno arp": R(0.1, 0, 0, 1, 0.3, 0.4, 0.4),
+    "chorus II blip arp": R(0, 0, 0, 1, 0.2, 0.4, 0.3),
+    "square arp": R(0.1, 0, 0, 0.9, 0.4, 0.3, 0.3),
+    "resonant arp": R(0.3, 0, 0, 0.9, 0.3, 0.5, 0.2),
+    "soft bell arp, KYBD up": R(0, 0.2, 0.1, 0.8, 0.4, 0.6, 0.2),
+    "Juno lead": R(0, 0.2, 0.1, 0.3, 1, 0.3, 0),
+    "resonant sweep lead": R(0, 0, 0, 0.2, 0.9, 0.5, 0),
+    "square lead, delayed vibrato": R(0, 0, 0, 0.3, 1, 0.3, 0),
+    "PWM lead": R(0, 0.3, 0.3, 0.2, 0.9, 0.3, 0.1),
+    "bright saw lead, vibrato": R(0, 0, 0, 0.3, 1, 0.4, 0),
+    "flute lead": R(0, 0, 0.2, 0.2, 0.9, 0.4, 0),
+    "mellow lead, chorus I+II": R(0, 0.2, 0.2, 0.2, 0.8, 0.2, 0),
+    "pulse keys, chorus off": R(0.2, 0.4, 0, 0.6, 0.4, 0.4, 1),
+    "mellow piano": R(0, 0.8, 0.2, 0.4, 0.3, 0.5, 0.7),
+    "Jupiter-4 poly comp": R(0, 0.9, 0.4, 0.4, 0.3, 0.4, 0.9),
+    "string ensemble, chorus I+II": R(0, 0.8, 1, 0, 0.4, 0.3, 0.1),
+    "Vox Humana stand-in": R(0, 0.8, 0.9, 0, 0.4, 0.4, 0.1),
+    "Jupiter-4 pad, RES up": R(0, 0.6, 0.9, 0, 0.1, 0.4, 0.1),
+    "Phase Brass": R(0, 0.7, 0.4, 0, 0.4, 0.9, 0.6),
+    "Jupiter-4 poly stab": R(0, 0.2, 0, 0.1, 0, 1, 0.8),
+    "Jupiter-6 bass": R(1, 0, 0, 0.5, 0.2, 0.1, 0),
+    "celesta": R(0, 0.3, 0.1, 0.9, 0.5, 0.7, 0.2),
+    "synth harp strum": R(0, 0.4, 0.2, 0.9, 0.3, 0.7, 0.3),
+  };
+  // BEGIN JUNO_BOOK_REFS (generated: files/unison/patch-books-2026-10-31/gen-refs.mjs)
+  U.JUNO_BOOK_REFS = {
+    "Juno comp": [
+      { track: 5, player: "Richard H. Kirk", chain: "Juno-60 (RECORD)", often: "carrying, chords part" },
+      { track: 14, player: "Dave Stewart", chain: "Juno-60 / Oberheim (census album)", often: "carrying, chords part" },
+      { track: 17, player: "Dave Stewart", chain: "Juno-60 / Voyetra Eight (census album)", often: "carrying, chords part" },
+      { track: 18, player: "Dave Stewart", chain: "Juno-60 / Voyetra Eight (census album)", often: "carrying, chords part" },
+      { track: 20, player: "Dave Stewart", chain: "Juno-60 / Voyetra Eight (census album)", often: "carrying, chords part" },
+    ],
+    "chorus I pluck comp": "listen",
+    "square comp": "listen",
+    "PWM comp, chorus II": "listen",
+    "clav-style comp, HPF up": "listen",
+    "resonant funk comp": "listen",
+    "soft keys comp": "listen",
+    "pulse keys, chorus off": [
+      { track: 80, player: "George Michael", chain: "Juno-60 (RECORD)", often: "carrying, chords part" },
+    ],
+    "mellow piano": "listen",
+    "Jupiter-4 poly comp": [
+      { track: 9, player: "Vince Clarke", chain: "Jupiter-4 / Yamaha CS5 (PERIOD); stand-in on the Juno; Clarke's Jupiter-4 is PERIOD; Gore's CS5 shares the part", often: "carrying, chords part" },
+      { track: 22, player: "The Human League, Martin Rushent producing", chain: "Jupiter-4 / Korg Delta / System-700 (census album); stand-in on the Juno", often: "carrying, chords part" },
+      { track: 23, player: "The Human League, Martin Rushent producing", chain: "Roland poly (printed \"Roland 800\") (census track); stand-in on the Juno", often: "carrying, chords part" },
+      { track: 30, player: "Martin Rushent (League Unlimited Orchestra remix)", chain: "Jupiter-4 / Korg Delta / System-700 (census album); stand-in on the Juno", often: "carrying, chords part" },
+      { track: 82, player: "Vince Clarke", chain: "Jupiter-4 (census album); stand-in on the Juno", often: "carrying, chords part" },
+      { track: 83, player: "Vince Clarke", chain: "Jupiter-4 (census album); stand-in on the Juno", often: "carrying, chords part" },
+      { track: 84, player: "Vince Clarke", chain: "Jupiter-4 (census album); stand-in on the Juno", often: "carrying, chords part" },
+      { track: 85, player: "Vince Clarke", chain: "Jupiter-4 (census album); stand-in on the Juno", often: "carrying, chords part" },
+      { track: 86, player: "Vince Clarke", chain: "Jupiter-4 (census album); stand-in on the Juno", often: "carrying, chords part" },
+      { track: 87, player: "Vince Clarke", chain: "Jupiter-4 (census album); stand-in on the Juno", often: "carrying, chords part" },
+      { track: 88, player: "Vince Clarke", chain: "Jupiter-4 (census album); stand-in on the Juno", often: "carrying, chords part" },
+      { track: 90, player: "Vince Clarke", chain: "Jupiter-4 (census track); stand-in on the Juno", often: "carrying, chords part" },
+    ],
+    "chorus II organ": [
+      { track: 73, player: "not named", chain: "organ (census track); stand-in on the Juno", often: "carrying, chords part" },
+    ],
+    "chorus I+II organ": [
+      { track: 100, player: "Steve Winwood", chain: "Hammond B-3 (census track); stand-in on the Juno", often: "carrying, color part" },
+    ],
+    "percussive organ, chorus I": [
+      { track: 72, player: "not named", chain: "organ bubble (census track); stand-in on the Juno", often: "carrying, chords part" },
+    ],
+    "reed organ, HPF up": "listen",
+    "Juno pad": [
+      { track: 13, player: "Dave Stewart", chain: "Juno-60 / Oberheim pads (census album)", often: "carrying, chords part" },
+      { track: 15, player: "Dave Stewart", chain: "Juno-60 / Oberheim pads (census album)", often: "carrying, chords part" },
+      { track: 19, player: "Dave Stewart", chain: "Juno pads (census album)", often: "carrying, chords part" },
+    ],
+    "Juno strings": [
+      { track: 17, player: "Michael Kamen (orchestra)", chain: "orchestra, trumpet (Kamen) (census album); stand-in on the Juno", often: "not carrying, color part" },
+      { track: 21, player: "Gary Numan", chain: "viola (census album); stand-in on the Juno; Polymoog credited at album level; Vox Humana not established", often: "not carrying, color part" },
+      { track: 67, player: "not named", chain: "violin, guitar (census album); stand-in on the Juno", often: "not carrying, color part" },
+    ],
+    "PWM strings": "listen",
+    "slow sweep pad": "listen",
+    "airy pad, chorus I+II": "listen",
+    "choir pad": [
+      { track: 40, player: "Naked Eyes, Tony Mansfield producing", chain: "VP-330 choir-strings (census track); stand-in on the Juno", often: "carrying, color part" },
+      { track: 45, player: "not named", chain: "Emulator choir / strings (ear); stand-in on the Juno", often: "carrying, chords part" },
+    ],
+    "string ensemble, chorus I+II": [
+      { track: 48, player: "not named", chain: "Mellotron / organ (census track); stand-in on the Juno", often: "carrying, chords part" },
+      { track: 96, player: "not named", chain: "Orchestron / string machine (census album); stand-in on the Juno", often: "carrying, chords part" },
+    ],
+    "Vox Humana stand-in": [
+      { track: 11, player: "not named", chain: "Polymoog (census track); stand-in on the Juno; Polymoog credited; preset not established", often: "carrying, chords part" },
+      { track: 21, player: "Gary Numan", chain: "Polymoog (census album); stand-in on the Juno; Polymoog credited at album level; Vox Humana not established", often: "carrying, chords part" },
+      { track: 71, player: "Gary Numan", chain: "Polymoog (census track); stand-in on the Juno; Polymoog credited, variant unresolved; Vox Humana not established (dossier)", often: "carrying, chords part" },
+    ],
+    "Jupiter-4 pad, RES up": [
+      { track: 82, player: "Vince Clarke", chain: "Jupiter-4 (census album); stand-in on the Juno", often: "carrying, chords part" },
+      { track: 83, player: "Vince Clarke", chain: "Jupiter-4 (census album); stand-in on the Juno", often: "carrying, chords part" },
+      { track: 84, player: "Vince Clarke", chain: "Jupiter-4 (census album); stand-in on the Juno", often: "carrying, chords part" },
+      { track: 85, player: "Vince Clarke", chain: "Jupiter-4 (census album); stand-in on the Juno", often: "carrying, chords part" },
+      { track: 86, player: "Vince Clarke", chain: "Jupiter-4 (census album); stand-in on the Juno", often: "carrying, chords part" },
+      { track: 87, player: "Vince Clarke", chain: "Jupiter-4 (census album); stand-in on the Juno", often: "carrying, chords part" },
+      { track: 88, player: "Vince Clarke", chain: "Jupiter-4 (census album); stand-in on the Juno", often: "carrying, chords part" },
+    ],
+    "Juno brass": [
+      { track: 41, player: "Naked Eyes, Tony Mansfield producing", chain: "PPG Wave 2.2 brass (census track); stand-in on the Juno", often: "carrying, chords part" },
+    ],
+    "bright brass stab": "listen",
+    "soft horn section, chorus II": "listen",
+    "sub brass": "listen",
+    "Phase Brass": "listen",
+    "Juno stab": [
+      { track: 1, player: "not named", chain: "sampled orchestral hits (PERIOD); stand-in on the Juno", often: "carrying, color part" },
+      { track: 40, player: "Naked Eyes, Tony Mansfield producing", chain: "Fairlight orchestral hits and bells (census album); stand-in on the Juno", often: "carrying, color part" },
+    ],
+    "resonant zap stab": "listen",
+    "square stab, HPF up": "listen",
+    "dark thud stab": "listen",
+    "Jupiter-4 poly stab": [
+      { track: 29, player: "Martin Rushent (League Unlimited Orchestra remix)", chain: "synth stabs (census album); stand-in on the Juno", often: "carrying, chords part" },
+    ],
+    "Juno bass": [
+      { track: 3, player: "not named", chain: "sequenced synth bass (RECORD); stand-in on the Juno", often: "carrying, bass part" },
+      { track: 40, player: "Naked Eyes, Tony Mansfield producing", chain: "Prophet bass (census album); stand-in on the Juno", often: "carrying, bass part" },
+      { track: 41, player: "Naked Eyes, Tony Mansfield producing", chain: "Prophet bass (census album); stand-in on the Juno", often: "carrying, bass part" },
+      { track: 42, player: "Naked Eyes, Tony Mansfield producing", chain: "Prophet bass (census album); stand-in on the Juno", often: "carrying, bass part" },
+      { track: 80, player: "George Michael", chain: "Juno-60 bass (RECORD)", often: "carrying, bass part" },
+      { track: 93, player: "Ed Fletcher", chain: "synth bass (OPEN); stand-in on the Juno", often: "carrying, bass part" },
+    ],
+    "square bass": "listen",
+    "resonant pluck bass": [
+      { track: 13, player: "Dave Stewart", chain: "Roland SH bass (census album)", often: "carrying, bass part" },
+      { track: 15, player: "Dave Stewart", chain: "sequenced SH bass (census album)", often: "carrying, bass part" },
+      { track: 16, player: "Dave Stewart", chain: "SH-101 sequence (RECORD)", often: "carrying, bass part" },
+    ],
+    "round bass": "listen",
+    "funk pluck bass, KYBD up": "listen",
+    "Jupiter-6 bass": [
+      { track: 50, player: "Bobby Orlando", chain: "Jupiter-6 bass (census track); stand-in on the Juno; census track; the dossier leaves the original session's models unresolved", often: "carrying, bass part" },
+    ],
+    "Juno sub": "listen",
+    "square sub": "listen",
+    "long sub": "listen",
+    "punchy sub": "listen",
+    "Juno arp": "listen",
+    "chorus II blip arp": "listen",
+    "square arp": "listen",
+    "resonant arp": "listen",
+    "soft bell arp, KYBD up": "listen",
+    "celesta": "listen",
+    "synth harp strum": [
+      { track: 15, player: "Dave Stewart", chain: "Omnichord strum (census track)", often: "not carrying, color part" },
+    ],
+    "Juno lead": [
+      { track: 80, player: "George Michael", chain: "Juno-60 hook (RECORD)", often: "carrying, lead part" },
+    ],
+    "resonant sweep lead": "listen",
+    "square lead, delayed vibrato": "listen",
+    "PWM lead": "listen",
+    "bright saw lead, vibrato": "listen",
+    "flute lead": "listen",
+    "mellow lead, chorus I+II": "listen",
+  };
+  // END JUNO_BOOK_REFS
+  for (const role in U.JUNO_BOOK) for (const a of U.JUNO_BOOK[role]) {
+    if (U.JUNO_BOOK_ROLES[a.name]) a.roles = U.JUNO_BOOK_ROLES[a.name];
+    if (U.JUNO_BOOK_REFS[a.name]) a.ref = U.JUNO_BOOK_REFS[a.name];
+  }
+
   // Measured loudness offsets, dB (harness/juno-book-level.mjs, data in
   // analysis/fits/juno-book-level-2026-10-05.json). Kept as one table so a
   // re-measure is one paste. Absent = 0.
@@ -1325,11 +1559,9 @@
     "round bass": -3.3,
     "funk pluck bass, KYBD up": 0.2,
     "Juno brass": -4.6,
-    "plain synth brass": -4.1,
     "bright brass stab": -2.8,
     "soft horn section, chorus II": -5.0,
     "sub brass": -6.9,
-    "chord hit, chorus I": -0.9,
     "resonant zap stab": 1.1,
     "square stab, HPF up": -4.4,
     "dark thud stab": -1.7,
@@ -1351,7 +1583,6 @@
     "reed organ, HPF up": -5.0,
     "Juno strings": 0.4,
     "PWM strings": -3.8,
-    "warm pad, chorus II": -0.7,
     "slow sweep pad": -1.6,
     "airy pad, chorus I+II": -2.8,
     "choir pad": -5.2,
@@ -1362,13 +1593,25 @@
     "square arp": -5.7,
     "resonant arp": -0.9,
     "soft bell arp, KYBD up": -8.1,
+    // the 2026-10-31 additions: analysis/fits/juno-book-level-2026-10-31-new.json
+    "pulse keys, chorus off": -1.9,
+    "mellow piano": 0.0,
+    "Jupiter-4 poly comp": 0.8,
+    "string ensemble, chorus I+II": -1.0,
+    "Vox Humana stand-in": -6.6,
+    "Jupiter-4 pad, RES up": 0.5,
+    "Phase Brass": -9.6,
+    "Jupiter-4 poly stab": 1.3,
+    "Jupiter-6 bass": -1.5,
+    "celesta": -9.6,
+    "synth harp strum": -6.7,
   };
 
   // Lane bias: weight multipliers on a few archetypes per lane. Small on
   // purpose; every archetype stays drawable on every lane.
   U.JUNO_LANE_BIAS = {
     funk: { "clav-style comp, HPF up": 2, "resonant funk comp": 2, "chorus II organ": 1.5, "funk pluck bass, KYBD up": 2, "Juno brass": 1.5 },
-    synthRnB: { "soft keys comp": 2, "warm pad, chorus II": 1.5, "PWM strings": 1.5, "resonant sweep lead": 1.5, "long sub": 1.5 },
+    synthRnB: { "soft keys comp": 2, "PWM strings": 1.5, "resonant sweep lead": 1.5, "long sub": 1.5 },
     synthPop: { "square arp": 1.5, "chorus II blip arp": 1.5, "Juno strings": 1.5, "bright brass stab": 1.5 },
     newWave: { "PWM comp, chorus II": 1.5, "square lead, delayed vibrato": 1.5, "resonant zap stab": 1.5, "bright saw lead, vibrato": 1.5 },
     earlyHipHop: { "punchy sub": 2, "dark thud stab": 1.5, "Juno stab": 1.5, "square bass": 1.5 },
@@ -1654,7 +1897,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/minimoog.js @ 33831c7 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/minimoog.js @ e0bb664 — verbatim from jeffdavis-studio/unison-engine ===== */
 // minimoog.js — Minimoog Model D-lineage mono voice, zero dependencies.
 //
 // THE MONO BASS LANE (build order 808 → Juno → Minimoog → …; it also absorbs
@@ -2196,7 +2439,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/obxa.js @ 33831c7 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/obxa.js @ e0bb664 — verbatim from jeffdavis-studio/unison-engine ===== */
 // obxa.js — Oberheim OB-Xa-lineage poly voice, zero dependencies.
 //
 // THE BRASS/PAD POLY LANE (build order 808 → Juno → Minimoog → OB-Xa → …).
@@ -2733,7 +2976,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/fm.js @ 33831c7 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/fm.js @ e0bb664 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fm.js — six-operator FM keys voice (the DX7 lineage), zero dependencies.
 //
 // THE FM LANE (build order 808 → Juno → Minimoog → OB-Xa → Linn → FM).
@@ -3406,7 +3649,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/bassguitar.js @ 33831c7 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/bassguitar.js @ e0bb664 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassguitar.js — electric bass guitar, the first session player of the human
 // rack (Rack 2), zero dependencies.
 //
@@ -3995,7 +4238,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/rhythmguitar.js @ 33831c7 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/rhythmguitar.js @ e0bb664 — verbatim from jeffdavis-studio/unison-engine ===== */
 // rhythmguitar.js — clean electric rhythm guitar, the fourth and last stop of
 // the human rack (Rack 2), zero dependencies.
 //
@@ -4644,7 +4887,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/tr808.js @ 33831c7 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/tr808.js @ e0bb664 — verbatim from jeffdavis-studio/unison-engine ===== */
 // tr808.js — THE MACHINE. A TR-808-lineage core voice: bass drum, snare,
 // closed hat, open hat, each with a front panel the token actually turns.
 //
@@ -5928,7 +6171,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/linn.js @ 33831c7 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/linn.js @ e0bb664 — verbatim from jeffdavis-studio/unison-engine ===== */
 // linn.js — THE STUDIO MACHINE. A Linn-family (LM-1 / LinnDrum lineage)
 // drum computer: the new wave / synth-pop / 80s R&B kit.
 //
@@ -6685,7 +6928,7 @@
   U._linn = { burn, play, vca, roms, V, EPROM_HZ, RECON_HZ, SR, TOM_MID_CLOCK };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drums.js @ 33831c7 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drums.js @ e0bb664 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drums.js — the drum machine: 808/LM-1-flavor voices, synthesized at runtime
 // into short AudioBuffers, played back as one-shots.
 //
@@ -7014,7 +7257,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/books.js @ 33831c7 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/books.js @ e0bb664 — verbatim from jeffdavis-studio/unison-engine ===== */
 // books.js — Pattern Books v1, as data.
 //
 // This file IS the document: "Unison — Pattern Books v1 (draft)" (Morgan,
@@ -7645,7 +7888,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/bassplayer.js @ 33831c7 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/bassplayer.js @ e0bb664 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassplayer.js — the PERFORMANCE half of the bass guitar: a session player.
 //
 // Rack 2's rule (kb/projects/unison.md, 2026-07-11): every human instrument is
@@ -7897,7 +8140,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/gtrplayer.js @ 33831c7 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/gtrplayer.js @ e0bb664 — verbatim from jeffdavis-studio/unison-engine ===== */
 // gtrplayer.js — the PERFORMANCE half of the rhythm guitar: a session
 // guitarist on the rhythmGtr strip.
 //
@@ -8097,7 +8340,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/fmplayer.js @ 33831c7 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/fmplayer.js @ e0bb664 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fmplayer.js — the PERFORMANCE half of the FM keys: a session keyboard
 // player on the FM chord strips (compA's tine EP, colour's glass and brass).
 //
@@ -8238,7 +8481,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/testPhrase.js @ 33831c7 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/testPhrase.js @ e0bb664 — verbatim from jeffdavis-studio/unison-engine ===== */
 // testPhrase.js — deterministic 8-bar test phrase, ported from the bake-off
 // (phrase.js) onto the engine's canonical PRNG (core/prng.js).
 //
@@ -8332,7 +8575,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/form.js @ 33831c7 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/form.js @ e0bb664 — verbatim from jeffdavis-studio/unison-engine ===== */
 // form.js — the song's form: the book of returns (2026-10-30, Asana
 // 1220073468300418; design files/unison/structure-design-2026-10-30 in the
 // morgan repo, DESIGN.md + draw.py, transcribed here as written).
@@ -8653,7 +8896,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/session.js @ 33831c7 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/session.js @ e0bb664 — verbatim from jeffdavis-studio/unison-engine ===== */
 // session.js — the session sheet and the arrangement realizer.
 //
 // Two tiers, in this order, each on its own stream (core/prng.js):
@@ -9906,7 +10149,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/render/renderer.js @ 33831c7 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/render/renderer.js @ e0bb664 — verbatim from jeffdavis-studio/unison-engine ===== */
 // renderer.js — song assembly + the render pipeline (Technical Architecture
 // v1.2 playback model): live-first, with (a) a cheap analysis pre-render for
 // verification/metrics and (b) an on-demand full OfflineAudioContext render
