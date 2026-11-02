@@ -157,10 +157,10 @@
 <div id="bars" class="row"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><div id="status"></div></div>
 <div id="layers"></div>
 <div id="add" class="row"><div class="lbl">Add a layer<button id="palRnd" title="add a random instrument (one you don't have yet, while any are left)">Random</button></div><div id="pal"></div></div>
-<footer title="engine @f565e4b · built 2026-11-01">Unison jam &middot; every sound is synthesized in this page by the engine at f565e4b</footer>
+<footer title="engine @c8ca5c1 · built 2026-11-01">Unison jam &middot; every sound is synthesized in this page by the engine at c8ca5c1</footer>
 
 <script>
-/* ===== src/core/prng.js @ f565e4b — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/prng.js @ c8ca5c1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
 // token hash, consumed in canonical draw order (Technical Architecture v1.2).
 //
@@ -233,7 +233,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/core/mix.js @ f565e4b — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/mix.js @ c8ca5c1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // mix.js — the fan-in ≤2 summing rule, as a primitive.
 //
 // Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
@@ -402,7 +402,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/desk/desk.js @ f565e4b — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/desk/desk.js @ c8ca5c1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // desk.js — the 24-track desk as a running audio graph.
 //
 // The desk is the data structure, not a metaphor (Composition Brief 2 / Tech
@@ -805,7 +805,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/production.js @ f565e4b — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/production.js @ c8ca5c1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // production.js — the production room, v0.
 //
 // PLACEMENT DECISION (Morgan's call, ratified by Jeff 2026-08-03). Production
@@ -1100,7 +1100,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/juno.js @ f565e4b — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/juno.js @ c8ca5c1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // juno.js — Juno-60-flavor poly voice, raw Web Audio, zero dependencies.
 // Ported from the 2026-07-21 bake-off winner (voice-raw.js), restructured to
 // live behind a desk strip: U.createJuno(ctx, strip, patchName) builds its own
@@ -1632,43 +1632,24 @@
     return null;
   };
 
-  // Which book roles a strip draws from on this song, or null when the strip
-  // does not play the Juno (muted, or another instrument drawn on it).
+  // The role a strip plays the Juno in on this song (U.stripRole: bass,
+  // chords, comp, pad, arpeggio, lead, color), or null when the strip does
+  // not play the Juno (muted, or the role draw put another engine on it).
+  // Until 2026-11-01 (the lock) this returned the book keys a strip drew from.
   U.junoRolesFor = function (strip, sheet) {
-    if (sheet.mutes[strip]) return null;
-    const P = sheet.picks;
-    if (strip === "bass") return sheet.bassVoice === "juno" ? [P.bass.kind === "sub808" ? "sub" : "bass"] : null;
-    if (strip === "lead" || strip === "arp" || strip === "counter") {
-      if (sheet[strip + "Voice"] === "minimoog") return null;
-      return [strip === "lead" ? "lead" : "arp"];
-    }
-    if (sheet.polyVoice === "obxa" && !(strip === "pad" && sheet.padVoice !== "obxa")) return null;
-    if (sheet.polyVoice === "fm" && U.FM_FOR_STRIP[strip](P)) return null;
-    if (strip === "compA") return ["comp", "organ"];
-    if (strip === "pad") return ["pad"];
-    if (strip === "color") return [P.color.kind === "brassOffbeat" ? "brass" : "stab"];
-    return null;
+    if (sheet.mutes[strip] || !sheet.voices || sheet.voices[strip] !== "juno") return null;
+    return [U.stripRole(strip, sheet.picks)];
   };
 
-  // THE DRAW: sheet.junoPatches = { strip: { name, role, params } } for every
-  // strip that plays the Juno. Each strip reads its own fork of the hash,
-  // U.forkPrng(hash, "junoBook." + strip) — never the song stream — so a voice
-  // flip on one strip moves no other strip's patch. Per strip: the archetype
-  // (w × lane bias), then each ranged slider in the range's key order.
+  // THE DRAW: sheet.junoPatches = { strip: { engine, name, role (book key),
+  // part, params } } for every strip that plays the Juno. Since 2026-11-01
+  // the role draw's (session.js U.drawRolePatches): the Juno's whole book,
+  // gated and weighted by the strip's role, on the same per-strip fork,
+  // U.forkPrng(hash, "junoBook." + strip).
   U.JUNO_STRIPS = ["bass", "compA", "pad", "color", "arp", "lead", "counter"];
   U.drawJunoPatches = function (hash, sheet) {
-    const out = {}, bias = U.JUNO_LANE_BIAS[sheet.lane] || {};
-    for (const strip of U.JUNO_STRIPS) {
-      const roles = U.junoRolesFor(strip, sheet);
-      if (!roles) continue;
-      const list = [];
-      for (const role of roles) for (const a of U.JUNO_BOOK[role]) list.push({ a, w: a.w * (bias[a.name] || 1) });
-      const G = U.forkPrng(hash, "junoBook." + strip);
-      const a = U.pickWeighted(G, list).a;
-      const u = {};
-      for (const k in a.range) u[k] = G.r();
-      out[strip] = { name: a.name, role: a.role, params: U.resolveJunoArchetype(a, u) };
-    }
+    const all = U.drawRolePatches(hash, sheet), out = {};
+    for (const st in all) if (all[st].engine === "juno") out[st] = all[st];
     return out;
   };
 
@@ -1897,7 +1878,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/minimoog.js @ f565e4b — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/minimoog.js @ c8ca5c1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // minimoog.js — Minimoog Model D-lineage mono voice, zero dependencies.
 //
 // THE MONO BASS LANE (build order 808 → Juno → Minimoog → …; it also absorbs
@@ -2486,33 +2467,22 @@
     return null;
   };
 
-  // The book role a strip plays on this song, or null when the strip does not
-  // play the Minimoog (muted, or another voice drawn for it).
+  // The role a strip plays the Minimoog in on this song (U.stripRole), or
+  // null when the strip does not play the Minimoog. Until 2026-11-01 (the
+  // lock) this returned the book key (the bass family by pattern kind).
   U.MINIMOOG_STRIPS = ["bass", "lead", "counter", "arp"];
   U.minimoogRoleFor = function (strip, sheet) {
-    if (sheet.mutes[strip]) return null;
-    if (strip === "bass") return sheet.bassVoice === "minimoog" ? (U.MOOG_BASS_FOR_KIND[sheet.picks.bass.kind] || "round") : null;
-    return sheet[strip + "Voice"] === "minimoog" ? strip : null;
+    if (sheet.mutes[strip] || !sheet.voices || sheet.voices[strip] !== "minimoog") return null;
+    return U.stripRole(strip, sheet.picks);
   };
 
-  // THE DRAW: sheet.minimoogPatches = { strip: { name, role, params } } for
-  // every strip that plays the Minimoog. Each strip reads its own fork of the
-  // hash, U.forkPrng(hash, "minimoogBook." + strip) — never the song stream,
-  // no tier-1 draw — so one strip's patch never moves another's. Per strip:
-  // the archetype (w × lane bias), then each ranged knob in the range's key
-  // order.
+  // THE DRAW: sheet.minimoogPatches = { strip: { engine, name, role (book
+  // key), part, params } } for every strip that plays the Minimoog. Since
+  // 2026-11-01 the role draw's (session.js U.drawRolePatches) on the same
+  // per-strip fork, U.forkPrng(hash, "minimoogBook." + strip).
   U.drawMinimoogPatches = function (hash, sheet) {
-    const out = {}, bias = U.MINIMOOG_LANE_BIAS[sheet.lane] || {};
-    for (const strip of U.MINIMOOG_STRIPS) {
-      const role = U.minimoogRoleFor(strip, sheet);
-      if (!role) continue;
-      const list = U.MINIMOOG_BOOK[role].map((a) => ({ a, w: a.w * (bias[a.name] || 1) }));
-      const G = U.forkPrng(hash, "minimoogBook." + strip);
-      const a = U.pickWeighted(G, list).a;
-      const u = {};
-      for (const k in a.range) u[k] = G.r();
-      out[strip] = { name: a.name, role, params: U.resolveMinimoogArchetype(a, u) };
-    }
+    const all = U.drawRolePatches(hash, sheet), out = {};
+    for (const st in all) if (all[st].engine === "minimoog") out[st] = all[st];
     return out;
   };
 
@@ -2694,7 +2664,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/obxa.js @ f565e4b — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/obxa.js @ c8ca5c1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // obxa.js — Oberheim OB-Xa-lineage poly voice, zero dependencies.
 //
 // THE BRASS/PAD POLY LANE (build order 808 → Juno → Minimoog → OB-Xa → …).
@@ -3141,38 +3111,25 @@
     return null;
   };
 
-  // The book role a strip plays on this song, or null when the strip does not
-  // play the OB-Xa (muted, or the song's poly is the Juno or the FM).
-  U.OBXA_STRIPS = ["compA", "pad", "color"];
+  // The role a strip plays the OB-Xa in on this song (U.stripRole), or null
+  // when the strip does not play the OB-Xa (muted, or another engine drawn).
+  // Until 2026-11-01 (the lock) this returned the book key.
+  U.OBXA_STRIPS = ["bass", "compA", "pad", "arp", "lead", "counter", "color"];
   U.obxaRoleFor = function (strip, sheet) {
-    if (sheet.polyVoice !== "obxa" || sheet.mutes[strip]) return null;
-    if (strip === "compA") return "comp";
-    if (strip === "pad") return sheet.padVoice === "obxa" ? "pad" : null;
-    if (strip === "color") return sheet.picks.color.kind === "brassOffbeat" ? "brass" : "stab";
-    return null;
+    if (sheet.mutes[strip] || !sheet.voices || sheet.voices[strip] !== "obxa") return null;
+    return U.stripRole(strip, sheet.picks);
   };
 
-  // THE DRAW: sheet.obxaPatches = { strip: { name, role, params } } for every
-  // strip that plays the OB-Xa. Each strip reads its own fork of the hash,
-  // U.forkPrng(hash, "obxaBook." + strip) — never the song stream, no tier-1
-  // draw — so one strip's patch never moves another's. Per strip: the
-  // archetype (w × lane bias), then each ranged knob in the range's key order.
-  // ROLE LEAN (2026-10-27, stage 0; Jeff: the OB-Xa for brass, stabs and
-  // 2-pole comps): a weight multiplier on top of the lane bias. The 4-pole
-  // comps are kept but rare, so an OB comp is mostly the 2-pole chop.
+  // THE DRAW: sheet.obxaPatches = { strip: { engine, name, role (book key),
+  // part, params } } for every strip that plays the OB-Xa. Since 2026-11-01
+  // the role draw's (session.js U.drawRolePatches) on the same per-strip fork,
+  // U.forkPrng(hash, "obxaBook." + strip). ROLE LEAN (2026-10-27, stage 0;
+  // Jeff: the OB-Xa for brass, stabs and 2-pole comps): a weight multiplier on
+  // top of the lane bias, applied there. The 4-pole comps are kept but rare.
   U.OBXA_ROLE_LEAN = { "4-pole round comp": 0.35, "4-pole dark keys": 0.35 };
   U.drawObxaPatches = function (hash, sheet) {
-    const out = {}, bias = U.OBXA_LANE_BIAS[sheet.lane] || {};
-    for (const strip of U.OBXA_STRIPS) {
-      const role = U.obxaRoleFor(strip, sheet);
-      if (!role) continue;
-      const list = U.OBXA_BOOK[role].map((a) => ({ a, w: a.w * (bias[a.name] || 1) * (U.OBXA_ROLE_LEAN[a.name] || 1) }));
-      const G = U.forkPrng(hash, "obxaBook." + strip);
-      const a = U.pickWeighted(G, list).a;
-      const u = {};
-      for (const k in a.range) u[k] = G.r();
-      out[strip] = { name: a.name, role, params: U.resolveObxaArchetype(a, u) };
-    }
+    const all = U.drawRolePatches(hash, sheet), out = {};
+    for (const st in all) if (all[st].engine === "obxa") out[st] = all[st];
     return out;
   };
 
@@ -3426,7 +3383,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/fm.js @ f565e4b — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/fm.js @ c8ca5c1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fm.js — six-operator FM keys voice (the DX7 lineage), zero dependencies.
 //
 // THE FM LANE (build order 808 → Juno → Minimoog → OB-Xa → Linn → FM).
@@ -4119,11 +4076,14 @@
     "slap FM bass": 0.4, "wood bass": 4.1, "growl FM bass": 0.2, "round sub FM bass": -0.5,
     // slice 4, MEASURED 2026-11-01 (analysis/fits/fm-book-level-2026-11-01-new.json):
     // the ep and glass additions against the house tine EP / glass on their
-    // own strips' lines; strings, organ, wind, pluck and voice PROVISIONAL
-    // (no strip draws them yet): strings, organ and voice against the house
-    // tine EP on compA lines (strings and voice on the hold lines only), wind
-    // and pluck against the house glass on colour section-hit lines
-    // (harness/fm-book-level.mjs header). Re-measured when the lock comes out.
+    // own strips' lines; strings, organ and voice against the house tine EP
+    // on compA lines (strings and voice on the hold lines only), wind and
+    // pluck against the house glass on colour section-hit lines
+    // (harness/fm-book-level.mjs header). Checked on the strip that draws each
+    // most once the lock came out (slice 5, harness/lock-trim.mjs --all-arch:
+    // strings and voice on the pad, organ and pluck on compA, wind and pluck
+    // on colour): every archetype within 1 dB of its key's house, so the
+    // offsets stand; the strip trim (U.ENGINE_STRIP_TRIM_DB) carries the key.
     "hard FM piano": 3.8,
     "steel drum": 4.0, "harpsichord": 3.4,
     "bright FM strings": 0, "slow FM strings": 0.1,
@@ -4187,41 +4147,29 @@
     "bright brass, more feedback": "voiced: by ear to written targets (no real-hardware recording of it passed verification)",
     "muted horn": "voiced: by ear to written targets (no real-hardware recording of it passed verification)",
   };
-  U.FM_BOOK_NOTE = "<b>The patch book (October 6, extended November 1):</b> 37 patches. Four parts the songs play: eight electric pianos and keys (a harder FM piano added), eight glass, bell and mallet sounds (a steel drum and a harpsichord added), five brass and five basses, each level-matched, K-weighted, to the patch its part played before, on that part's real song lines, so the strip trims hold. Five new parts no song plays yet (two strings, two organs, a flute and an oboe, three plucked strings, two voices), level-matched for now against the house EP or glass on those strips' lines, re-measured when a song reaches them. Every keys patch keeps the narrow touch. The reference pack still has only a DX7 electric piano and DX7 bass notes (a new search on October 6 found no other real-hardware recording that passed its checks), so the house EP and bass are measured against the machine, their variants are scored against it, and glass, bells, mallets and brass are voiced by ear to written targets for attack, sustain, tail, brightness and how bell-like the tone is.";
+  U.FM_BOOK_NOTE = "<b>The patch book (October 6, extended November 1):</b> 37 patches. Four parts the songs play: eight electric pianos and keys (a harder FM piano added), eight glass, bell and mallet sounds (a steel drum and a harpsichord added), five brass and five basses, each level-matched, K-weighted, to the patch its part played before, on that part's real song lines, so the strip trims hold. Five new parts (two strings, two organs, a flute and an oboe, three plucked strings, two voices), level-matched against the house EP or glass and checked on the strips that draw them. Every keys patch keeps the narrow touch. The reference pack still has only a DX7 electric piano and DX7 bass notes (a new search on October 6 found no other real-hardware recording that passed its checks), so the house EP and bass are measured against the machine, their variants are scored against it, and glass, bells, mallets and brass are voiced by ear to written targets for attack, sustain, tail, brightness and how bell-like the tone is.";
 
   U.fmArchetype = function (name) {
     for (const role in U.FM_BOOK) for (const a of U.FM_BOOK[role]) if (a.name === name) return a;
     return null;
   };
 
-  // The book role a strip plays on this song, or null when the strip does not
-  // play the FM (muted, or the strip's voice is not the FM). The family is
-  // FM_FOR_STRIP's (session.js), unchanged.
-  U.FM_STRIPS = ["compA", "color", "bass"];
+  // The role a strip plays the FM in on this song (U.stripRole), or null
+  // when the strip does not play the FM. Until 2026-11-01 (the lock) this
+  // returned the family FM_FOR_STRIP picked.
+  U.FM_STRIPS = ["bass", "compA", "pad", "arp", "lead", "counter", "color"];
   U.fmRoleFor = function (strip, sheet) {
-    if (sheet.mutes[strip]) return null;
-    if (strip === "bass") return sheet.bassVoice === "fm" ? "bass" : null;
-    if (sheet.polyVoice !== "fm") return null;
-    return U.FM_FOR_STRIP[strip](sheet.picks) || null;
+    if (sheet.mutes[strip] || !sheet.voices || sheet.voices[strip] !== "fm") return null;
+    return U.stripRole(strip, sheet.picks);
   };
 
-  // THE DRAW: sheet.fmPatches = { strip: { name, role, params } } for every
-  // strip that plays the FM. Each strip reads its own fork of the hash,
-  // U.forkPrng(hash, "fmBook." + strip) — never the song stream, no tier-1
-  // draw. Per strip: the archetype (w × lane bias), then each ranged knob in
-  // the range's key order.
+  // THE DRAW: sheet.fmPatches = { strip: { engine, name, role (book key),
+  // part, params } } for every strip that plays the FM. Since 2026-11-01 the
+  // role draw's (session.js U.drawRolePatches) on the same per-strip fork,
+  // U.forkPrng(hash, "fmBook." + strip).
   U.drawFmPatches = function (hash, sheet) {
-    const out = {}, bias = U.FM_LANE_BIAS[sheet.lane] || {};
-    for (const strip of U.FM_STRIPS) {
-      const role = U.fmRoleFor(strip, sheet);
-      if (!role) continue;
-      const list = U.FM_BOOK[role].map((a) => ({ a, w: a.w * (bias[a.name] || 1) }));
-      const G = U.forkPrng(hash, "fmBook." + strip);
-      const a = U.pickWeighted(G, list).a;
-      const u = {};
-      for (const k in a.range) u[k] = G.r();
-      out[strip] = { name: a.name, role, params: U.resolveFmArchetype(a, u) };
-    }
+    const all = U.drawRolePatches(hash, sheet), out = {};
+    for (const st in all) if (all[st].engine === "fm") out[st] = all[st];
     return out;
   };
 
@@ -4456,7 +4404,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/bassguitar.js @ f565e4b — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/bassguitar.js @ c8ca5c1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassguitar.js — electric bass guitar, the first session player of the human
 // rack (Rack 2), zero dependencies.
 //
@@ -5045,7 +4993,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/rhythmguitar.js @ f565e4b — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/rhythmguitar.js @ c8ca5c1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // rhythmguitar.js — clean electric rhythm guitar, the fourth and last stop of
 // the human rack (Rack 2), zero dependencies.
 //
@@ -5694,7 +5642,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/tr808.js @ f565e4b — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/tr808.js @ c8ca5c1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // tr808.js — THE MACHINE. A TR-808-lineage core voice: bass drum, snare,
 // closed hat, open hat, each with a front panel the token actually turns.
 //
@@ -6978,7 +6926,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/linn.js @ f565e4b — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/linn.js @ c8ca5c1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // linn.js — THE STUDIO MACHINE. A Linn-family (LM-1 / LinnDrum lineage)
 // drum computer: the new wave / synth-pop / 80s R&B kit.
 //
@@ -7735,7 +7683,7 @@
   U._linn = { burn, play, vca, roms, V, EPROM_HZ, RECON_HZ, SR, TOM_MID_CLOCK };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drums.js @ f565e4b — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drums.js @ c8ca5c1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drums.js — the drum machine: 808/LM-1-flavor voices, synthesized at runtime
 // into short AudioBuffers, played back as one-shots.
 //
@@ -8064,7 +8012,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/books.js @ f565e4b — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/books.js @ c8ca5c1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // books.js — Pattern Books v1, as data.
 //
 // This file IS the document: "Unison — Pattern Books v1 (draft)" (Morgan,
@@ -8408,6 +8356,10 @@
   // 1984-86 FM bass on the bottom of those records), early hip-hop (the
   // DX-bass electro records). New wave and funk stay Juno/Minimoog: their
   // bass is the analog one. No new draw — one more entry on draw 21.
+  // RETIRED FROM THE DRAW 2026-11-01 (the lock out, Asana 1220084766500650):
+  // draw 20's table. Still read so its draw is consumed (the count never moves) and
+  // recorded as sheet.legacy; the engine per strip is U.ENGINE_ROLE_FIT x
+  // U.LANE_PULL / U.BASS_PULL below, derived from this table.
   U.BASS_VOICE = {
     // seq16 and riffHook are Moog-shaped lines, but the lane's sound is the poly
     // synth doing everything; the Juno keeps the majority.
@@ -8439,6 +8391,8 @@
   // hip-hop near zero (the 808 is the bass there).
   // A string cannot hold a four-bar pedal or a sub tone: U.BASSGUITAR_NEVER's
   // pattern kinds never draw it (the synth voice the roll landed on plays).
+  // RETIRED FROM THE DRAW 2026-11-01: the bass guitar's share now rides in
+  // U.BASS_PULL (s / (1 - s) x the others); kept as the record it came from.
   U.BASSGUITAR_SHARE = { funk: 0.45, newWave: 0.35, synthRnB: 0.25, synthPop: 0.20, earlyHipHop: 0.05 };
   U.BASSGUITAR_NEVER = { pedal: 1, sub808: 1 };
 
@@ -8504,6 +8458,10 @@
   // takes it, its songs now mostly OB comp + OB colour over a Juno pad.
   // Was newWave 50/35/15, synthPop 50/25/25, synthRnB 50/17/33, earlyHipHop
   // 66/17/17, funk 50/40/10 (juno/obxa/fm).
+  // RETIRED FROM THE DRAW 2026-11-01 (the lock out, Asana 1220084766500650):
+  // draw 30's table. Still read so its draw is consumed (the count never moves) and
+  // recorded as sheet.legacy; the engine per strip is U.ENGINE_ROLE_FIT x
+  // U.LANE_PULL / U.BASS_PULL below, derived from this table.
   U.POLY_VOICE = {
     newWave: [{ id: "juno", w: 50 }, { id: "obxa", w: 42 }, { id: "fm", w: 8 }],
     synthPop: [{ id: "juno", w: 50 }, { id: "obxa", w: 37 }, { id: "fm", w: 13 }],
@@ -8514,6 +8472,8 @@
   // On an OB-Xa song, the chance the PAD strip plays the OB-Xa pad rather than
   // the Juno pad (2026-10-27: low, not zero). One roll from U.forkPrng(hash,
   // "padVoice"), read for every song (session.js), recorded as sheet.padVoice.
+  // RETIRED FROM THE DRAW 2026-11-01: the padVoice fork is still read and
+  // recorded (sheet.legacy.padRoll); the OB-Xa pad is U.ENGINE_ROLE_FIT.obxa.pad.
   U.OBXA_PAD_SHARE = 0.25;
   // FM as flavor: on an FM song the FM strips enter the arrangement later
   // (added to the strip's ENTRY energy, session.js), so the FM comp sits out
@@ -8530,12 +8490,117 @@
   // fantastic and should be the workhorse for the unison studio"): the
   // Minimoog is a drawn alternative, not the new default. Counter = lead
   // minus .05; arp .15 everywhere.
+  // RETIRED FROM THE DRAW 2026-11-01: the moogRoles fork is still read and
+  // recorded (sheet.legacy.moogRolls); its lead odds are U.LANE_PULL's
+  // Minimoog column.
   U.MOOG_ROLES = {
     funk:        { lead: 0.40, counter: 0.35, arp: 0.15 },
     synthPop:    { lead: 0.35, counter: 0.30, arp: 0.15 },
     synthRnB:    { lead: 0.30, counter: 0.25, arp: 0.15 },
     newWave:     { lead: 0.35, counter: 0.30, arp: 0.15 },
     earlyHipHop: { lead: 0.25, counter: 0.20, arp: 0.15 },
+  };
+
+  // ---- THE ROLE DRAW (2026-11-01, patch books slice 5, Asana 1220084766500650)
+  // The lock out: each pitched strip draws its own engine, then its own patch.
+  // strip -> role -> engine (U.ENGINE_ROLE_FIT x U.LANE_PULL) -> patch (the
+  // engine's whole book, a.w x a.roles[role] x lane bias, gated by
+  // U.ROLE_GATE). Rack and parts doc, "The patch books": "Two layers,
+  // multiplied." Register stays the strip's: the bass strip folds its line
+  // into the bass pocket whatever plays it, and the bass gate (0.5) keeps a
+  // patch that cannot serve the pocket off the strip.
+  //
+  // The strip's role. compA: a comping figure (the offbeat stabs, the gate
+  // chop, the Rhodes 16ths, the dub skank) is the comp role; a held chord
+  // (hold, the quarter pulse) is the chords role. counter: the arpeggio role
+  // (the hook riff re-strikes and transposes; the doc puts the riff in the
+  // motor, and today it already plays the Juno's arp book and the Minimoog's
+  // riff).
+  U.ROLE_STRIPS = ["bass", "compA", "pad", "arp", "lead", "counter", "color"];
+  U.COMP_CHORDS_IDS = { "comp.hold": 1, "comp.quarter_pulse": 1 };
+  U.stripRole = function (strip, picks) {
+    if (strip === "compA") return U.COMP_CHORDS_IDS[picks.compA.id] ? "chords" : "comp";
+    return { bass: "bass", pad: "pad", arp: "arpeggio", counter: "arpeggio", lead: "lead", color: "color" }[strip];
+  };
+  // The patch gate: a patch may take a strip when its roles[role] is at or
+  // above this. 0.5 on the bass (the pocket is the hard constraint), 0.25
+  // everywhere else.
+  U.ROLE_GATE = { bass: 0.5, chords: 0.25, comp: 0.25, pad: 0.25, arpeggio: 0.25, lead: 0.25, color: 0.25 };
+
+  // Engine role fitness, 0 to 1. Two HARD GATES, not weights: the Minimoog is
+  // mono and scores 0 on chords, pad and comp (Jeff 10/04: never comps or
+  // pads), and 0 on colour (the colour strip's lines are chord stabs and
+  // brass offbeats, chords on a mono voice; its perc and fx wait for the drum
+  // engine); the bass guitar scores on the bass only. Everything else is a
+  // weight, set so fit x pull reproduces today's pairing (the arithmetic,
+  // target share -> product, is in files/unison/patch-books-2026-10-31/
+  // RESULT.md, "Slice 5"):
+  //   compA, colour: Juno, OB-Xa, FM at 1, so the shares are U.POLY_VOICE's.
+  //   pad: OB-Xa 0.14 x its pull = today's U.OBXA_PAD_SHARE x OB-Xa poly share
+  //     (6-11 % by lane); FM 0.15 opens the FM strings and voices at 2-5 %.
+  //   lead: Juno, Minimoog at 1 (the pull carries U.MOOG_ROLES' lead odds);
+  //     OB-Xa 0.05 and FM 0.10 open the OB-Xa leads and the FM wind (1-3 %).
+  //   arpeggio: Minimoog 0.35 x the lead odds = the arp at 10-19 % (today 15 %
+  //     on every lane); the counter's 2.25 strip lean (U.STRIP_ENGINE_LEAN)
+  //     carries today's higher counter share. OB-Xa and FM 0.05: tails.
+  //   bass: Juno, Minimoog, FM, bass guitar at 1 against the bass row of the
+  //     pull (U.BASS_PULL); OB-Xa 0.05 opens its bass patches (2-3 %).
+  U.ENGINE_ROLE_FIT = {
+    juno:       { bass: 1,    chords: 1, comp: 1, pad: 1,    arpeggio: 1,    lead: 1,    color: 1 },
+    obxa:       { bass: 0.05, chords: 1, comp: 1, pad: 0.14, arpeggio: 0.05, lead: 0.05, color: 1 },
+    minimoog:   { bass: 1,    chords: 0, comp: 0, pad: 0,    arpeggio: 0.35, lead: 1,    color: 0 },
+    fm:         { bass: 1,    chords: 1, comp: 1, pad: 0.15, arpeggio: 0.05, lead: 0.10, color: 1 },
+    bassguitar: { bass: 1,    chords: 0, comp: 0, pad: 0,    arpeggio: 0,    lead: 0,    color: 0 },
+  };
+  U.ENGINES = ["juno", "obxa", "minimoog", "fm", "bassguitar"];
+  // A strip lean on one engine: the counter's Minimoog, today's U.MOOG_ROLES
+  // counter odds over its arp odds (3.05, 2.43, 1.89, 2.43, 1.42 by lane,
+  // mean 2.25), so the riff keeps its share while it shares the arpeggio role
+  // with the arp. Retires when the motor takes the riff.
+  U.STRIP_ENGINE_LEAN = { counter: { minimoog: 2.25 } };
+
+  // THE LANE PULL, per lane per engine, the Juno at 1. Derived from the
+  // tables that were the lock (kept below as the record, retired from the
+  // draw): OB-Xa and FM = U.POLY_VOICE's weight over the Juno's; Minimoog =
+  // U.MOOG_ROLES' lead odds, P / (1 - P).
+  U.LANE_PULL = {
+    newWave:     { juno: 1, obxa: 0.840, minimoog: 0.538, fm: 0.160, bassguitar: 0 },
+    synthPop:    { juno: 1, obxa: 0.740, minimoog: 0.538, fm: 0.260, bassguitar: 0 },
+    synthRnB:    { juno: 1, obxa: 0.660, minimoog: 0.429, fm: 0.340, bassguitar: 0 },
+    earlyHipHop: { juno: 1, obxa: 0.379, minimoog: 0.333, fm: 0.136, bassguitar: 0 },
+    funk:        { juno: 1, obxa: 0.900, minimoog: 0.667, fm: 0.100, bassguitar: 0 },
+  };
+  // The bass role's row (the doc: "hip-hop leans the bass toward the
+  // Minimoog, funk toward the bass guitar"): Minimoog and FM = U.BASS_VOICE's
+  // weight over the Juno's; OB-Xa = its LANE_PULL; bass guitar = s / (1 - s)
+  // x the sum of the others' fit x pull, s = U.BASSGUITAR_SHARE, so on a
+  // pattern a string can play the bass guitar takes s of the strip:
+  //   newWave 0.35/0.65 x (1 + .538 + 0 + .042) = .851
+  //   synthPop 0.20/0.80 x (1 + 1 + .5 + .037) = .634
+  //   synthRnB 0.25/0.75 x (1 + .6 + .4 + .033) = .678
+  //   earlyHipHop 0.05/0.95 x (1 + .214 + .214 + .019) = .0762
+  //   funk 0.45/0.55 x (1 + 1.222 + 0 + .045) = 1.855
+  // A pattern the bass guitar never plays (U.BASSGUITAR_NEVER) takes it off
+  // the list.
+  U.BASS_PULL = {
+    newWave:     { juno: 1, obxa: 0.840, minimoog: 0.538, fm: 0,     bassguitar: 0.851 },
+    synthPop:    { juno: 1, obxa: 0.740, minimoog: 1.000, fm: 0.500, bassguitar: 0.634 },
+    synthRnB:    { juno: 1, obxa: 0.660, minimoog: 0.600, fm: 0.400, bassguitar: 0.678 },
+    earlyHipHop: { juno: 1, obxa: 0.379, minimoog: 0.214, fm: 0.214, bassguitar: 0.0762 },
+    funk:        { juno: 1, obxa: 0.900, minimoog: 1.222, fm: 0,     bassguitar: 1.855 },
+  };
+  // The engine list a strip draws from on this song: { id, w } with
+  // w = fit x pull x strip lean, zero weights dropped, in U.ENGINES order.
+  U.roleEngineList = function (strip, role, lane, picks) {
+    const pull = role === "bass" ? U.BASS_PULL[lane] : U.LANE_PULL[lane];
+    const lean = U.STRIP_ENGINE_LEAN[strip] || {};
+    const out = [];
+    for (const e of U.ENGINES) {
+      if (e === "bassguitar" && U.BASSGUITAR_NEVER[picks.bass.kind]) continue;
+      const w = U.ENGINE_ROLE_FIT[e][role] * (pull[e] || 0) * (lean[e] || 1);
+      if (w > 0) out.push({ id: e, w });
+    }
+    return out;
   };
 
   // ---- Part 4 — pitched books ---------------------------------------------
@@ -8695,7 +8760,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/bassplayer.js @ f565e4b — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/bassplayer.js @ c8ca5c1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassplayer.js — the PERFORMANCE half of the bass guitar: a session player.
 //
 // Rack 2's rule (kb/projects/unison.md, 2026-07-11): every human instrument is
@@ -8947,7 +9012,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/gtrplayer.js @ f565e4b — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/gtrplayer.js @ c8ca5c1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // gtrplayer.js — the PERFORMANCE half of the rhythm guitar: a session
 // guitarist on the rhythmGtr strip.
 //
@@ -9147,7 +9212,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/fmplayer.js @ f565e4b — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/fmplayer.js @ c8ca5c1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fmplayer.js — the PERFORMANCE half of the FM keys: a session keyboard
 // player on the FM chord strips (compA's tine EP, colour's glass and brass).
 //
@@ -9288,7 +9353,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/testPhrase.js @ f565e4b — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/testPhrase.js @ c8ca5c1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // testPhrase.js — deterministic 8-bar test phrase, ported from the bake-off
 // (phrase.js) onto the engine's canonical PRNG (core/prng.js).
 //
@@ -9382,7 +9447,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/form.js @ f565e4b — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/form.js @ c8ca5c1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // form.js — the song's form: the book of returns (2026-10-30, Asana
 // 1220073468300418; design files/unison/structure-design-2026-10-30 in the
 // morgan repo, DESIGN.md + draw.py, transcribed here as written).
@@ -9703,7 +9768,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/session.js @ f565e4b — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/session.js @ c8ca5c1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // session.js — the session sheet and the arrangement realizer.
 //
 // Two tiers, in this order, each on its own stream (core/prng.js):
@@ -10139,6 +10204,21 @@
     if (!R.hash) throw new Error("drawSession: the padVoice fork needs the stream's hash (U.makePrng)");
     const padRoll = U.forkPrng(R.hash, "padVoice").r();
     const padVoice = polyVoice === "obxa" && padRoll < U.OBXA_PAD_SHARE ? "obxa" : "juno";
+    // THE ROLE DRAW (2026-11-01, Asana 1220084766500650, the lock out): each
+    // pitched strip draws its own engine, by role fitness x the lane pull
+    // (U.ENGINE_ROLE_FIT, U.LANE_PULL, U.BASS_PULL, books.js). One roll per
+    // strip from its own FORK, U.forkPrng(hash, "roleDraw." + strip), read in
+    // U.ROLE_STRIPS order for EVERY song whether or not the strip is up, so a
+    // mute retune never moves another strip and tier 1 stays 86 draws. Draws
+    // 20 and 30 and the moogRoles and padVoice forks are still read above;
+    // they are recorded as sheet.legacy (the census's before) and decide
+    // nothing: the builders read sheet.voices.
+    const voices = {};
+    for (const strip of U.ROLE_STRIPS) {
+      const VG = U.forkPrng(R.hash, "roleDraw." + strip);
+      voices[strip] = U.pickWeighted(VG, U.roleEngineList(strip, U.stripRole(strip, picks), lane, picks)).id;
+    }
+    const legacy = { bassVoice, polyVoice, padRoll, moogRolls: { lead: leadVoice, counter: counterVoice, arp: arpVoice }, padVoice };
     // the rhythmGtr strip's voicing for its pattern (heard only when the strip is up)
     const gtrVoicing = U.GTR_FOR_PATTERN(picks.rhythmGtr.id, lane);
     // bar map. A looped section (ride, repeat-out, coda vamp) keeps its name
@@ -10163,11 +10243,17 @@
       harmony, form,
       foreground, density,
       influence, influenceBlend, influencePatches,
-      picks, bassVoice, polyVoice, polySeed, mutes, production, panel808, drumMachine, panelLinn, gtrVoicing,
+      // the engine per strip is sheet.voices (the role draw); these six are
+      // its aliases for pages, harnesses and the jam: bassVoice = voices.bass,
+      // polyVoice = voices.compA, padVoice = voices.pad, leadVoice,
+      // counterVoice, arpVoice. The lock's own draws are sheet.legacy.
+      picks, bassVoice: voices.bass, polyVoice: voices.compA, polySeed, mutes, production, panel808, drumMachine, panelLinn, gtrVoicing,
       // present on 808 songs only, so every other sheet is field-for-field what it was
       auxPerc,
-      // the mono pitched strips' instrument (2026-10-05, the moogRoles fork)
-      leadVoice, counterVoice, arpVoice, padVoice,
+      leadVoice: voices.lead, counterVoice: voices.counter, arpVoice: voices.arp, padVoice: voices.pad,
+      // the role draw (2026-11-01): the engine per pitched strip, and the
+      // lock's draws as they landed (read by the census only)
+      voices, legacy,
       masks: { bass: bassMask, comp: compMask, lead: leadPhrase, counter: counterPhrase, gtr: gtrMask },
       bars, totalBars: bars.length, barSec, lengthSec: bars.length * barSec,
       kit: U.LANE_FEEL[lane].kit,
@@ -10183,6 +10269,8 @@
   //   the drawn 808 panel. Exists so the same hash can be rendered both ways
   //   for an A/B listen. Like forceLane, it changes what you hear, not what
   //   was drawn.
+  // (THE LOCK, retired 2026-11-01: kept as the derivation record of
+  // U.ENGINE_STRIP_TRIM_DB below; no builder reads it.)
   // Minimoog bass (sheet.bassVoice === "minimoog", draw 20): which lane patch
   // plays which drawn bass pattern. The rule since 2026-09-24; no extra draw.
   const MOOG_BASS_FOR_KIND = {
@@ -10295,6 +10383,8 @@
   const TRIM_LINN_PERC_DB = { tomsFills: -8, ePerc: -8, percAccent: -7 };
   U.TRIM_LINN_PERC_DB = TRIM_LINN_PERC_DB;
 
+  // (THE LOCK, retired 2026-11-01: kept as the derivation record of
+  // U.ENGINE_STRIP_TRIM_DB below; no builder reads it.)
   // The Minimoog on the mono pitched strips (2026-10-05, Asana
   // 1219144675065278): the patch each strip plays and the dB on the strip's
   // trim that sets it at the loudness of the Juno patch it replaces, measured
@@ -10311,6 +10401,8 @@
   const MOOG_ROLES_TRIM_DB = { lead: 2.8, counter: -5.8, arp: -4.9 };
   U.MOOG_ROLES_TRIM_DB = MOOG_ROLES_TRIM_DB;
 
+  // (THE LOCK, retired 2026-11-01: kept as the derivation record of
+  // U.ENGINE_STRIP_TRIM_DB below; no builder reads it.)
   // OB-Xa on the chord strips (sheet.polyVoice === "obxa", draw 30): which
   // patch each strip plays. No extra draw.
   const OBXA_FOR_STRIP = {
@@ -10334,6 +10426,8 @@
   U.OBXA_TRIM_DB = OBXA_TRIM_DB;
   U.OBXA_FOR_STRIP = OBXA_FOR_STRIP;
 
+  // (THE LOCK, retired 2026-11-01: kept as the derivation record of
+  // U.ENGINE_STRIP_TRIM_DB below; no builder reads it.)
   // FM keys on the chord strips (sheet.polyVoice === "fm", draw 30): compA
   // plays the tine EP, colour plays glass on section hits and FM brass on the
   // brass offbeats. The PAD is not an FM strip: it stays on the Juno pad
@@ -10373,6 +10467,116 @@
   U.FM_TRIM_DB = FM_TRIM_DB;
   U.FM_FOR_STRIP = FM_FOR_STRIP;
   U.MOOG_BASS_FOR_KIND = MOOG_BASS_FOR_KIND;
+
+  // THE STRIP TRIMS FOR THE ROLE DRAW (2026-11-01, patch books slice 5,
+  // Asana 1220084766500650): dB on the strip's trim gain (desk.js guarantee
+  // 2) for [engine][strip][book key], so whatever the role draw puts on a
+  // strip sits at the loudness of the strip's house Juno patch (compA comp,
+  // pad pad, colour stab, arp and counter arp, lead lead, bass bass). The
+  // patch's own book-level offset rides on top, as before: every archetype is
+  // level-matched to its key's house, so the cell holds for the key. ONE
+  // SOURCE OF TRUTH: the four lock tables above (MOOG_BASS_TRIM_DB,
+  // MOOG_ROLES_TRIM_DB, OBXA_TRIM_DB, FM_TRIM_DB) are its derivation record
+  // (retired from the builders when they read sheet.voices); their values are carried forward unchanged on
+  // the cells they measured (OB-Xa comp/pad/brass/stab, FM ep/glass/brass/
+  // bass, Minimoog bass families and lead/counter/arp), and the Juno's home
+  // cells stay 0 (the Juno sub on the bass included: today's rule, which
+  // leaves the sub ~7.5 dB K over the Juno bass on the same lines). Every
+  // other cell MEASURED by harness/lock-trim.mjs (analysis/fits/
+  // lock-trim-2026-11-01.json; fm-trim.mjs's method: the strip's real lines
+  // from 4-15 songs, the first 30 s solo through the house Juno and the key's
+  // house archetype, K-weighted, mean gap; on compA a key is measured on the
+  // lines of the role that admits it). A cell whose songs spread more than
+  // 3 dB (the slow-attack OB pad and FM voice, the koto on held chords) is
+  // keyed by the strip's pattern kind (compA: the pattern id), the mean of
+  // that kind's songs, "*" the all-song mean for a kind not measured. The
+  // songs, means and sds per cell are in files/unison/patch-books-2026-10-31/
+  // RESULT.md, "Slice 5", pass 2.
+  U.ENGINE_STRIP_TRIM_DB = {
+    juno: {
+      bass: { bass: 0, sub: 0 },
+      compA: { comp: 0, organ: 0, pad: -0.1, brass: 4.9, arp: 8.9, lead: -1.3, stab: 4 },
+      pad: { comp: -2, organ: -5.4, pad: 0, brass: 2.7, lead: -3.5 },
+      arp: { comp: -8.4, organ: -7.2, bass: -11.3, arp: 0, lead: -9.7 },
+      lead: { comp: 1.3, organ: 1.2, pad: 0.1, brass: 6.4, arp: 9.8, lead: 0 },
+      counter: { comp: -8.4, organ: -8.2, bass: -11.2, arp: 0, lead: -9.9 },
+      color: { comp: -5.1, organ: -4.5, pad: -7.1, brass: 0, stab: 0, arp: 3.8, lead: -6.3 },
+    },
+    obxa: {
+      bass: { bass: 0 },
+      compA: { brass: 0.4, pad: { "comp.hold": 1.5, "comp.quarter_pulse": 10.2, "*": 5.8 }, comp: 4.5, stab: 6.7, lead: -1.8 },
+      pad: { brass: -3.1, pad: 0.5, comp: 1 },
+      arp: { comp: -3.4, bass: -8.9, lead: -8.8 },
+      lead: { brass: 1.8, pad: { "instrumental": 12.5, "soloWindow": 16.2, "vocalPhrase": 7.2, "*": 11.6 }, comp: 5.8, stab: 8.1, lead: -0.2 },
+      counter: { comp: -3.7, bass: -9.8, lead: -9.2 },
+      color: { brass: -4.1, pad: 6.4, comp: 0.1, stab: 0.8, lead: -5.7 },
+    },
+    minimoog: {
+      bass: { round: 4.4, pluck: 4.5, squelch: 7.8, fat: 5.3 },
+      arp: { pluck: -5.4, squelch: -5.4, lead: -5.5, counter: -5, arp: -4.9 },
+      lead: { squelch: 2.5, fat: 4.4, lead: 2.8, counter: 3.9, arp: 3.9 },
+      counter: { pluck: -5.5, squelch: -6, lead: -6.5, counter: -5.8, arp: -5.7 },
+    },
+    fm: {
+      bass: { bass: -1.1 },
+      compA: { ep: 1, glass: -0.9, brass: 0.7, strings: 3.6, organ: 0.6, pluck: { "comp.hold": 5.7, "comp.quarter_pulse": -1, "comp.stab_offbeats": -0.7, "comp.gate_chop": -1.7, "comp.rhodes_16ths": -4.3, "influence.dub.skank": -1.5, "*": 0 }, voice: { "comp.hold": 5.2, "comp.quarter_pulse": 18.4, "*": 11.8 } },
+      pad: { ep: 3.7, glass: 0.9, brass: -0.7, strings: 0.9, organ: -6.7, voice: 1.6 },
+      arp: { ep: -9.6, glass: -12.1, bass: -12.8, wind: -11.5, pluck: -11.7 },
+      lead: { ep: 4.6, glass: 1.8, brass: 4.1, strings: 6.9, organ: 4.3, wind: 1, pluck: 2.6, voice: { "instrumental": 20.9, "soloWindow": 28.7, "vocalPhrase": 10.5, "*": 19.2 } },
+      counter: { ep: -9.5, glass: -11.6, bass: -13, wind: -11.4, pluck: -10.8 },
+      color: { ep: -3.6, glass: -4.9, brass: -4.4, strings: -0.5, organ: -2.3, wind: -5.7, pluck: -5.3, voice: { "brassOffbeat": 19.7, "sectionHit": 10.3, "*": 15 } },
+    },
+  };
+
+  U.stripTrimDb = function (engine, strip, key, picks) {
+    const row = (U.ENGINE_STRIP_TRIM_DB[engine] || {})[strip] || {};
+    const v = row[key];
+    if (v == null) throw new Error("stripTrimDb: no measured trim for " + engine + "/" + strip + "/" + key);
+    if (typeof v === "number") return v;
+    const pk = picks[strip], k = strip === "compA" ? pk.id : pk.kind || pk.id;
+    return v[k] != null ? v[k] : v["*"];
+  };
+
+  // THE PATCH DRAW BY ROLE (2026-11-01, Asana 1220084766500650): on a strip
+  // whose drawn engine (sheet.voices) is a synth, the patch comes from that
+  // engine's WHOLE book: every archetype, any book key, whose roles[role] is
+  // at or above U.ROLE_GATE[role], weighted a.w x roles[role] x the lane bias
+  // (x the OB-Xa's role lean). The book keys stay the books' organization,
+  // the trims' key and the jam's lists; they no longer decide what a strip
+  // may draw. The strip reads its engine's own fork, U.forkPrng(hash,
+  // "<engine>Book." + strip), exactly as the per-engine draws did: the
+  // archetype, then each ranged knob in the range's key order. A muted strip
+  // and the bass guitar (its own book, U.drawBassBook) get no record.
+  // Record: { engine, name, role: the book key, part: the strip's role, params }.
+  U.ROLE_BOOKS = {
+    juno: { book: "JUNO_BOOK", bias: "JUNO_LANE_BIAS", fork: "junoBook.", resolve: "resolveJunoArchetype" },
+    obxa: { book: "OBXA_BOOK", bias: "OBXA_LANE_BIAS", fork: "obxaBook.", resolve: "resolveObxaArchetype", lean: "OBXA_ROLE_LEAN" },
+    minimoog: { book: "MINIMOOG_BOOK", bias: "MINIMOOG_LANE_BIAS", fork: "minimoogBook.", resolve: "resolveMinimoogArchetype" },
+    fm: { book: "FM_BOOK", bias: "FM_LANE_BIAS", fork: "fmBook.", resolve: "resolveFmArchetype" },
+  };
+  U.roleCandidates = function (engine, role, lane) {
+    const RB = U.ROLE_BOOKS[engine], B = U[RB.book], bias = (U[RB.bias] || {})[lane] || {}, lean = RB.lean ? U[RB.lean] : {};
+    const gate = U.ROLE_GATE[role], list = [];
+    for (const key in B) for (const a of B[key]) {
+      const f = (a.roles && a.roles[role]) || 0;
+      if (f >= gate) list.push({ a, key, w: a.w * f * (bias[a.name] || 1) * (lean[a.name] || 1) });
+    }
+    return list;
+  };
+  U.drawRolePatches = function (hash, sheet) {
+    const out = {};
+    for (const strip of U.ROLE_STRIPS) {
+      const engine = sheet.voices[strip];
+      if (sheet.mutes[strip] || !U.ROLE_BOOKS[engine]) continue;
+      const RB = U.ROLE_BOOKS[engine], role = U.stripRole(strip, sheet.picks);
+      const G = U.forkPrng(hash, RB.fork + strip);
+      const pick = U.pickWeighted(G, U.roleCandidates(engine, role, sheet.lane));
+      const u = {};
+      for (const k in pick.a.range) u[k] = G.r();
+      out[strip] = { engine, name: pick.a.name, role: pick.key, part: role, params: U[RB.resolve](pick.a, u) };
+    }
+    return out;
+  };
 
   // Bass guitar on the bass strip (sheet.bassVoice === "bassguitar", draw 20's
   // residual): the voicing per pattern kind, by lane. Finger is the default
@@ -10460,8 +10664,9 @@
     const entry = Object.assign({}, ENTRY);
     const entryBias = (U.LANE_ARRANGE[sheet.lane] || {}).entry;
     if (entryBias) for (const id in entryBias) entry[id] = (entry[id] || 0) + entryBias[id];
-    // FM as flavor (2026-10-27): the FM strips come in later, so play less
-    if (sheet.polyVoice === "fm") for (const id in U.FM_ENTRY_LATE) if (FM_FOR_STRIP[id](sheet.picks)) entry[id] += U.FM_ENTRY_LATE[id];
+    // FM as flavor (2026-10-27): the FM strips come in later, so play less.
+    // Per strip since the role draw (2026-11-01): a strip whose engine is FM.
+    for (const id in U.FM_ENTRY_LATE) if (sheet.voices[id] === "fm") entry[id] += U.FM_ENTRY_LATE[id];
 
     const infl = (patch) => sheet.influencePatches.indexOf(patch) > -1;
 
@@ -10509,15 +10714,34 @@
     // the closed hat on a ride song) were removed 2026-10-27; the hats strip
     // plays the closed and open hat only, on both machines.
 
-    // The bass strip's instrument is drawn (draw 20, U.BASS_VOICE). Juno:
-    // "sub" on sub808 patterns, "bass" otherwise. Minimoog: the lane patch for
-    // the pattern kind, with its measured trim on the strip.
-    // The Juno's patch on a strip: the patch-book record drawn for this song
-    // (sheet.junoPatches, U.drawJunoPatches, the junoBook fork, 2026-10-05),
-    // or the role's named patch when there is none (pages, older callers).
-    const junoPatch = (strip, name) => (sheet.junoPatches && sheet.junoPatches[strip] ? sheet.junoPatches[strip].params : name);
+    // THE PITCHED STRIPS' INSTRUMENTS (2026-11-01, the role draw, Asana
+    // 1220084766500650; until then the lock: draw 20 the bass engine, draw 30
+    // one poly for every chord strip, the moogRoles fork the mono strips).
+    // Each strip creates the engine sheet.voices names for it and plays the
+    // strip's patch-book record (sheet.junoPatches / obxaPatches /
+    // minimoogPatches / fmPatches, U.drawRolePatches) with the measured trim
+    // for (engine, strip, book key), U.stripTrimDb, on the strip's trim gain;
+    // the patch's book-level offset rides in its params. An OB-Xa compA over a
+    // Juno pad over an FM colour is a legal song. The OB-Xa's slop seed (draw
+    // 31) is shared by every strip on the OB-Xa: one machine on the session.
+    // A strip with no record (a muted strip; pages, older callers) plays the
+    // Juno's house patch for the strip by name, untrimmed.
+    const REC_KEY = { juno: "junoPatches", obxa: "obxaPatches", minimoog: "minimoogPatches", fm: "fmPatches" };
+    const recOf = (strip) => { const k = REC_KEY[sheet.voices[strip]]; return k && sheet[k] && sheet[k][strip] ? sheet[k][strip] : null; };
+    const create = (strip, house) => {
+      const e = sheet.voices[strip], rec = recOf(strip), st = desk.strips[strip];
+      if (!rec) return U.createJuno(ctx, st, house);
+      st.trim.gain.value = Math.pow(10, U.stripTrimDb(e, strip, rec.role, P) / 20);
+      if (e === "juno") return U.createJuno(ctx, st, rec.params);
+      if (e === "obxa") return U.createObxa(ctx, st, rec.params, null, sheet.polySeed);
+      if (e === "fm") return U.createFm(ctx, st, rec.params);
+      return U.createMinimoog(ctx, st, rec.params);
+    };
+    // The bass strip: the bass guitar through its own book and voicing trim,
+    // or the drawn synth. Whatever plays it plays the bass pocket (the line
+    // is folded into the bass register below, whatever the engine).
     let bassInst, bgVoicing = null;
-    if (sheet.bassVoice === "bassguitar") {
+    if (sheet.voices.bass === "bassguitar") {
       // the session player (sheet.bassPlayer, drawn by buildSong from a fork
       // of the hash, src/session/bassplayer.js) plays the line in the bar loop
       // The book (sheet.bassBook, U.drawBassBook, the bassBook fork,
@@ -10528,50 +10752,10 @@
       bgVoicing = book ? book.voicing : BASSGUITAR_FOR_KIND(P.bass.kind, sheet.lane);
       desk.strips.bass.trim.gain.value = Math.pow(10, BASSGUITAR_TRIM_DB[bgVoicing] / 20);
       bassInst = U.createBassGuitar(ctx, desk.strips.bass, book ? book.params : bgVoicing);
-    } else if (sheet.bassVoice === "fm") {
-      desk.strips.bass.trim.gain.value = Math.pow(10, FM_TRIM_DB.bass / 20);
-      // the strip's patch-book record (sheet.fmPatches, the fmBook fork,
-      // 2026-10-06), levelled to the house bass so the trim holds; the house
-      // bass by name when there is none (pages, older callers)
-      const frec = sheet.fmPatches && sheet.fmPatches.bass;
-      bassInst = U.createFm(ctx, desk.strips.bass, frec ? frec.params : "bass");
-    } else if (sheet.bassVoice === "minimoog") {
-      const moogPatch = MOOG_BASS_FOR_KIND[P.bass.kind] || "round";
-      desk.strips.bass.trim.gain.value = Math.pow(10, MOOG_BASS_TRIM_DB[moogPatch] / 20);
-      // the strip's patch-book record (sheet.minimoogPatches, the
-      // minimoogBook fork, 2026-10-06), levelled to its family so the trim
-      // holds; the family's named patch when there is none (pages, older callers)
-      const mrec = sheet.minimoogPatches && sheet.minimoogPatches.bass;
-      bassInst = U.createMinimoog(ctx, desk.strips.bass, mrec ? mrec.params : moogPatch);
     } else {
-      bassInst = U.createJuno(ctx, desk.strips.bass, junoPatch("bass", P.bass.kind === "sub808" ? "sub" : "bass"));
+      bassInst = create("bass", P.bass.kind === "sub808" ? "sub" : "bass");
     }
-    // The chord strips' poly synth is drawn too (draw 30, U.POLY_VOICE). OB-Xa:
-    // the patch for the strip (colour follows its pattern: brass on the brass
-    // offbeats, stab on section hits), its measured trim on the strip, and one
-    // slop seed (draw 31) for all three strips — one machine on the session.
-    // FM: the strip's FM patch and its measured trim; the pad stays Juno.
-    const poly = (strip, role) => {
-      if (sheet.polyVoice === "fm") {
-        const fp = FM_FOR_STRIP[strip](P);
-        if (!fp) return U.createJuno(ctx, desk.strips[strip], junoPatch(strip, role));
-        desk.strips[strip].trim.gain.value = Math.pow(10, FM_TRIM_DB[fp] / 20);
-        // the strip's patch-book record (sheet.fmPatches, U.drawFmPatches,
-        // the fmBook fork, 2026-10-06), levelled to its family so the trim
-        // holds; the family's house patch when there is none
-        const frec = sheet.fmPatches && sheet.fmPatches[strip];
-        return U.createFm(ctx, desk.strips[strip], frec ? frec.params : fp);
-      }
-      if (sheet.polyVoice !== "obxa" || (strip === "pad" && sheet.padVoice !== "obxa")) return U.createJuno(ctx, desk.strips[strip], junoPatch(strip, role));
-      // the strip's patch-book record (sheet.obxaPatches, U.drawObxaPatches,
-      // the obxaBook fork, 2026-10-05), levelled to its role so the role's
-      // trim holds; the role's named patch when there is none (pages, older
-      // callers).
-      const op = OBXA_FOR_STRIP[strip](P);
-      const rec = sheet.obxaPatches && sheet.obxaPatches[strip];
-      desk.strips[strip].trim.gain.value = Math.pow(10, OBXA_TRIM_DB[op] / 20);
-      return U.createObxa(ctx, desk.strips[strip], rec ? rec.params : op, null, sheet.polySeed);
-    };
+    const poly = (strip, house) => create(strip, house);
     // The rhythmGtr strip's instrument (draws 84–86): the rhythm guitar in the
     // voicing for its pattern, played through the session guitarist
     // (sheet.gtrPlayer, a fork of the hash, gtrplayer.js). Created only when
@@ -10585,21 +10769,16 @@
       desk.strips.rhythmGtr.trim.gain.value = Math.pow(10, (GTR_TRIM_DB[sheet.gtrVoicing] + (GTR_PATTERN_TRIM_DB[P.rhythmGtr.id] || 0)) / 20);
       gtrInst = U.createRhythmGuitar(ctx, desk.strips.rhythmGtr, sheet.gtrBook ? sheet.gtrBook.params : sheet.gtrVoicing);
     }
-    // The mono pitched strips (2026-10-05, sheet.leadVoice / counterVoice /
-    // arpVoice, the moogRoles fork): the Juno patch as always, or the
-    // Minimoog's patch for the strip (MOOG_FOR_ROLE) with its measured trim.
-    // On counter and arp the riff re-strikes EVERY note: the song's swung
-    // 16ths can run an offbeat note a few ms into the next one (probe,
-    // 2026-10-05: ca712647's up16 arp at 97 bpm, 287 of 576 notes), which on
-    // a mono voice is legato and the pluck would sound on every other note
-    // only. So a note there ends 2 ms before the next starts. The lead keeps
-    // its overlaps: legato with glide is the Minimoog lead.
-    const mono = (strip, role, voice) => {
-      if (voice !== "minimoog") return U.createJuno(ctx, desk.strips[strip], junoPatch(strip, role));
-      desk.strips[strip].trim.gain.value = Math.pow(10, MOOG_ROLES_TRIM_DB[strip] / 20);
-      const mrec = sheet.minimoogPatches && sheet.minimoogPatches[strip];
-      const v = U.createMinimoog(ctx, desk.strips[strip], mrec ? mrec.params : MOOG_FOR_ROLE[strip]);
-      if (strip === "lead") return v;
+    // The mono engine on counter and arp (the Minimoog, 2026-10-05): the riff
+    // re-strikes EVERY note. The song's swung 16ths can run an offbeat note a
+    // few ms into the next one (probe, 2026-10-05: ca712647's up16 arp at 97
+    // bpm, 287 of 576 notes), which on a mono voice is legato and the pluck
+    // would sound on every other note only. So a note there ends 2 ms before
+    // the next starts. The lead keeps its overlaps: legato with glide is the
+    // Minimoog lead. A poly engine on these strips plays as written.
+    const mono = (strip, house) => {
+      const v = create(strip, house);
+      if (sheet.voices[strip] !== "minimoog" || strip === "lead" || !recOf(strip)) return v;
       const evs = [];
       return { held: v.held, patch: v.patch,
         noteOn(t, midi, vel, dur) { evs.push({ t, midi, vel, dur }); },
@@ -10613,18 +10792,18 @@
           v.flush();
         } };
     };
-    // FM songs: the chord strips' notes go through the session keys player
+    // A chord strip on the FM goes through the session keys player
     // (sheet.fmPlayer, drawn by buildSong from a fork of the hash,
-    // src/session/fmplayer.js). The FM pad stays the Juno pad and plays as
-    // written.
-    const fmKeys = sheet.polyVoice === "fm";
+    // src/session/fmplayer.js): compA and colour, per strip since the role
+    // draw. Every other engine plays the strip as written.
+    const fmKeys = { compA: sheet.voices.compA === "fm" && !!sheet.fmPlayer, color: sheet.voices.color === "fm" && !!sheet.fmPlayer };
     const inst = {
       bass: bassInst,
       compA: poly("compA", "comp"),
       pad: poly("pad", "pad"),
-      arp: mono("arp", "arp", sheet.arpVoice),
-      lead: mono("lead", "lead", sheet.leadVoice),
-      counter: mono("counter", "arp", sheet.counterVoice),
+      arp: mono("arp", "arp"),
+      lead: mono("lead", "lead"),
+      counter: mono("counter", "arp"),
       color: poly("color", "stab"),
     };
     // `lvl` is the current bar's section level; every velocity and drum gain
@@ -10825,8 +11004,8 @@
         // On an FM song the bar's notes are COLLECTED and the session keys
         // player plays them (U.playFmBar: timing, roll, touch, length); the
         // Juno and the OB-Xa play them as written, as before.
-        const ev = fmKeys ? [] : null;
-        const put = fmKeys
+        const ev = fmKeys.compA ? [] : null;
+        const put = fmKeys.compA
           ? (i, midi, vel, durSteps) => ev.push({ i, midi, vel, dur: durSteps })
           : (i, midi, vel, durSteps) => note("compA", stepT(bar, i), midi, vel, durSteps * s16);
         const chord = (i, vel, durSteps) => { for (const m of mTones) put(i, m, vel, durSteps); };
@@ -10928,8 +11107,8 @@
       // --- color (the ORCH5-flavor stab) ---
       // On an FM song the same session keys player plays the colour chords.
       if (on("color", bar)) {
-        const ev = fmKeys ? [] : null;
-        const put = fmKeys
+        const ev = fmKeys.color ? [] : null;
+        const put = fmKeys.color
           ? (i, midi, vel, durSteps) => ev.push({ i, midi, vel, dur: durSteps })
           : (i, midi, vel, durSteps) => note("color", stepT(bar, i), midi, vel, durSteps * s16);
         if (P.color.kind === "sectionHit") {
@@ -10956,7 +11135,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/render/renderer.js @ f565e4b — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/render/renderer.js @ c8ca5c1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // renderer.js — song assembly + the render pipeline (Technical Architecture
 // v1.2 playback model): live-first, with (a) a cheap analysis pre-render for
 // verification/metrics and (b) an on-demand full OfflineAudioContext render
@@ -10998,25 +11177,23 @@
     // The FM keys' session keyboard player (U.forkPrng(hash, "fmPlayer"),
     // fmplayer.js) — drawn on every FM song (draw 31 landed on the FM voice);
     // it plays the FM chord strips, compA and colour.
-    if (sheet.polyVoice === "fm" && U.drawFmPlayer) sheet.fmPlayer = U.drawFmPlayer(hash, sheet.lane);
-    // The Juno's patch book (2026-10-05, juno.js): one drawn archetype and
-    // slider set per strip that plays the Juno, each strip on its own fork
-    // (U.forkPrng(hash, "junoBook." + strip)), never from R.
-    if (U.drawJunoPatches) sheet.junoPatches = U.drawJunoPatches(hash, sheet);
-    // The OB-Xa's patch book (2026-10-05, obxa.js): one drawn archetype and
-    // knob set per strip that plays the OB-Xa (pole is part of the patch),
-    // each strip on its own fork (U.forkPrng(hash, "obxaBook." + strip)).
-    if (sheet.polyVoice === "obxa" && U.drawObxaPatches) sheet.obxaPatches = U.drawObxaPatches(hash, sheet);
-    // The Minimoog's patch book (2026-10-06, minimoog.js): one drawn archetype
-    // and knob set per strip that plays the Minimoog (bass family by the
-    // pattern kind, lead, counter, arp; the decay switch is part of the
-    // patch), each strip on its own fork (U.forkPrng(hash, "minimoogBook." + strip)).
-    if (U.drawMinimoogPatches) sheet.minimoogPatches = U.drawMinimoogPatches(hash, sheet);
-    // The FM's patch book (2026-10-06, fm.js): one drawn archetype and knob
-    // set per strip that plays the FM (the family is FM_FOR_STRIP's: EP on
-    // compA, glass or brass on colour, the bass), each strip on its own fork
-    // (U.forkPrng(hash, "fmBook." + strip)). Recorded only on FM songs.
-    if (U.drawFmPatches) { const fmp = U.drawFmPatches(hash, sheet); if (Object.keys(fmp).length) sheet.fmPatches = fmp; }
+    if ((sheet.voices.compA === "fm" || sheet.voices.color === "fm") && U.drawFmPlayer) sheet.fmPlayer = U.drawFmPlayer(hash, sheet.lane);
+    // The patch books (2026-10-05 on; the role draw since 2026-11-01,
+    // session.js U.drawRolePatches): one drawn archetype and knob set per
+    // strip that is up, from the WHOLE book of the engine sheet.voices names
+    // for it, gated and weighted by the strip's role; each strip on its
+    // engine's own fork (U.forkPrng(hash, "<engine>Book." + strip)), never
+    // from R. Filed by engine as before: sheet.junoPatches, obxaPatches,
+    // minimoogPatches, fmPatches, keyed by strip (the last three only when
+    // some strip plays that engine).
+    if (U.drawRolePatches) {
+      const rp = U.drawRolePatches(hash, sheet), by = { juno: {}, obxa: {}, minimoog: {}, fm: {} };
+      for (const st in rp) by[rp[st].engine][st] = rp[st];
+      sheet.junoPatches = by.juno;
+      if (Object.keys(by.obxa).length) sheet.obxaPatches = by.obxa;
+      if (Object.keys(by.minimoog).length) sheet.minimoogPatches = by.minimoog;
+      if (Object.keys(by.fm).length) sheet.fmPatches = by.fm;
+    }
 
     // The production room's own fork (2026-10-28, production.js): the style
     // is draw 47 on R; its realization draws (the dub echo's time) are here.
@@ -11064,18 +11241,17 @@
       influenceBlend: sheet.influence ? sheet.influenceBlend : null,
       influencePatches: sheet.influencePatches,
       production: sheet.production.id,
-      // The bass strip's drawn instrument (draw 21) and the patch it plays.
-      bassVoice: sheet.bassVoice === "minimoog"
-        ? "minimoog/" + (U.MOOG_BASS_FOR_KIND[p.bass.kind] || "round")
-        : sheet.bassVoice === "fm" ? "fm/bass"
-        : sheet.bassVoice === "bassguitar" ? "bassguitar/" + U.BASSGUITAR_FOR_KIND(p.bass.kind, sheet.lane)
-        : "juno/" + (p.bass.kind === "sub808" ? "sub" : "bass"),
-      // The chord strips' drawn poly synth (draw 31) and the patch per strip.
-      polyVoice: sheet.polyVoice === "obxa"
-        ? "obxa/" + ["compA", "pad", "color"].map((k) => (k === "pad" && sheet.padVoice !== "obxa" ? "juno-pad" : U.OBXA_FOR_STRIP[k](p))).join(",")
-        : sheet.polyVoice === "fm"
-        ? "fm/" + ["compA", "pad", "color"].map((k) => U.FM_FOR_STRIP[k](p) || "juno-pad").join(",")
-        : "juno",
+      // The engine and patch per pitched strip (the role draw, 2026-11-01):
+      // "engine/patch", the bass guitar by voicing; a muted strip by engine.
+      voices: (() => {
+        const o = {}, recs = Object.assign({}, sheet.junoPatches, sheet.obxaPatches, sheet.minimoogPatches, sheet.fmPatches);
+        for (const st of U.ROLE_STRIPS) {
+          const e = sheet.voices[st];
+          o[st] = e === "bassguitar" ? "bassguitar/" + (sheet.bassBook ? sheet.bassBook.voicing : U.BASSGUITAR_FOR_KIND(p.bass.kind, sheet.lane))
+            : recs[st] && recs[st].engine === e ? e + "/" + recs[st].name : e;
+        }
+        return o;
+      })(),
       // the rhythmGtr strip's guitar (draws 85–87, 2026-10-03); absent when muted
       ...(!sheet.mutes.rhythmGtr && sheet.gtrVoicing ? { rhythmGtr: "gtr/" + sheet.gtrVoicing + "/" + sheet.picks.rhythmGtr.id.replace("gtr.", "") } : {}),
       kit: sheet.kit, bars: sheet.totalBars,
@@ -11798,6 +11974,9 @@
     // voices: the house defaults, then the instrument's own
     s.bassVoice = "juno"; s.polyVoice = "juno"; s.padVoice = "juno"; s.leadVoice = "juno"; s.arpVoice = "juno"; s.counterVoice = "juno";
     d.set(s);
+    // the engine per strip, as the engine's role draw records it (sheet.voices,
+    // 2026-11-01): the layer's choice on its strip, the house Juno elsewhere
+    s.voices = { bass: s.bassVoice, compA: s.polyVoice, pad: s.padVoice, color: s.polyVoice, arp: s.arpVoice, lead: s.leadVoice, counter: s.counterVoice };
     // mutes: only this layer's strip(s) up
     var m = {};
     U.VOICED_ROLES.concat(U.VOICED_LATE).forEach(function (id) { m[id] = true; });
@@ -11814,15 +11993,19 @@
     s.productionDetail = U.drawProductionDetail(seedHash(1, "prod"));
     if (s.bassVoice === "bassguitar") { s.bassPlayer = U.drawBassPlayer(player, lane); s.bassBook = U.drawBassBook(patchH, s); }
     if (inst === "rgtr") { s.gtrPlayer = U.drawGtrPlayer(player, lane); s.gtrBook = U.drawGtrBook(patchH, s); }
-    if (s.polyVoice === "fm") s.fmPlayer = U.drawFmPlayer(player, lane);
+    if (s.voices.compA === "fm" || s.voices.color === "fm") s.fmPlayer = U.drawFmPlayer(player, lane);
     // the synth patch draws weight their books by the layer's hidden patch
     // lane (pl), drawn apart from the pattern's; the bass guitar's and the
     // guitar's books follow the line they play, so they stay on its lane
     var PS = s; if (pl !== lane) { PS = Object.create(s); PS.lane = pl; }
-    s.junoPatches = U.drawJunoPatches(patchH, PS);
-    if (s.polyVoice === "obxa") s.obxaPatches = U.drawObxaPatches(patchH, PS);
-    s.minimoogPatches = U.drawMinimoogPatches(patchH, PS);
-    var fmp = U.drawFmPatches(patchH, PS); if (Object.keys(fmp).length) s.fmPatches = fmp;
+    // the engine's role draw (U.drawRolePatches): the layer's engine's whole
+    // book, gated and weighted by the strip's role, filed by engine
+    var rp = U.drawRolePatches(patchH, PS), by = { juno: {}, obxa: {}, minimoog: {}, fm: {} };
+    for (var rs in rp) by[rp[rs].engine][rs] = rp[rs];
+    s.junoPatches = by.juno;
+    if (Object.keys(by.obxa).length) s.obxaPatches = by.obxa;
+    if (Object.keys(by.minimoog).length) s.minimoogPatches = by.minimoog;
+    if (Object.keys(by.fm).length) s.fmPatches = by.fm;
     s.satPeaks = null; s.satProbe = false;
     s.jamPicked = !!(opt && opt.pn && applyPick(inst, s, opt.pn, patchH));
     var E = v > 0 ? elems(inst, vrOf(v)) : [];
@@ -11841,9 +12024,11 @@
   }
 
   // ---- v2: selectable patches (Jeff 10/28), from each instrument's own book ----
-  // Synth strips list the named archetypes of the book role(s) the strip
-  // plays on this pattern (U.JUNO_BOOK, U.OBXA_BOOK, U.MINIMOOG_BOOK,
-  // U.FM_BOOK; a Moog bass's role follows its line, so its list does too).
+  // Synth strips list what the engine's role draw can put there (2026-11-01,
+  // the lock out): every archetype of the layer's engine whose roles vector
+  // clears the strip role's gate (U.roleCandidates; compA's role follows its
+  // pattern, chords or comp), the house first (the candidate the draw weighs
+  // most), then by fitness for the role, then by weight.
   // Bass guitar: model x the styles that fit the line (U.BASSGUITAR_MODELS,
   // U.bassBookStyleFits). Guitar: the models. Drum panels have no names in the
   // engine, so the kits are numbered panel draws. A pick resolves the
@@ -11856,12 +12041,12 @@
     juno: { book: function () { return U.JUNO_BOOK; }, res: function (a, u) { return U.resolveJunoArchetype(a, u); }, key: "junoPatches" },
   };
   function synthOf(inst, s) {
-    var st = INST_BY[inst].strips[0], r;
-    if ((r = U.fmRoleFor(st, s))) return { syn: "fm", strip: st, roles: [r] };
-    if ((r = U.obxaRoleFor(st, s))) return { syn: "obxa", strip: st, roles: [r] };
-    if ((r = U.minimoogRoleFor(st, s))) return { syn: "minimoog", strip: st, roles: [r] };
-    if ((r = U.junoRolesFor(st, s))) return { syn: "juno", strip: st, roles: r };
-    return null;
+    var st = INST_BY[inst].strips[0], e = s.voices && s.voices[st];
+    if (!SYN[e] || s.mutes[st]) return null;
+    var role = U.stripRole(st, s.picks), list = U.roleCandidates(e, role, s.lane).slice();
+    var top = list.reduce(function (m, c) { return !m || c.w > m.w ? c : m; }, null);
+    list.sort(function (x, y) { return x === top ? -1 : y === top ? 1 : (y.a.roles[role] - x.a.roles[role]) || (y.w - x.w); });
+    return { syn: e, strip: st, role: role, cands: list };
   }
   var STYLE_NAMES = { plain: "plain", thumbPop: "thumb and pop", octave: "octaves", harmonic: "harmonics", fretlessSlide: "fretless slides" };
   function bassLabel(model, style) { return U.BASSGUITAR_MODELS[model].label + " · " + (STYLE_NAMES[style] || style); }
@@ -11877,8 +12062,7 @@
     }
     if (inst === "rgtr") { Object.keys(U.RHYTHMGUITAR_MODELS).forEach(function (m) { out.push({ id: m, label: U.RHYTHMGUITAR_MODELS[m].label }); }); return out; }
     var so = synthOf(inst, s); if (!so) return out;
-    var seen = {};
-    so.roles.forEach(function (r) { (SYN[so.syn].book()[r] || []).forEach(function (a) { if (!seen[a.name]) { seen[a.name] = 1; out.push({ id: a.name, label: a.name }); } }); });
+    so.cands.forEach(function (c) { out.push({ id: c.a.name, label: c.a.name }); });
     return out;
   }
   function applyPick(inst, s, pn, patchH) {
@@ -11899,12 +12083,12 @@
       return true;
     }
     var so = synthOf(inst, s); if (!so) return false;
-    var B = SYN[so.syn], hit = null, role = null;
-    so.roles.forEach(function (r) { (B.book()[r] || []).forEach(function (a) { if (!hit && a.name === pn) { hit = a; role = r; } }); });
+    var B = SYN[so.syn], hit = null;
+    so.cands.forEach(function (c) { if (!hit && c.a.name === pn) hit = c; });
     if (!hit) return false;
-    var uu = {}; for (var k in hit.range) uu[k] = G.r();
+    var uu = {}; for (var k in hit.a.range) uu[k] = G.r();
     s[B.key] = s[B.key] || {};
-    s[B.key][so.strip] = { name: hit.name, role: hit.role || role, params: B.res(hit, uu) };
+    s[B.key][so.strip] = { engine: so.syn, name: hit.a.name, role: hit.key, part: so.role, params: B.res(hit.a, uu) };
     return true;
   }
   function patchName(inst, s, opt) {
@@ -11914,8 +12098,7 @@
     if (inst === "rgtr") return s.gtrBook ? U.RHYTHMGUITAR_MODELS[s.gtrBook.model].label : "";
     var books = [s.fmPatches, s.obxaPatches, s.minimoogPatches, s.junoPatches];
     var want = { juno: s.junoPatches, obxa: s.obxaPatches, minimoog: s.minimoogPatches, fm: s.fmPatches };
-    var v = st === "bass" ? s.bassVoice : st === "lead" ? s.leadVoice : st === "arp" ? s.arpVoice : st === "counter" ? s.counterVoice
-      : st === "pad" ? (s.polyVoice === "obxa" && s.padVoice === "obxa" ? "obxa" : "juno") : s.polyVoice;
+    var v = s.voices[st];
     var b = want[v]; void books;
     return b && b[st] ? b[st].name : "";
   }

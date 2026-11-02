@@ -157,10 +157,10 @@
 <div id="bars" class="row"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><div id="status"></div></div>
 <div id="layers"></div>
 <div id="add" class="row"><div class="lbl">Add a layer<button id="palRnd" title="add a random instrument (one you don't have yet, while any are left)">Random</button></div><div id="pal"></div></div>
-<footer title="engine @c8ca5c1 · built 2026-11-01">Unison jam &middot; every sound is synthesized in this page by the engine at c8ca5c1</footer>
+<footer title="engine @d093619 · built 2026-11-02">Unison jam &middot; every sound is synthesized in this page by the engine at d093619</footer>
 
 <script>
-/* ===== src/core/prng.js @ c8ca5c1 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/prng.js @ d093619 — verbatim from jeffdavis-studio/unison-engine ===== */
 // prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
 // token hash, consumed in canonical draw order (Technical Architecture v1.2).
 //
@@ -233,7 +233,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/core/mix.js @ c8ca5c1 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/mix.js @ d093619 — verbatim from jeffdavis-studio/unison-engine ===== */
 // mix.js — the fan-in ≤2 summing rule, as a primitive.
 //
 // Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
@@ -402,7 +402,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/desk/desk.js @ c8ca5c1 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/desk/desk.js @ d093619 — verbatim from jeffdavis-studio/unison-engine ===== */
 // desk.js — the 24-track desk as a running audio graph.
 //
 // The desk is the data structure, not a metaphor (Composition Brief 2 / Tech
@@ -805,7 +805,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/production.js @ c8ca5c1 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/production.js @ d093619 — verbatim from jeffdavis-studio/unison-engine ===== */
 // production.js — the production room, v0.
 //
 // PLACEMENT DECISION (Morgan's call, ratified by Jeff 2026-08-03). Production
@@ -1100,7 +1100,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/juno.js @ c8ca5c1 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/juno.js @ d093619 — verbatim from jeffdavis-studio/unison-engine ===== */
 // juno.js — Juno-60-flavor poly voice, raw Web Audio, zero dependencies.
 // Ported from the 2026-07-21 bake-off winner (voice-raw.js), restructured to
 // live behind a desk strip: U.createJuno(ctx, strip, patchName) builds its own
@@ -1878,7 +1878,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/minimoog.js @ c8ca5c1 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/minimoog.js @ d093619 — verbatim from jeffdavis-studio/unison-engine ===== */
 // minimoog.js — Minimoog Model D-lineage mono voice, zero dependencies.
 //
 // THE MONO BASS LANE (build order 808 → Juno → Minimoog → …; it also absorbs
@@ -2664,7 +2664,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/obxa.js @ c8ca5c1 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/obxa.js @ d093619 — verbatim from jeffdavis-studio/unison-engine ===== */
 // obxa.js — Oberheim OB-Xa-lineage poly voice, zero dependencies.
 //
 // THE BRASS/PAD POLY LANE (build order 808 → Juno → Minimoog → OB-Xa → …).
@@ -3383,7 +3383,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/fm.js @ c8ca5c1 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/fm.js @ d093619 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fm.js — six-operator FM keys voice (the DX7 lineage), zero dependencies.
 //
 // THE FM LANE (build order 808 → Juno → Minimoog → OB-Xa → Linn → FM).
@@ -4404,7 +4404,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/bassguitar.js @ c8ca5c1 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/bassguitar.js @ d093619 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassguitar.js — electric bass guitar, the first session player of the human
 // rack (Rack 2), zero dependencies.
 //
@@ -4993,7 +4993,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/rhythmguitar.js @ c8ca5c1 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/rhythmguitar.js @ d093619 — verbatim from jeffdavis-studio/unison-engine ===== */
 // rhythmguitar.js — clean electric rhythm guitar, the fourth and last stop of
 // the human rack (Rack 2), zero dependencies.
 //
@@ -5642,7 +5642,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/tr808.js @ c8ca5c1 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/tr808.js @ d093619 — verbatim from jeffdavis-studio/unison-engine ===== */
 // tr808.js — THE MACHINE. A TR-808-lineage core voice: bass drum, snare,
 // closed hat, open hat, each with a front panel the token actually turns.
 //
@@ -6926,7 +6926,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/linn.js @ c8ca5c1 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/linn.js @ d093619 — verbatim from jeffdavis-studio/unison-engine ===== */
 // linn.js — THE STUDIO MACHINE. A Linn-family (LM-1 / LinnDrum lineage)
 // drum computer: the new wave / synth-pop / 80s R&B kit.
 //
@@ -7683,7 +7683,7 @@
   U._linn = { burn, play, vca, roms, V, EPROM_HZ, RECON_HZ, SR, TOM_MID_CLOCK };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drums.js @ c8ca5c1 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drums.js @ d093619 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drums.js — the drum machine: 808/LM-1-flavor voices, synthesized at runtime
 // into short AudioBuffers, played back as one-shots.
 //
@@ -8012,7 +8012,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/books.js @ c8ca5c1 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/books.js @ d093619 — verbatim from jeffdavis-studio/unison-engine ===== */
 // books.js — Pattern Books v1, as data.
 //
 // This file IS the document: "Unison — Pattern Books v1 (draft)" (Morgan,
@@ -8682,6 +8682,173 @@
     { id: "arp.random8",      w: 14, kind: "random8" },
     // arp.silence (w 38) → desk mute 0.352
   ];
+  // U.ARP is RETIRED FROM THE DRAW (2026-11-01, the motor slice 1, Asana
+  // 1220084594858479). Draw 24 still picks from it, so the song stream keeps
+  // its 86 draws in the same order; the pick is recorded as
+  // sheet.legacy.arpKind and decides nothing. The arp strip plays
+  // U.ARP_MODEL, below. Kept as the derivation record: sixteenths at 40 of
+  // 70 (up16 + updown16), eighths at 30 (octavePulse, random8).
+
+  // ---- the motor, slice 1: the arpeggiator ---------------------------------
+  // A model of the machine, not a book of figures (rack and parts doc, "The
+  // parts", the motor). The arp strip's figure is one setting of a period
+  // arpeggiator, drawn once per song from its own fork, U.forkPrng(hash,
+  // "motor.arp"), by U.drawArpMotor (order there). The models are the Roland
+  // and Korg arpeggiators of 1978 to 1984: the Juno-60's (UP / U&D / DOWN, a
+  // RANGE switch 1-2-3, a RATE knob off its clock, a HOLD), the SH-101's (UP,
+  // U&D, DOWN), the Jupiter-8's (UP, DOWN, U&D, RANDOM, range 1-4, a clock
+  // divider), the Polysix's (UP, DOWN, U&D, latch, range). How the session
+  // plays the machine:
+  //   hold      always on: the chord is latched for the bar, a chord change
+  //             re-latches and the order restarts (the hand lifts and lands)
+  //   rate      a clock divider off the song's step clock: eighths = every
+  //             other sixteenth, sixteenths = the step clock, triplets = three
+  //             per beat on a triplet grid laid alongside (never rounded to
+  //             the sixteenths, and never swung: a triplet is its own swing)
+  //   direction up, down, both (up then down, the turnaround notes not
+  //             doubled: the Juno-60's U&D), random (the Jupiter-8's: a
+  //             repeating pseudo-random order, one fixed permutation per song,
+  //             not fresh dice per step), asPlayed (the chord tones in the
+  //             order a spread left hand voices them: root, fifth, the third
+  //             an octave up, the seventh an octave up when it plays; then
+  //             the range's octaves above, as the machine does)
+  //   octaves   the range: the held tones, then each octave above
+  //   gate      fraction of the arp step the note sounds; today's arp was 0.9
+  //             of a sixteenth, so long = 0.9
+  //   tones     triad (the chord's first three tones; sus chords keep their
+  //             sus), withSeventh (the first four; a chord with no seventh
+  //             plays its triad: the rule, recorded), rootFifth (root and the
+  //             chord's own fifth, so m7b5 keeps its flat five)
+  //   skip      none, or one fixed 16-step cell (x plays, . rests): the clock
+  //             runs and the gate is masked, so the order still advances.
+  //             The cell is a shape over the bar's sixteen positions: an
+  //             eighths arp reads the even positions, a triplet arp the
+  //             position its step lands nearest (0 1 3 4 5 7 8 9 11 12 13 15).
+  //             At most 4 rests and at most 2 on even positions (an eighths
+  //             figure keeps 6 of 8), and never the downbeat.
+  //   accent    none, or one fixed 16-step cell (x = accent), read the same
+  //             way; velocity ACCENT.hi on an accent, ACCENT.lo on the rest,
+  //             0.6 (today's) with no accent. hi/lo straddle 0.6 so a 4-in-16
+  //             cell averages 0.605 and the strip's loudness does not walk.
+  //             Velocity is level and filter-envelope depth on the Juno, the
+  //             OB-Xa and the Minimoog, per-operator touch on the FM (an organ
+  //             patch has none): the accent is the filter movement the doc
+  //             asks for, as far as the circuits take it without a new input.
+  // Weights out of 70, today's book total, so the common case is legible: the
+  // rate keeps sixteenths at 40 of 70 exactly as U.ARP had it and splits
+  // today's 30 eighths into eighths 16 and triplets 14 (the Jupiter-8 and the
+  // Polysix clock to triplets; most period records are straight). Direction
+  // leans up, the default on every one of the machines and today's top pick
+  // (up16 22 + octavePulse 16, an up figure); U&D next (today's updown16 18);
+  // down and random are on fewer machines (random on the Jupiter-8 alone, as
+  // random8 was the book's smallest); asPlayed is the session player's own.
+  // Range leans 2 (today's figures all span two), 1 the tight Juno-60 figure,
+  // 3 the Jupiter-8 sweep. Gate leans long (today's). The skip and accent
+  // cells are the session's (the period machines have neither; a programmer
+  // got them from a sequencer or by hand), so most songs carry no skip, and
+  // a little over half carry an accent cell, which is the glitter.
+  U.ARP_MODEL = {
+    direction: [
+      { id: "up", w: 28 }, { id: "both", w: 18 }, { id: "down", w: 10 }, { id: "random", w: 8 }, { id: "asPlayed", w: 6 },
+    ],
+    octaves: [{ id: 1, w: 20 }, { id: 2, w: 34 }, { id: 3, w: 16 }],
+    rate: [{ id: "sixteenths", w: 40 }, { id: "eighths", w: 16 }, { id: "triplets", w: 14 }],
+    gate: [{ id: "short", w: 14, f: 0.35 }, { id: "medium", w: 24, f: 0.6 }, { id: "long", w: 32, f: 0.9 }],
+    tones: [{ id: "triad", w: 36 }, { id: "withSeventh", w: 22 }, { id: "rootFifth", w: 12 }],
+    skip: [{ id: "none", w: 44 }, { id: "cell", w: 26 }],
+    accent: [{ id: "none", w: 30 }, { id: "cell", w: 40 }],
+    SKIP: [
+      "xxx.xxx.xxx.xxx.", "xxxxxx.xxxxxx.x.", "x.xxx.xxx.xxxxx.", "xxx.xx.xxxx.xx.x",
+      "xxxxxxx.xxxxxx..", "xx.xxxx.xx.xxxx.", "x.xx.xxxx.xx.xxx", "xxxx.xxxxxxx.xx.",
+    ],
+    ACCENT: [
+      "x...x...x...x...", "x..x..x...x..x..", "x.......x.......",
+      "x..x..x..x..x...", "..x...x...x...x.", "x...x..x..x.x...",
+      "x..x...x..x...x.", "x...x.x...x...x.",
+    ],
+    VEL: { flat: 0.6, hi: 0.74, lo: 0.56 },
+    MAX_POOL: 12,   // 4 tones x 3 octaves: the random permutation's length
+  };
+  // the setting's derived label: P.arp.kind is "arp<rate>.<direction>.oct<n>"
+  // (rate 8, 16 or T), the alias pages and harnesses read; P.arp.id adds the
+  // rest
+  U.arpMotorLabel = function (a) {
+    const r = a.rate === "eighths" ? "8" : a.rate === "triplets" ? "T" : "16";
+    return "arp" + r + "." + a.direction + ".oct" + a.octaves;
+  };
+  U.arpMotorId = function (a) {
+    return "arp.motor." + U.arpMotorLabel(a) + "." + a.gate + "." + a.tones +
+      (a.skip == null ? "" : ".skip" + a.skip) + (a.accent == null ? "" : ".acc" + a.accent) +
+      (a.direction === "random" ? "." + a.order : "");
+  };
+  // THE DRAW, from U.forkPrng(hash, "motor.arp"), 20 values in this fixed
+  // order for EVERY song, whether or not the arp strip is up: direction,
+  // octaves, rate, gate, tones, skip (none / cell), the skip cell's index,
+  // accent (none / cell), the accent cell's index, then the random order:
+  // MAX_POOL - 1 Fisher-Yates draws over 0..11, kept as a base-36 string
+  // (drawn on every song; heard only when direction is random). skip and
+  // accent are a cell index, or null for none.
+  U.drawArpMotor = function (hash) {
+    const M = U.ARP_MODEL, G = U.forkPrng(hash, "motor.arp");
+    const direction = U.pickWeighted(G, M.direction).id;
+    const octaves = U.pickWeighted(G, M.octaves).id;
+    const rate = U.pickWeighted(G, M.rate).id;
+    const gate = U.pickWeighted(G, M.gate).id;
+    const tones = U.pickWeighted(G, M.tones).id;
+    const skipOn = U.pickWeighted(G, M.skip).id === "cell", skipCell = G.ri(0, M.SKIP.length - 1);
+    const accOn = U.pickWeighted(G, M.accent).id === "cell", accCell = G.ri(0, M.ACCENT.length - 1);
+    const perm = [];
+    for (let i = 0; i < M.MAX_POOL; i++) perm.push(i);
+    for (let i = M.MAX_POOL - 1; i > 0; i--) { const j = G.ri(0, i); const t = perm[i]; perm[i] = perm[j]; perm[j] = t; }
+    return { direction, octaves, rate, gate, tones, skip: skipOn ? skipCell : null, accent: accOn ? accCell : null,
+      order: perm.map((x) => x.toString(36)).join("") };
+  };
+  // THE FIGURE, as the machine plays it (pure; the arp builder in
+  // session.js and harness/motor-census.mjs both call it). U.arpSequence:
+  // the order of the latched notes for one chord (rootMidi, chord type).
+  // Notes above U.ARP_MODEL.TOP (96, the Juno-60's top C) leave the range,
+  // so a three-octave figure on a high chord plays the octaves that fit.
+  U.ARP_MODEL.TOP = 96;
+  U.arpSequence = function (a, rootMidi, type) {
+    const iv = U.CHORD_INTERVALS[type] || U.CHORD_INTERVALS.m;
+    let base = a.tones === "rootFifth" ? [iv[0], iv[2]] : a.tones === "withSeventh" && iv.length >= 4 ? iv.slice(0, 4) : iv.slice(0, 3);
+    // as played: the spread left hand, root, fifth, then the third and the
+    // seventh an octave up
+    if (a.direction === "asPlayed") base = base.length === 2 ? base : [base[0], base[2], base[1] + 12].concat(base.length > 3 ? [base[3] + 12] : []);
+    const pool = [];
+    for (let o = 0; o < a.octaves; o++) for (const x of base) { const m = rootMidi + x + 12 * o; if (m <= U.ARP_MODEL.TOP) pool.push(m); }
+    if (a.direction === "asPlayed") return pool;
+    const asc = pool.slice().sort((x, y) => x - y);
+    if (a.direction === "down") return asc.reverse();
+    if (a.direction === "both") return asc.length > 2 ? asc.concat(asc.slice(1, -1).reverse()) : asc;
+    if (a.direction === "random") {
+      const out = [];
+      for (const ch of a.order) { const k = parseInt(ch, 36); if (k < asc.length) out.push(asc[k]); }
+      return out;
+    }
+    return asc;
+  };
+  // the steps of one bar: { i (arp step in the bar), pos (sixteenth position,
+  // fractional on triplets), cell (the cell position it reads), dur (in
+  // sixteenths), vel, play, k (the order index) }. k0 = the order index the
+  // bar starts on (0 after a chord change: the re-latch). Returns the steps
+  // and the next bar's k0.
+  U.ARP_RATE = { sixteenths: { n: 16, len: 1 }, eighths: { n: 8, len: 2 }, triplets: { n: 12, len: 4 / 3 } };
+  U.arpBar = function (a, seq, k0) {
+    const M = U.ARP_MODEL, R = U.ARP_RATE[a.rate];
+    const f = M.gate.find((g) => g.id === a.gate).f;
+    const skip = a.skip == null ? null : M.SKIP[a.skip], acc = a.accent == null ? null : M.ACCENT[a.accent];
+    const out = [];
+    let k = k0 || 0;
+    for (let i = 0; i < R.n; i++) {
+      const pos = i * R.len, cell = Math.round(pos);
+      const play = !skip || skip[cell] === "x";
+      const vel = acc ? (acc[cell] === "x" ? M.VEL.hi : M.VEL.lo) : M.VEL.flat;
+      out.push({ i, pos, cell, dur: f * R.len, vel, play, k, midi: seq.length ? seq[k % seq.length] : null });
+      k++;
+    }
+    return { steps: out, next: k };
+  };
 
   U.LEAD = [
     { id: "lead.vocal_phrase",      w: 30, kind: "vocalPhrase" },   // one flavor among three, not the default
@@ -8760,7 +8927,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/bassplayer.js @ c8ca5c1 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/bassplayer.js @ d093619 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassplayer.js — the PERFORMANCE half of the bass guitar: a session player.
 //
 // Rack 2's rule (kb/projects/unison.md, 2026-07-11): every human instrument is
@@ -9012,7 +9179,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/gtrplayer.js @ c8ca5c1 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/gtrplayer.js @ d093619 — verbatim from jeffdavis-studio/unison-engine ===== */
 // gtrplayer.js — the PERFORMANCE half of the rhythm guitar: a session
 // guitarist on the rhythmGtr strip.
 //
@@ -9212,7 +9379,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/fmplayer.js @ c8ca5c1 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/fmplayer.js @ d093619 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fmplayer.js — the PERFORMANCE half of the FM keys: a session keyboard
 // player on the FM chord strips (compA's tine EP, colour's glass and brass).
 //
@@ -9353,7 +9520,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/testPhrase.js @ c8ca5c1 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/testPhrase.js @ d093619 — verbatim from jeffdavis-studio/unison-engine ===== */
 // testPhrase.js — deterministic 8-bar test phrase, ported from the bake-off
 // (phrase.js) onto the engine's canonical PRNG (core/prng.js).
 //
@@ -9447,7 +9614,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/form.js @ c8ca5c1 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/form.js @ d093619 — verbatim from jeffdavis-studio/unison-engine ===== */
 // form.js — the song's form: the book of returns (2026-10-30, Asana
 // 1220073468300418; design files/unison/structure-design-2026-10-30 in the
 // morgan repo, DESIGN.md + draw.py, transcribed here as written).
@@ -9768,7 +9935,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/session.js @ c8ca5c1 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/session.js @ d093619 — verbatim from jeffdavis-studio/unison-engine ===== */
 // session.js — the session sheet and the arrangement realizer.
 //
 // Two tiers, in this order, each on its own stream (core/prng.js):
@@ -9827,7 +9994,10 @@
 //                               │    the roll's residual (2026-10-01, no new
 //                               │    draw; U.BASSGUITAR_SHARE, books.js).
 //   23  pad pattern             │
-//   24  arp pattern             │
+//   24  arp pattern             │  ← recorded as sheet.legacy.arpKind
+//                               │    since 2026-11-01; decides nothing
+//                               │    (the arp strip plays the motor.arp
+//                               │    fork, below)
 //   25  lead pattern            │
 //   26  lead phrase mask        │
 //   27  counter pattern         │
@@ -9880,6 +10050,15 @@
 // is off the song stream: until 2026-10-30 it was draw 6, a pick from four
 // fixed 40-48 bar forms. The other tier-1 forks (auxPerc, moogRoles,
 // padVoice) are read below as before.
+//
+// THE MOTOR, slice 1 (2026-11-01, Asana 1220084594858479): the arpeggiator's
+// setting is read from its own fork, U.forkPrng(hash, "motor.arp"), by
+// U.drawArpMotor (books.js; 20 values, order there) for every song, after
+// the roleDraw forks. Result: sheet.motor = { arp: { direction, octaves,
+// rate, gate, tones, skip, accent, order } }. P.arp is its alias: kind =
+// U.arpMotorLabel (e.g. "arp16.up.oct2"), id = U.arpMotorId, motor = the
+// setting, which the arp builder reads. Draw 24 (U.ARP, retired) stays on
+// the stream so the count and order never move.
 //
 // Draws 9 and 10 are taken whether or not the gate at 8 passed, and discarded
 // when it did not. That is the module's standing "draw first, discard if unused"
@@ -10218,7 +10397,21 @@
       const VG = U.forkPrng(R.hash, "roleDraw." + strip);
       voices[strip] = U.pickWeighted(VG, U.roleEngineList(strip, U.stripRole(strip, picks), lane, picks)).id;
     }
-    const legacy = { bassVoice, polyVoice, padRoll, moogRolls: { lead: leadVoice, counter: counterVoice, arp: arpVoice }, padVoice };
+    // THE MOTOR, slice 1: the arpeggiator (2026-11-01, Asana
+    // 1220084594858479). The arp strip's figure is one setting of the
+    // arpeggiator model (U.ARP_MODEL, U.drawArpMotor, books.js), read from
+    // its own FORK, U.forkPrng(hash, "motor.arp"), for EVERY song whether or
+    // not the strip is up, so a mute retune never moves another strip's
+    // figure and tier 1 stays 86 draws. Draw 24 (the U.ARP pick) is still
+    // read above; it is recorded as sheet.legacy.arpKind and decides nothing.
+    const motor = { arp: U.drawArpMotor(R.hash) };
+    const legacy = { bassVoice, polyVoice, padRoll, moogRolls: { lead: leadVoice, counter: counterVoice, arp: arpVoice }, padVoice, arpKind: picks.arp.kind };
+    // P.arp is the motor's alias from here on: kind = the derived label
+    // ("arp16.up.oct2", U.arpMotorLabel), id = the full setting
+    // (U.arpMotorId), motor = sheet.motor.arp itself. The builder reads the
+    // setting through P.arp.motor, so a page that swaps P.arp per bar (the
+    // jam's splice) swaps the whole machine setting.
+    picks.arp = { id: U.arpMotorId(motor.arp), kind: U.arpMotorLabel(motor.arp), motor: motor.arp };
     // the rhythmGtr strip's voicing for its pattern (heard only when the strip is up)
     const gtrVoicing = U.GTR_FOR_PATTERN(picks.rhythmGtr.id, lane);
     // bar map. A looped section (ride, repeat-out, coda vamp) keeps its name
@@ -10254,6 +10447,8 @@
       // the role draw (2026-11-01): the engine per pitched strip, and the
       // lock's draws as they landed (read by the census only)
       voices, legacy,
+      // the motor (2026-11-01): sheet.motor.arp, the arpeggiator's setting
+      motor,
       masks: { bass: bassMask, comp: compMask, lead: leadPhrase, counter: counterPhrase, gtr: gtrMask },
       bars, totalBars: bars.length, barSec, lengthSec: bars.length * barSec,
       kit: U.LANE_FEEL[lane].kit,
@@ -10671,6 +10866,13 @@
     const infl = (patch) => sheet.influencePatches.indexOf(patch) > -1;
 
     const stepT = (bar, i) => t0 + (bar * 16 + i) * s16 + (i % 2 ? swing * s16 : 0);
+    // the triplet time base (the arpeggiator's triplet rate, 2026-11-01):
+    // pos in sixteenths, fractional, laid alongside the step clock, never
+    // swung (a triplet is its own swing) and never rounded to the grid
+    const tripT = (bar, pos) => t0 + (bar * 16 + pos) * s16;
+    // the arpeggiator's latch: the setting and chord it holds, the bar it
+    // last played and where its order stands
+    let arpLatch = null, arpLast = -2, arpK = 0;
 
     // --- harmony resolution ---
     const chorusChords = sheet.harmony.chorus || null;
@@ -11055,17 +11257,23 @@
         }
       }
 
-      // --- arp ---
+      // --- arp --- the arpeggiator (the motor, slice 1, 2026-11-01): the
+      // song's setting (sheet.motor.arp, read through P.arp.motor, U.ARP_MODEL)
+      // played as the machine plays it. Pitch follows the bar's chord; the
+      // rhythm cell (rate, skip, accent, gate) never breathes. Hold is on: a
+      // chord change (or the strip coming back in) re-latches and the order
+      // restarts; while the chord holds the order runs on across the bar line.
+      // Triplets sit on their own grid (tripT), unswung.
       if (on("arp", bar)) {
-        const k = P.arp.kind;
-        const t4 = tones(mRoot, ch.type, 4);
-        for (let i = 0; i < 16; i++) {
-          let midi = null;
-          if (k === "up16") midi = t4[i % 4] + 12 * Math.floor((i % 8) / 4);
-          else if (k === "updown16") { const seq = [0, 1, 2, 3, 4, 3, 2, 1]; midi = t4[seq[i % 8] % 4] + (seq[i % 8] >= 4 ? 12 : 0); }
-          else if (k === "octavePulse") { if (i % 2) continue; midi = (i / 2) % 2 ? t4[0] + 12 : t4[0]; }
-          else if (k === "random8") { if (i % 2) continue; midi = t4[(i * 5 + bar * 3) % 4] + (((i + bar) % 3 === 0) ? 12 : 0); }
-          if (midi != null) note("arp", stepT(bar, i), midi, 0.6, 0.9 * s16);
+        const A = P.arp.motor;
+        const key = P.arp.id + "|" + mRoot + ch.type;
+        if (key !== arpLatch || arpLast !== bar - 1) { arpLatch = key; arpK = 0; }
+        const fig = U.arpBar(A, U.arpSequence(A, mRoot, ch.type), arpK);
+        arpK = fig.next; arpLast = bar;
+        for (const st of fig.steps) {
+          if (!st.play || st.midi == null) continue;
+          const t = A.rate === "triplets" ? tripT(bar, st.pos) : stepT(bar, st.pos);
+          note("arp", t, st.midi, st.vel, st.dur * s16);
         }
       }
 
@@ -11135,7 +11343,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/render/renderer.js @ c8ca5c1 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/render/renderer.js @ d093619 — verbatim from jeffdavis-studio/unison-engine ===== */
 // renderer.js — song assembly + the render pipeline (Technical Architecture
 // v1.2 playback model): live-first, with (a) a cheap analysis pre-render for
 // verification/metrics and (b) an on-demand full OfflineAudioContext render
@@ -12106,7 +12314,20 @@
     var P = s.picks, d = INST_BY[inst];
     if (d.cls === "drums") return [P.kick.id, P.snare.id, P.hats.id].map(function (x) { return x.split(".").pop().replace(/_/g, " "); }).join(" / ");
     var st = d.strips[0], e = st === "rhythmGtr" ? P.rhythmGtr : P[st];
+    if (st === "arp" && e && e.motor) return arpText(e.motor);
     return e ? e.id.split(".").pop().replace(/_/g, " ") : "";
+  }
+  // the arp strip plays the engine's arpeggiator (the motor, 2026-11-01):
+  // its setting in words, e.g. "16ths up 2 oct, skips, accents"
+  function arpText(a) {
+    var rate = { sixteenths: "16ths", eighths: "8ths", triplets: "triplets" }[a.rate];
+    var dir = { up: "up", down: "down", both: "up-down", random: "random", asPlayed: "as played" }[a.direction];
+    var t = rate + " " + dir + " " + a.octaves + " oct";
+    if (a.tones !== "triad") t += a.tones === "withSeventh" ? ", with 7th" : ", root-fifth";
+    if (a.gate !== "long") t += ", " + a.gate + " gate";
+    if (a.skip != null) t += ", skips";
+    if (a.accent != null) t += ", accents";
+    return t;
   }
 
   // iOS mutes Web Audio under the silent switch unless the page asks for playback
