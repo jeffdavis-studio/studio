@@ -157,10 +157,10 @@
 <div id="bars" class="row"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><div id="status"></div></div>
 <div id="layers"></div>
 <div id="add" class="row"><div class="lbl">Add a layer<button id="palRnd" title="add a random instrument (one you don't have yet, while any are left)">Random</button></div><div id="pal"></div></div>
-<footer title="engine @b4ba5dc · built 2026-11-02">Unison jam &middot; every sound is synthesized in this page by the engine at b4ba5dc</footer>
+<footer title="engine @779dcea · built 2026-11-02">Unison jam &middot; every sound is synthesized in this page by the engine at 779dcea</footer>
 
 <script>
-/* ===== src/core/prng.js @ b4ba5dc — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/prng.js @ 779dcea — verbatim from jeffdavis-studio/unison-engine ===== */
 // prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
 // token hash, consumed in canonical draw order (Technical Architecture v1.2).
 //
@@ -233,7 +233,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/core/mix.js @ b4ba5dc — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/mix.js @ 779dcea — verbatim from jeffdavis-studio/unison-engine ===== */
 // mix.js — the fan-in ≤2 summing rule, as a primitive.
 //
 // Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
@@ -402,7 +402,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/desk/desk.js @ b4ba5dc — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/desk/desk.js @ 779dcea — verbatim from jeffdavis-studio/unison-engine ===== */
 // desk.js — the 24-track desk as a running audio graph.
 //
 // The desk is the data structure, not a metaphor (Composition Brief 2 / Tech
@@ -805,7 +805,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/production.js @ b4ba5dc — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/production.js @ 779dcea — verbatim from jeffdavis-studio/unison-engine ===== */
 // production.js — the production room, v0.
 //
 // PLACEMENT DECISION (Morgan's call, ratified by Jeff 2026-08-03). Production
@@ -1100,7 +1100,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/juno.js @ b4ba5dc — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/juno.js @ 779dcea — verbatim from jeffdavis-studio/unison-engine ===== */
 // juno.js — Juno-60-flavor poly voice, raw Web Audio, zero dependencies.
 // Ported from the 2026-07-21 bake-off winner (voice-raw.js), restructured to
 // live behind a desk strip: U.createJuno(ctx, strip, patchName) builds its own
@@ -1773,7 +1773,9 @@
       pulseWave = ctx.createPeriodicWave(re, im, { disableNormalization: true });
     }
 
-    function noteOn(t, midi, vel, dur) {
+    // cut: an optional per-note cutoff offset in octaves (the motor's filter
+    // row, 2026-11-02); absent or 0 = the cutoff as before, bit for bit
+    function noteOn(t, midi, vel, dur, cut) {
       const f = midiHz(midi);
 
       const saw = ctx.createOscillator(); saw.type = "sawtooth"; saw.frequency.value = f;
@@ -1792,7 +1794,8 @@
       // exactly the old behaviour and every patch that does not set it is
       // bit-identical to before.
       const trk = Math.pow(f / 261.63, p.kbdTrack || 0);
-      const cBase = p.cutoffBase * trk, cEnv = p.cutoffEnv * trk;
+      const cm = cut ? Math.pow(2, cut) : 1;
+      const cBase = p.cutoffBase * trk * cm, cEnv = p.cutoffEnv * trk * cm;
       const filt = ctx.createBiquadFilter(); filt.type = "lowpass"; filt.Q.value = p.filterQ;
       const peak = Math.min(cBase + cEnv * vel, ctx.sampleRate * 0.45);
       filt.frequency.setValueAtTime(cBase, t);
@@ -1873,12 +1876,12 @@
     return {
       held,
       noteOn,
-      schedule(events, t0) { for (const e of events) noteOn(t0 + e.t, e.midi, e.vel, e.dur); },
+      schedule(events, t0) { for (const e of events) noteOn(t0 + e.t, e.midi, e.vel, e.dur, e.cut); },
     };
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/minimoog.js @ b4ba5dc — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/minimoog.js @ 779dcea — verbatim from jeffdavis-studio/unison-engine ===== */
 // minimoog.js — Minimoog Model D-lineage mono voice, zero dependencies.
 //
 // THE MONO BASS LANE (build order 808 → Juno → Minimoog → …; it also absorbs
@@ -2552,6 +2555,7 @@
     let s1 = 0, s2 = 0, s3 = 0, s4 = 0;
     let noiseState = 0x9e3779b9 | 0;
     let pitch = evs[0].midi, target = evs[0].midi, vel = evs[0].vel;
+    let cut = evs[0].cut || 0;   // the motor's filter row (2026-11-02): a cutoff offset in octaves per event, 0 = as before, bit for bit
     let nextEv = 0, gateOffAt = -1;
     const trig = p.osc.length ? 1 : 0;
     const startAt = (e) => Math.round(e.t * fs), endAt = (e) => Math.round((e.t + e.dur) * fs);
@@ -2562,7 +2566,7 @@
       while (nextEv < evs.length && startAt(evs[nextEv]) <= n) {
         const e = evs[nextEv++];
         const legato = gateOffAt > n;                              // previous still held
-        target = e.midi;
+        target = e.midi; cut = e.cut || 0;
         if (!legato) {
           if (p.glide <= 0 || nextEv === 1) pitch = e.midi;
           vel = e.vel; fEnv.gate(); aEnv.gate();
@@ -2603,8 +2607,8 @@
       // --- the ladder
       const fe = fEnv.step();
       let fc = modF
-        ? p.cutoff * Math.pow(2, p.kbd * (pitch - 48) / 12 + p.amount * fe * (0.5 + 0.5 * vel) + modF * lfo)
-        : p.cutoff * Math.pow(2, p.kbd * (pitch - 48) / 12 + p.amount * fe * (0.5 + 0.5 * vel));
+        ? p.cutoff * Math.pow(2, p.kbd * (pitch - 48) / 12 + p.amount * fe * (0.5 + 0.5 * vel) + modF * lfo + cut)
+        : p.cutoff * Math.pow(2, p.kbd * (pitch - 48) / 12 + p.amount * fe * (0.5 + 0.5 * vel) + cut);
       if (fc > fs * 0.24) fc = fs * 0.24;
       const gC = 1 - Math.exp(-2 * Math.PI * fc / fs);
       const x = mix - k * s4;
@@ -2644,7 +2648,7 @@
       if (!pending.length) return;
       const evs = pending; pending = [];
       const t0 = evs.reduce((m, e) => Math.min(m, e.t), Infinity);
-      const rel = evs.map((e) => ({ t: e.t - t0, midi: e.midi, vel: e.vel, dur: e.dur }));
+      const rel = evs.map((e) => ({ t: e.t - t0, midi: e.midi, vel: e.vel, dur: e.dur, cut: e.cut }));
       const data = U.buildMinimoogLine(p, rel, ctx.sampleRate);
       const buf = ctx.createBuffer(1, data.length, ctx.sampleRate);
       buf.getChannelData(0).set(data);
@@ -2657,14 +2661,14 @@
     return {
       held,
       patch: p,
-      noteOn(t, midi, vel, dur) { pending.push({ t, midi, vel, dur }); },
-      schedule(events, t0) { for (const e of events) pending.push({ t: t0 + e.t, midi: e.midi, vel: e.vel, dur: e.dur }); flush(); },
+      noteOn(t, midi, vel, dur, cut) { pending.push({ t, midi, vel, dur, cut }); },
+      schedule(events, t0) { for (const e of events) pending.push({ t: t0 + e.t, midi: e.midi, vel: e.vel, dur: e.dur, cut: e.cut }); flush(); },
       flush,
     };
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/obxa.js @ b4ba5dc — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/obxa.js @ 779dcea — verbatim from jeffdavis-studio/unison-engine ===== */
 // obxa.js — Oberheim OB-Xa-lineage poly voice, zero dependencies.
 //
 // THE BRASS/PAD POLY LANE (build order 808 → Juno → Minimoog → OB-Xa → …).
@@ -3275,7 +3279,7 @@
         V.on = true; V.midi = e.midi; V.vel = e.vel; V.age = clock++; V.offAt = endAt(e);
         const f0 = midiHz(e.midi);
         V.dt1 = f0 * V.m1 / fs; V.dt2 = f0 * det2 * V.m2 / fs;
-        V.fcBase = p.cutoff * V.fcm * Math.pow(2, p.kbd * (e.midi - 60) / 12);
+        V.fcBase = p.cutoff * V.fcm * Math.pow(2, p.kbd * (e.midi - 60) / 12) * (e.cut ? Math.pow(2, e.cut) : 1);   // e.cut: the motor's filter row, octaves; absent = 1, bit for bit
         V.envScale = 0.6 + 0.4 * e.vel;
         V.kc = 0;
         V.fe.st = 1; V.ae.st = 1;
@@ -3363,7 +3367,7 @@
       if (!pending.length) return;
       const evs = pending; pending = [];
       const t0 = evs.reduce((m, e) => Math.min(m, e.t), Infinity);
-      const rel = evs.map((e) => ({ t: e.t - t0, midi: e.midi, vel: e.vel, dur: e.dur }));
+      const rel = evs.map((e) => ({ t: e.t - t0, midi: e.midi, vel: e.vel, dur: e.dur, cut: e.cut }));
       const data = U.buildObxaLine(p, rel, ctx.sampleRate, undefined, seed);
       const buf = ctx.createBuffer(1, data.length, ctx.sampleRate);
       buf.getChannelData(0).set(data);
@@ -3376,14 +3380,14 @@
     return {
       held,
       patch: p,
-      noteOn(t, midi, vel, dur) { pending.push({ t, midi, vel, dur }); },
-      schedule(events, t0) { for (const e of events) pending.push({ t: t0 + e.t, midi: e.midi, vel: e.vel, dur: e.dur }); flush(); },
+      noteOn(t, midi, vel, dur, cut) { pending.push({ t, midi, vel, dur, cut }); },
+      schedule(events, t0) { for (const e of events) pending.push({ t: t0 + e.t, midi: e.midi, vel: e.vel, dur: e.dur, cut: e.cut }); flush(); },
       flush,
     };
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/fm.js @ b4ba5dc — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/fm.js @ 779dcea — verbatim from jeffdavis-studio/unison-engine ===== */
 // fm.js — six-operator FM keys voice (the DX7 lineage), zero dependencies.
 //
 // THE FM LANE (build order 808 → Juno → Minimoog → OB-Xa → Linn → FM).
@@ -4404,7 +4408,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/bassguitar.js @ b4ba5dc — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/bassguitar.js @ 779dcea — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassguitar.js — electric bass guitar, the first session player of the human
 // rack (Rack 2), zero dependencies.
 //
@@ -4993,7 +4997,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/rhythmguitar.js @ b4ba5dc — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/rhythmguitar.js @ 779dcea — verbatim from jeffdavis-studio/unison-engine ===== */
 // rhythmguitar.js — clean electric rhythm guitar, the fourth and last stop of
 // the human rack (Rack 2), zero dependencies.
 //
@@ -5642,7 +5646,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/tr808.js @ b4ba5dc — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/tr808.js @ 779dcea — verbatim from jeffdavis-studio/unison-engine ===== */
 // tr808.js — THE MACHINE. A TR-808-lineage core voice: bass drum, snare,
 // closed hat, open hat, each with a front panel the token actually turns.
 //
@@ -6926,7 +6930,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/linn.js @ b4ba5dc — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/linn.js @ 779dcea — verbatim from jeffdavis-studio/unison-engine ===== */
 // linn.js — THE STUDIO MACHINE. A Linn-family (LM-1 / LinnDrum lineage)
 // drum computer: the new wave / synth-pop / 80s R&B kit.
 //
@@ -7683,7 +7687,7 @@
   U._linn = { burn, play, vca, roms, V, EPROM_HZ, RECON_HZ, SR, TOM_MID_CLOCK };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drums.js @ b4ba5dc — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drums.js @ 779dcea — verbatim from jeffdavis-studio/unison-engine ===== */
 // drums.js — the drum machine: 808/LM-1-flavor voices, synthesized at runtime
 // into short AudioBuffers, played back as one-shots.
 //
@@ -8012,7 +8016,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/books.js @ b4ba5dc — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/books.js @ 779dcea — verbatim from jeffdavis-studio/unison-engine ===== */
 // books.js — Pattern Books v1, as data.
 //
 // This file IS the document: "Unison — Pattern Books v1 (draft)" (Morgan,
@@ -8995,7 +8999,8 @@
   // since slice 3 (2026-11-02) plus the layer-two setting when the layer
   // draw says two (U.layerMotorId, below)
   U.motorId = (m) => (m.machine === "seq" ? U.seqMotorId(m.seq) : U.arpMotorId(m.arp)) +
-    (m.layer && m.layer.layers === "two" ? "+" + U.layerMotorId(m.layer) : "");
+    (m.layer && m.layer.layers === "two" ? "+" + U.layerMotorId(m.layer) : "") +
+    (m.layer && m.layer.filter ? "+filter" + m.layer.filter.cell + "@" + m.layer.filter.depth : "");
   // THE FIGURE, one bar (pure; the arp builder and harness/motor-census.mjs
   // both call it). root / prevRoot: the degree-0 midi this bar and the bar
   // before (prevRoot null when the chord root did not change, so nothing
@@ -9069,10 +9074,22 @@
   //   gate      U.SEQ_MODEL.gate (short / medium / long).
   //   accent    U.SEQ_MODEL.accent: none, or one of U.ARP_MODEL.ACCENT's
   //             cells, with U.ARP_MODEL.VEL's two levels.
-  //   filter    none / cell (a per-step cutoff row, the multi-row analog
-  //             sequencers' VCF row; its shape one of U.ARP_MODEL.ACCENT's
-  //             cells) and a depth in octaves of cutoff. Drawn last on every
-  //             song so wiring it never moves a layer value (pass 3).
+  //   filter    none 42 / cell 18: a per-step cutoff row, the multi-row
+  //             analog sequencers' VCF row (the MC-202's accent drove VCA and
+  //             VCF together; a 960 or 1601 gave the filter its own row of
+  //             knobs). A minority: it needed a second row or a patched CV,
+  //             and most records leave the filter to the envelope. The shape
+  //             is one of U.ARP_MODEL.ACCENT's cells, read at the step's
+  //             sixteenth: an "x" step opens the cutoff by the depth (0.5: 20,
+  //             1: 14, 1.5: 6 octaves; half an octave the common, a subtle
+  //             wah), every other step plays the patch's own cutoff. It
+  //             belongs to the motor, not to layer two: the arp strip plays it
+  //             on every song that draws it (either machine), and layer two
+  //             with it. The engines take it as an optional per-note cutoff
+  //             offset (noteOn's fifth argument on the Juno, the OB-Xa and the
+  //             Minimoog, absent = bit-for-bit the old cutoff); the FM has no
+  //             filter and ignores it. Drawn last on the fork so it never
+  //             moves a layer value.
   U.LAYER_MODEL = {
     layers: [{ id: "one", w: 60 }, { id: "two", w: 40 }],
     length: [{ id: 16, w: 30 }, { id: 8, w: 12 }],
@@ -9081,7 +9098,7 @@
     phase: [{ id: 0, w: 48 }, { id: 1, w: 12 }],
     gate: U.SEQ_MODEL.gate,
     accent: U.SEQ_MODEL.accent,
-    filter: [{ id: "none", w: 30 }, { id: "cell", w: 30 }],
+    filter: [{ id: "none", w: 42 }, { id: "cell", w: 18 }],
     depth: [{ id: 0.5, w: 20 }, { id: 1, w: 14 }, { id: 1.5, w: 6 }],
     RATE_FROM: { sixteenths: "eighths", eighths: "sixteenths", triplets: "eighths" },
   };
@@ -9114,6 +9131,9 @@
     return { layers, rate: M.RATE_FROM[one], length, cell, transpose, register, phase, gate,
       accent: accOn ? accCell : null, hold: null, filter: filOn ? { cell: filCell, depth } : null };
   };
+  // the filter row's offset in octaves at a sixteenth position (0 off the
+  // row's steps, or with no row)
+  U.motorFilterCut = (l, pos) => (l && l.filter && U.ARP_MODEL.ACCENT[l.filter.cell][Math.round(pos)] === "x" ? l.filter.depth : 0);
   // the label ("layer2.seq8.cell9.root.below") and the full id
   U.layerMotorLabel = function (l) {
     return "layer2.seq" + (l.rate === "eighths" ? "8" : "16") + ".cell" + l.cell + "." + (l.transpose === "chordRoot" ? "root" : "key") + "." + l.register;
@@ -9250,7 +9270,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/bassplayer.js @ b4ba5dc — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/bassplayer.js @ 779dcea — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassplayer.js — the PERFORMANCE half of the bass guitar: a session player.
 //
 // Rack 2's rule (kb/projects/unison.md, 2026-07-11): every human instrument is
@@ -9502,7 +9522,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/gtrplayer.js @ b4ba5dc — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/gtrplayer.js @ 779dcea — verbatim from jeffdavis-studio/unison-engine ===== */
 // gtrplayer.js — the PERFORMANCE half of the rhythm guitar: a session
 // guitarist on the rhythmGtr strip.
 //
@@ -9702,7 +9722,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/fmplayer.js @ b4ba5dc — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/fmplayer.js @ 779dcea — verbatim from jeffdavis-studio/unison-engine ===== */
 // fmplayer.js — the PERFORMANCE half of the FM keys: a session keyboard
 // player on the FM chord strips (compA's tine EP, colour's glass and brass).
 //
@@ -9843,7 +9863,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/testPhrase.js @ b4ba5dc — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/testPhrase.js @ 779dcea — verbatim from jeffdavis-studio/unison-engine ===== */
 // testPhrase.js — deterministic 8-bar test phrase, ported from the bake-off
 // (phrase.js) onto the engine's canonical PRNG (core/prng.js).
 //
@@ -9937,7 +9957,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/form.js @ b4ba5dc — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/form.js @ 779dcea — verbatim from jeffdavis-studio/unison-engine ===== */
 // form.js — the song's form: the book of returns (2026-10-30, Asana
 // 1220073468300418; design files/unison/structure-design-2026-10-30 in the
 // morgan repo, DESIGN.md + draw.py, transcribed here as written).
@@ -10258,7 +10278,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/session.js @ b4ba5dc — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/session.js @ 779dcea — verbatim from jeffdavis-studio/unison-engine ===== */
 // session.js — the session sheet and the arrangement realizer.
 //
 // Two tiers, in this order, each on its own stream (core/prng.js):
@@ -11363,12 +11383,12 @@
       if (sheet.voices[strip] !== "minimoog" || strip === "lead" || !recOf(strip)) return v;
       const evs = [];
       return { held: v.held, patch: v.patch,
-        noteOn(t, midi, vel, dur) { evs.push({ t, midi, vel, dur }); },
+        noteOn(t, midi, vel, dur, cut) { evs.push({ t, midi, vel, dur, cut }); },
         flush() {
           evs.sort((a, b) => a.t - b.t);
           for (let i = 0; i < evs.length; i++) {
             const e = evs[i], nx = evs[i + 1];
-            v.noteOn(e.t, e.midi, e.vel, nx && nx.t > e.t ? Math.max(0.005, Math.min(e.dur, nx.t - e.t - 0.002)) : e.dur);
+            v.noteOn(e.t, e.midi, e.vel, nx && nx.t > e.t ? Math.max(0.005, Math.min(e.dur, nx.t - e.t - 0.002)) : e.dur, e.cut);
           }
           evs.length = 0;
           v.flush();
@@ -11391,7 +11411,9 @@
     // `lvl` is the current bar's section level; every velocity and drum gain
     // rides it, so the whole band gets louder into a chorus.
     let lvl = 1;
-    const note = (part, t, midi, vel, dur) => { inst[part].noteOn(t, midi, vel * lvl, dur); events++; };
+    // cut: the motor's filter row (U.motorFilterCut, octaves), arp and
+    // counter only; every other call leaves it undefined
+    const note = (part, t, midi, vel, dur, cut) => { inst[part].noteOn(t, midi, vel * lvl, dur, cut); events++; };
     // `accent` is the machine's accent track. The books don't carry one, so it
     // is derived the way an 808 is actually programmed: the quarter-note steps
     // of the bar get the accent. Ignored entirely by the generic kit.
@@ -11656,7 +11678,7 @@
         const S = P.arp.motor, pch = bar > 0 ? chordAt(bar - 1) : null;
         const root = S.transpose === "chordRoot" ? mRoot : midMidi(0);
         const prevRoot = S.transpose === "chordRoot" && pch && pch.deg !== ch.deg ? midMidi(pch.deg) : null;
-        for (const st of U.seqBar(S, bar, root, prevRoot, degMidi)) note("arp", stepT(bar, st.pos), st.midi, st.vel, st.dur * s16);
+        for (const st of U.seqBar(S, bar, root, prevRoot, degMidi)) note("arp", stepT(bar, st.pos), st.midi, st.vel, st.dur * s16, U.motorFilterCut(sheet.motor.layer, st.pos));
       } else if (on("arp", bar)) {
         const A = P.arp.motor;
         const key = P.arp.id + "|" + mRoot + ch.type;
@@ -11666,7 +11688,7 @@
         for (const st of fig.steps) {
           if (!st.play || st.midi == null) continue;
           const t = A.rate === "triplets" ? tripT(bar, st.pos) : stepT(bar, st.pos);
-          note("arp", t, st.midi, st.vel, st.dur * s16);
+          note("arp", t, st.midi, st.vel, st.dur * s16, U.motorFilterCut(sheet.motor.layer, st.cell));
         }
       }
 
@@ -11698,7 +11720,7 @@
       if (on("counter", bar) && P.counter.layer === 2) {
         const S = P.counter.motor;
         const root = (S.transpose === "chordRoot" ? mRoot : midMidi(0)) + (S.register === "below" ? -12 : 12);
-        for (const st of U.seqBar(S, bar, root, null, degMidi)) note("counter", stepT(bar, st.pos), st.midi, st.vel, st.dur * s16);
+        for (const st of U.seqBar(S, bar, root, null, degMidi)) note("counter", stepT(bar, st.pos), st.midi, st.vel, st.dur * s16, U.motorFilterCut(S, st.pos));
       } else if (on("counter", bar)) {
         // the counter's one kind since 2026-11-02 is "answer" (its silence is
         // the desk mute; the ostinato moved to the motor, U.SEQ_CELLS)
@@ -11747,7 +11769,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/render/renderer.js @ b4ba5dc — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/render/renderer.js @ 779dcea — verbatim from jeffdavis-studio/unison-engine ===== */
 // renderer.js — song assembly + the render pipeline (Technical Architecture
 // v1.2 playback model): live-first, with (a) a cheap analysis pre-render for
 // verification/metrics and (b) an on-demand full OfflineAudioContext render
@@ -12726,7 +12748,7 @@
     var P = s.picks, d = INST_BY[inst];
     if (d.cls === "drums") return [P.kick.id, P.snare.id, P.hats.id].map(function (x) { return x.split(".").pop().replace(/_/g, " "); }).join(" / ");
     var st = d.strips[0], e = st === "rhythmGtr" ? P.rhythmGtr : P[st];
-    if (st === "arp" && e && e.motor) return (e.machine === "seq" ? seqText(e.motor) : arpText(e.motor)) + (P.counter && P.counter.layer === 2 ? " + layer 2" : "");
+    if (st === "arp" && e && e.motor) return (e.machine === "seq" ? seqText(e.motor) : arpText(e.motor)) + (s.motor && s.motor.layer && s.motor.layer.filter ? ", filter row" : "") + (P.counter && P.counter.layer === 2 ? " + layer 2" : "");
     if (st === "counter" && e && e.layer === 2) return layerText(e.motor);
     return e ? e.id.split(".").pop().replace(/_/g, " ") : "";
   }
@@ -12764,6 +12786,7 @@
     if (l.length === 8) t += ", 8 steps";
     if (l.gate !== "long") t += ", " + l.gate + " gate";
     if (l.accent != null) t += ", accents";
+    if (l.filter) t += ", filter row";
     return t;
   }
 
