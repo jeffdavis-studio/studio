@@ -157,10 +157,10 @@
 <div id="bars" class="row"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><div id="status"></div></div>
 <div id="layers"></div>
 <div id="add" class="row"><div class="lbl">Add a layer<button id="palRnd" title="add a random instrument (one you don't have yet, while any are left)">Random</button></div><div id="pal"></div></div>
-<footer title="engine @0c35dd9 · built 2026-11-02">Unison jam &middot; every sound is synthesized in this page by the engine at 0c35dd9</footer>
+<footer title="engine @a5a175d · built 2026-11-02">Unison jam &middot; every sound is synthesized in this page by the engine at a5a175d</footer>
 
 <script>
-/* ===== src/core/prng.js @ 0c35dd9 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/prng.js @ a5a175d — verbatim from jeffdavis-studio/unison-engine ===== */
 // prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
 // token hash, consumed in canonical draw order (Technical Architecture v1.2).
 //
@@ -233,7 +233,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/core/mix.js @ 0c35dd9 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/mix.js @ a5a175d — verbatim from jeffdavis-studio/unison-engine ===== */
 // mix.js — the fan-in ≤2 summing rule, as a primitive.
 //
 // Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
@@ -402,7 +402,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/desk/desk.js @ 0c35dd9 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/desk/desk.js @ a5a175d — verbatim from jeffdavis-studio/unison-engine ===== */
 // desk.js — the 24-track desk as a running audio graph.
 //
 // The desk is the data structure, not a metaphor (Composition Brief 2 / Tech
@@ -805,7 +805,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/production.js @ 0c35dd9 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/production.js @ a5a175d — verbatim from jeffdavis-studio/unison-engine ===== */
 // production.js — the production room, v0.
 //
 // PLACEMENT DECISION (Morgan's call, ratified by Jeff 2026-08-03). Production
@@ -1100,7 +1100,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/analogpoly.js @ 0c35dd9 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/analogpoly.js @ a5a175d — verbatim from jeffdavis-studio/unison-engine ===== */
 // analogpoly.js — the analog poly core: one module that builds every Juno and
 // OB-Xa voice, behind a family lock. Asana 1220084594874974, slice 1
 // (2026-11-02); the rack doc's build 3 (files/unison/rack-parts-proposal-
@@ -1131,10 +1131,22 @@
   // THE LOCK. Written from what the two books do today (census over all 87
   // archetypes at base and both range ends, 2026-11-02), not guessed wide; a
   // later pass narrows it by ear. keys: every control a patch of the family
-  // may carry. ranges: [lo, hi] a book patch must stay inside. subFamilies:
-  // names only, reserved for slice 2 (Jeff by voice 11/02: Jupiter-4 and 6
-  // inside the Juno, Prophet-5 and Jupiter-8 inside the OB-Xa); nothing reads
-  // them yet.
+  // may carry. ranges: [lo, hi] a book patch must stay inside.
+  // SUB-FAMILIES (slice 2, 2026-11-02; Jeff by voice 11/02: "Prophet and
+  // Jupiter are sub-families, not their own locked families. Jupiter-4 and 6
+  // inside Juno, Prophet-5 and Jupiter-8 inside the OB-Xa. Promote later only
+  // if a song sheet wants the name."). A book entry wearing one carries
+  // `sub: "<name>"` beside its name; subFamilies[name] is what the name FIXES
+  // inside the parent's lock, read from the tagged entries' note text and
+  // held to what the entries do at base, u 0, 0.37 and 1 (census,
+  // files/unison/poly-fold-2026-11-02/fold2-sub-census.out). Where a note's
+  // number and the data disagree the lock takes the data (Prophet-5 round
+  // bass sits at detune 4c, the notes say 5-11c). Each record: `is` (a short
+  // line for the pages), and any of: poles, chorus (set of chorus names),
+  // equals {control: value}, ranges {control: [lo, hi]}, on [waveform
+  // controls that must sound], vcoWave {vco1|vco2: "saw"|"pulse"}. Controls
+  // are read with the circuit's defaults (SUB_DEFAULTS) so an unset control
+  // is checked as it plays. Object.keys(subFamilies) is the old name list.
   U.ANALOG_POLY_FAMILIES = {
     juno: {
       name: "Juno", circuit: "graph", voices: null,           // one node chain per note
@@ -1146,7 +1158,10 @@
       keys: ["saw", "pulse", "pw", "pwm", "lfoRate", "vib", "vibDelay", "subLevel", "hpf", "cutoffBase", "cutoffEnv", "filterQ", "kbdTrack",
         "fA", "fD", "fS", "a", "d", "s", "r", "level", "chorus", "chorusMode"],
       ranges: { subLevel: [0, 0.85], filterQ: [0.5, 7], hpf: [0, 500], kbdTrack: [0, 0.65], saw: [0, 1], pulse: [0, 1], pw: [0.15, 0.5], pwm: [0, 0.8] },
-      subFamilies: ["Jupiter-4", "Jupiter-6"],
+      subFamilies: {
+        "Jupiter-4": { is: "Roland's Jupiter-4 voicings on the Juno's DCO", equals: { subLevel: 0 }, chorus: ["II"], ranges: { filterQ: [1.8, 7] } },
+        "Jupiter-6": { is: "the Jupiter-6's two oscillators folded onto the Juno's one DCO", on: ["saw", "pulse"] },
+      },
     },
     obxa: {
       name: "OB-Xa", circuit: "buffer", voices: 8,             // eight cards, cycling assignment
@@ -1158,7 +1173,10 @@
       keys: ["vco1", "vco2", "vco2Semi", "detune", "sync", "noise", "pwmRate", "pwmDepth", "cutoff", "res", "kbd", "envAmt", "pole",
         "fA", "fD", "fS", "fR", "a", "d", "s", "r", "slop", "level"],
       ranges: { slop: [0.5, 1], noise: [0, 0], vco2Semi: [-12, 14], res: [0, 0.58], pwmDepth: [0, 0.4], kbd: [0.4, 0.7] },
-      subFamilies: ["Prophet-5", "Jupiter-8"],
+      subFamilies: {
+        "Prophet-5": { is: "the Prophet-5 on the OB-Xa's cards", poles: 4, vcoWave: { vco1: "saw", vco2: "saw" }, ranges: { detune: [4, 11] }, chorus: ["off"], equals: { slop: 0.6 } },
+        "Jupiter-8": { is: "the Jupiter-8 on the OB-Xa's cards", poles: 4, vcoWave: { vco1: "saw", vco2: "saw" }, ranges: { detune: [24, 36] }, chorus: ["off"], equals: { slop: 0.6 } },
+      },
     },
   };
 
@@ -1169,9 +1187,12 @@
   // the family does not have, a value outside the family's range or set.
   // Returns the violations (empty = inside the lock); never throws, and is
   // not run at build time (the OB-Xa page's knobs explore past the book).
-  U.analogPolyLockCheck = function (family, p) {
+  // sub (optional): the entry's sub-family tag; the patch must then also sit
+  // inside that sub-family's fixed traits.
+  U.analogPolyLockCheck = function (family, p, sub) {
     const F = U.ANALOG_POLY_FAMILIES[family], v = [];
     if (!F) return ["unknown family " + family];
+    if (sub != null) v.push(...subCheck(family, F, p, sub));
     for (const k in p) if (F.keys.indexOf(k) < 0) v.push(`control ${k} is not on the ${F.name}`);
     for (const k in F.ranges) if (p[k] != null) {
       const [lo, hi] = F.ranges[k];
@@ -1204,9 +1225,44 @@
       const u = at === null ? null : {};
       if (u) for (const k in a.range) u[k] = at;
       checked++;
-      for (const x of U.analogPolyLockCheck(family, resolve(a, u))) violations.push({ name: a.name, at: at === null ? "base" : "u " + at, violation: x });
+      for (const x of U.analogPolyLockCheck(family, resolve(a, u), a.sub)) violations.push({ name: a.name, sub: a.sub || null, at: at === null ? "base" : "u " + at, violation: x });
     }
     return { family, checked, violations };
+  };
+
+  // The sub-family check. Defaults are the circuits' own (graphVoice: saw 1,
+  // pulse 0, hpf 0; the buffer line: pole 2, detune 0, slop 1).
+  const SUB_DEFAULTS = { juno: { saw: 1, pulse: 0, hpf: 0 }, obxa: { pole: 2, detune: 0, slop: 1, sync: 0, vco2Semi: 0 } };
+  const WAVE = { saw: 0, pulse: 1 };
+  function subCheck(family, F, p, sub) {
+    const S = F.subFamilies[sub], v = [];
+    if (!S) return [`sub-family ${sub} is not a ${F.name} sub-family {${Object.keys(F.subFamilies).join(", ")}}`];
+    const D = SUB_DEFAULTS[family] || {}, val = (k) => (p[k] == null ? D[k] : p[k]);
+    if (S.poles != null) { const poles = val("pole") == null ? 2 : val("pole"); if (poles !== S.poles) v.push(`${sub}: ${poles}-pole, the sub-family is ${S.poles}-pole`); }
+    if (S.chorus && S.chorus.indexOf(chorusOf(p)) < 0) v.push(`${sub}: chorus ${chorusOf(p)} not in {${S.chorus.join(", ")}}`);
+    for (const k in S.equals || {}) if (val(k) !== S.equals[k]) v.push(`${sub}: ${k} ${val(k)}, the sub-family fixes ${S.equals[k]}`);
+    for (const k in S.ranges || {}) { const [lo, hi] = S.ranges[k], x = val(k); if (!(x >= lo && x <= hi)) v.push(`${sub}: ${k} ${x} outside [${lo}, ${hi}]`); }
+    for (const k of S.on || []) if (!(val(k) > 0)) v.push(`${sub}: ${k} off, the sub-family sounds it`);
+    for (const c in S.vcoWave || {}) {
+      const o = p[c], want = S.vcoWave[c], other = want === "saw" ? "pulse" : "saw";
+      if (!Array.isArray(o) || !(o[WAVE[want]] > 0) || o[WAVE[other]] > 0 || !(o[3] > 0)) v.push(`${sub}: ${c} ${JSON.stringify(o)} is not on ${want} alone`);
+    }
+    return v;
+  }
+  // The fixed traits as words, rendered from the table (pages, jam, sheets
+  // read this; nothing retypes it).
+  const CTRL_WORD = { subLevel: "sub", filterQ: "RES (Q)", detune: "VCO 2 detune", slop: "slop", saw: "saw", pulse: "pulse" };
+  U.analogPolySubTraits = function (family, sub) {
+    const F = U.ANALOG_POLY_FAMILIES[family], S = F && F.subFamilies[sub];
+    if (!S) return [];
+    const t = [];
+    if (S.poles != null) t.push(S.poles + "-pole");
+    if (S.vcoWave) { const ws = [...new Set(Object.values(S.vcoWave))]; t.push(ws.length === 1 && Object.keys(S.vcoWave).length === 2 ? "both VCOs on " + ws[0] : Object.keys(S.vcoWave).map((c) => c.toUpperCase() + " on " + S.vcoWave[c]).join(", ")); }
+    if (S.on) t.push(S.on.join(" and ") + " both sounding");
+    for (const k in S.ranges || {}) { const [lo, hi] = S.ranges[k], w = CTRL_WORD[k] || k; t.push(k === "detune" ? `${w} ${lo}-${hi}c` : hi >= ((F.ranges[k] || [])[1] ?? Infinity) ? `${w} at least ${lo}` : `${w} ${lo}-${hi}`); }
+    for (const k in S.equals || {}) t.push(k === "subLevel" && S.equals[k] === 0 ? "sub off" : `${CTRL_WORD[k] || k} ${S.equals[k]}`);
+    if (S.chorus) t.push(S.chorus.length === 1 && S.chorus[0] === "off" ? "no chorus" : "chorus " + S.chorus.join(" or "));
+    return t;
   };
 
   // ---------------------------------------------------------------------------
@@ -1667,7 +1723,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/juno.js @ 0c35dd9 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/juno.js @ a5a175d — verbatim from jeffdavis-studio/unison-engine ===== */
 // juno.js — Juno-60-flavor poly voice, raw Web Audio, zero dependencies.
 // Ported from the 2026-07-21 bake-off winner (voice-raw.js), restructured to
 // live behind a desk strip: U.createJuno(ctx, strip, patchName) builds its own
@@ -1790,7 +1846,7 @@
         range: { pw: [0.35, 0.45], d: [0.18, 0.3], cutoffBase: [380, 540] }, note: "the atlas's Recipe G (Everything She Wants): pulse only, narrow, short decay, dry" },
       { name: "mellow piano", w: 5, base: from("comp", { saw: 0.6, pulse: 0.6, pw: 0.3, subLevel: 0.15, kbdTrack: 0.5, cutoffBase: 350, cutoffEnv: 1800, filterQ: 0.8, fA: 0.003, fD: 0.7, fS: 0.1, a: 0.003, d: 1.1, s: 0.05, r: 0.3 }),
         range: { cutoffEnv: [1400, 2300], d: [0.9, 1.4] }, note: "the cassette bank's Mellow Piano: struck, decays to nothing, KYBD half up, chorus I" },
-      { name: "Jupiter-4 poly comp", w: 6, base: from("comp", { subLevel: 0, hpf: 120, cutoffBase: 520, cutoffEnv: 2600, filterQ: 2.2, fA: 0.004, fD: 0.3, fS: 0.4, a: 0.004, d: 0.25, s: 0.6, r: 0.25, chorusMode: 2 }),
+      { name: "Jupiter-4 poly comp", sub: "Jupiter-4", w: 6, base: from("comp", { subLevel: 0, hpf: 120, cutoffBase: 520, cutoffEnv: 2600, filterQ: 2.2, fA: 0.004, fD: 0.3, fS: 0.4, a: 0.004, d: 0.25, s: 0.6, r: 0.25, chorusMode: 2 }),
         range: { cutoffBase: [440, 620], filterQ: [1.8, 2.6], fD: [0.22, 0.38] }, note: "Jupiter-4 sub-family: saw, sub off, RES up, the ensemble as chorus II" },
     ],
     organ: [
@@ -1820,7 +1876,7 @@
         range: { a: [0.1, 0.25], cutoffBase: [1300, 2000] }, note: "string-machine stand-in (Solina, Orchestron): saw, bottom off, flat filter, both chorus buttons" },
       { name: "Vox Humana stand-in", w: 6, base: from("pad", { saw: 0.5, pulse: 0.9, pw: 0.35, pwm: 0.35, lfoRate: 0.8, vib: 5, vibDelay: 0.5, subLevel: 0, hpf: 250, cutoffBase: 1000, cutoffEnv: 300, filterQ: 2.4, fA: 0.3, fD: 1.0, fS: 0.8, a: 0.3, d: 0.4, s: 0.9, r: 0.8, chorusMode: 3 }),
         range: { pwm: [0.25, 0.45], cutoffBase: [850, 1200] }, note: "the Polymoog Vox Humana on a Juno: saw + PWM pulse, RES hump, both chorus buttons" },
-      { name: "Jupiter-4 pad, RES up", w: 6, base: from("pad", { subLevel: 0, hpf: 120, cutoffBase: 500, cutoffEnv: 1400, filterQ: 2.6, fA: 0.6, fD: 1.5, fS: 0.5, a: 0.35, s: 0.85, r: 1.0, chorusMode: 2 }),
+      { name: "Jupiter-4 pad, RES up", sub: "Jupiter-4", w: 6, base: from("pad", { subLevel: 0, hpf: 120, cutoffBase: 500, cutoffEnv: 1400, filterQ: 2.6, fA: 0.6, fD: 1.5, fS: 0.5, a: 0.35, s: 0.85, r: 1.0, chorusMode: 2 }),
         range: { cutoffBase: [420, 600], fA: [0.45, 0.8] }, note: "Jupiter-4 sub-family: sub off, RES up, the filter swells in, ensemble as chorus II" },
     ],
     brass: [
@@ -1844,7 +1900,7 @@
         range: { pw: [0.4, 0.5], cutoffEnv: [2500, 3600] }, note: "hollow, thin stab" },
       { name: "dark thud stab", w: 12, base: from("stab", { subLevel: 0.7, cutoffBase: 250, cutoffEnv: 1800, filterQ: 1.2, fD: 0.12 }),
         range: { cutoffEnv: [1500, 2150], subLevel: [0.6, 0.8] }, note: "sub up, filter down: the hip-hop chord thud" },
-      { name: "Jupiter-4 poly stab", w: 6, base: from("stab", { subLevel: 0, cutoffBase: 420, cutoffEnv: 4000, filterQ: 2.8, fD: 0.12, fS: 0.15, d: 0.14, s: 0.3, r: 0.18, chorus: true, chorusMode: 2 }),
+      { name: "Jupiter-4 poly stab", sub: "Jupiter-4", w: 6, base: from("stab", { subLevel: 0, cutoffBase: 420, cutoffEnv: 4000, filterQ: 2.8, fD: 0.12, fS: 0.15, d: 0.14, s: 0.3, r: 0.18, chorus: true, chorusMode: 2 }),
         range: { cutoffEnv: [3400, 4600], fD: [0.09, 0.15] }, note: "Jupiter-4 sub-family: sub off, RES up, ensemble as chorus II" },
     ],
     bass: [
@@ -1858,7 +1914,7 @@
         range: { cutoffBase: [150, 210], subLevel: [0.55, 0.75] }, note: "filter down, sustain up" },
       { name: "funk pluck bass, KYBD up", w: 14, base: from("bass", { kbdTrack: 0.5, cutoffBase: 260, cutoffEnv: 1800, filterQ: 1.8, fD: 0.1, fS: 0.15, d: 0.12, s: 0.45 }),
         range: { kbdTrack: [0.35, 0.65], fD: [0.08, 0.13] }, note: "keyboard tracking half up: high notes brighter" },
-      { name: "Jupiter-6 bass", w: 6, base: from("bass", { saw: 0.8, pulse: 0.6, pw: 0.3, subLevel: 0.35, kbdTrack: 0.3, cutoffBase: 200, cutoffEnv: 1700, filterQ: 1.6, fA: 0.002, fD: 0.14, fS: 0.2, a: 0.002, d: 0.14, s: 0.5, r: 0.07 }),
+      { name: "Jupiter-6 bass", sub: "Jupiter-6", w: 6, base: from("bass", { saw: 0.8, pulse: 0.6, pw: 0.3, subLevel: 0.35, kbdTrack: 0.3, cutoffBase: 200, cutoffEnv: 1700, filterQ: 1.6, fA: 0.002, fD: 0.14, fS: 0.2, a: 0.002, d: 0.14, s: 0.5, r: 0.07 }),
         range: { cutoffEnv: [1400, 2100], pw: [0.25, 0.35] }, note: "Jupiter-6 sub-family: its second DCO is the pulse beside the saw (one DCO a voice here)" },
     ],
     sub: [
@@ -2234,7 +2290,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/minimoog.js @ 0c35dd9 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/minimoog.js @ a5a175d — verbatim from jeffdavis-studio/unison-engine ===== */
 // minimoog.js — Minimoog Model D-lineage mono voice, zero dependencies.
 //
 // THE MONO BASS LANE (build order 808 → Juno → Minimoog → …; it also absorbs
@@ -3021,7 +3077,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/obxa.js @ 0c35dd9 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/obxa.js @ a5a175d — verbatim from jeffdavis-studio/unison-engine ===== */
 // obxa.js — Oberheim OB-Xa-lineage poly voice, zero dependencies.
 //
 // THE BRASS/PAD POLY LANE (build order 808 → Juno → Minimoog → OB-Xa → …).
@@ -3187,7 +3243,7 @@
         range: { fA: [0.18, 0.34], cutoff: [400, 580] }, note: "filter attack up: each chord blooms in, 4-pole" },
       { name: "saw + pulse horn section", w: 12, base: ob("brass", { vco2: [0, 1, 0.38, 0.75], detune: 12, cutoff: 470, envAmt: 3.1, fS: 0.5 }),
         range: { "vco2.2": [0.3, 0.45], detune: [9, 15] }, note: "VCO 2 on a narrow pulse, 2-pole: a reedier, thinner section" },
-      { name: "Prophet-5 poly brass", w: 8, base: ob("brass", { pole: 4, detune: 8, cutoff: 900, res: 0.22, kbd: 0.6, envAmt: 2.6, fA: 0.12, fD: 0.6, fS: 0.5, fR: 0.3, a: 0.01, d: 0.5, s: 0.9, r: 0.25, slop: 0.6 }),
+      { name: "Prophet-5 poly brass", sub: "Prophet-5", w: 8, base: ob("brass", { pole: 4, detune: 8, cutoff: 900, res: 0.22, kbd: 0.6, envAmt: 2.6, fA: 0.12, fD: 0.6, fS: 0.5, fR: 0.3, a: 0.01, d: 0.5, s: 0.9, r: 0.25, slop: 0.6 }),
         range: { cutoff: [760, 1100], fA: [0.08, 0.16], detune: [5, 11] },
         note: "PROPHET-5 SUB-FAMILY. Family traits: 4-pole (the Prophet's 24 dB), two VCOs on saw, narrow detune (5-11c), no chorus, slop 0.6 (steadier than the OB's voice cards). The patch's own: the brighter filter (cutoff 900, kbd 0.6) and a filter-envelope swell (fA 0.12, envAmt 2.6) with sustain at half: program 1-1 Brass's shape, not a session dump" },
     ],
@@ -3202,7 +3258,7 @@
         range: { pwmRate: [0.4, 0.9], cutoff: [700, 960] }, note: "both VCOs on pulse, slow PWM, 4-pole: hollow and moving" },
       { name: "4-pole resonant sweep pad", w: 8, base: ob("pad", { pole: 4, vco2: [1, 0, 0.5, 0.7], pwmDepth: 0, cutoff: 360, res: 0.38, envAmt: 2.2, fA: 1.8, fD: 2.4, fS: 0.45, fR: 1.4, a: 1.0 }),
         range: { res: [0.3, 0.45], fA: [1.3, 2.4] }, note: "resonance up, a slow filter envelope opening each chord: the sweep pad" },
-      { name: "Jupiter-8 wide pad", w: 8, base: ob("pad", { pole: 4, vco1: [1, 0, 0.5, 0.7], vco2: [1, 0, 0.5, 0.7], detune: 30, pwmDepth: 0, cutoff: 1000, res: 0.12, kbd: 0.5, envAmt: 0.6, fA: 1.0, fD: 1.5, fS: 0.8, fR: 1.4, a: 0.85, d: 1.0, s: 0.95, r: 1.4, slop: 0.6 }),
+      { name: "Jupiter-8 wide pad", sub: "Jupiter-8", w: 8, base: ob("pad", { pole: 4, vco1: [1, 0, 0.5, 0.7], vco2: [1, 0, 0.5, 0.7], detune: 30, pwmDepth: 0, cutoff: 1000, res: 0.12, kbd: 0.5, envAmt: 0.6, fA: 1.0, fD: 1.5, fS: 0.8, fR: 1.4, a: 0.85, d: 1.0, s: 0.95, r: 1.4, slop: 0.6 }),
         range: { detune: [24, 36], cutoff: [820, 1200], a: [0.6, 1.1] },
         note: "JUPITER-8 SUB-FAMILY. Family traits: 4-pole (the Jupiter's 24 dB), two VCOs on saw detuned wide (24-36c), no chorus, slop 0.6. The patch's own: slow attack (a 0.85), filter open and still (cutoff 1000, envAmt 0.6), long release" },
       { name: "Low Strings", w: 6, base: ob("pad", { vco1: [1, 0, 0.5, 0.7], vco2: [1, 0, 0.5, 0.6], vco2Semi: -12, detune: 10, pwmDepth: 0, cutoff: 650, res: 0.08, kbd: 0.4, envAmt: 0.4, fA: 0.3, fD: 1.0, fS: 0.85, fR: 0.9, a: 0.25, d: 0.8, s: 0.9, r: 0.8 }),
@@ -3220,7 +3276,7 @@
         range: { res: [0.4, 0.58], fD: [0.11, 0.18] }, note: "resonance up, filter env doing the work: the envelope-quack comp" },
       { name: "4-pole dark keys", w: 10, base: ob("comp", { pole: 4, cutoff: 750, envAmt: 1.4, fD: 0.5, fS: 0.3, d: 0.55, s: 0.22, r: 0.35 }),
         range: { cutoff: [640, 900], d: [0.45, 0.7] }, note: "4-pole, slower decay: an electric-piano stand-in" },
-      { name: "Prophet-5 poly comp", w: 7, base: ob("comp", { pole: 4, vco1: [1, 0, 0.5, 0.75], vco2: [1, 0, 0.5, 0.65], detune: 6, cutoff: 1100, res: 0.3, kbd: 0.6, envAmt: 2.4, fD: 0.2, fS: 0.2, d: 0.3, s: 0.4, r: 0.18, slop: 0.6 }),
+      { name: "Prophet-5 poly comp", sub: "Prophet-5", w: 7, base: ob("comp", { pole: 4, vco1: [1, 0, 0.5, 0.75], vco2: [1, 0, 0.5, 0.65], detune: 6, cutoff: 1100, res: 0.3, kbd: 0.6, envAmt: 2.4, fD: 0.2, fS: 0.2, d: 0.3, s: 0.4, r: 0.18, slop: 0.6 }),
         range: { cutoff: [900, 1350], fD: [0.15, 0.26] },
         note: "PROPHET-5 SUB-FAMILY (traits as on Prophet-5 poly brass: 4-pole, two saws, narrow detune, no chorus, slop 0.6). The patch's own: resonance 0.3 and a short filter envelope doing the pluck, sustain low: the poly comp" },
     ],
@@ -3245,7 +3301,7 @@
       { name: "OB-Xa bass", w: 10, base: ob("brass", { vco1: [1, 0, 0.5, 0.8], vco2: [0, 1, 0.45, 0.7], detune: 6, cutoff: 360, res: 0.18, kbd: 0.5, envAmt: 2.6, fA: 0.002, fD: 0.3, fS: 0.35, fR: 0.12, a: 0.002, d: 0.5, s: 0.85, r: 0.1, slop: 0.5 }),
         range: { cutoff: [290, 450], fD: [0.22, 0.4] },
         note: "the Thompson Twins bass (Bailey: the OB-Xa's convincing bass, RECORD): saw + pulse, 2-pole, a filter blip on each note over a held body" },
-      { name: "Prophet-5 round bass", w: 8, base: ob("brass", { pole: 4, detune: 4, cutoff: 320, res: 0.15, kbd: 0.5, envAmt: 2.0, fA: 0.002, fD: 0.35, fS: 0.35, fR: 0.12, a: 0.002, d: 0.6, s: 0.9, r: 0.1, slop: 0.6 }),
+      { name: "Prophet-5 round bass", sub: "Prophet-5", w: 8, base: ob("brass", { pole: 4, detune: 4, cutoff: 320, res: 0.15, kbd: 0.5, envAmt: 2.0, fA: 0.002, fD: 0.35, fS: 0.35, fR: 0.12, a: 0.002, d: 0.6, s: 0.9, r: 0.1, slop: 0.6 }),
         range: { cutoff: [260, 400], envAmt: [1.6, 2.4] },
         note: "PROPHET-5 SUB-FAMILY (traits: 4-pole, two saws, narrow detune, no chorus, slop 0.6). The patch's own: filter low, a soft envelope: the round bass" },
       { name: "2-pole pluck bass", w: 7, base: ob("brass", { vco1: [1, 0, 0.5, 0.8], vco2: [0, 1, 0.3, 0.6], detune: 5, cutoff: 260, res: 0.35, kbd: 0.5, envAmt: 3.6, fA: 0.002, fD: 0.14, fS: 0.08, fR: 0.08, a: 0.002, d: 0.3, s: 0.4, r: 0.08, slop: 0.5 }),
@@ -3253,7 +3309,7 @@
         note: "saw + narrow pulse, 2-pole with resonance, a deep fast filter envelope and a short amp: the brighter pluck bass" },
     ],
     lead: [
-      { name: "Prophet-5 poly lead", w: 8, base: ob("brass", { pole: 4, detune: 7, cutoff: 900, res: 0.2, kbd: 0.7, envAmt: 2.6, fA: 0.03, fD: 0.35, fS: 0.5, fR: 0.2, a: 0.005, d: 0.3, s: 0.8, r: 0.2, slop: 0.6 }),
+      { name: "Prophet-5 poly lead", sub: "Prophet-5", w: 8, base: ob("brass", { pole: 4, detune: 7, cutoff: 900, res: 0.2, kbd: 0.7, envAmt: 2.6, fA: 0.03, fD: 0.35, fS: 0.5, fR: 0.2, a: 0.005, d: 0.3, s: 0.8, r: 0.2, slop: 0.6 }),
         range: { cutoff: [750, 1100], fS: [0.4, 0.6] },
         note: "PROPHET-5 SUB-FAMILY (traits: 4-pole, two saws, narrow detune, no chorus, slop 0.6). The patch's own: the Genius of Love line (Weymouth's 'one, one preset' points to program 1-1 Brass, RECORD for the Prophet-5, not a session dump): brass shape, faster filter attack, keyboard tracking up for a line" },
       { name: "mono sync lead", w: 6, base: ob("brass", { sync: 1, vco2Semi: 9, detune: 0, vco1: [1, 0, 0.5, 0.5], vco2: [1, 0, 0.5, 0.9], cutoff: 1400, res: 0.2, kbd: 0.7, envAmt: 1.6, fA: 0.01, fD: 0.4, fS: 0.6, fR: 0.15, a: 0.004, d: 0.3, s: 0.85, r: 0.15, slop: 0.5 }),
@@ -3566,7 +3622,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/fm.js @ 0c35dd9 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/fm.js @ a5a175d — verbatim from jeffdavis-studio/unison-engine ===== */
 // fm.js — six-operator FM keys voice (the DX7 lineage), zero dependencies.
 //
 // THE FM LANE (build order 808 → Juno → Minimoog → OB-Xa → Linn → FM).
@@ -4587,7 +4643,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/bassguitar.js @ 0c35dd9 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/bassguitar.js @ a5a175d — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassguitar.js — electric bass guitar, the first session player of the human
 // rack (Rack 2), zero dependencies.
 //
@@ -5176,7 +5232,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/rhythmguitar.js @ 0c35dd9 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/rhythmguitar.js @ a5a175d — verbatim from jeffdavis-studio/unison-engine ===== */
 // rhythmguitar.js — clean electric rhythm guitar, the fourth and last stop of
 // the human rack (Rack 2), zero dependencies.
 //
@@ -5825,7 +5881,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/tr808.js @ 0c35dd9 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/tr808.js @ a5a175d — verbatim from jeffdavis-studio/unison-engine ===== */
 // tr808.js — THE MACHINE. A TR-808-lineage core voice: bass drum, snare,
 // closed hat, open hat, each with a front panel the token actually turns.
 //
@@ -7109,7 +7165,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/linn.js @ 0c35dd9 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/linn.js @ a5a175d — verbatim from jeffdavis-studio/unison-engine ===== */
 // linn.js — THE STUDIO MACHINE. A Linn-family (LM-1 / LinnDrum lineage)
 // drum computer: the new wave / synth-pop / 80s R&B kit.
 //
@@ -7866,7 +7922,7 @@
   U._linn = { burn, play, vca, roms, V, EPROM_HZ, RECON_HZ, SR, TOM_MID_CLOCK };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drums.js @ 0c35dd9 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drums.js @ a5a175d — verbatim from jeffdavis-studio/unison-engine ===== */
 // drums.js — the drum machine: 808/LM-1-flavor voices, synthesized at runtime
 // into short AudioBuffers, played back as one-shots.
 //
@@ -8195,7 +8251,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/books.js @ 0c35dd9 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/books.js @ a5a175d — verbatim from jeffdavis-studio/unison-engine ===== */
 // books.js — Pattern Books v1, as data.
 //
 // This file IS the document: "Unison — Pattern Books v1 (draft)" (Morgan,
@@ -9449,7 +9505,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/bassplayer.js @ 0c35dd9 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/bassplayer.js @ a5a175d — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassplayer.js — the PERFORMANCE half of the bass guitar: a session player.
 //
 // Rack 2's rule (kb/projects/unison.md, 2026-07-11): every human instrument is
@@ -9701,7 +9757,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/gtrplayer.js @ 0c35dd9 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/gtrplayer.js @ a5a175d — verbatim from jeffdavis-studio/unison-engine ===== */
 // gtrplayer.js — the PERFORMANCE half of the rhythm guitar: a session
 // guitarist on the rhythmGtr strip.
 //
@@ -9901,7 +9957,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/fmplayer.js @ 0c35dd9 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/fmplayer.js @ a5a175d — verbatim from jeffdavis-studio/unison-engine ===== */
 // fmplayer.js — the PERFORMANCE half of the FM keys: a session keyboard
 // player on the FM chord strips (compA's tine EP, colour's glass and brass).
 //
@@ -10042,7 +10098,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/testPhrase.js @ 0c35dd9 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/testPhrase.js @ a5a175d — verbatim from jeffdavis-studio/unison-engine ===== */
 // testPhrase.js — deterministic 8-bar test phrase, ported from the bake-off
 // (phrase.js) onto the engine's canonical PRNG (core/prng.js).
 //
@@ -10136,7 +10192,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/form.js @ 0c35dd9 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/form.js @ a5a175d — verbatim from jeffdavis-studio/unison-engine ===== */
 // form.js — the song's form: the book of returns (2026-10-30, Asana
 // 1220073468300418; design files/unison/structure-design-2026-10-30 in the
 // morgan repo, DESIGN.md + draw.py, transcribed here as written).
@@ -10457,7 +10513,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/session.js @ 0c35dd9 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/session.js @ a5a175d — verbatim from jeffdavis-studio/unison-engine ===== */
 // session.js — the session sheet and the arrangement realizer.
 //
 // Two tiers, in this order, each on its own stream (core/prng.js):
@@ -11948,7 +12004,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/render/renderer.js @ 0c35dd9 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/render/renderer.js @ a5a175d — verbatim from jeffdavis-studio/unison-engine ===== */
 // renderer.js — song assembly + the render pipeline (Technical Architecture
 // v1.2 playback model): live-first, with (a) a cheap analysis pre-render for
 // verification/metrics and (b) an on-demand full OfflineAudioContext render
@@ -12883,7 +12939,10 @@
     }
     if (inst === "rgtr") { Object.keys(U.RHYTHMGUITAR_MODELS).forEach(function (m) { out.push({ id: m, label: U.RHYTHMGUITAR_MODELS[m].label }); }); return out; }
     var so = synthOf(inst, s); if (!so) return out;
-    so.cands.forEach(function (c) { out.push({ id: c.a.name, label: c.a.name }); });
+    // a sub-family entry (src/instruments/analogpoly.js, slice 2) shows its
+    // sub-family the way bassLabel joins model and style; the id stays the
+    // bare name, so every saved link resolves as before
+    so.cands.forEach(function (c) { out.push({ id: c.a.name, label: c.a.name + (c.a.sub ? " · " + c.a.sub : "") }); });
     return out;
   }
   function applyPick(inst, s, pn, patchH) {
