@@ -157,10 +157,10 @@
 <div id="bars" class="row"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><div id="status"></div></div>
 <div id="layers"></div>
 <div id="add" class="row"><div class="lbl">Add a layer<button id="palRnd" title="add a random instrument (one you don't have yet, while any are left)">Random</button></div><div id="pal"></div></div>
-<footer title="engine @669bd0f · built 2026-11-03">Unison jam &middot; every sound is synthesized in this page by the engine at 669bd0f</footer>
+<footer title="engine @d89844b · built 2026-11-03">Unison jam &middot; every sound is synthesized in this page by the engine at d89844b</footer>
 
 <script>
-/* ===== src/core/prng.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/prng.js @ d89844b — verbatim from jeffdavis-studio/unison-engine ===== */
 // prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
 // token hash, consumed in canonical draw order (Technical Architecture v1.2).
 //
@@ -233,7 +233,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/core/mix.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/mix.js @ d89844b — verbatim from jeffdavis-studio/unison-engine ===== */
 // mix.js — the fan-in ≤2 summing rule, as a primitive.
 //
 // Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
@@ -402,7 +402,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/desk/desk.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/desk/desk.js @ d89844b — verbatim from jeffdavis-studio/unison-engine ===== */
 // desk.js — the 24-track desk as a running audio graph.
 //
 // The desk is the data structure, not a metaphor (Composition Brief 2 / Tech
@@ -782,6 +782,47 @@
         s.insert.connect(pre); pre.connect(sh); sh.connect(post); post.connect(lp); lp.connect(s.fader);
         s.sat = { pre, sh, post, lp, drive, bias, level: lv };
       },
+      // Chorus in the strip's insert slot (pass 4), after the saturation if
+      // any: tail → in (makeup) → dry → out, in → two swept delays → merger →
+      // [wet high-pass] → wet → out → fader. `out` sums dry + wet (fan-in 2);
+      // the merger takes one tap per channel. bypass() splices it back out
+      // (a Juno patch that prints its own chorus).
+      chorus(roleId, rate, depth, centers, wetLevel, wetHpHz, makeupDb) {
+        const s = strips[roleId];
+        if (!s) throw new Error("desk: unknown role " + roleId);
+        const tail = s.sat ? s.sat.lp : s.insert;
+        const cin = ctx.createGain(); cin.gain.value = Math.pow(10, (makeupDb || 0) / 20);
+        const dry = ctx.createGain(); dry.gain.value = 1.0;
+        const wet = ctx.createGain(); wet.gain.value = wetLevel;
+        const out = ctx.createGain(); out.gain.value = 1.0;
+        const dL = ctx.createDelay(0.05), dR = ctx.createDelay(0.05);
+        dL.delayTime.value = centers[0]; dR.delayTime.value = centers[1];
+        const lfo = ctx.createOscillator(); lfo.frequency.value = rate;
+        const depthL = ctx.createGain(); depthL.gain.value = +depth;
+        const depthR = ctx.createGain(); depthR.gain.value = -depth;
+        lfo.connect(depthL).connect(dL.delayTime);
+        lfo.connect(depthR).connect(dR.delayTime);
+        lfo.start(0);
+        const merger = ctx.createChannelMerger(2);
+        tail.disconnect(s.fader);
+        tail.connect(cin);
+        cin.connect(dry).connect(out);
+        cin.connect(dL).connect(merger, 0, 0);
+        cin.connect(dR).connect(merger, 0, 1);
+        let wetIn = merger;
+        if (wetHpHz > 0) {
+          const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = wetHpHz; hp.Q.value = 0.5;
+          merger.connect(hp); wetIn = hp;
+        }
+        wetIn.connect(wet).connect(out);
+        out.connect(s.fader);
+        s.chorus = { rate, depth, makeupDb, bypassed: false,
+          bypass() {
+            if (this.bypassed) return;
+            tail.disconnect(cin); out.disconnect(s.fader); tail.connect(s.fader);
+            lfo.disconnect(); this.bypassed = true;
+          } };
+      },
       // Kit-bus compression (pass 3, production.js U.kitCompCurve): one gain
       // curve, from t = 0, on every kit strip's insert gain. The insert is
       // pre-fader and pre-send, so the sum of the kit strips is compressed as
@@ -805,7 +846,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/production.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/production.js @ d89844b — verbatim from jeffdavis-studio/unison-engine ===== */
 // production.js — the production room, v0.
 //
 // PLACEMENT DECISION (Morgan's call, ratified by Jeff 2026-08-03). Production
@@ -866,7 +907,10 @@
   U.PRODUCTION_STYLES = [
     { id: "prod.dry_board",   w: 26, send: 0.55, wet: 0.45, damp: 3400,
       sat: { snare: SAT_LIGHT, bass: SAT_LIGHT } },
-    { id: "prod.plate_wash",  w: 20, send: 1.45, wet: 0.70, damp: 4800 },
+    { id: "prod.plate_wash",  w: 20, send: 1.45, wet: 0.70, damp: 4800,
+      // pass 4: chorus I on the chord strips, the counter line and the bass
+      // (a strip whose Juno already prints its own BBD skips it, analogpoly.js outputStage)
+      chorus: { compA: 1, pad: 1, counter: 1, bass: 1 } },
     { id: "prod.gated_room",  w: 16, send: 0.85, wet: 0.60, damp: 5600,
       // the pre-room plate sends: pass 1 halved them, which was most of its
       // darkening (pass 2 measurement)
@@ -875,6 +919,8 @@
       // pass 2: no saturation on this style's kit. Light snare/toms took
       // the snare's peak NMR down (ee4cd9a3 25.25 -> 25.12, a2a1aaf5 28.24 ->
       // 27.56) and crest 0.3-0.6 dB; unsaturated they hold both.
+      // pass 4: chorus I on the comp and the bass, the new-wave chorused bass
+      chorus: { compA: 1, bass: 1 },
     },
     { id: "prod.tape_slap",   w: 16, send: 0.75, wet: 0.50, damp: 3800,
       echo: { time: "slap", fb: 0.18, lp: 3600, send: { lead: 0.30, counter: 0.25, color: 0.22, rhythmGtr: 0.18 } },
@@ -926,6 +972,34 @@
     // Every voice within 0.5 dB with its own number; a voice not listed keeps
     // the one-number makeup above.
     makeupByVoice: { bass: { [SAT_MED]: { juno: 0.75, bassguitar: 1.78, fm: 1.25, minimoog: 0.62 } } } };
+  // CHORUS (pass 4, 2026-10-29): a per-strip insert after the saturation,
+  // before the fader. The Juno's own BBD (juno.js makeChorus, CHORUS_MODES):
+  // dry + two swept delay taps 3.5 / 4.6 ms, one LFO in opposite polarity per
+  // side, wet 0.50; rate and depth per mode are the Juno's fitted values (mode
+  // 1 = CHORUS I, 0.5 Hz, ±1.9 ms; analysis/juno-chorus-depth.mjs; the rate is
+  // the service figure, chorus-rate.mjs cannot measure it from the pack). The
+  // wet path on the bass is high-passed (`wetHpHz`), as bass chorus pedals
+  // keep the low end mono and dry. A strip whose voice is a Juno patch with
+  // its own chorus skips the insert (analogpoly.js outputStage bypasses it): the BBD is
+  // already printed with the part. `makeupDb` per strip holds the strip's
+  // K-weighted loudness within 0.5 dB (harness/production-check.mjs
+  // --chorus-level, RESULT-pass4.md).
+  U.CHORUS = {
+    modes: { 1: { rate: 0.5, depth: 0.0019 }, 2: { rate: 0.83, depth: 0.0019 }, 3: { rate: 8.0, depth: 0.00035 } },
+    centers: [0.0035, 0.0046], wet: 0.5,
+    wetHpHz: { bass: 250 },
+    // measured (production-check --chorus-level, makeup 0, strip alone,
+    // whole song; RESULT-pass4.md, RESULT-pass5.md). Pass 5 on 669bd0f (the
+    // rebuilt books): compA (OB-Xa) +0.97 dB on 3730ff72; pad (OB-Xa) +1.02 /
+    // +1.00 on 3730ff72 / 22655575; counter (Minimoog) +1.05 on 26ba751a; bass
+    // +0.32 (Juno, patch chorus off, 3730ff72), pass 4 +0.46 (Minimoog) /
+    // +0.83 (bass guitar). Centroid moves +7 to +28 Hz (chord strips), -7
+    // (counter), +2 (bass). Mono fold costs 0.44 / 0.45 dB (compA, pad), 0.10
+    // (bass) more with the chorus in than out.
+    makeupDb: { compA: -0.95, pad: -1.0, counter: -1.05, bass: -0.65 },
+  };
+  U.chorusMakeupDb = function (id) { return U.CHORUS.makeupDb[id] || 0; };
+
   // Gated room timing, fitted to the Reference (DESIGN.md, RESULT.md): the
   // gate closes at GATE_CLOSE_BEATS of a beat after the hit (median of the
   // readable gated-drum previews 0.41 beat, 205 ms), inside the clamp, with a
@@ -1045,6 +1119,13 @@
         desk.saturate(id, d, st.bias, st.lpHz[d], mk, level);
       }
     }
+    if (style.chorus) {
+      const C = U.CHORUS;
+      for (const id of Object.keys(style.chorus)) {
+        const m = C.modes[style.chorus[id]] || C.modes[1];
+        desk.chorus(id, m.rate, m.depth, C.centers, C.wet, C.wetHpHz[id] || 0, U.chorusMakeupDb(id));
+      }
+    }
     if (style.comp) {
       if (sheet.satProbe) desk.kitTap = true;   // the level read: the kit bus, uncompressed
       else if (sheet.kitComp) desk.compressKit(sheet.kitComp.curve, sheet.kitComp.dt);
@@ -1100,7 +1181,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/analogpoly.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/analogpoly.js @ d89844b — verbatim from jeffdavis-studio/unison-engine ===== */
 // analogpoly.js — the analog poly core: one module that builds every Juno and
 // OB-Xa voice, behind a family lock. Asana 1220084594874974, slice 1
 // (2026-11-02); the rack doc's build 3 (files/unison/rack-parts-proposal-
@@ -1317,6 +1398,9 @@
     // not a desk insert.
     let voiceTarget;
     if (p.chorus && F.chorus.indexOf(chorusOf(p)) > -1) {
+      // a desk chorus insert on this strip (production style, pass 4/5)
+      // steps aside when the patch prints its own BBD: one chorus, not two.
+      if (strip.chorus && strip.chorus.bypass) strip.chorus.bypass();
       const chorusOut = ctx.createGain();
       const chorusIn = makeChorus(ctx, chorusOut, p.chorusMode);
       strip.input.add(chorusOut);
@@ -1723,7 +1807,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/juno.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/juno.js @ d89844b — verbatim from jeffdavis-studio/unison-engine ===== */
 // juno.js — Juno-60-flavor poly voice, raw Web Audio, zero dependencies.
 // Ported from the 2026-07-21 bake-off winner (voice-raw.js), restructured to
 // live behind a desk strip: U.createJuno(ctx, strip, patchName) builds its own
@@ -2290,7 +2374,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/minimoog.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/minimoog.js @ d89844b — verbatim from jeffdavis-studio/unison-engine ===== */
 // minimoog.js — Minimoog Model D-lineage mono voice, zero dependencies.
 //
 // THE MONO BASS LANE (build order 808 → Juno → Minimoog → …; it also absorbs
@@ -3077,7 +3161,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/obxa.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/obxa.js @ d89844b — verbatim from jeffdavis-studio/unison-engine ===== */
 // obxa.js — Oberheim OB-Xa-lineage poly voice, zero dependencies.
 //
 // THE BRASS/PAD POLY LANE (build order 808 → Juno → Minimoog → OB-Xa → …).
@@ -3622,7 +3706,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/fm.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/fm.js @ d89844b — verbatim from jeffdavis-studio/unison-engine ===== */
 // fm.js — six-operator FM keys voice (the DX7 lineage), zero dependencies.
 //
 // THE FM LANE (build order 808 → Juno → Minimoog → OB-Xa → Linn → FM).
@@ -4643,7 +4727,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/bassguitar.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/bassguitar.js @ d89844b — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassguitar.js — electric bass guitar, the first session player of the human
 // rack (Rack 2), zero dependencies.
 //
@@ -5232,7 +5316,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/rhythmguitar.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/rhythmguitar.js @ d89844b — verbatim from jeffdavis-studio/unison-engine ===== */
 // rhythmguitar.js — clean electric rhythm guitar, the fourth and last stop of
 // the human rack (Rack 2), zero dependencies.
 //
@@ -5881,7 +5965,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/tr808.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/tr808.js @ d89844b — verbatim from jeffdavis-studio/unison-engine ===== */
 // tr808.js — THE MACHINE. A TR-808-lineage core voice: bass drum, snare,
 // closed hat, open hat, each with a front panel the token actually turns.
 //
@@ -7165,7 +7249,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/linn.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/linn.js @ d89844b — verbatim from jeffdavis-studio/unison-engine ===== */
 // linn.js — THE STUDIO MACHINE. A Linn-family (LM-1 / LinnDrum lineage)
 // drum computer: the new wave / synth-pop / 80s R&B kit.
 //
@@ -7987,7 +8071,7 @@
     get EPROM_HZ() { return U.CIRCUIT_LINN.epromHz; }, get RECON_HZ() { return U.CIRCUIT_LINN.reconHz; } };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drumengine.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drumengine.js @ d89844b — verbatim from jeffdavis-studio/unison-engine ===== */
 // drumengine.js — ONE DRUM ENGINE, THE MACHINES AS FAMILIES (2026-11-02,
 // drum engine slice 1, Asana 1219959495948201; the rack and parts doc,
 // 10/31).
@@ -8218,7 +8302,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drums.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drums.js @ d89844b — verbatim from jeffdavis-studio/unison-engine ===== */
 // drums.js — the drum machine: 808/LM-1-flavor voices, synthesized at runtime
 // into short AudioBuffers, played back as one-shots.
 //
@@ -8555,7 +8639,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/books.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/books.js @ d89844b — verbatim from jeffdavis-studio/unison-engine ===== */
 // books.js — Pattern Books v1, as data.
 //
 // This file IS the document: "Unison — Pattern Books v1 (draft)" (Morgan,
@@ -10151,7 +10235,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/bassplayer.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/bassplayer.js @ d89844b — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassplayer.js — the PERFORMANCE half of the bass guitar: a session player.
 //
 // Rack 2's rule (kb/projects/unison.md, 2026-07-11): every human instrument is
@@ -10403,7 +10487,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/gtrplayer.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/gtrplayer.js @ d89844b — verbatim from jeffdavis-studio/unison-engine ===== */
 // gtrplayer.js — the PERFORMANCE half of the rhythm guitar: a session
 // guitarist on the rhythmGtr strip.
 //
@@ -10603,7 +10687,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/fmplayer.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/fmplayer.js @ d89844b — verbatim from jeffdavis-studio/unison-engine ===== */
 // fmplayer.js — the PERFORMANCE half of the FM keys: a session keyboard
 // player on the FM chord strips (compA's tine EP, colour's glass and brass).
 //
@@ -10744,7 +10828,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/testPhrase.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/testPhrase.js @ d89844b — verbatim from jeffdavis-studio/unison-engine ===== */
 // testPhrase.js — deterministic 8-bar test phrase, ported from the bake-off
 // (phrase.js) onto the engine's canonical PRNG (core/prng.js).
 //
@@ -10838,7 +10922,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/form.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/form.js @ d89844b — verbatim from jeffdavis-studio/unison-engine ===== */
 // form.js — the song's form: the book of returns (2026-10-30, Asana
 // 1220073468300418; design files/unison/structure-design-2026-10-30 in the
 // morgan repo, DESIGN.md + draw.py, transcribed here as written).
@@ -11159,7 +11243,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/session.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/session.js @ d89844b — verbatim from jeffdavis-studio/unison-engine ===== */
 // session.js — the session sheet and the arrangement realizer.
 //
 // Two tiers, in this order, each on its own stream (core/prng.js):
@@ -12696,7 +12780,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/render/renderer.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/render/renderer.js @ d89844b — verbatim from jeffdavis-studio/unison-engine ===== */
 // renderer.js — song assembly + the render pipeline (Technical Architecture
 // v1.2 playback model): live-first, with (a) a cheap analysis pre-render for
 // verification/metrics and (b) an on-demand full OfflineAudioContext render
