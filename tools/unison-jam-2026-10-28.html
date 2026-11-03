@@ -157,10 +157,10 @@
 <div id="bars" class="row"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><div id="status"></div></div>
 <div id="layers"></div>
 <div id="add" class="row"><div class="lbl">Add a layer<button id="palRnd" title="add a random instrument (one you don't have yet, while any are left)">Random</button></div><div id="pal"></div></div>
-<footer title="engine @7d1e33f · built 2026-11-03">Unison jam &middot; every sound is synthesized in this page by the engine at 7d1e33f</footer>
+<footer title="engine @669bd0f · built 2026-11-03">Unison jam &middot; every sound is synthesized in this page by the engine at 669bd0f</footer>
 
 <script>
-/* ===== src/core/prng.js @ 7d1e33f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/prng.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
 // prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
 // token hash, consumed in canonical draw order (Technical Architecture v1.2).
 //
@@ -233,7 +233,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/core/mix.js @ 7d1e33f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/mix.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
 // mix.js — the fan-in ≤2 summing rule, as a primitive.
 //
 // Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
@@ -402,7 +402,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/desk/desk.js @ 7d1e33f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/desk/desk.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
 // desk.js — the 24-track desk as a running audio graph.
 //
 // The desk is the data structure, not a metaphor (Composition Brief 2 / Tech
@@ -805,7 +805,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/production.js @ 7d1e33f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/production.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
 // production.js — the production room, v0.
 //
 // PLACEMENT DECISION (Morgan's call, ratified by Jeff 2026-08-03). Production
@@ -1100,7 +1100,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/analogpoly.js @ 7d1e33f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/analogpoly.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
 // analogpoly.js — the analog poly core: one module that builds every Juno and
 // OB-Xa voice, behind a family lock. Asana 1220084594874974, slice 1
 // (2026-11-02); the rack doc's build 3 (files/unison/rack-parts-proposal-
@@ -1723,7 +1723,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/juno.js @ 7d1e33f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/juno.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
 // juno.js — Juno-60-flavor poly voice, raw Web Audio, zero dependencies.
 // Ported from the 2026-07-21 bake-off winner (voice-raw.js), restructured to
 // live behind a desk strip: U.createJuno(ctx, strip, patchName) builds its own
@@ -2290,7 +2290,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/minimoog.js @ 7d1e33f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/minimoog.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
 // minimoog.js — Minimoog Model D-lineage mono voice, zero dependencies.
 //
 // THE MONO BASS LANE (build order 808 → Juno → Minimoog → …; it also absorbs
@@ -3077,7 +3077,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/obxa.js @ 7d1e33f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/obxa.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
 // obxa.js — Oberheim OB-Xa-lineage poly voice, zero dependencies.
 //
 // THE BRASS/PAD POLY LANE (build order 808 → Juno → Minimoog → OB-Xa → …).
@@ -3622,7 +3622,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/fm.js @ 7d1e33f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/fm.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
 // fm.js — six-operator FM keys voice (the DX7 lineage), zero dependencies.
 //
 // THE FM LANE (build order 808 → Juno → Minimoog → OB-Xa → Linn → FM).
@@ -4643,7 +4643,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/bassguitar.js @ 7d1e33f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/bassguitar.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassguitar.js — electric bass guitar, the first session player of the human
 // rack (Rack 2), zero dependencies.
 //
@@ -5232,7 +5232,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/rhythmguitar.js @ 7d1e33f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/rhythmguitar.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
 // rhythmguitar.js — clean electric rhythm guitar, the fourth and last stop of
 // the human rack (Rack 2), zero dependencies.
 //
@@ -5881,7 +5881,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/tr808.js @ 7d1e33f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/tr808.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
 // tr808.js — THE MACHINE. A TR-808-lineage core voice: bass drum, snare,
 // closed hat, open hat, each with a front panel the token actually turns.
 //
@@ -7165,7 +7165,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/linn.js @ 7d1e33f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/linn.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
 // linn.js — THE STUDIO MACHINE. A Linn-family (LM-1 / LinnDrum lineage)
 // drum computer: the new wave / synth-pop / 80s R&B kit.
 //
@@ -7987,7 +7987,7 @@
     get EPROM_HZ() { return U.CIRCUIT_LINN.epromHz; }, get RECON_HZ() { return U.CIRCUIT_LINN.reconHz; } };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drumengine.js @ 7d1e33f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drumengine.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
 // drumengine.js — ONE DRUM ENGINE, THE MACHINES AS FAMILIES (2026-11-02,
 // drum engine slice 1, Asana 1219959495948201; the rack and parts doc,
 // 10/31).
@@ -8218,7 +8218,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drums.js @ 7d1e33f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drums.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
 // drums.js — the drum machine: 808/LM-1-flavor voices, synthesized at runtime
 // into short AudioBuffers, played back as one-shots.
 //
@@ -8555,7 +8555,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/books.js @ 7d1e33f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/books.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
 // books.js — Pattern Books v1, as data.
 //
 // This file IS the document: "Unison — Pattern Books v1 (draft)" (Morgan,
@@ -9728,7 +9728,10 @@
 
   U.LEAD = [
     { id: "lead.vocal_phrase",      w: 30, kind: "vocalPhrase" },   // one flavor among three, not the default
-    { id: "lead.instrumental_line", w: 26, kind: "instrumental" },
+    // the hook job (the melody engine, slice 1, 2026-11-03, Asana
+    // 1220085081631862): the old instrumental line's draw and weight, so the
+    // same songs; it plays sheet.melody (U.drawMelody, U.melodyScore, below)
+    { id: "lead.hook",              w: 26, kind: "hook" },
     { id: "lead.solo_window",       w: 16, kind: "soloWindow" },
     // lead.none (w 28 — "a whole species of deep cut") → desk mute 0.280
   ];
@@ -9807,9 +9810,348 @@
   U.forLane = function (list, lane) {
     return list.filter((e) => !e.lanes || e.lanes.indexOf(lane) > -1);
   };
+
+  // ---- the melody engine (slice 1, 2026-11-03, Asana 1220085081631862) ----
+  // The rack and parts doc (2026-10-31): "A melody engine draws a motif per
+  // song, a two-to-four-note interval shape and a rhythm cell, from a space
+  // big enough that no two songs share one, then develops it: repeat, move
+  // to the next chord, invert, stretch, answer, withhold it for a section so
+  // it lands when it returns." Slice 1 is the motif, its development and the
+  // hook job (lead kind "hook"), with the motor's handoff. The design and its
+  // reasons: files/unison/melody-engine-2026-11-03/RESULT.md in the morgan
+  // repo. Tables are [value, weight] pairs.
+  U.MELODY = {
+    n: [[3, 22], [4, 36], [5, 24], [6, 18]],                  // notes in the shape
+    stepMag: [[0, 12], [1, 46], [2, 26], [3, 9], [4, 5], [5, 2]],   // |step| in scale degrees: repeat, step, 3rd, 4th, 5th, 6th
+    start: [[0, 40], [2, 24], [4, 36]],                       // the chord tone it starts on: root, third, fifth
+    bars: [[1, 60], [2, 40]],                                 // the rhythm cell's length
+    offset: [[0, 52], [2, 14], [4, 12], [1, 6], [3, 6], [6, 10]],   // the cell bar's first onset (a late start is the pickup)
+    posW: (i) => (i % 4 === 0 ? 4 : i % 2 === 0 ? 3 : 1),     // onset weight by position: beats, eighths, sixteenths
+    range: [9, 16], lean: [0.55, 0.95], rests: [0.25, 0.60], drift: [1, 4], variation: [0, 0.35],
+    stretch: [["augment", 45], ["fragment", 55]],
+    chorusEvery: [[1, 40], [2, 60]],                          // a chorus states every slot, or every other (call and response)
+    chorusOps: [["repeat", 45], ["sequence", 35], ["answer", 20]],
+    section: {
+      verse: [["withhold", 40], ["tease", 35], ["state", 25]],
+      pre: [["tease", 45], ["withhold", 35], ["sequence", 20]],
+      bridge: [["withhold", 50], ["invert", 30], ["stretch", 20]],
+      intro: [["withhold", 70], ["tease", 30]],
+      break: [["withhold", 1]],
+      outro: [["repeat", 50], ["fragment", 30], ["withhold", 20]],
+    },
+    verseState: [["sequence", 40], ["invert", 30], ["stretch", 30]],
+    // the handoff: the share of eligible hook songs (the motor's figure
+    // usable, the arp strip up) whose motif is the motor's figure, and
+    // whether the motor rests on the chorus bars where the lead states it
+    handoffShare: 0.40, handoffYield: true,
+    U_COUNT: 128, TABLE0: 86,                                 // the fork's fixed block; the realization table's first index
+  };
+  const pickT = (table, u) => {
+    let tot = 0; for (const e of table) tot += e[1];
+    let x = u * tot; for (const e of table) { x -= e[1]; if (x < 0) return e[0]; }
+    return table[table.length - 1][0];
+  };
+  U.melodyPick = pickT;
+  // the shape's steps from raw (magnitude, sign) pairs, under the rules: at
+  // most one leap of a 4th or more (a later one folds to a 3rd), at most 4
+  // distinct degrees (a step to a fifth turns back to the nearest used
+  // degree), at least 2 (an all-repeat shape's last step becomes a step)
+  U.melodyShape = function (raw) {
+    const steps = [], pos = [0];
+    let big = 0;
+    for (const [mag0, sign] of raw) {
+      let mag = mag0;
+      if (mag >= 3) { if (big) mag = 2; else big = 1; }
+      let st = mag * sign, next = pos[pos.length - 1] + st;
+      const used = new Set(pos);
+      if (!used.has(next) && used.size >= 4) {
+        let best = null;
+        for (const q of used) if (q !== pos[pos.length - 1] && (best == null || Math.abs(q - next) < Math.abs(best - next) || (Math.abs(q - next) === Math.abs(best - next) && q < best))) best = q;
+        if (best == null) best = pos[pos.length - 1];
+        st = best - pos[pos.length - 1]; next = best;
+      }
+      steps.push(st); pos.push(next);
+    }
+    if (new Set(pos).size < 2) { steps[steps.length - 1] = raw[raw.length - 1][1] || 1; }
+    return steps;
+  };
+  // one cell bar's onsets: the first at the offset, n - 1 more inside the
+  // window (end = the rests dial's share of the bar left empty), weighted by
+  // position, without replacement (one uniform per onset)
+  U.melodyOnsets = function (n, offset, rests, us) {
+    const end = Math.min(16, Math.max(offset + n + 1, Math.round(16 * (1 - rests))));
+    const out = [offset], cand = [];
+    for (let i = offset + 1; i < end; i++) cand.push(i);
+    for (let j = 1; j < n && cand.length; j++) {
+      let tot = 0; for (const c of cand) tot += U.MELODY.posW(c);
+      let x = us[j] * tot, k = cand.length - 1;
+      for (let q = 0; q < cand.length; q++) { x -= U.MELODY.posW(cand[q]); if (x < 0) { k = q; break; } }
+      out.push(cand[k]); cand.splice(k, 1);
+    }
+    return out.sort((a, b) => a - b);
+  };
+  const fnv = (str) => { let h = 0x811c9dc5; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } return ("00000000" + h.toString(16)).slice(-8); };
+  // a motif's identity: the steps between consecutive notes of the cell and
+  // the onset pattern; transposition and the start tone are not in it
+  U.melodyMotifId = function (notes, bars) {
+    const r = new Array(bars * 16).fill(".");
+    for (const x of notes) r[x.pos] = "x";
+    const st = [];
+    for (let i = 1; i < notes.length; i++) { const d = notes[i].deg - notes[i - 1].deg; st.push((d >= 0 ? "+" : "") + d); }
+    return st.join("") + "|" + r.join("");
+  };
+  // THE DRAW: U.forkPrng(hash, "melody"), one fixed block of 128 uniforms
+  // for EVERY song (lead up or not, hook or not), read in this order:
+  //   0 n, 1 start tone, 2 cell bars, 3-7 step magnitudes, 9-13 step signs,
+  //   15-16 the cell bars' offsets, 17-22 and 23-28 the cell bars' onsets,
+  //   32 range, 33 lean, 34 rests, 35 drift, 36 variation, 37 stretch kind,
+  //   38 chorus every, 40 the handoff, 42-73 the plan (two per form section,
+  //   mod 16), 74-85 the ties, 86-127 the realization table (U.melodyScore)
+  // Tier 1 never reads it, so the song stream stays 86 draws. Returns
+  // sheet.melody (pure data; only a hook song plays it).
+  U.drawMelody = function (hash, sheet) {
+    const M = U.MELODY, G = U.forkPrng(hash, "melody"), u = [];
+    for (let i = 0; i < M.U_COUNT; i++) u.push(G.r());
+    const lerpU = (r, x) => r[0] + (r[1] - r[0]) * x;
+    const dials = {
+      range: M.range[0] + Math.min(M.range[1] - M.range[0], Math.floor(u[32] * (M.range[1] - M.range[0] + 1))),
+      lean: +lerpU(M.lean, u[33]).toFixed(3), rests: +lerpU(M.rests, u[34]).toFixed(3),
+      drift: M.drift[0] + Math.min(M.drift[1] - M.drift[0], Math.floor(u[35] * (M.drift[1] - M.drift[0] + 1))),
+      variation: +lerpU(M.variation, u[36]).toFixed(3),
+      stretch: pickT(M.stretch, u[37]), chorusEvery: pickT(M.chorusEvery, u[38]),
+    };
+    const hookUp = sheet.picks.lead.kind === "hook" && !sheet.mutes.lead;
+    const fig = sheet.motor && sheet.motor.handoff;
+    const usable = !!(fig && fig.usable), eligible = usable && !sheet.mutes.arp;
+    const taken = eligible && hookUp && u[40] < M.handoffShare;
+    let motif;
+    if (taken) {
+      // the motor's figure as the motif: its degrees over the chord root,
+      // its rhythm as the cell, its own note count
+      const notes = [], rh = fig.rhythm;
+      let k = 0;
+      for (let p = 0; p < rh.length; p++) {
+        if (rh[p] !== "x") continue;
+        let d = 1; while (p + d < rh.length && rh[p + d] === "-") d++;
+        notes.push({ pos: p, deg: fig.degrees[k % fig.degrees.length] - fig.degrees[0], dur: d === 1 ? 0.9 : d });
+        k++;
+      }
+      motif = { source: "motor." + fig.source, n: notes.length, start: fig.degrees[0], bars: fig.bars, notes };
+    } else {
+      const n = pickT(M.n, u[0]), start = pickT(M.start, u[1]), bars = pickT(M.bars, u[2]);
+      const raw = [];
+      for (let i = 0; i < n - 1; i++) raw.push([pickT(M.stepMag, u[3 + i]), u[9 + i] < 0.5 ? -1 : 1]);
+      const steps = U.melodyShape(raw), shape = [0];
+      for (const st of steps) shape.push(shape[shape.length - 1] + st);
+      const notes = [];
+      for (let b = 0; b < bars; b++) {
+        const on = U.melodyOnsets(n, pickT(M.offset, u[15 + b]), dials.rests, u.slice(17 + b * 6, 23 + b * 6));
+        on.forEach((p, i) => {
+          const next = i + 1 < on.length ? on[i + 1] : Math.min(16, p + 4);
+          const tie = u[74 + b * 6 + i] < 0.5;
+          notes.push({ pos: b * 16 + p, deg: shape[i], dur: tie ? Math.max(1, next - p) : Math.min(2, Math.max(1, next - p)) * 0.9 });
+        });
+      }
+      motif = { source: "drawn", n, start, bars, steps, notes };
+    }
+    motif.id = U.melodyMotifId(motif.notes, motif.bars);
+    motif.label = "m" + fnv(motif.id).slice(0, 6);
+    // the plan over the form's sections; home = the chorus (a form with no
+    // chorus: its longest section that is not the intro)
+    const secs = (sheet.form && sheet.form.sections) || [];
+    let home = "chorus";
+    if (!secs.some((s) => s[0] === "chorus")) {
+      let best = null; for (const s of secs) if (s[0] !== "intro" && (!best || s[1] > best[1])) best = s;
+      home = best ? best[0] : "chorus";
+    }
+    const plan = secs.map((s, si) => {
+      const v1 = u[42 + 2 * (si % 16)], v2 = u[43 + 2 * (si % 16)];
+      if (s[0] === home) return { section: s[0], op: "home" };
+      let op = pickT(M.section[s[0]] || [["withhold", 1]], v1);
+      if (op === "state") op = pickT(M.verseState, v2);
+      return { section: s[0], op };
+    });
+    // the hook lands: if nothing before the first home section withholds,
+    // the last section before it does
+    const firstHome = plan.findIndex((p) => p.op === "home");
+    if (firstHome > 0 && !plan.slice(0, firstHome).some((p) => p.op === "withhold")) plan[firstHome - 1].op = "withhold";
+    // the label: the job and the motif ("hook.m1a2b3c", ".handoff" when the
+    // motif is the motor's); a song that does not play it carries the motif
+    // alone ("m1a2b3c")
+    const label = (hookUp ? "hook." : "") + motif.label + (taken ? ".handoff" : "");
+    return { motif, plan, home, dials, handoff: { usable, eligible, taken, yield: taken && M.handoffYield }, label, table: u.slice(M.TABLE0) };
+  };
+
+  // THE SCORE: the hook's notes over the song, pure, from the sheet as it
+  // stands (a page that rebuilds sheet.bars or sheet.harmony gets its own).
+  // gate(bar): the lead's entry gate (session.js); the home section states
+  // the hook whenever the strip is up, every other section only where the
+  // gate lets the lead in. A bar with no form section index (a page's loop)
+  // is home. scale: the mode's semitones. Returns { notes: bar -> [{ i,
+  // semi (over the lead's tonic base), dur (sixteenths), vel }], yieldBars,
+  // stats }.
+  U.melodyScore = function (sheet, gate, scale) {
+    const ml = sheet.melody, mo = ml.motif, dl = ml.dials, M = U.MELODY, T = ml.table;
+    let tk = 0;
+    const tbl = () => T[(tk++) % T.length];
+    const mod7 = (d) => ((d % 7) + 7) % 7;
+    const semiOf = (d) => scale[mod7(d)] + 12 * Math.floor(d / 7);
+    const chordOf = (bar) => {
+      const b = sheet.bars[bar], list = b.section === "chorus" && sheet.harmony.chorus ? sheet.harmony.chorus : sheet.harmony.chords;
+      const c = list[Math.floor(bar / sheet.harmony.barsPer) % list.length];
+      return { semi: c[0], deg: U.SEMI_DEG[c[0] % 12], pcs: (U.CHORD_INTERVALS[c[1]] || U.CHORD_INTERVALS.m).map((x) => (c[0] + x) % 12) };
+    };
+    const isChordTone = (d, ch) => ch.pcs.indexOf(((scale[mod7(d)]) % 12)) > -1;
+    const snap = (d, ch) => { for (const o of [0, -1, 1, -2, 2]) if (isChordTone(d + o, ch)) return d + o; return d; };
+    const homeList = sheet.harmony.chorus || sheet.harmony.chords;
+    const homeDeg = U.SEMI_DEG[homeList[0][0] % 12];
+    let s0 = homeDeg + mo.start; if (s0 > 7) s0 -= 7;
+    const notesBy = {}, yieldBars = {}, stats = { ops: {}, strong: 0, onChord: 0, perChorus: [], span: null };
+    let lo = Infinity, hi = -Infinity, repeats = 0, offset = 0;
+    const cellBars = mo.bars;
+    // the range: one window for the whole song, from the home form's lowest
+    // note up to a third down, the range dial wide (or the home form's own
+    // span, if a handoff figure is wider); a development that wanders out
+    // of it folds back by octaves
+    let hMin = Infinity, hMax = -Infinity;
+    for (const x of mo.notes) { const v = semiOf(s0 + x.deg); hMin = Math.min(hMin, v); hMax = Math.max(hMax, v); }
+    const wLo = hMin - Math.max(0, Math.min(3, dl.range - (hMax - hMin))), wHi = wLo + Math.max(dl.range, hMax - hMin);
+    // one statement: op over the motif from bar b0, inside [b0, bEnd)
+    const state = (op, b0, bEnd, yieldIt) => {
+      let notes = mo.notes.map((x) => ({ pos: x.pos, deg: x.deg, dur: x.dur }));
+      const ch0 = chordOf(b0);
+      let base = s0;
+      if (op === "repeat" || op === "home") {
+        if (repeats++ > 0 && tbl() < dl.variation) {
+          if (tbl() < 0.5) {   // a passing note into a gap of 2+ sixteenths
+            for (let i = 0; i + 1 < notes.length; i++) {
+              const a = notes[i], c = notes[i + 1];
+              if (c.pos - a.pos >= 2 && Math.abs(c.deg - a.deg) >= 2) { notes.splice(i + 1, 0, { pos: c.pos - 1, deg: a.deg + Math.sign(c.deg - a.deg), dur: 0.9 }); a.dur = Math.min(a.dur, c.pos - 1 - a.pos); break; }
+            }
+          } else {             // one onset displaced by a sixteenth
+            const i = Math.floor(tbl() * notes.length), nx = notes[i + 1];
+            if (notes[i].pos + 1 < (nx ? nx.pos : cellBars * 16)) { notes[i].pos += 1; notes[i].dur = Math.max(0.9, notes[i].dur - 1); }
+          }
+        }
+        offset = 0;
+      } else if (op === "sequence") {
+        let sh = ch0.deg - homeDeg; if (sh === 0) sh = 2;
+        if (Math.abs(offset + sh) > dl.drift) sh = sh > 0 ? sh - 7 : sh + 7;
+        if (Math.abs(offset + sh) > dl.drift) { op = "answer"; }
+        else { offset += sh; base = s0 + offset; const L = notes[notes.length - 1]; L.deg = snap(base + L.deg, chordOf(Math.min(bEnd - 1, b0 + Math.floor(L.pos / 16)))) - base; }
+      } else if (op === "invert") {
+        notes.forEach((x) => { x.deg = -x.deg; });
+      } else if (op === "augment") {
+        notes.forEach((x) => { x.pos *= 2; x.dur *= 2; });
+      } else if (op === "fragment" || op === "tease") {
+        const bar0 = notes.filter((x) => x.pos < 16), k = Math.max(2, Math.ceil(bar0.length / 2));
+        notes = bar0.slice(0, k);
+      }
+      if (op === "answer") {
+        const k = Math.ceil(notes.length / 2), ch = chordOf(Math.min(bEnd - 1, b0 + Math.floor(notes[notes.length - 1].pos / 16)));
+        let d = base + notes[k - 1].deg;
+        // home: the tonic, or the chord root when the chord is not the tonic's
+        const cands = []; for (let o = -14; o <= 14; o += 7) { cands.push(o); cands.push(ch.deg + o); }
+        let target = cands[0]; for (const c of cands) if (Math.abs(c - d) < Math.abs(target - d)) target = c;
+        for (let i = k; i < notes.length; i++) {
+          const left = notes.length - 1 - i;
+          if (left === 0) d = target; else if (d !== target && Math.abs(target - d) > left) d += Math.sign(target - d);
+          notes[i].deg = d - base;
+        }
+        offset = 0;
+      }
+      stats.ops[op === "home" ? "repeat" : op] = (stats.ops[op === "home" ? "repeat" : op] || 0) + 1;
+      // place: strong beats lean onto chord tones; the range folds the top
+      const placed = [];
+      for (const x of notes) {
+        const bar = b0 + Math.floor(x.pos / 16), i = x.pos % 16;
+        if (bar >= bEnd || bar >= sheet.totalBars) continue;
+        let d = base + x.deg;
+        const ch = chordOf(bar);
+        if (i % 4 === 0) { if (tbl() < dl.lean) d = snap(d, ch); stats.strong++; if (isChordTone(d, ch)) stats.onChord++; }
+        placed.push({ bar, i, d, dur: x.dur });
+      }
+      if (!placed.length) return 0;
+      for (const p of placed) {
+        // the octave of the note that lands in the window, or nearest it
+        let semi = semiOf(p.d);
+        while (semi < wLo) semi += 12;
+        while (semi > wHi) semi -= 12;
+        if (semi < wLo && wLo - semi > semi + 12 - wHi) semi += 12;
+        lo = Math.min(lo, semi); hi = Math.max(hi, semi);
+        (notesBy[p.bar] = notesBy[p.bar] || []).push({ i: p.i, semi, dur: p.dur, vel: 0.85 });
+        if (yieldIt) yieldBars[p.bar] = true;
+      }
+      return 1;
+    };
+    // walk the sections (runs of bars with one section index; a page's loop
+    // has none, so each run of one section name is home)
+    const runs = [];
+    for (let bar = 0; bar < sheet.totalBars; bar++) {
+      const b = sheet.bars[bar], key = b.sectionIndex == null ? "p" + b.section : b.sectionIndex;
+      if (!runs.length || runs[runs.length - 1].key !== key) runs.push({ key, si: b.sectionIndex, b0: bar, b1: bar + 1 }); else runs[runs.length - 1].b1 = bar + 1;
+    }
+    for (const r of runs) {
+      const p = r.si == null ? { op: "home" } : ml.plan[r.si] || { op: "withhold" };
+      const len = r.b1 - r.b0;
+      if (p.op === "home") {
+        const slots = Math.max(1, Math.floor(len / cellBars)), stated = [];
+        // past 16 bars (a long home section: a ride, an interstitial's
+        // vamp) the hook comes and goes by 8-bar phrase
+        for (let s = 0; s < slots; s++) if (s % dl.chorusEvery === 0 && (len <= 16 || Math.floor(s * cellBars / 8) % 2 === 0)) stated.push(s);
+        let count = 0;
+        stated.forEach((s, j) => {
+          const b0 = r.b0 + s * cellBars;
+          let op = j === 0 ? "home" : j === stated.length - 1 && stated.length >= 3 ? "answer" : pickT(M.chorusOps, tbl());
+          count += state(op, b0, r.b1, ml.handoff.yield);
+        });
+        stats.perChorus.push(count);
+        continue;
+      }
+      if (p.op === "withhold") continue;
+      let op = p.op === "stretch" ? dl.stretch : p.op;
+      const span = op === "augment" ? cellBars * 2 : cellBars;
+      const slots = Math.max(1, Math.floor(len / span));
+      const which = p.op === "tease" ? [slots - 1] : Array.from({ length: slots }, (_, s) => s).filter((s) => s % 2 === 0);
+      for (const s of which) {
+        const b0 = r.b0 + s * span;
+        if (!gate(b0)) continue;
+        state(op, b0, r.b1, false);
+      }
+    }
+    if (lo !== Infinity) stats.span = hi - lo;
+    return { notes: notesBy, yieldBars, stats };
+  };
+  // the motif space: distinct (steps, onsets) identities reachable under
+  // the weights, drawn motifs only (every weight in U.MELODY is > 0, so
+  // reachable = every combination the rules can produce)
+  U.melodySpace = function () {
+    const M = U.MELODY, mags = M.stepMag.map((e) => e[0]), out = { byN: {}, total: 0 };
+    const restEnds = new Set(); for (let r = 0; r <= 1000; r++) restEnds.add(Math.round(16 * (1 - (M.rests[0] + (M.rests[1] - M.rests[0]) * r / 1000))));
+    for (const [n] of M.n) {
+      const seqs = new Set();
+      const walk = (raw) => {
+        if (raw.length === n - 1) { seqs.add(U.melodyShape(raw).join(",")); return; }
+        for (const m of mags) for (const sg of m ? [-1, 1] : [1]) walk(raw.concat([[m, sg]]));
+      };
+      walk([]);
+      const pats = new Set();
+      for (const [o] of M.offset) for (const e0 of restEnds) {
+        const end = Math.min(16, Math.max(o + n + 1, e0));
+        // every (n - 1)-subset of (o, end)
+        const c = []; for (let i = o + 1; i < end; i++) c.push(i);
+        const pick = (start, acc) => { if (acc.length === n - 1) { pats.add([o].concat(acc).join(",")); return; } for (let i = start; i < c.length; i++) pick(i + 1, acc.concat([c[i]])); };
+        pick(0, []);
+      }
+      const P = pats.size, S = seqs.size;
+      out.byN[n] = { shapes: S, onsetBars: P, oneBar: S * P, twoBar: S * P * P };
+      out.total += S * P + S * P * P;
+    }
+    return out;
+  };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/bassplayer.js @ 7d1e33f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/bassplayer.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassplayer.js — the PERFORMANCE half of the bass guitar: a session player.
 //
 // Rack 2's rule (kb/projects/unison.md, 2026-07-11): every human instrument is
@@ -10061,7 +10403,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/gtrplayer.js @ 7d1e33f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/gtrplayer.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
 // gtrplayer.js — the PERFORMANCE half of the rhythm guitar: a session
 // guitarist on the rhythmGtr strip.
 //
@@ -10261,7 +10603,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/fmplayer.js @ 7d1e33f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/fmplayer.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
 // fmplayer.js — the PERFORMANCE half of the FM keys: a session keyboard
 // player on the FM chord strips (compA's tine EP, colour's glass and brass).
 //
@@ -10402,7 +10744,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/testPhrase.js @ 7d1e33f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/testPhrase.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
 // testPhrase.js — deterministic 8-bar test phrase, ported from the bake-off
 // (phrase.js) onto the engine's canonical PRNG (core/prng.js).
 //
@@ -10496,7 +10838,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/form.js @ 7d1e33f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/form.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
 // form.js — the song's form: the book of returns (2026-10-30, Asana
 // 1220073468300418; design files/unison/structure-design-2026-10-30 in the
 // morgan repo, DESIGN.md + draw.py, transcribed here as written).
@@ -10817,7 +11159,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/session.js @ 7d1e33f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/session.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
 // session.js — the session sheet and the arrangement realizer.
 //
 // Two tiers, in this order, each on its own stream (core/prng.js):
@@ -10963,7 +11305,16 @@
 // picked silence, the counter's own desk-mute draw left it up, the arp strip
 // is up and the layer draw says two; P.counter is then the layer's alias
 // (layer 2) and the strip comes up. sheet.motor.handoff = U.motorFigure, the
-// figure the melody engine will read; nothing yields to it or states it yet.
+// figure the melody engine reads (below).
+//
+// THE MELODY ENGINE, slice 1 (2026-11-03, Asana 1220085081631862): a twelfth
+// fork, U.forkPrng(hash, "melody") (U.drawMelody, books.js; one fixed block
+// of 128 values, order there), read for every song. sheet.melody = { motif,
+// plan, home, dials, handoff, label, table }. Draw 25's
+// lead.instrumental_line is lead.hook (same weight): the lead strip plays
+// U.melodyScore's hook. On a handoff song (sheet.melody.handoff.taken) the
+// motif is sheet.motor.handoff and the arp strip rests on the chorus bars
+// the lead states it on.
 //
 // Draws 9 and 10 are taken whether or not the gate at 8 passed, and discarded
 // when it did not. That is the module's standing "draw first, discard if unused"
@@ -11351,6 +11702,13 @@
       mutes.counter = false;
       picks.counter = { id: U.layerMotorId(motor.layer), kind: U.layerMotorLabel(motor.layer), machine: "seq", layer: 2, motor: motor.layer };
     }
+    // THE MELODY ENGINE, slice 1 (2026-11-03, Asana 1220085081631862): the
+    // song's motif, its development plan over the form, its dials and the
+    // handoff, from its own FORK, U.forkPrng(hash, "melody") (U.drawMelody,
+    // books.js; one fixed block of 128 values, order there), read for EVERY
+    // song whether or not the lead is up or is the hook, so tier 1 stays 86
+    // draws and no other strip's draw moves. Only a hook song plays it.
+    const melody = U.drawMelody(R.hash, { picks, mutes, motor, form });
     // the rhythmGtr strip's voicing for its pattern (heard only when the strip is up)
     const gtrVoicing = U.GTR_FOR_PATTERN(picks.rhythmGtr.id, lane);
     // bar map. A looped section (ride, repeat-out, coda vamp) keeps its name
@@ -11388,6 +11746,9 @@
       voices, legacy,
       // the motor (2026-11-01): sheet.motor.arp, the arpeggiator's setting
       motor,
+      // the melody engine (2026-11-03): sheet.melody = { motif, plan, home,
+      // dials, handoff, label, table }
+      melody,
       masks: { bass: bassMask, comp: compMask, lead: leadPhrase, counter: counterPhrase, gtr: gtrMask },
       bars, totalBars: bars.length, barSec, lengthSec: bars.length * barSec,
       kit: U.LANE_FEEL[lane].kit,
@@ -11641,7 +12002,7 @@
       compA: { brass: 0.4, pad: { "comp.hold": 1.5, "comp.quarter_pulse": 10.2, "*": 5.8 }, comp: 4.5, stab: 6.7, lead: -1.8 },
       pad: { brass: -3.1, pad: 0.5, comp: 1 },
       arp: { comp: -3.4, bass: -8.9, lead: -8.8 },
-      lead: { brass: 1.8, pad: { "instrumental": 12.5, "soloWindow": 16.2, "vocalPhrase": 7.2, "*": 11.6 }, comp: 5.8, stab: 8.1, lead: -0.2 },
+      lead: { brass: 1.8, pad: { "hook": 12.5, "soloWindow": 16.2, "vocalPhrase": 7.2, "*": 11.6 }, comp: 5.8, stab: 8.1, lead: -0.2 },
       counter: { comp: -3.7, bass: -9.8, lead: -9.2 },
       color: { brass: -4.1, pad: 6.4, comp: 0.1, stab: 0.8, lead: -5.7 },
     },
@@ -11656,11 +12017,21 @@
       compA: { ep: 1, glass: -0.9, brass: 0.7, strings: 3.6, organ: 0.6, pluck: { "comp.hold": 5.7, "comp.quarter_pulse": -1, "comp.stab_offbeats": -0.7, "comp.gate_chop": -1.7, "comp.rhodes_16ths": -4.3, "influence.dub.skank": -1.5, "*": 0 }, voice: { "comp.hold": 5.2, "comp.quarter_pulse": 18.4, "*": 11.8 } },
       pad: { ep: 3.7, glass: 0.9, brass: -0.7, strings: 0.9, organ: -6.7, voice: 1.6 },
       arp: { ep: -9.6, glass: -12.1, bass: -12.8, wind: -11.5, pluck: -11.7 },
-      lead: { ep: 4.6, glass: 1.8, brass: 4.1, strings: 6.9, organ: 4.3, wind: 1, pluck: 2.6, voice: { "instrumental": 20.9, "soloWindow": 28.7, "vocalPhrase": 10.5, "*": 19.2 } },
+      lead: { ep: 4.6, glass: 1.8, brass: 4.1, strings: 6.9, organ: 4.3, wind: 1, pluck: 2.6, voice: { "hook": 20.9, "soloWindow": 28.7, "vocalPhrase": 10.5, "*": 19.2 } },
       counter: { ep: -9.5, glass: -11.6, bass: -13, wind: -11.4, pluck: -10.8 },
       color: { ep: -3.6, glass: -4.9, brass: -4.4, strings: -0.5, organ: -2.3, wind: -5.7, pluck: -5.3, voice: { "brassOffbeat": 19.7, "sectionHit": 10.3, "*": 15 } },
     },
   };
+
+  // THE HOOK'S TRIM (the melody engine, slice 1, 2026-11-03): dB on the
+  // lead strip's trim, on top of its cell, when the lead plays the hook.
+  // MEASURED by harness/melody-hook-trim.mjs (files/unison/
+  // melody-engine-2026-11-03/mel1-hook-trim.{out,json} in the morgan repo):
+  // 9 songs, each song's hook against the old instrumental line it replaced,
+  // solo through the house Juno lead, gated K loudness: the hook sat 1.54 dB
+  // louder (sd 0.78; held notes where the phrases had short ones), over the
+  // brief's 1 dB line, so it comes down by that.
+  U.HOOK_TRIM_DB = -1.5;
 
   U.stripTrimDb = function (engine, strip, key, picks) {
     const row = (U.ENGINE_STRIP_TRIM_DB[engine] || {})[strip] || {};
@@ -11872,7 +12243,7 @@
     const create = (strip, house) => {
       const e = sheet.voices[strip], rec = recOf(strip), st = desk.strips[strip];
       if (!rec) return U.createJuno(ctx, st, house);
-      st.trim.gain.value = Math.pow(10, U.stripTrimDb(e, strip, rec.role, P) / 20);
+      st.trim.gain.value = Math.pow(10, (U.stripTrimDb(e, strip, rec.role, P) + (strip === "lead" && P.lead.kind === "hook" ? U.HOOK_TRIM_DB : 0)) / 20);
       if (e === "juno") return U.createJuno(ctx, st, rec.params);
       if (e === "obxa") return U.createObxa(ctx, st, rec.params, null, sheet.polySeed);
       if (e === "fm") return U.createFm(ctx, st, rec.params);
@@ -11971,6 +12342,16 @@
 
     // foreground: the voice the song is about gets in earlier; the other backs off
     const leadEntry = sheet.foreground === "lead" ? entry.lead - 0.2 : entry.lead + 0.25;
+
+    // The hook (the melody engine, slice 1): the whole song's hook laid out
+    // once, from the sheet (U.melodyScore, books.js); its stats ride on the
+    // sheet for the census. On a handoff song the motor yields: the arp strip
+    // rests (its order still advances) on the chorus bars where the lead
+    // states the figure (hookScore.yieldBars).
+    const hookScore = P.lead.kind === "hook" && sheet.melody && up("lead")
+      ? U.melodyScore(sheet, (bar) => eff(sheet.bars[bar].energy) >= leadEntry, scale) : null;
+    if (hookScore) sheet.melodyStats = hookScore.stats;
+    const arpYield = (bar) => !!(hookScore && hookScore.yieldBars[bar]);
 
     // ---- the bar loop. ONE draw per bar, used for every variation decision. ----
     for (let bar = 0; bar < sheet.totalBars; bar++) {
@@ -12217,7 +12598,7 @@
         const S = P.arp.motor, pch = bar > 0 ? chordAt(bar - 1) : null;
         const root = S.transpose === "chordRoot" ? mRoot : midMidi(0);
         const prevRoot = S.transpose === "chordRoot" && pch && pch.deg !== ch.deg ? midMidi(pch.deg) : null;
-        for (const st of U.seqBar(S, bar, root, prevRoot, degMidi)) note("arp", stepT(bar, st.pos), st.midi, st.vel, st.dur * s16, U.motorFilterCut(sheet.motor.layer, st.pos));
+        if (!arpYield(bar)) for (const st of U.seqBar(S, bar, root, prevRoot, degMidi)) note("arp", stepT(bar, st.pos), st.midi, st.vel, st.dur * s16, U.motorFilterCut(sheet.motor.layer, st.pos));
       } else if (on("arp", bar)) {
         const A = P.arp.motor;
         const key = P.arp.id + "|" + mRoot + ch.type;
@@ -12225,18 +12606,25 @@
         const fig = U.arpBar(A, U.arpSequence(A, mRoot, ch.type), arpK);
         arpK = fig.next; arpLast = bar;
         for (const st of fig.steps) {
-          if (!st.play || st.midi == null) continue;
+          if (!st.play || st.midi == null || arpYield(bar)) continue;
           const t = A.rate === "triplets" ? tripT(bar, st.pos) : stepT(bar, st.pos);
           note("arp", t, st.midi, st.vel, st.dur * s16, U.motorFilterCut(sheet.motor.layer, st.cell));
         }
       }
 
       // --- lead ---
-      if (up("lead") && eff(b.energy) >= leadEntry) {
+      // The hook job (the melody engine, slice 1, 2026-11-03): the song's
+      // motif as U.melodyScore laid it out before the bar loop (the home
+      // section whenever the strip is up, the rest where the entry gate lets
+      // the lead in), in the lead's register, midMidi(0) + 12.
+      if (hookScore && up("lead")) {
+        const base = midMidi(0) + 12;
+        for (const x of hookScore.notes[bar] || []) note("lead", stepT(bar, x.i), base + x.semi, x.vel, x.dur * 1.05 * s16);
+      } else if (up("lead") && eff(b.energy) >= leadEntry) {
         const k = P.lead.kind;
         const active = k === "soloWindow" ? (b.section === "bridge" || (b.section === "chorus" && v < 0.5)) : true;
         if (active) {
-          const ph = PHRASES[(sheet.masks.lead + (k === "instrumental" ? 2 : 0)) % PHRASES.length];
+          const ph = PHRASES[sheet.masks.lead % PHRASES.length];
           const off = (bar % 2) * 16;
           const base = midMidi(0) + 12;
           for (let i = 0; i < 16; i++) {
@@ -12308,7 +12696,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/render/renderer.js @ 7d1e33f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/render/renderer.js @ 669bd0f — verbatim from jeffdavis-studio/unison-engine ===== */
 // renderer.js — song assembly + the render pipeline (Technical Architecture
 // v1.2 playback model): live-first, with (a) a cheap analysis pre-render for
 // verification/metrics and (b) an on-demand full OfflineAudioContext render
@@ -12948,7 +13336,7 @@
       bgtr: [["picks", "bass", L ? 3 : 2, 1], ["masks", "bass", 3, 1.5]],
       mbass: [["picks", "bass", L ? 3 : 2, 1], ["masks", "bass", 3, 1.5]],
       obrass: [],
-      jlead: [["masks", "lead", L ? 6 : 4, 1]],   // the instrumental line is PHRASES shifted by 2: masks cover it
+      jlead: [["masks", "lead", L ? 6 : 4, 1]],   // the phrase kinds' PHRASES (a hook reads sheet.melody, not the masks: its variety is the A/B/C draws)
       mriff: [["masks", "counter", 3, 1], ["picks", "counter", 2, 2]],
     };
     E.linn = E.d808; E.jbass = E.mbass; E.fbass = E.mbass; E.ocomp = E.jcomp; E.fkeys = E.jcomp; E.opad = E.jpad; E.mlead = E.jlead;
@@ -13292,6 +13680,9 @@
     var st = d.strips[0], e = st === "rhythmGtr" ? P.rhythmGtr : P[st];
     if (st === "arp" && e && e.motor) return (e.machine === "seq" ? seqText(e.motor) : arpText(e.motor)) + (s.motor && s.motor.layer && s.motor.layer.filter ? ", filter row" : "") + (P.counter && P.counter.layer === 2 ? " + layer 2" : "");
     if (st === "counter" && e && e.layer === 2) return layerText(e.motor);
+    // the lead's hook job (the melody engine, slice 1, 2026-11-03): the job
+    // and the song's motif, e.g. "hook m1a2b3c" or "hook m1a2b3c (handoff)"
+    if (st === "lead" && e && e.kind === "hook" && s.melody) return "hook " + s.melody.motif.label + (s.melody.handoff.taken ? " (handoff)" : "");
     return e ? e.id.split(".").pop().replace(/_/g, " ") : "";
   }
   // the arp strip plays the engine's arpeggiator (the motor, 2026-11-01):
