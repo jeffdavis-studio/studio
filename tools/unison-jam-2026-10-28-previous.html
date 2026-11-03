@@ -157,10 +157,10 @@
 <div id="bars" class="row"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><div id="status"></div></div>
 <div id="layers"></div>
 <div id="add" class="row"><div class="lbl">Add a layer<button id="palRnd" title="add a random instrument (one you don't have yet, while any are left)">Random</button></div><div id="pal"></div></div>
-<footer title="engine @a5a175d · built 2026-11-02">Unison jam &middot; every sound is synthesized in this page by the engine at a5a175d</footer>
+<footer title="engine @c932656 · built 2026-11-03">Unison jam &middot; every sound is synthesized in this page by the engine at c932656</footer>
 
 <script>
-/* ===== src/core/prng.js @ a5a175d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/prng.js @ c932656 — verbatim from jeffdavis-studio/unison-engine ===== */
 // prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
 // token hash, consumed in canonical draw order (Technical Architecture v1.2).
 //
@@ -233,7 +233,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/core/mix.js @ a5a175d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/mix.js @ c932656 — verbatim from jeffdavis-studio/unison-engine ===== */
 // mix.js — the fan-in ≤2 summing rule, as a primitive.
 //
 // Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
@@ -402,7 +402,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/desk/desk.js @ a5a175d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/desk/desk.js @ c932656 — verbatim from jeffdavis-studio/unison-engine ===== */
 // desk.js — the 24-track desk as a running audio graph.
 //
 // The desk is the data structure, not a metaphor (Composition Brief 2 / Tech
@@ -805,7 +805,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/production.js @ a5a175d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/production.js @ c932656 — verbatim from jeffdavis-studio/unison-engine ===== */
 // production.js — the production room, v0.
 //
 // PLACEMENT DECISION (Morgan's call, ratified by Jeff 2026-08-03). Production
@@ -1100,7 +1100,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/analogpoly.js @ a5a175d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/analogpoly.js @ c932656 — verbatim from jeffdavis-studio/unison-engine ===== */
 // analogpoly.js — the analog poly core: one module that builds every Juno and
 // OB-Xa voice, behind a family lock. Asana 1220084594874974, slice 1
 // (2026-11-02); the rack doc's build 3 (files/unison/rack-parts-proposal-
@@ -1723,7 +1723,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/juno.js @ a5a175d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/juno.js @ c932656 — verbatim from jeffdavis-studio/unison-engine ===== */
 // juno.js — Juno-60-flavor poly voice, raw Web Audio, zero dependencies.
 // Ported from the 2026-07-21 bake-off winner (voice-raw.js), restructured to
 // live behind a desk strip: U.createJuno(ctx, strip, patchName) builds its own
@@ -2290,7 +2290,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/minimoog.js @ a5a175d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/minimoog.js @ c932656 — verbatim from jeffdavis-studio/unison-engine ===== */
 // minimoog.js — Minimoog Model D-lineage mono voice, zero dependencies.
 //
 // THE MONO BASS LANE (build order 808 → Juno → Minimoog → …; it also absorbs
@@ -3077,7 +3077,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/obxa.js @ a5a175d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/obxa.js @ c932656 — verbatim from jeffdavis-studio/unison-engine ===== */
 // obxa.js — Oberheim OB-Xa-lineage poly voice, zero dependencies.
 //
 // THE BRASS/PAD POLY LANE (build order 808 → Juno → Minimoog → OB-Xa → …).
@@ -3622,7 +3622,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/fm.js @ a5a175d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/fm.js @ c932656 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fm.js — six-operator FM keys voice (the DX7 lineage), zero dependencies.
 //
 // THE FM LANE (build order 808 → Juno → Minimoog → OB-Xa → Linn → FM).
@@ -4643,7 +4643,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/bassguitar.js @ a5a175d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/bassguitar.js @ c932656 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassguitar.js — electric bass guitar, the first session player of the human
 // rack (Rack 2), zero dependencies.
 //
@@ -5232,7 +5232,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/rhythmguitar.js @ a5a175d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/rhythmguitar.js @ c932656 — verbatim from jeffdavis-studio/unison-engine ===== */
 // rhythmguitar.js — clean electric rhythm guitar, the fourth and last stop of
 // the human rack (Rack 2), zero dependencies.
 //
@@ -5881,7 +5881,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/tr808.js @ a5a175d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/tr808.js @ c932656 — verbatim from jeffdavis-studio/unison-engine ===== */
 // tr808.js — THE MACHINE. A TR-808-lineage core voice: bass drum, snare,
 // closed hat, open hat, each with a front panel the token actually turns.
 //
@@ -7165,7 +7165,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/linn.js @ a5a175d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/linn.js @ c932656 — verbatim from jeffdavis-studio/unison-engine ===== */
 // linn.js — THE STUDIO MACHINE. A Linn-family (LM-1 / LinnDrum lineage)
 // drum computer: the new wave / synth-pop / 80s R&B kit.
 //
@@ -7179,7 +7179,7 @@
 // lives. That path is this file's circuit model, in the order a hit takes it:
 //
 //   1. THE EPROM. The source is resampled to the machine's native sample clock
-//      (EPROM_HZ) behind a gentle anti-alias pole, then quantised to 8 bits
+//      (CIRCUIT.epromHz) behind a gentle anti-alias pole, then quantised to 8 bits
 //      through a mu-law COMPANDER: coarse steps at the top of the range, fine
 //      ones near zero, so the body of a hit is gritty and the tail is clean
 //      until it falls into the last few codes. The EPROM also has a LENGTH
@@ -7191,7 +7191,7 @@
 //   3. THE DAC. Zero-order hold at the clock rate — the stepped output a
 //      sample-and-hold DAC gives — so the images of the clock sit above the
 //      band and move with TUNE.
-//   4. THE OUTPUT FILTER. A fixed two-pole reconstruction low-pass (RECON_HZ),
+//   4. THE OUTPUT FILTER. A fixed two-pole reconstruction low-pass (CIRCUIT.reconHz),
 //      fixed while the clock moves, so a voice tuned up gets brighter images
 //      and a voice tuned down gets duller — the machine's own tuning colour.
 //   5. THE HAT VCA. The hats are ONE sample; closed and open differ only in a
@@ -7223,9 +7223,6 @@
   const BODY_SEED = "b0d7b0d7b0d7b0d7b0d7b0d7b0d7b0d7";   // the hat's body (2026-09-30)
   const RATTLE_SEED = "5715c45715c45715c45715c45715c457";  // the side stick's rattle (2026-09-30)
   const KICK_AIR_SEED = "a1a7a1a7a1a7a1a7a1a7a1a7a1a7a1a7"; // the kick's air (2026-10-01)
-  const EPROM_HZ = 28000;  // native sample clock
-  const RECON_HZ = 11500;  // fixed output reconstruction filter corner
-  const MU = 255;          // compander law
 
   // ---- the panel ------------------------------------------------------------
   // TUNE is a clock-rate ratio (1 = the EPROM's own pitch); LEVEL is a gain
@@ -7372,20 +7369,32 @@
   // ---- 1-4: the data path ---------------------------------------------------
   // `CIRCUIT` is exported so the fitter and the selftest can switch single
   // stages off and measure what each one does.
-  const CIRCUIT = { compand: true, bits: 8, zoh: true, recon: true, antiAlias: true, fade: 0.4, dacOS: 4, vcf: true };
+  // THE CONVERTER RECORD (2026-11-02, drum engine slice 1): the sampled
+  // family's converter (drumengine.js U.DRUM_FAMILIES.sampled.converter is
+  // this object), so the clocks and the compander law live here too, where
+  // they were file constants: epromHz the native sample clock, reconHz the
+  // fixed output reconstruction corner, mu the compander law. burn, play and
+  // mulawQ read the record and nothing else; a voice's own clock or recon
+  // (V.hat.clock, V.hat.recon) still overrides per voice. One plain object,
+  // mutated in place by the fitters (Object.assign), never replaced.
+  const CIRCUIT = { compand: true, bits: 8, mu: 255, zoh: true, recon: true, antiAlias: true, fade: 0.4, dacOS: 4, vcf: true,
+    epromHz: 28000, reconHz: 11500 };
   U.CIRCUIT_LINN = CIRCUIT;
+  // A burned buffer carries the record it went through, non-enumerable (the
+  // drum engine's lock reads it; the bytes are untouched).
+  const mark = (y, c) => (c ? Object.defineProperty(y, "converter", { value: c, configurable: true }) : y);
 
   function mulawQ(v) {
     const L = (1 << (CIRCUIT.bits - 1)) - 1;
     if (!CIRCUIT.compand) return Math.round(v * L) / L;
-    const s = v < 0 ? -1 : 1, a = Math.min(1, Math.abs(v));
+    const MU = CIRCUIT.mu, s = v < 0 ? -1 : 1, a = Math.min(1, Math.abs(v));
     const y = Math.round((Math.log(1 + MU * a) / Math.log(1 + MU)) * L) / L;
     return s * (Math.pow(1 + MU, y) - 1) / MU;
   }
-  // source (Float32 at SR, peak ~0.95) -> EPROM contents (Float32 at EPROM_HZ)
-  // `hz` (revision 4): the chip's own sample clock where it is not EPROM_HZ
+  // source (Float32 at SR, peak ~0.95) -> EPROM contents (Float32 at the clock)
+  // `hz` (revision 4): the chip's own sample clock where it is not CIRCUIT.epromHz
   function burn(src, capSec, hz) {
-    const H = hz || EPROM_HZ;
+    const H = hz || CIRCUIT.epromHz;
     const x = Float32Array.from(src);
     if (CIRCUIT.antiAlias) { onePoleLP(x, Math.min(H * 0.45, 0.45 * SR), SR); }
     const n = Math.min(Math.round(capSec * H), Math.floor((x.length - 1) * H / SR));
@@ -7401,14 +7410,16 @@
       const g = i < f0 ? 1 : 1 - (i - f0) / (rom.length - f0);
       rom[i] = mulawQ((x[i0] + (x[i0 + 1] - x[i0]) * f) * g);
     }
-    return rom;
+    return mark(rom, CIRCUIT);
   }
-  // EPROM played at clock EPROM_HZ*tune -> output at SR
+  // EPROM played at clock epromHz*tune -> output at SR
   // `recon` (revision 4): the voice's own output-filter corner where it has
-  // one (the hats and cymbals); every other voice uses RECON_HZ.
+  // one (the hats and cymbals); every other voice uses CIRCUIT.reconHz.
+  // The output carries the ROM's converter mark (a ROM that was not burned
+  // plays unmarked).
   function play(rom, tune, recon, hz) {
-    if (CIRCUIT.dacOS > 1) return playOS(rom, tune, CIRCUIT.dacOS, recon, hz);
-    const step = ((hz || EPROM_HZ) * tune) / SR;
+    if (CIRCUIT.dacOS > 1) return mark(playOS(rom, tune, CIRCUIT.dacOS, recon, hz), rom.converter);
+    const step = ((hz || CIRCUIT.epromHz) * tune) / SR;
     const n = Math.max(1, Math.floor(rom.length / step));
     const y = new Float32Array(n + Math.round(0.004 * SR));
     for (let i = 0; i < n; i++) {
@@ -7416,8 +7427,8 @@
       if (CIRCUIT.zoh) y[i] = rom[Math.floor(s)];
       else { const i0 = Math.floor(s), f = s - i0; y[i] = rom[i0] + ((rom[i0 + 1] || 0) - rom[i0]) * f; }
     }
-    if (CIRCUIT.recon) { biquad(y, "lp", Math.min(recon || RECON_HZ, 0.45 * SR), 0.707, SR); }
-    return y;
+    if (CIRCUIT.recon) { biquad(y, "lp", Math.min(recon || CIRCUIT.reconHz, 0.45 * SR), 0.707, SR); }
+    return mark(y, rom.converter);
   }
 
   // The DAC and output filter are ANALOG: the staircase and its images exist
@@ -7442,11 +7453,11 @@
     return (decimCache[os] = h);
   }
   function playOS(rom, tune, os, recon, hz) {
-    const R = SR * os, step = ((hz || EPROM_HZ) * tune) / R;
+    const R = SR * os, step = ((hz || CIRCUIT.epromHz) * tune) / R;
     const nh = Math.max(1, Math.floor(rom.length / step)), pad = Math.round(0.004 * R);
     const hi = new Float32Array(nh + pad);
     for (let i = 0; i < nh; i++) hi[i] = rom[Math.floor(i * step)];
-    if (CIRCUIT.recon) biquad(hi, "lp", recon || RECON_HZ, 0.707, R);
+    if (CIRCUIT.recon) biquad(hi, "lp", recon || CIRCUIT.reconHz, 0.707, R);
     const h = decimKernel(os), c = (h.length - 1) >> 1, n = Math.floor(hi.length / os);
     const y = new Float32Array(n);
     for (let j = 0; j < n; j++) {
@@ -7862,7 +7873,7 @@
     for (let i = 0; i < out.length; i++) out[i] *= Math.exp(-i / SR / tau);
     const tail = Math.round(0.002 * SR);
     for (let i = 0; i < tail && i < out.length; i++) out[out.length - 1 - i] *= i / tail;
-    return out;
+    return mark(out, y.converter);
   }
   const scale = (y, g) => { for (let i = 0; i < y.length; i++) y[i] *= g; return y; };
 
@@ -7919,10 +7930,169 @@
     "congaHi", "congaLo", "cowbell", "clave", "tamb", "cabasa"];
 
   // Internal hooks for the fitter/selftest (burn/play one source directly).
-  U._linn = { burn, play, vca, roms, V, EPROM_HZ, RECON_HZ, SR, TOM_MID_CLOCK };
+  U._linn = { burn, play, vca, roms, V, EPROM_HZ: CIRCUIT.epromHz, RECON_HZ: CIRCUIT.reconHz, SR, TOM_MID_CLOCK };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drums.js @ a5a175d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drumengine.js @ c932656 — verbatim from jeffdavis-studio/unison-engine ===== */
+// drumengine.js — ONE DRUM ENGINE, THE MACHINES AS FAMILIES (2026-11-02,
+// drum engine slice 1, Asana 1219959495948201; the rack and parts doc,
+// 10/31).
+//
+// The kits already share their player: drums.js createDrumKit owns the strip
+// buses, the chain mix, the hat choke and the accent at fire time; session.js
+// owns the sequencer and swing, books.js the patterns. What differs between
+// the machines is how a voice comes to exist, and that is the FAMILY:
+//
+//   analog      the 808 lineage. Every hit is a circuit, computed straight
+//               into the buffer (tr808.js). No converter.
+//   sampled     the Linn lineage. Every voice is a source burned to ROM
+//               through the converter (compander, bits, EPROM clock, fade)
+//               and played back through the DAC and its reconstruction
+//               filter (linn.js burn + play). The converter is the family's
+//               own record, U.CIRCUIT_LINN, the one object the data path
+//               reads.
+//   electronic  reserved for the Simmons toms (a circuit, no converter).
+//               Empty here, named so the table is complete.
+//
+// THE LOCK. A family's traits are fixed, not suggested (Jeff's worry from the
+// doc: the July generalized synth that sounded like nothing). The table below
+// is frozen; U.drumLockCheck enforces it on built voices, and
+// analysis/drum-lock.mjs runs it over both machines at panel centre and both
+// ends of every drawn key. It is NOT run at build time: the Linn fitters
+// switch converter stages off on purpose (analysis/render-linn.mjs).
+//
+// Slice 1 moves no sample: createDrumKit's machine dispatch moved here
+// (U.buildDrumVoices, U.drumAccent) and linn.js's converter constants moved
+// into its record; every voice, kit and song renders bit-identically
+// (analysis/drum-voice-shas.mjs). Later slices: 2 the converter as a dial per
+// kit (8-bit crunch and short to 12-bit clean and longer: vary the record,
+// widen the lock), 3 the DMX and MCS voicings (sampled) and the Simmons toms
+// (electronic), 4 a kit as a draw across families.
+//
+// Load order: after tr808.js and linn.js, before drums.js. Builders and the
+// converter are looked up when called, so a page with one machine (the 808
+// page has no linn.js) loads this file too.
+(function (g) {
+  "use strict";
+  const U = (g.U = g.U || {});
+
+  // The sampled family's fixed point: linn.js's converter as it is today,
+  // written out. Slice 2 widens this into the dial's range.
+  const SAMPLED_LOCK = Object.freeze({
+    compand: true, bits: 8, mu: 255, zoh: true, recon: true, antiAlias: true,
+    fade: 0.4, dacOS: 4, vcf: true, epromHz: 28000, reconHz: 11500,
+  });
+
+  // `build`: the builder's name on U; `replaces`: which of the generic kit's
+  // buffers the machine's voices replace in createDrumKit ("panel" = drums.js
+  // PANEL_VOICES, "all" = every voice the builder returns); `accent`: the
+  // accent model applied at fire time.
+  U.DRUM_FAMILIES = Object.freeze({
+    analog: Object.freeze({
+      machines: Object.freeze(["808"]), source: "circuit", converter: null, accent: "808",
+      build: "build808", file: "tr808.js", replaces: "panel",
+      is: "every hit a circuit, rendered straight to the buffer; no converter",
+    }),
+    sampled: Object.freeze({
+      machines: Object.freeze(["linn"]), source: "burned",
+      get converter() { return U.CIRCUIT_LINN || null; },
+      lock: SAMPLED_LOCK, accent: "none",
+      build: "buildLinn", file: "linn.js", replaces: "all",
+      is: "every voice a source burned to ROM through the converter and played back through the DAC",
+    }),
+    electronic: Object.freeze({
+      machines: Object.freeze([]), source: "circuit", converter: null, accent: "none",
+      build: null, file: null, replaces: "panel",
+      is: "reserved: the Simmons toms (slice 3)",
+    }),
+  });
+
+  // Each machine's panel helpers and its drawn keys, for the lock book.
+  const PANELS = {
+    "808": { fromPos: "panel808FromPos", drawn: () => Object.keys(U.PANEL_808_RANGES) },   // draw808Panel draws all 21
+    linn: { fromPos: "panelLinnFromPos", drawn: () => U.PANEL_LINN_DRAWN },
+  };
+
+  const familiesOf = (machine) => Object.keys(U.DRUM_FAMILIES).filter((f) => U.DRUM_FAMILIES[f].machines.includes(machine));
+  for (const f in U.DRUM_FAMILIES) for (const m of U.DRUM_FAMILIES[f].machines) {
+    if (familiesOf(m).length !== 1) throw new Error("drumengine: machine " + m + " is in " + familiesOf(m).length + " families");
+  }
+
+  // A panel names its machine: a Linn panel carries machine "linn"
+  // (panelLinnFromPos); an 808 panel carries none, as it always has.
+  U.drumMachineOf = function (panel) { return (panel && panel.machine) || "808"; };
+
+  U.drumFamilyOf = function (machine) {
+    const fs = familiesOf(machine);
+    if (fs.length !== 1) throw new Error("drumengine: no drum family for machine " + machine);
+    return Object.assign({ key: fs[0] }, U.DRUM_FAMILIES[fs[0]]);
+  };
+
+  // machine + panel -> { voice: Float32Array at 44.1 kHz }, exactly what the
+  // family's builder returns.
+  U.buildDrumVoices = function (machine, panel) {
+    const fam = U.DRUM_FAMILIES[U.drumFamilyOf(machine).key];
+    const build = fam.build && U[fam.build];
+    if (!build) throw new Error("drumengine: the " + machine + " needs instruments/" + fam.file + " loaded");
+    return build(panel);
+  };
+
+  // The accent model by family: the 808's knob, or none.
+  U.drumAccent = function (machine, panel) {
+    const fam = U.DRUM_FAMILIES[U.drumFamilyOf(machine).key];
+    return fam.accent === "808" ? U.accent808(panel) : { hit: 1, rest: 1 };
+  };
+
+  // Every violation of the lock for one machine's built voices (empty = held).
+  // A burned voice carries a non-enumerable `converter`: the record it was
+  // played through (linn.js burn and play set it); a circuit voice has none.
+  U.drumLockCheck = function (machine, panel, voices) {
+    const out = [], fs = familiesOf(machine);
+    if (fs.length !== 1) { out.push("machine " + machine + " is in " + fs.length + " families"); return out; }
+    const fam = U.DRUM_FAMILIES[fs[0]];
+    if (panel && U.drumMachineOf(panel) !== machine) out.push("panel is a " + U.drumMachineOf(panel) + " panel, not " + machine);
+    const names = Object.keys(voices || {});
+    if (!names.length) out.push(machine + ": no voices");
+    for (const v of names) {
+      const c = voices[v].converter;
+      if (fam.source !== "burned") {
+        if (c) out.push(fs[0] + " " + machine + " " + v + ": passed through a converter; the family is a circuit per hit");
+        continue;
+      }
+      if (!c) { out.push(fs[0] + " " + machine + " " + v + ": not burned through the converter"); continue; }
+      if (c !== fam.converter) out.push(fs[0] + " " + machine + " " + v + ": burned through a record that is not the family's converter");
+      for (const k of new Set([...Object.keys(fam.lock), ...Object.keys(c)])) {
+        if (!(k in fam.lock)) out.push(fs[0] + " " + machine + " " + v + ": converter " + k + " is not a stage the family has");
+        else if (c[k] !== fam.lock[k]) out.push(fs[0] + " " + machine + " " + v + ": converter " + k + " " + c[k] + ", the family fixes " + fam.lock[k]);
+      }
+    }
+    return out;
+  };
+
+  // The lock over every machine: centre, and pos 0 / pos 1 of each drawn key
+  // (one key at an end, the rest at centre). Per family: machines, panels,
+  // voices checked, violations.
+  U.drumLockBook = function () {
+    const rep = {};
+    for (const f in U.DRUM_FAMILIES) {
+      const r = (rep[f] = { machines: 0, panels: 0, voices: 0, violations: [] });
+      for (const m of U.DRUM_FAMILIES[f].machines) {
+        r.machines++;
+        const P = PANELS[m], fromPos = U[P.fromPos];
+        const panels = [["centre", fromPos({})]];
+        for (const k of P.drawn()) for (const e of [0, 1]) panels.push([k + "@" + e, fromPos({ [k]: e })]);
+        for (const [at, panel] of panels) {
+          const voices = U.buildDrumVoices(m, panel);
+          r.panels++; r.voices += Object.keys(voices).length;
+          for (const v of U.drumLockCheck(m, panel, voices)) r.violations.push(m + " " + at + ": " + v);
+        }
+      }
+    }
+    return rep;
+  };
+})(typeof window !== "undefined" ? window : globalThis);
+
+/* ===== src/instruments/drums.js @ c932656 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drums.js — the drum machine: 808/LM-1-flavor voices, synthesized at runtime
 // into short AudioBuffers, played back as one-shots.
 //
@@ -8188,17 +8358,25 @@
   // choke (its closed and open hats are one sample through one VCA). No
   // accent: the kit's per-step dynamics are not modelled, so an accented step
   // plays at the level the generic kit always gave it.
+  //
+  // THE DRUM ENGINE (2026-11-02, instruments/drumengine.js): which machine a
+  // panel is, which family it belongs to, its builder and its accent model
+  // are the engine's (U.buildDrumVoices, U.drumAccent, U.DRUM_FAMILIES); this
+  // player keeps the generic buffers as the fallback, the buses, the mix and
+  // the choke. A family's `replaces` says which generic buffers its voices
+  // take over: the analog family PANEL_VOICES, the sampled family all of its
+  // own. A panel without the engine loaded is an error, never a quiet
+  // generic kit.
   U.createDrumKit = function (ctx, strips, flavor, panel) {
     const raw = buildBuffers(flavor);
-    const linn = !!(panel && panel.machine === "linn" && U.buildLinn);
-    if (linn) {
-      const v = U.buildLinn(panel);
-      for (const k in v) raw[k] = v[k];
-    } else if (panel && U.build808) {
-      const v = U.build808(panel);
-      for (const k of PANEL_VOICES) if (v[k]) raw[k] = v[k];
+    if (panel && !U.buildDrumVoices) throw new Error("drums.js: a machine panel needs instruments/drumengine.js loaded");
+    const machine = panel ? U.drumMachineOf(panel) : null;
+    if (panel) {
+      const v = U.buildDrumVoices(machine, panel);
+      if (U.drumFamilyOf(machine).replaces === "all") { for (const k in v) raw[k] = v[k]; }
+      else for (const k of PANEL_VOICES) if (v[k]) raw[k] = v[k];
     }
-    const acc = panel && !linn && U.accent808 ? U.accent808(panel) : { hit: 1, rest: 1 };
+    const acc = panel ? U.drumAccent(machine, panel) : { hit: 1, rest: 1 };
     const bufs = {};
     for (const k in raw) bufs[k] = toAudioBuffer(ctx, raw[k]);
 
@@ -8251,7 +8429,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/books.js @ a5a175d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/books.js @ c932656 — verbatim from jeffdavis-studio/unison-engine ===== */
 // books.js — Pattern Books v1, as data.
 //
 // This file IS the document: "Unison — Pattern Books v1 (draft)" (Morgan,
@@ -9505,7 +9683,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/bassplayer.js @ a5a175d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/bassplayer.js @ c932656 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassplayer.js — the PERFORMANCE half of the bass guitar: a session player.
 //
 // Rack 2's rule (kb/projects/unison.md, 2026-07-11): every human instrument is
@@ -9757,7 +9935,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/gtrplayer.js @ a5a175d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/gtrplayer.js @ c932656 — verbatim from jeffdavis-studio/unison-engine ===== */
 // gtrplayer.js — the PERFORMANCE half of the rhythm guitar: a session
 // guitarist on the rhythmGtr strip.
 //
@@ -9957,7 +10135,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/fmplayer.js @ a5a175d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/fmplayer.js @ c932656 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fmplayer.js — the PERFORMANCE half of the FM keys: a session keyboard
 // player on the FM chord strips (compA's tine EP, colour's glass and brass).
 //
@@ -10098,7 +10276,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/testPhrase.js @ a5a175d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/testPhrase.js @ c932656 — verbatim from jeffdavis-studio/unison-engine ===== */
 // testPhrase.js — deterministic 8-bar test phrase, ported from the bake-off
 // (phrase.js) onto the engine's canonical PRNG (core/prng.js).
 //
@@ -10192,7 +10370,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/form.js @ a5a175d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/form.js @ c932656 — verbatim from jeffdavis-studio/unison-engine ===== */
 // form.js — the song's form: the book of returns (2026-10-30, Asana
 // 1220073468300418; design files/unison/structure-design-2026-10-30 in the
 // morgan repo, DESIGN.md + draw.py, transcribed here as written).
@@ -10513,7 +10691,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/session.js @ a5a175d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/session.js @ c932656 — verbatim from jeffdavis-studio/unison-engine ===== */
 // session.js — the session sheet and the arrangement realizer.
 //
 // Two tiers, in this order, each on its own stream (core/prng.js):
@@ -12004,7 +12182,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/render/renderer.js @ a5a175d — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/render/renderer.js @ c932656 — verbatim from jeffdavis-studio/unison-engine ===== */
 // renderer.js — song assembly + the render pipeline (Technical Architecture
 // v1.2 playback model): live-first, with (a) a cheap analysis pre-render for
 // verification/metrics and (b) an on-demand full OfflineAudioContext render
