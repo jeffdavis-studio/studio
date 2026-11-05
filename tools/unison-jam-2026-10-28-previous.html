@@ -222,10 +222,10 @@
 <div id="bars" class="row"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><div id="status"></div></div>
 <div id="layers"></div>
 <div id="add" class="row"><div class="lbl">Add a layer<button id="palRnd" title="add a random instrument (one you don't have yet, while any are left)">Random</button></div><div id="pal"></div></div>
-<footer title="engine @256caa3 · built 2026-11-05">Unison jam &middot; every sound is synthesized in this page by the engine at 256caa3</footer>
+<footer title="engine @cef1d5f · built 2026-11-05">Unison jam &middot; every sound is synthesized in this page by the engine at cef1d5f</footer>
 
 <script>
-/* ===== src/core/prng.js @ 256caa3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/prng.js @ cef1d5f — verbatim from jeffdavis-studio/unison-engine ===== */
 // prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
 // token hash, consumed in canonical draw order (Technical Architecture v1.2).
 //
@@ -298,7 +298,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/core/mix.js @ 256caa3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/mix.js @ cef1d5f — verbatim from jeffdavis-studio/unison-engine ===== */
 // mix.js — the fan-in ≤2 summing rule, as a primitive.
 //
 // Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
@@ -467,7 +467,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/desk/desk.js @ 256caa3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/desk/desk.js @ cef1d5f — verbatim from jeffdavis-studio/unison-engine ===== */
 // desk.js — the 24-track desk as a running audio graph.
 //
 // The desk is the data structure, not a metaphor (Composition Brief 2 / Tech
@@ -1056,12 +1056,32 @@
         const tail = s.sat ? s.sat.lp : s.insert;
         const b = U.makeChorusBlock(ctx, rate, depth, centers, wetLevel, wetHpHz, makeupDb, (cin) => { tail.disconnect(s.fader); tail.connect(cin); });
         b.output.connect(s.fader);
-        s.chorus = { rate, depth, makeupDb, bypassed: false,
+        s.chorus = { rate, depth, makeupDb, bypassed: false, out: b.output,
           bypass() {
             if (this.bypassed) return;
             tail.disconnect(b.input); b.output.disconnect(s.fader); tail.connect(s.fader);
             b.lfo.disconnect(); this.bypassed = true;
           } };
+      },
+      // The vocoder (production room, 2026-11-05, vocoder.js): the formant
+      // bank in the strip's insert slot after the chorus (or the saturation,
+      // or the bare insert), before the fader. tail → bank → fader. The
+      // vowel automation comes later (vocoderVowel), at its times.
+      vocoder(roleId, params) {
+        const s = strips[roleId];
+        if (!s) throw new Error("desk: unknown role " + roleId);
+        const tail = s.chorus && !s.chorus.bypassed ? null : (s.sat ? s.sat.lp : s.insert);
+        const b = U.makeFormantBank(ctx, params);
+        if (tail) { tail.disconnect(s.fader); tail.connect(b.input); }
+        else { s.chorus.out.disconnect(s.fader); s.chorus.out.connect(b.input); }
+        b.output.connect(s.fader);
+        s.vocoder = b;
+        return b;
+      },
+      vocoderVowel(roleId, vowel, t, rampSec) {
+        const s = strips[roleId];
+        if (!s || !s.vocoder) throw new Error("desk: no vocoder on " + roleId);
+        s.vocoder.setVowel(vowel, t, rampSec);
       },
       // ---- the player's board (guitar books slice 1, 2026-11-04, Asana
       // 1220085081631823): blocks spliced in series between the strip's head
@@ -1116,7 +1136,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/production.js @ 256caa3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/production.js @ cef1d5f — verbatim from jeffdavis-studio/unison-engine ===== */
 // production.js — the production room, v0.
 //
 // PLACEMENT DECISION (Morgan's call, ratified by Jeff 2026-08-03). Production
@@ -1334,7 +1354,11 @@
   // style asks.
   U.drawProductionDetail = function (hash) {
     const F = U.forkPrng(hash, "production");
-    return { echoTime: F.r() < 0.5 ? "dotted8" : "quarter" };
+    const d = { echoTime: F.r() < 0.5 ? "dotted8" : "quarter" };
+    // the vocoder (2026-11-05, vocoder.js): its flag, then the fixed block,
+    // read for every song after echoTime, so echoTime is unmoved
+    if (U.drawVocoder) d.vocoder = U.drawVocoder(F);
+    return d;
   };
 
   U.echoSeconds = function (time, bpm) {
@@ -1396,6 +1420,9 @@
         desk.chorus(id, m.rate, m.depth, C.centers, C.wet, C.wetHpHz[id] || 0, U.chorusMakeupDb(id));
       }
     }
+    // the vocoder: an insert on the lead strip after the chorus (vocoder.js),
+    // where sheet.vocoder says on; bypassed on the bus trim's pre-render
+    if (U.applyVocoder) U.applyVocoder(desk, sheet);
     if (style.comp) {
       if (sheet.satProbe) desk.kitTap = true;   // the level read: the kit bus, uncompressed
       else if (sheet.kitComp) desk.compressKit(sheet.kitComp.curve, sheet.kitComp.dt);
@@ -1451,7 +1478,343 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/analogpoly.js @ 256caa3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/vocoder.js @ cef1d5f — verbatim from jeffdavis-studio/unison-engine ===== */
+// vocoder.js — the production room's vocoder insert, slice 1 (2026-11-05,
+// Asana 1220085081650427; design in files/unison/vocoder-2026-11-05/RESULT.md).
+//
+// A 1983 vocoder put a voice's spectral envelope on a synth carrier. Unison
+// has no voice, so the modulator side is a DRAWN vowel sequence: a bank of
+// parallel band-passes (F1..F4 of a vowel, Q from the bandwidth, a gain per
+// formant) on the lead strip's own signal, the low end kept dry, vowel changes
+// as timed ramps. Vowels only, never words: the sequence is drawn, never
+// scripted, and its guardrail (at most one change per bar pair, a vowel held
+// at least two bars unless a section is shorter) keeps it from reading as
+// speech.
+//
+// Two layers. U.VOWELS and U.makeFormantBank are pure: no desk, no sheet, any
+// AudioContext (the sampler keyboard renders its choir source from them,
+// harness/voc1-choir-proof.mjs). U.drawVocoder / U.resolveVocoder /
+// U.applyVocoder / U.scheduleVocoder are the room's insert on the lead strip.
+(function (g) {
+  "use strict";
+  const U = (g.U = g.U || {});
+
+  // THE VOWEL BANK. Centres F1-F3: Peterson & Barney (1952), men's averages
+  // (the male set is the centre: a vocoder's carrier sits in a lead's
+  // register, and the male formants are the lower, denser set). Vowels:
+  // a = /ɑ/ "hod", e = /ɛ/ "head", i = /i/ "heed", o = /ɔ/ "hawed", u = /u/
+  // "who'd"; schwa = the neutral tube (17.5 cm, odd quarter-waves 500 / 1500 /
+  // 2500 / 3500), estimate. F4 is an estimate (3300-3700). bw: a vocoder band
+  // is wider than a vocal formant (a 1979 bank had 10 to 20 bands), so the
+  // bandwidths are about twice the published formant widths, estimate.
+  // gainDb: the published formant amplitudes relative to F1 (P&B's table),
+  // HALVED, because a sawtooth carrier already falls 6 dB an octave as a
+  // glottal source does, and the full table would tilt it twice; F4 6 dB
+  // under F3. Estimate on top of the published figures.
+  U.VOWELS = {
+    a:     { f: [730, 1090, 2440, 3400], bw: [160, 200, 260, 320], gainDb: [0, -2.0, -13.5, -19.5] },
+    e:     { f: [530, 1840, 2480, 3500], bw: [140, 220, 260, 320], gainDb: [0, -7.5, -11.0, -17.0] },
+    i:     { f: [270, 2290, 3010, 3700], bw: [110, 240, 300, 340], gainDb: [0, -10.0, -12.0, -18.0] },
+    o:     { f: [570,  840, 2410, 3400], bw: [150, 180, 260, 320], gainDb: [0, -3.5, -17.0, -23.0] },
+    u:     { f: [300,  870, 2240, 3300], bw: [120, 180, 260, 320], gainDb: [0, -8.0, -20.0, -26.0] },
+    schwa: { f: [500, 1500, 2500, 3500], bw: [150, 220, 270, 320], gainDb: [0, -6.0, -12.0, -18.0] },
+  };
+  U.VOWEL_IDS = ["a", "e", "i", "o", "u", "schwa"];
+
+  // The formant bank on ANY AudioContext (live or Offline), no desk:
+  // in → low-pass hpHz → out                     (the fundamental stays dry)
+  // hi = in − low-pass → [dry (1 − wet)] → out
+  // hi → high shelf → bands F1..F4 (each its gain) → sum → wetG → out
+  // out = the insert's output, its gain the vowel's makeup (opts.makeupDb
+  // [vowel], absent 0 dB): on the whole insert, so the strip's level moves
+  // by exactly the makeup and the table is minus the measured gap.
+  // Every sum through U.chainMixer (fan-in ≤ 2). setVowel(id, t, rampSec)
+  // ramps the four centres, Qs, gains and the makeup (setTargetAtTime,
+  // time constant rampSec / 3: 95 % there at rampSec); t null = set now.
+  U.makeFormantBank = function (ctx, opts) {
+    opts = opts || {};
+    const wet = opts.wet == null ? 0.7 : opts.wet, hpHz = opts.hpHz || 150, mk = opts.makeupDb || {}, solo = opts.solo || null;
+    const input = ctx.createGain(); input.gain.value = 1;
+    const output = ctx.createGain(); output.gain.value = 1;
+    const outMix = U.chainMixer(ctx, output);
+    // the split at hpHz: low = LP(in), hi = in − LP(in), an exact complement,
+    // so low + hi is the input (wet 0 is the bypass, no notch at the split)
+    const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = hpHz; lp.Q.value = 0.5;
+    input.connect(lp);
+    const neg = ctx.createGain(); neg.gain.value = -1;
+    lp.connect(neg);
+    const hi = ctx.createGain(); hi.gain.value = 1;
+    const hiMix = U.chainMixer(ctx, hi);
+    hiMix.add(input); hiMix.add(neg);
+    // the low end stays dry, always (the fundamental never goes through the bank)
+    const low = ctx.createGain(); low.gain.value = solo ? 0 : 1;
+    lp.connect(low); outMix.add(low);
+    const dry = ctx.createGain(); dry.gain.value = solo === "hi" ? 1 : solo ? 0 : 1 - wet;
+    hi.connect(dry); outMix.add(dry);
+    // the carrier's tilt undone above the first formant (a 1983 bank's
+    // carrier side was equalized bright: a saw falls 6 dB an octave, and F2
+    // and F3 have little to carve without it)
+    const emph = ctx.createBiquadFilter(); emph.type = "highshelf"; emph.frequency.value = U.VOCODER_EMPH.hz; emph.gain.value = U.VOCODER_EMPH.db;
+    hi.connect(emph);
+    // the bank's own gain (U.VOCODER_BANK_DB): narrow bands pass a small part
+    // of a carrier's energy, so the bank is brought up to the dry high band's
+    // level before the mix, and "wet" means the share heard
+    const wetG = ctx.createGain(); wetG.gain.value = (solo === "bank" ? 1 : solo ? 0 : wet) * Math.pow(10, U.VOCODER_BANK_DB / 20);
+    const bankMix = U.chainMixer(ctx, wetG);
+    const v0 = U.VOWELS[opts.vowel || "schwa"];
+    const bands = [];
+    for (let k = 0; k < 4; k++) {
+      // the emphasis feeds four bands: fan-out is free, fan-in is not. Each
+      // band is two band-passes in series (4th order: a vocoder band's
+      // skirts, steep enough that F2 reads above F1's)
+      const bp = ctx.createBiquadFilter(); bp.type = "bandpass";
+      const bp2 = ctx.createBiquadFilter(); bp2.type = "bandpass";
+      for (const b of [bp, bp2]) { b.frequency.value = v0.f[k]; b.Q.value = U.VOCODER_Q_CASCADE * v0.f[k] / v0.bw[k]; }
+      const gk = ctx.createGain(); gk.gain.value = Math.pow(10, v0.gainDb[k] / 20);
+      emph.connect(bp); bp.connect(bp2); bp2.connect(gk); bankMix.add(gk);
+      bands.push({ bp, bp2, g: gk });
+    }
+    outMix.add(wetG);
+    const bank = {
+      input, output, wet, hpHz, bands, wetG, dry, low, hi, vowel: opts.vowel || "schwa", kind: "vocoder",
+      setVowel(id, t, rampSec) {
+        const V = U.VOWELS[id];
+        if (!V) throw new Error("vocoder: unknown vowel " + id);
+        const m = Math.pow(10, (mk[id] || 0) / 20);
+        if (t == null) {
+          for (let k = 0; k < 4; k++) { for (const b of [bands[k].bp, bands[k].bp2]) { b.frequency.value = V.f[k]; b.Q.value = U.VOCODER_Q_CASCADE * V.f[k] / V.bw[k]; } bands[k].g.gain.value = Math.pow(10, V.gainDb[k] / 20); }
+          output.gain.value = m;
+        } else {
+          const tau = Math.max(0.005, (rampSec || 0.06) / 3);
+          for (let k = 0; k < 4; k++) {
+            for (const b of [bands[k].bp, bands[k].bp2]) { b.frequency.setTargetAtTime(V.f[k], t, tau); b.Q.setTargetAtTime(U.VOCODER_Q_CASCADE * V.f[k] / V.bw[k], t, tau); }
+            bands[k].g.gain.setTargetAtTime(Math.pow(10, V.gainDb[k] / 20), t, tau);
+          }
+          output.gain.setTargetAtTime(m, t, tau);
+        }
+        this.vowel = id;
+      },
+    };
+    bank.setVowel(bank.vowel, null);
+    return bank;
+  };
+
+  // ---- the room's insert ----
+  // Per production style, the share of songs that draw the vocoder (`vocoder`
+  // on the style in production.js reads from here so the room's own tables
+  // stay as they were): absent = never. The 1983 vocoder records on the
+  // hundred sit dry or on a short plate (Freak-A-Zoid, Body Work, The
+  // Man-Machine), so the dry rooms take it most, the dub chamber never.
+  U.VOCODER_STYLE_SHARE = { "prod.dry_board": 0.11, "prod.close_dry": 0.11, "prod.plate_wash": 0.10, "prod.tape_slap": 0.08, "prod.gated_room": 0.05 };
+  // A per-lane weight on the share: the three reference tracks' lanes carry
+  // it (synth pop for Kraftwerk, early hip-hop / electro for Body Work, funk
+  // and synth R&B for Freak-A-Zoid), new wave least.
+  U.VOCODER_LANE_WEIGHT = { synthPop: 1.6, earlyHipHop: 1.6, funk: 0.9, synthRnB: 0.9, newWave: 0.4 };
+  // The fixed block on the production fork, read for every song after the
+  // flag whatever it says: 0 vowel-sequence seed, 1 wet, 2 ramp, 3 breath
+  // (unused in slice 1), 4-7 spares. Adding a use for a spare moves nothing.
+  U.VOCODER_UNIFORMS = 8;
+  U.VOCODER_WET = [0.6, 0.85];
+  U.VOCODER_RAMP = [0.04, 0.12];
+  U.VOCODER_HP_HZ = 150;
+  // the carrier-side emphasis on the bank's input (a high shelf)
+  U.VOCODER_EMPH = { hz: 1000, db: 9 };
+  // two identical band-passes in series narrow the -3 dB width to 0.64 of one:
+  // each stage's Q is scaled by it, so the band is the table's bandwidth
+  U.VOCODER_Q_CASCADE = 0.64;
+  // the bank's gain before the wet mix, dB. 13 on the choir proof's OB brass
+  // put the bank's high band level with the dry's; on the songs it put the
+  // peak up to +10.4 dB over bypass before matching (pass 1), +4.9 at 7
+  // (pass 2), +2.3 at 4 (pass 3, under the +3 guardrail). The per-song
+  // makeup carries the rest.
+  U.VOCODER_BANK_DB = 4;
+  // makeup per vowel (dB on the insert's output). Pass 1 (voc1-level.mjs,
+  // 12 songs) found one number per vowel cannot hold: the gap runs 6 to 10 dB
+  // by carrier (the same vowel carves a dark Minimoog and a bright OB-Xa
+  // differently). So each song's makeup is measured on the bus trim's
+  // pre-render (U.vocoderMakeupFromSignal on the lead strip's own signal,
+  // renderer.js), the way saturation reads its insert peak; this table is
+  // the fallback where no pre-render ran (the jam page): pass 3's means at
+  // bank gain 4 dB (voc1-level-pass3-table, 8 songs; each song's own gap
+  // runs up to ±5 dB around these).
+  U.VOCODER_MAKEUP_DB = { a: 0.8, e: 3.8, i: 8.6, o: 3.5, u: 7.4, schwa: 4.1 };
+
+  // The makeup per vowel from the lead strip's own signal (mono fold, the
+  // whole song, as the pre-render taps it at the fader with the vocoder
+  // bypassed): the bank's held-vowel response applied in JS with the Web
+  // Audio spec's biquad formulas (the same filters the bank builds), and the
+  // K-weighted integrated loudness of each vowel's output against the input.
+  // Returns { a: dB, ... }: the gain that puts each vowel on the bypass level.
+  function bq(type, f0, Q, G, sr) {
+    const w = 2 * Math.PI * f0 / sr, c = Math.cos(w), sn = Math.sin(w);
+    let b0, b1, b2, a0, a1, a2;
+    if (type === "lowpass") { const al = sn / (2 * Math.pow(10, Q / 20)); b0 = (1 - c) / 2; b1 = 1 - c; b2 = b0; a0 = 1 + al; a1 = -2 * c; a2 = 1 - al; }
+    else if (type === "bandpass") { const al = sn / (2 * Q); b0 = al; b1 = 0; b2 = -al; a0 = 1 + al; a1 = -2 * c; a2 = 1 - al; }
+    else { const A = Math.pow(10, G / 40), al = sn / 2 * Math.SQRT2, sq = 2 * Math.sqrt(A) * al;
+      b0 = A * ((A + 1) + (A - 1) * c + sq); b1 = -2 * A * ((A - 1) + (A + 1) * c); b2 = A * ((A + 1) + (A - 1) * c - sq);
+      a0 = (A + 1) - (A - 1) * c + sq; a1 = 2 * ((A - 1) - (A + 1) * c); a2 = (A + 1) - (A - 1) * c - sq; }
+    return [b0 / a0, b1 / a0, b2 / a0, a1 / a0, a2 / a0];
+  }
+  function run(x, k, add, g) {
+    const [b0, b1, b2, a1, a2] = k, n = x.length, z = new Float32Array(n);
+    let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+    for (let i = 0; i < n; i++) { const v = x[i], o = b0 * v + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2; x2 = x1; x1 = v; y2 = y1; y1 = o; z[i] = o; }
+    if (add) for (let i = 0; i < n; i++) add[i] += g * z[i];
+    return z;
+  }
+  U.vocoderMakeupFromSignal = function (x, sr, wet) {
+    const hpHz = U.VOCODER_HP_HZ, n = x.length;
+    const low = run(x, bq("lowpass", hpHz, 0.5, 0, sr));
+    const hi = new Float32Array(n); for (let i = 0; i < n; i++) hi[i] = x[i] - low[i];
+    const em = run(hi, bq("highshelf", U.VOCODER_EMPH.hz, 0, U.VOCODER_EMPH.db, sr));
+    const ref = U.integratedLufs([x, x], sr), G = wet * Math.pow(10, U.VOCODER_BANK_DB / 20), out = {};
+    for (const v of U.VOWEL_IDS) {
+      const V = U.VOWELS[v], y = new Float32Array(n);
+      for (let i = 0; i < n; i++) y[i] = low[i] + (1 - wet) * hi[i];
+      for (let k = 0; k < 4; k++) {
+        const q = U.VOCODER_Q_CASCADE * V.f[k] / V.bw[k], c = bq("bandpass", V.f[k], q, 0, sr);
+        run(run(em, c), c, y, G * Math.pow(10, V.gainDb[k] / 20));
+      }
+      const L = U.integratedLufs([y, y], sr);
+      out[v] = isFinite(ref) && isFinite(L) ? +(ref - L).toFixed(2) : 0;
+    }
+    return out;
+  };
+
+  // The vocoder's record for a hash without building the song: the session,
+  // the role patches filed by engine and the production fork, as buildSong
+  // draws them (renderer.js), resolved. The pre-render uses it to know
+  // before its build whether to tap the lead strip.
+  U.vocoderFor = function (hash, forceLane) {
+    const s = U.drawSession(U.makePrng(hash), forceLane);
+    if (U.drawRolePatches) {
+      const rp = U.drawRolePatches(hash, s), by = { juno: {}, obxa: {}, minimoog: {}, fm: {} };
+      for (const st in rp) by[rp[st].engine][st] = rp[st];
+      s.junoPatches = by.juno; s.obxaPatches = by.obxa; s.minimoogPatches = by.minimoog; s.fmPatches = by.fm;
+    }
+    return U.resolveVocoder(s, U.drawProductionDetail(hash).vocoder);
+  };
+  // The vowel weights the sequence draws from (the robot hooks lean on the
+  // open back vowels, "ah" and "oh", and "oo"), estimate.
+  U.VOCODER_VOWEL_W = { a: 3, o: 3, u: 2, e: 2, i: 1.5, schwa: 1 };
+
+  // The carrier check. Formants carve what is there: a bright, harmonically
+  // dense carrier only (saw / pulse brass, leads, stabs, comps; the Minimoog's
+  // lead, fat and squelch; FM brass and strings). An FM voice or choir patch
+  // already carries a vowel: the vocoder steps aside. Anything else (flute,
+  // ep, glass, pluck, organ, pad, arp) is declined.
+  U.VOCODER_BRIGHT = { juno: ["lead", "brass", "stab", "comp"], obxa: ["lead", "brass", "stab", "comp"], minimoog: ["lead", "fat", "squelch"], fm: ["brass", "strings"] };
+  U.VOCODER_STEP_ASIDE = { fm: ["voice"] };
+  U.VOCODER_DULL_NAME = /flute|oboe|clarinet|bassoon|whistle|mellow|soft keys|piano|dark keys/i;
+  U.vocoderCarrier = function (engine, key, name) {
+    if ((U.VOCODER_STEP_ASIDE[engine] || []).indexOf(key) > -1) return "stepAside";
+    if ((U.VOCODER_BRIGHT[engine] || []).indexOf(key) > -1 && !U.VOCODER_DULL_NAME.test(name || "")) return "on";
+    return "declined";
+  };
+
+  // The draw, on the production fork F after its echoTime read: one flag
+  // read, then the fixed block. Returns the raw reads.
+  U.drawVocoder = function (F) {
+    const u = F.r(), uni = [];
+    for (let k = 0; k < U.VOCODER_UNIFORMS; k++) uni.push(F.r());
+    return { u, uni };
+  };
+
+  // A small deterministic PRNG for the vowel sequence (mulberry32), seeded
+  // from the block's first uniform: the same hash, the same vowels.
+  function mulberry(seed) {
+    let a = seed >>> 0;
+    return function () {
+      a = (a + 0x6d2b79f5) >>> 0;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function pickVowel(r, not) {
+    let tot = 0;
+    for (const v of U.VOWEL_IDS) if (v !== not) tot += U.VOCODER_VOWEL_W[v];
+    let x = r() * tot;
+    for (const v of U.VOWEL_IDS) { if (v === not) continue; x -= U.VOCODER_VOWEL_W[v]; if (x < 0) return v; }
+    return U.VOWEL_IDS[0];
+  }
+
+  // The vowel sequence: one short cycle per section kind (two or three
+  // vowels), the first drawn for the chorus, so every chorus says the same
+  // thing (the song's signature, not speech); inside a section the vowel
+  // moves on every bar pair through its cycle. Changes land on bar starts
+  // only. Returns [{ beat, v }] at the changes, beat 0 first.
+  U.vocoderSequence = function (seed, bars) {
+    const r = mulberry(Math.floor(seed * 4294967296));
+    const kinds = ["chorus"];
+    for (const b of bars) if (kinds.indexOf(b.section) < 0) kinds.push(b.section);
+    const cyc = {};
+    for (const k of kinds) {
+      const n = r() < 0.6 ? 2 : 3, c = [pickVowel(r, null)];
+      while (c.length < n) c.push(pickVowel(r, c[c.length - 1]));
+      if (n === 3 && c[2] === c[0]) c[2] = pickVowel(r, c[0]);
+      cyc[k] = c;
+    }
+    const seq = [];
+    for (let i = 0; i < bars.length; i++) {
+      const b = bars[i], c = cyc[b.section] || cyc.chorus;
+      const v = c[Math.floor((b.indexInSection || 0) / 2) % c.length];
+      if (!seq.length || seq[seq.length - 1].v !== v) seq.push({ beat: i * 4, v });
+    }
+    return seq;
+  };
+
+  // The sheet record, from the raw draw and the sheet (the style, the lane,
+  // the lead's strip and patch). The draw count never depends on the outcome.
+  U.resolveVocoder = function (sheet, draw) {
+    const style = sheet.production || {};
+    const share = (U.VOCODER_STYLE_SHARE[style.id] || 0) * (U.VOCODER_LANE_WEIGHT[sheet.lane] || 1);
+    const drawn = !!draw && draw.u < share;
+    const rec = { on: false, state: "off", drawn };
+    if (!drawn) return rec;
+    if (sheet.mutes && sheet.mutes.lead) return rec;
+    const engine = sheet.voices && sheet.voices.lead;
+    const book = { juno: sheet.junoPatches, obxa: sheet.obxaPatches, minimoog: sheet.minimoogPatches, fm: sheet.fmPatches }[engine];
+    const p = book && book.lead;
+    rec.family = engine + "/" + (p ? p.role : "-");
+    rec.patch = p ? p.name : null;
+    const st = p ? U.vocoderCarrier(engine, p.role, p.name) : "declined";
+    rec.state = st;
+    if (st !== "on") return rec;
+    const uni = draw.uni;
+    rec.on = true;
+    rec.wet = +(U.VOCODER_WET[0] + (U.VOCODER_WET[1] - U.VOCODER_WET[0]) * uni[1]).toFixed(4);
+    rec.ramp = +(U.VOCODER_RAMP[0] + (U.VOCODER_RAMP[1] - U.VOCODER_RAMP[0]) * uni[2]).toFixed(4);
+    rec.seq = U.vocoderSequence(uni[0], sheet.bars || []);
+    rec.vowels = [];
+    for (const x of rec.seq) if (rec.vowels.indexOf(x.v) < 0) rec.vowels.push(x.v);
+    rec.makeupDb = {};
+    for (const v of rec.vowels) rec.makeupDb[v] = U.VOCODER_MAKEUP_DB[v] || 0;
+    return rec;
+  };
+
+  // The insert, from U.applyProduction after the chorus (the fixed order):
+  // the bank on the lead strip, first vowel set. Bypassed on the bus trim's
+  // pre-render (sheet.satProbe), as saturation is, so the trim is measured
+  // without it and a song's other strips keep their level.
+  U.applyVocoder = function (desk, sheet) {
+    const v = sheet && sheet.vocoder;
+    if (!v || !v.on || sheet.satProbe) return;
+    desk.vocoder("lead", { wet: v.wet, hpHz: U.VOCODER_HP_HZ, makeupDb: v.makeupDb, vowel: v.seq[0].v });
+  };
+  // The vowel automation, after the notes are scheduled (session.js, next to
+  // the gated room's schedule): every change at its bar's start.
+  U.scheduleVocoder = function (desk, sheet, t0) {
+    const v = sheet && sheet.vocoder;
+    if (!v || !v.on || sheet.satProbe) return 0;
+    const spb = 60 / sheet.bpm;
+    for (let i = 1; i < v.seq.length; i++) desk.vocoderVowel("lead", v.seq[i].v, t0 + v.seq[i].beat * spb, v.ramp);
+    return v.seq.length - 1;
+  };
+})(typeof window !== "undefined" ? window : globalThis);
+
+/* ===== src/instruments/analogpoly.js @ cef1d5f — verbatim from jeffdavis-studio/unison-engine ===== */
 // analogpoly.js — the analog poly core: one module that builds every Juno and
 // OB-Xa voice, behind a family lock. Asana 1220084594874974, slice 1
 // (2026-11-02); the rack doc's build 3 (files/unison/rack-parts-proposal-
@@ -2077,7 +2440,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/juno.js @ 256caa3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/juno.js @ cef1d5f — verbatim from jeffdavis-studio/unison-engine ===== */
 // juno.js — Juno-60-flavor poly voice, raw Web Audio, zero dependencies.
 // Ported from the 2026-07-21 bake-off winner (voice-raw.js), restructured to
 // live behind a desk strip: U.createJuno(ctx, strip, patchName) builds its own
@@ -2644,7 +3007,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/minimoog.js @ 256caa3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/minimoog.js @ cef1d5f — verbatim from jeffdavis-studio/unison-engine ===== */
 // minimoog.js — Minimoog Model D-lineage mono voice, zero dependencies.
 //
 // THE MONO BASS LANE (build order 808 → Juno → Minimoog → …; it also absorbs
@@ -3431,7 +3794,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/obxa.js @ 256caa3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/obxa.js @ cef1d5f — verbatim from jeffdavis-studio/unison-engine ===== */
 // obxa.js — Oberheim OB-Xa-lineage poly voice, zero dependencies.
 //
 // THE BRASS/PAD POLY LANE (build order 808 → Juno → Minimoog → OB-Xa → …).
@@ -3976,7 +4339,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/fm.js @ 256caa3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/fm.js @ cef1d5f — verbatim from jeffdavis-studio/unison-engine ===== */
 // fm.js — six-operator FM keys voice (the DX7 lineage), zero dependencies.
 //
 // THE FM LANE (build order 808 → Juno → Minimoog → OB-Xa → Linn → FM).
@@ -4997,7 +5360,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/bassguitar.js @ 256caa3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/bassguitar.js @ cef1d5f — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassguitar.js — electric bass guitar, the first session player of the human
 // rack (Rack 2), zero dependencies.
 //
@@ -5708,7 +6071,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/rhythmguitar.js @ 256caa3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/rhythmguitar.js @ cef1d5f — verbatim from jeffdavis-studio/unison-engine ===== */
 // rhythmguitar.js — clean electric rhythm guitar, the fourth and last stop of
 // the human rack (Rack 2), zero dependencies.
 //
@@ -6484,7 +6847,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/tr808.js @ 256caa3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/tr808.js @ cef1d5f — verbatim from jeffdavis-studio/unison-engine ===== */
 // tr808.js — THE MACHINE. A TR-808-lineage core voice: bass drum, snare,
 // closed hat, open hat, each with a front panel the token actually turns.
 //
@@ -7768,7 +8131,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/linn.js @ 256caa3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/linn.js @ cef1d5f — verbatim from jeffdavis-studio/unison-engine ===== */
 // linn.js — THE STUDIO MACHINE. A Linn-family (LM-1 / LinnDrum lineage)
 // drum computer: the new wave / synth-pop / 80s R&B kit.
 //
@@ -8590,7 +8953,7 @@
     get EPROM_HZ() { return U.CIRCUIT_LINN.epromHz; }, get RECON_HZ() { return U.CIRCUIT_LINN.reconHz; } };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drumengine.js @ 256caa3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drumengine.js @ cef1d5f — verbatim from jeffdavis-studio/unison-engine ===== */
 // drumengine.js — ONE DRUM ENGINE, THE MACHINES AS FAMILIES (2026-11-02,
 // drum engine slice 1, Asana 1219959495948201; the rack and parts doc,
 // 10/31).
@@ -8821,7 +9184,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drums.js @ 256caa3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drums.js @ cef1d5f — verbatim from jeffdavis-studio/unison-engine ===== */
 // drums.js — the drum machine: 808/LM-1-flavor voices, synthesized at runtime
 // into short AudioBuffers, played back as one-shots.
 //
@@ -9158,7 +9521,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/books.js @ 256caa3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/books.js @ cef1d5f — verbatim from jeffdavis-studio/unison-engine ===== */
 // books.js — Pattern Books v1, as data.
 //
 // This file IS the document: "Unison — Pattern Books v1 (draft)" (Morgan,
@@ -11523,7 +11886,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/bassplayer.js @ 256caa3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/bassplayer.js @ cef1d5f — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassplayer.js — the PERFORMANCE half of the bass guitar: a session player.
 //
 // Rack 2's rule (kb/projects/unison.md, 2026-07-11): every human instrument is
@@ -12118,7 +12481,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/gtrplayer.js @ 256caa3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/gtrplayer.js @ cef1d5f — verbatim from jeffdavis-studio/unison-engine ===== */
 // gtrplayer.js — the PERFORMANCE half of the rhythm guitar: a session
 // guitarist on the rhythmGtr strip.
 //
@@ -12592,7 +12955,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/fmplayer.js @ 256caa3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/fmplayer.js @ cef1d5f — verbatim from jeffdavis-studio/unison-engine ===== */
 // fmplayer.js — the PERFORMANCE half of the FM keys: a session keyboard
 // player on the FM chord strips (compA's tine EP, colour's glass and brass).
 //
@@ -12733,7 +13096,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/testPhrase.js @ 256caa3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/testPhrase.js @ cef1d5f — verbatim from jeffdavis-studio/unison-engine ===== */
 // testPhrase.js — deterministic 8-bar test phrase, ported from the bake-off
 // (phrase.js) onto the engine's canonical PRNG (core/prng.js).
 //
@@ -12827,7 +13190,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/form.js @ 256caa3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/form.js @ cef1d5f — verbatim from jeffdavis-studio/unison-engine ===== */
 // form.js — the song's form: the book of returns (2026-10-30, Asana
 // 1220073468300418; design files/unison/structure-design-2026-10-30 in the
 // morgan repo, DESIGN.md + draw.py, transcribed here as written).
@@ -13148,7 +13511,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/session.js @ 256caa3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/session.js @ cef1d5f — verbatim from jeffdavis-studio/unison-engine ===== */
 // session.js — the session sheet and the arrangement realizer.
 //
 // Two tiers, in this order, each on its own stream (core/prng.js):
@@ -14766,6 +15129,8 @@
     if (gtrInst) gtrInst.flush();
     // the gated room's gate, from the hits just scheduled (production.js)
     U.scheduleProductionGate(desk, kitHits);
+    // the vocoder's vowel changes on the lead strip (vocoder.js)
+    if (U.scheduleVocoder) U.scheduleVocoder(desk, sheet, t0);
 
     // `retain` must stay reachable until startRendering() resolves — see the
     // determinism note in juno.js. The caller owns keeping it alive.
@@ -14773,7 +15138,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/render/renderer.js @ 256caa3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/render/renderer.js @ cef1d5f — verbatim from jeffdavis-studio/unison-engine ===== */
 // renderer.js — song assembly + the render pipeline (Technical Architecture
 // v1.2 playback model): live-first, with (a) a cheap analysis pre-render for
 // verification/metrics and (b) an on-demand full OfflineAudioContext render
@@ -14836,6 +15201,10 @@
     // The production room's own fork (2026-10-28, production.js): the style
     // is draw 47 on R; its realization draws (the dub echo's time) are here.
     if (U.drawProductionDetail) sheet.productionDetail = U.drawProductionDetail(hash);
+    // The vocoder insert (2026-11-05, vocoder.js): the production fork's
+    // flag and fixed block resolved against the style, the lane and the
+    // lead's carrier; on | declined | stepAside | off. Never moves a draw.
+    if (U.resolveVocoder && sheet.productionDetail) sheet.vocoder = U.resolveVocoder(sheet, sheet.productionDetail.vocoder);
 
     // Tier 2's per-bar draws come from their own fork of the hash, never from
     // R: tier 1 owns the song stream, tier 2 owns "bars" (2026-10-03).
@@ -14859,6 +15228,10 @@
     const mp = U.mixProbeCache[mixKey] || {};
     sheet.kitComp = o.kitComp || mp.kitComp || null;
     sheet.gateTrim = o.gateTrim || mp.gateTrim || null;
+    // the vocoder's makeup per vowel, measured on the same pre-render
+    // (vocoder.js U.vocoderMakeupFromSignal); absent, the fallback table
+    const vm = o.vocoderMakeupDb || mp.vocoderMakeupDb;
+    if (vm && sheet.vocoder && sheet.vocoder.on) { for (const v of sheet.vocoder.vowels) sheet.vocoder.makeupDb[v] = vm[v]; sheet.vocoder.makeupFrom = "probe"; }
     sheet.satProbe = !!o.preBus;
     const desk = U.createDesk(ctx, ctx.destination, { busTrimDb, preBus: !!o.preBus });
     const stats = U.realizeSession(ctx, desk, sheet, Rbars, LEAD, opts);
@@ -14888,6 +15261,8 @@
           o[st] = e === "bassguitar" ? "bassguitar/" + (sheet.bassBook ? sheet.bassBook.voicing + "/" + sheet.bassBook.model + (sheet.bassBook.chain ? "/" + sheet.bassBook.chain.id : "") + (sheet.bassBook.technique && !U.BASS_TECHNIQUE_OFF ? "/" + sheet.bassBook.technique.id : "") : U.BASSGUITAR_FOR_KIND(p.bass.kind, sheet.lane))
             : recs[st] && recs[st].engine === e ? e + "/" + recs[st].name : e;
         }
+        // the vocoder insert on the lead strip (vocoder.js), where it is on
+        if (sheet.vocoder && sheet.vocoder.on) o.lead += "/vocoder";
         return o;
       })(),
       // the rhythmGtr strip's guitar (draws 85–87, 2026-10-03); absent when muted
@@ -15026,7 +15401,10 @@
     const nch = mono ? 1 : 2;
     const prod = probe.production || {};
     const satIds = Object.keys(prod.sat || {});
-    const nExtra = 2 * satIds.length + (prod.comp ? 2 : 0) + (prod.gate ? 4 : 0);
+    // the vocoder (2026-11-05, vocoder.js): on an "on" song the lead strip's
+    // own signal, for the per-song makeup per vowel (the last two channels)
+    const voc = U.vocoderFor ? U.vocoderFor(hash, forceLane) : null, vocOn = !!(voc && voc.on);
+    const nExtra = 2 * satIds.length + (prod.comp ? 2 : 0) + (prod.gate ? 4 : 0) + (vocOn ? 2 : 0);
     const ctx = U.jitAttach(new OfflineAudioContext(nch + nExtra, Math.ceil(seconds * rate), rate));
     const song = U.buildSong(ctx, hash, forceLane, { preBus: true });
     const desk = song.desk;
@@ -15043,6 +15421,7 @@
       tapNodes.push(["snare", desk.strips.snare.fader]);
       tapNodes.push(["gated", desk.gated.wet]);
     }
+    if (vocOn) tapNodes.push(["voc", desk.strips.lead.fader]);
     const chOf = {};
     if (tapNodes.length) {
       ctx.destination.channelInterpretation = "discrete";
@@ -15086,6 +15465,11 @@
           mp.gateVsSnareProbeDb = r - s;
         }
       }
+      if (chOf.voc !== undefined && song.sheet.vocoder && song.sheet.vocoder.on) {
+        const [L, R] = two("voc"), m = new Float32Array(L.length);
+        for (let i = 0; i < m.length; i++) m[i] = 0.5 * (L[i] + R[i]);
+        mp.vocoderMakeupDb = U.vocoderMakeupFromSignal(m, rate, song.sheet.vocoder.wet);
+      }
       U.mixProbeCache[key] = mp;
     }
     return U.integratedLufs(ch, rate);
@@ -15104,7 +15488,7 @@
   // a page cannot play a baked trim with the reads missing.
   U.songNeedsMixProbe = function (hash, forceLane) {
     const p = U.drawSession(U.makePrng(hash), forceLane).production || {};
-    return !!(p.sat || p.comp || p.gate);
+    return !!(p.sat || p.comp || p.gate) || !!(U.vocoderFor && U.vocoderFor(hash, forceLane).on);
   };
   U.songBusTrimDb = function (hash, forceLane, baked) {
     const key = hash + "|" + (forceLane || "");
@@ -15656,6 +16040,10 @@
     if (Object.keys(by.fm).length) s.fmPatches = by.fm;
     s.satPeaks = null; s.satProbe = false;
     s.jamPicked = !!(opt && opt.pn && applyPick(inst, s, opt.pn, patchH));
+    // the vocoder insert (2026-11-05, vocoder.js): the lead layer draws it on
+    // its own patch seed's production fork against the page's room and the
+    // layer's patch lane, then the carrier check on the patch it plays
+    if (U.resolveVocoder && d.strips[0] === "lead") { var PV = s; if (pl !== lane) { PV = Object.create(s); PV.lane = pl; } s.vocoder = U.resolveVocoder(PV, U.drawProductionDetail(patchH).vocoder); }
     var E = v > 0 ? elems(inst, vrOf(v)) : [];
     if (E.length) {
       var drums = d.cls === "drums";
@@ -15775,7 +16163,7 @@
     var want = { juno: s.junoPatches, obxa: s.obxaPatches, minimoog: s.minimoogPatches, fm: s.fmPatches };
     var v = s.voices[st];
     var b = want[v]; void books;
-    return b && b[st] ? b[st].name : "";
+    return b && b[st] ? b[st].name + (st === "lead" && s.vocoder && s.vocoder.on ? " · vocoder" : "") : "";
   }
   function patternName(inst, s) {
     var P = s.picks, d = INST_BY[inst];
