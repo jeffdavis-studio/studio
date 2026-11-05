@@ -222,10 +222,10 @@
 <div id="bars" class="row"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><div id="status"></div></div>
 <div id="layers"></div>
 <div id="add" class="row"><div class="lbl">Add a layer<button id="palRnd" title="add a random instrument (one you don't have yet, while any are left)">Random</button></div><div id="pal"></div></div>
-<footer title="engine @ab4b839 · built 2026-11-05">Unison jam &middot; every sound is synthesized in this page by the engine at ab4b839</footer>
+<footer title="engine @3bbd1ae · built 2026-11-05">Unison jam &middot; every sound is synthesized in this page by the engine at 3bbd1ae</footer>
 
 <script>
-/* ===== src/core/prng.js @ ab4b839 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/prng.js @ 3bbd1ae — verbatim from jeffdavis-studio/unison-engine ===== */
 // prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
 // token hash, consumed in canonical draw order (Technical Architecture v1.2).
 //
@@ -298,7 +298,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/core/mix.js @ ab4b839 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/mix.js @ 3bbd1ae — verbatim from jeffdavis-studio/unison-engine ===== */
 // mix.js — the fan-in ≤2 summing rule, as a primitive.
 //
 // Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
@@ -467,7 +467,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/desk/desk.js @ ab4b839 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/desk/desk.js @ 3bbd1ae — verbatim from jeffdavis-studio/unison-engine ===== */
 // desk.js — the 24-track desk as a running audio graph.
 //
 // The desk is the data structure, not a metaphor (Composition Brief 2 / Tech
@@ -1107,7 +1107,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/production.js @ ab4b839 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/production.js @ 3bbd1ae — verbatim from jeffdavis-studio/unison-engine ===== */
 // production.js — the production room, v0.
 //
 // PLACEMENT DECISION (Morgan's call, ratified by Jeff 2026-08-03). Production
@@ -1442,7 +1442,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/analogpoly.js @ ab4b839 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/analogpoly.js @ 3bbd1ae — verbatim from jeffdavis-studio/unison-engine ===== */
 // analogpoly.js — the analog poly core: one module that builds every Juno and
 // OB-Xa voice, behind a family lock. Asana 1220084594874974, slice 1
 // (2026-11-02); the rack doc's build 3 (files/unison/rack-parts-proposal-
@@ -2068,7 +2068,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/juno.js @ ab4b839 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/juno.js @ 3bbd1ae — verbatim from jeffdavis-studio/unison-engine ===== */
 // juno.js — Juno-60-flavor poly voice, raw Web Audio, zero dependencies.
 // Ported from the 2026-07-21 bake-off winner (voice-raw.js), restructured to
 // live behind a desk strip: U.createJuno(ctx, strip, patchName) builds its own
@@ -2635,7 +2635,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/minimoog.js @ ab4b839 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/minimoog.js @ 3bbd1ae — verbatim from jeffdavis-studio/unison-engine ===== */
 // minimoog.js — Minimoog Model D-lineage mono voice, zero dependencies.
 //
 // THE MONO BASS LANE (build order 808 → Juno → Minimoog → …; it also absorbs
@@ -3422,7 +3422,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/obxa.js @ ab4b839 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/obxa.js @ 3bbd1ae — verbatim from jeffdavis-studio/unison-engine ===== */
 // obxa.js — Oberheim OB-Xa-lineage poly voice, zero dependencies.
 //
 // THE BRASS/PAD POLY LANE (build order 808 → Juno → Minimoog → OB-Xa → …).
@@ -3967,7 +3967,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/fm.js @ ab4b839 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/fm.js @ 3bbd1ae — verbatim from jeffdavis-studio/unison-engine ===== */
 // fm.js — six-operator FM keys voice (the DX7 lineage), zero dependencies.
 //
 // THE FM LANE (build order 808 → Juno → Minimoog → OB-Xa → Linn → FM).
@@ -4988,7 +4988,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/bassguitar.js @ ab4b839 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/bassguitar.js @ 3bbd1ae — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassguitar.js — electric bass guitar, the first session player of the human
 // rack (Rack 2), zero dependencies.
 //
@@ -5577,7 +5577,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/rhythmguitar.js @ ab4b839 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/rhythmguitar.js @ 3bbd1ae — verbatim from jeffdavis-studio/unison-engine ===== */
 // rhythmguitar.js — clean electric rhythm guitar, the fourth and last stop of
 // the human rack (Rack 2), zero dependencies.
 //
@@ -6353,7 +6353,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/tr808.js @ ab4b839 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/tr808.js @ 3bbd1ae — verbatim from jeffdavis-studio/unison-engine ===== */
 // tr808.js — THE MACHINE. A TR-808-lineage core voice: bass drum, snare,
 // closed hat, open hat, each with a front panel the token actually turns.
 //
@@ -7637,7 +7637,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/linn.js @ ab4b839 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/linn.js @ 3bbd1ae — verbatim from jeffdavis-studio/unison-engine ===== */
 // linn.js — THE STUDIO MACHINE. A Linn-family (LM-1 / LinnDrum lineage)
 // drum computer: the new wave / synth-pop / 80s R&B kit.
 //
@@ -8459,7 +8459,7 @@
     get EPROM_HZ() { return U.CIRCUIT_LINN.epromHz; }, get RECON_HZ() { return U.CIRCUIT_LINN.reconHz; } };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drumengine.js @ ab4b839 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drumengine.js @ 3bbd1ae — verbatim from jeffdavis-studio/unison-engine ===== */
 // drumengine.js — ONE DRUM ENGINE, THE MACHINES AS FAMILIES (2026-11-02,
 // drum engine slice 1, Asana 1219959495948201; the rack and parts doc,
 // 10/31).
@@ -8690,7 +8690,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drums.js @ ab4b839 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drums.js @ 3bbd1ae — verbatim from jeffdavis-studio/unison-engine ===== */
 // drums.js — the drum machine: 808/LM-1-flavor voices, synthesized at runtime
 // into short AudioBuffers, played back as one-shots.
 //
@@ -9027,7 +9027,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/books.js @ ab4b839 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/books.js @ 3bbd1ae — verbatim from jeffdavis-studio/unison-engine ===== */
 // books.js — Pattern Books v1, as data.
 //
 // This file IS the document: "Unison — Pattern Books v1 (draft)" (Morgan,
@@ -11392,7 +11392,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/bassplayer.js @ ab4b839 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/bassplayer.js @ 3bbd1ae — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassplayer.js — the PERFORMANCE half of the bass guitar: a session player.
 //
 // Rack 2's rule (kb/projects/unison.md, 2026-07-11): every human instrument is
@@ -11644,7 +11644,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/gtrplayer.js @ ab4b839 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/gtrplayer.js @ 3bbd1ae — verbatim from jeffdavis-studio/unison-engine ===== */
 // gtrplayer.js — the PERFORMANCE half of the rhythm guitar: a session
 // guitarist on the rhythmGtr strip.
 //
@@ -11745,7 +11745,27 @@
     for (let k = 0; k < U.GTR_CHAIN_UNIFORMS; k++) us.push(G.r());
     const chain = U.resolveGtrChain(cid, us, sheet.gtrVoicing);
     if (chain.id !== "di") Object.assign(params, U.GTR_BOARD_OFF);
-    return { model, voicing: sheet.gtrVoicing, tone: +u.toFixed(4), chain, params };
+    const out = { model, voicing: sheet.gtrVoicing, tone: +u.toFixed(4), chain, params };
+    // THE STYLE (guitar books slice 2, 2026-11-04, Asana 1220085081631823):
+    // appended after slice 1's reads, which stay where they are. One read
+    // for the style (lane × pattern × chain weights), one for its seed, then
+    // a FIXED block of U.GTR_STYLE_UNIFORMS uniforms, read whatever the style.
+    if (U.GTR_STYLES) {
+      const pid = sheet.picks.rhythmGtr.id;
+      const SW = Object.keys(U.GTR_STYLES).map((id) => {
+        const S = U.GTR_STYLES[id];
+        return { id, w: (S.wl[sheet.lane] != null ? S.wl[sheet.lane] : S.wl.synthPop) * (S.px[pid] != null ? S.px[pid] : 1) * (S.cx[chain.id] != null ? S.cx[chain.id] : 1) };
+      });
+      let sid = U.pickWeighted(G, SW).id;
+      let seed = G.ri(1, 2147483646);
+      const su = [];
+      for (let k = 0; k < U.GTR_STYLE_UNIFORMS; k++) su.push(G.r());
+      // census and level harnesses only: the same song played by a given style
+      const F = U.GTR_STYLE_FORCE;
+      if (F && U.GTR_STYLES[F.id]) { sid = F.id; if (F.seed) seed = F.seed; }
+      out.style = U.resolveGtrStyle(sid, seed, su, sheet, pid);
+    }
+    return out;
   };
   U.GTR_PLAYER_CENTRE = { push: 0, jitter: 0, ghost: 0, ghostVel: 0.3, accDepth: 0, velSpread: 0, spreadDown: 1, varP: 0, drift: 0, seed: 1 };
 
@@ -11860,9 +11880,245 @@
     }
     return out;
   };
+  // ---- THE PLAYING STYLES (guitar books slice 2, 2026-11-04, Asana
+  // 1220085081631823; the rack and parts doc, "The players' books": "Four
+  // playing styles, each a pattern vocabulary plus a muting and dynamics
+  // model plus its own micro-timing ... Sound and style draw independently
+  // with affinities"). A style is drawn on the gtrBook fork after the chain
+  // (U.drawGtrBook) and played by U.playGtrStyleBar: the style turns the
+  // bar's written strokes into its own (U.applyGtrStyle: the vocabulary and
+  // its per-bar operators), U.playGtrBar realizes them with the record the
+  // style shifted (push, jitter, ghosts, accents), then the swing lean.
+  // The instrument is untouched: a style picks events from its existing
+  // vocabulary (down, up, chuck, stab, palm; partial, full, low, or one
+  // string via `str`, an index into the full voicing, negative from the top).
+  // Every centre is general knowledge of the era's session playing, labeled
+  // estimate (`est`); `ref`: titles in files/unison/dossier/track-table.md.
+  // band: each dial's range (RESULT.md slice 2, Design). rec: multipliers on
+  // the drawn player record. lean: added swing on the odd sixteenths.
+  U.GTR_STYLE_OFF = false;     // harnesses only: play the written pattern as before
+  U.GTR_STYLE_FORCE = null;    // harnesses only: { id, seed? }
+  U.GTR_STYLE_UNIFORMS = 8;
+  U.GTR_STYLES = {
+    rodgers: {
+      wl: { funk: 44, synthRnB: 34, newWave: 8, synthPop: 14, earlyHipHop: 24 },
+      px: { "gtr.chuck16": 3, "gtr.partial16": 3, "gtr.mutedChuck16": 3, "gtr.octaveMelody": 3, "gtr.stab_sparse": 1, "gtr.skank": 0.6, "gtr.chop8": 0.5, "gtr.arp": 0.4, "gtr.palmMute8": 0.5 },
+      cx: { cleanFunk: 2, compBright: 2, phaserFunk: 2, di: 1.2, chorusNewWave: 0.6, flange: 0.6, slapback: 0.6, chorusSlap: 0.6, driveChop: 0.6, dubEcho: 0.5 },
+      band: { density: [0.55, 0.95], length: [0, 0], acc: [1.2, 1.6], ghost: [1.0, 1.3], push: [-5, -3], drop: [0, 0] },
+      rec: { jitter: 0.7, velSpread: 1, varP: 1 }, lean: 0,
+      ref: ["Madonna — Lucky Star", "Michael Jackson — Wanna Be Startin' Somethin'"], est: true,
+      note: "sixteenth chucking: the left hand damps so the sixteenths never stop, partial chords on the off-sixteenths, pushed a hair ahead" },
+    byrne: {
+      wl: { funk: 10, synthRnB: 10, newWave: 34, synthPop: 26, earlyHipHop: 14 },
+      px: { "gtr.stab_sparse": 3, "gtr.chop8": 3, "gtr.partial16": 3, "gtr.chuck16": 0.6, "gtr.mutedChuck16": 0.5, "gtr.skank": 0.8, "gtr.octaveMelody": 0.5, "gtr.arp": 0.5, "gtr.palmMute8": 1 },
+      cx: { slapback: 2, chorusSlap: 2, driveChop: 2, flange: 1.6, di: 1, cleanFunk: 0.7, compBright: 0.8, phaserFunk: 0.6, chorusNewWave: 0.9, dubEcho: 0.6 },
+      band: { density: [2, 5], length: [0, 0.25], acc: [1.4, 1.9], ghost: [0.2, 0.4], push: [0, 3], drop: [0, 0.1] },
+      rec: { jitter: 1.5, velSpread: 1.2, varP: 1 }, lean: 0,
+      ref: ["Tom Tom Club — Genius of Love", "Devo — Out of Sync"], est: true,
+      note: "angular stabs: full chords where the drummer leaves air, never twice in the same place, hard and dry" },
+    skank: {
+      wl: { funk: 10, synthRnB: 12, newWave: 20, synthPop: 22, earlyHipHop: 28 },
+      px: { "gtr.skank": 3, "gtr.chop8": 3, "gtr.palmMute8": 3, "gtr.stab_sparse": 1, "gtr.partial16": 0.8, "gtr.chuck16": 0.5, "gtr.mutedChuck16": 0.4, "gtr.octaveMelody": 0.6, "gtr.arp": 0.4 },
+      cx: { dubEcho: 2.5, slapback: 2, cleanFunk: 1.6, di: 1, compBright: 1, phaserFunk: 0.8, chorusNewWave: 0.8, flange: 0.6, chorusSlap: 1, driveChop: 0.5 },
+      band: { density: [0, 0.3], length: [0, 0], acc: [0.8, 1.2], ghost: [0.1, 0.3], push: [3, 6], drop: [0, 0.1] },
+      rec: { jitter: 0.8, velSpread: 0.8, varP: 0.6 }, lean: 0.02,
+      ref: ["UB40 — Cherry Oh Baby", "Thompson Twins — Love on Your Side"], est: true,
+      note: "the skank: clipped partial chords on the off-beats, sitting behind the hi-hat, a double skank now and then" },
+    arpeggio: {
+      wl: { funk: 6, synthRnB: 14, newWave: 34, synthPop: 30, earlyHipHop: 6 },
+      px: { "gtr.arp": 3, "gtr.chop8": 3, "gtr.palmMute8": 3, "gtr.octaveMelody": 3, "gtr.partial16": 0.8, "gtr.chuck16": 0.4, "gtr.mutedChuck16": 0.3, "gtr.skank": 0.6, "gtr.stab_sparse": 0.6 },
+      cx: { chorusNewWave: 2.5, chorusSlap: 2, flange: 2, dubEcho: 1.4, di: 1, cleanFunk: 0.6, compBright: 0.6, phaserFunk: 0.8, slapback: 0.8, driveChop: 0.6 },
+      band: { density: [0, 0.6], length: [0.2, 0.6], acc: [0.3, 0.6], ghost: [0, 0], push: [-1, 1], drop: [0, 0] },
+      rec: { jitter: 0.5, velSpread: 0.4, varP: 0 }, lean: 0,
+      ref: ["The Cars — A Dream Away", "Wang Chung — Dance Hall Days"], est: true,
+      note: "the chorused arpeggio: single strings let ring at an even volume so the chorus does the moving, a full strum at a section head" },
+  };
+  // the arpeggio orders, as indices into the full voicing from its lowest
+  // string (taken modulo its length): ascending, up-down, a pedal top string,
+  // descending, broken
+  U.GTR_ARP_ORDERS = [[0, 1, 2, 3, 4], [0, 1, 2, 3, 4, 3, 2, 1], [-1, 1, -1, 2, -1, 3, -1, 2], [4, 3, 2, 1, 0], [0, 2, 1, 3, 2, 4, 3, 1]];
+  // measured per style and WRITTEN PATTERN, dB on the strip's trim (session.js,
+  // added where the pattern's trim is), so every style sits at the written
+  // playing's K-weighted level. Keyed on the pattern because the pattern trims
+  // (GTR_PATTERN_TRIM_DB) were set for the written strokes: an arpeggio over
+  // a muted-chuck song inherits its +14.8 dB. MEASURED 2026-11-04
+  // (harness/gtr-chain-level.mjs --styles: each style forced vs
+  // U.GTR_STYLE_OFF, the first 30 s, through the song's drawn chain and
+  // params, the trim the session sets; 154 songs over three sets (seeds 1-3),
+  // 15-20 per pattern; cell = −mean gap; applied AFTER the board
+  // (U.gtrStyleLevel), so the board's compressor cannot eat it, which it did
+  // when it sat on the trim (boosts came out short, cuts hot);
+  // files/unison/guitar-books-2026-11-04/gtr2-level-table.json). Per-cell sd
+  // through the boards 1-4 dB (the board's compressor treats a chuck line, a
+  // stab and a single string differently; on di alone 0.1-2.5); keyed per
+  // voicing instead of pattern the sd was 2-7 dB.
+  U.GTR_STYLE_LEVEL_DB = {
+    rodgers: { "gtr.arp": 3.7, "gtr.chop8": 5.5, "gtr.chuck16": 1.3, "gtr.mutedChuck16": -1.8, "gtr.octaveMelody": 0.2, "gtr.palmMute8": -4.3, "gtr.partial16": 0.7, "gtr.skank": 2.6, "gtr.stab_sparse": 4.0 },
+    byrne: { "gtr.arp": 2.4, "gtr.chop8": 3.3, "gtr.chuck16": -0.4, "gtr.mutedChuck16": -11.3, "gtr.octaveMelody": 3.4, "gtr.palmMute8": -5.2, "gtr.partial16": 0.8, "gtr.skank": -1.2, "gtr.stab_sparse": -2.8 },
+    skank: { "gtr.arp": 4.8, "gtr.chop8": 6.8, "gtr.chuck16": 2.2, "gtr.mutedChuck16": -8.6, "gtr.octaveMelody": 5.9, "gtr.palmMute8": -2.7, "gtr.partial16": 3.8, "gtr.skank": 1.2, "gtr.stab_sparse": 2.2 },
+    arpeggio: { "gtr.arp": -0.3, "gtr.chop8": 1.9, "gtr.chuck16": -4.1, "gtr.mutedChuck16": -15.5, "gtr.octaveMelody": 1.0, "gtr.palmMute8": -7.4, "gtr.partial16": -3.0, "gtr.skank": -4.0, "gtr.stab_sparse": -5.9 },
+  };
+  // the guardrails (RESULT.md slice 2, Design), measured on the census
+  // ghostCap: the applied ghost chance is held under it, so a song's measured
+  // ghost density (a mean over a few bars' empty steps) stays under 0.6
+  U.GTR_STYLE_GUARD = { minGapSteps: 0.5, minEv: 1, maxEv: 16, pushMs: 8, ghostDensity: 0.6, dropShare: 0.15, minEvPer2Bars: 1, ghostCap: 0.45 };
+
+  const lerp = (b, u) => b[0] + u * (b[1] - b[0]);
+  // the style record: dials from the fixed block, the record offsets on the
+  // drawn player record (sheet.gtrPlayer), the level
+  U.resolveGtrStyle = function (id, seed, su, sheet, pid) {
+    const S = U.GTR_STYLES[id], B = S.band;
+    const dials = {
+      variation: +lerp([0.1, 0.6], su[0]).toFixed(3),
+      density: +lerp(B.density, su[1]).toFixed(3),
+      length: +lerp(B.length, su[2]).toFixed(3),
+      acc: +lerp(B.acc, su[3]).toFixed(3),
+      ghost: +lerp(B.ghost, su[4]).toFixed(3),
+      push: +lerp(B.push, su[5]).toFixed(2),
+      drop: +lerp(B.drop, su[6]).toFixed(3),
+      order: Math.min(U.GTR_ARP_ORDERS.length - 1, Math.floor(su[7] * U.GTR_ARP_ORDERS.length)),
+    };
+    const drawn = sheet.gtrPlayer || null;
+    let applied = null;
+    if (drawn) {
+      const L = U.GTR_PLAYER_LANE[sheet.lane] || U.GTR_PLAYER_LANE.synthPop;
+      const G = U.GTR_STYLE_GUARD;
+      applied = Object.assign({}, drawn, {
+        push: +Math.max(-G.pushMs, Math.min(G.pushMs, dials.push + 0.5 * (drawn.push - L.push))).toFixed(2),
+        jitter: +(drawn.jitter * S.rec.jitter).toFixed(2),
+        ghost: +Math.min(G.ghostCap, drawn.ghost * dials.ghost).toFixed(3),
+        accDepth: +(drawn.accDepth * dials.acc).toFixed(3),
+        velSpread: +(drawn.velSpread * S.rec.velSpread).toFixed(3),
+        varP: +(drawn.varP * S.rec.varP).toFixed(3),
+      });
+    }
+    const Lv = U.GTR_STYLE_LEVEL_DB[id];
+    const levelDb = Lv == null ? 0 : typeof Lv === "number" ? Lv : (Lv[pid] != null ? Lv[pid] : Lv.all || 0);
+    return { id, seed, dials, record: { drawn, applied }, levelDb };
+  };
+
+  // where the style's level goes on a song: after the board when there is
+  // one (folded into the chain's output level at the amp, so the board's
+  // compressor never sees it and never eats it), on the strip's trim on di
+  // (the instrument's own compressor is inside its buffer, before the trim).
+  // Nothing with U.GTR_STYLE_OFF.
+  U.gtrStyleLevel = function (gb) {
+    const st = gb && gb.style, ch = gb && gb.chain;
+    if (!st || U.GTR_STYLE_OFF || !st.levelDb) return { trimDb: 0, chain: ch };
+    if (ch && ch.amp) return { trimDb: 0, chain: Object.assign({}, ch, { levelDb: +((ch.levelDb || 0) + st.levelDb).toFixed(2) }) };
+    return { trimDb: st.levelDb, chain: ch };
+  };
+
+  // one bar's strokes in the style. written: U.gtrWritten(pattern) (the
+  // same shape); c: {bar, pattern (the U.RHYTHMGTR entry), head (the first
+  // bar of a section)}. Returns strokes for U.playGtrBar ([] = a drop-out).
+  U.applyGtrStyle = function (written, c, style) {
+    const S = U.GTR_STYLES[style.id], d = style.dials, pat = c.pattern;
+    const R = U.forkPrng((style.seed >>> 0).toString(16), "sbar" + c.bar);
+    // a drop-out bar: at most one per eight bars of a section, on one slot
+    // (1-7 from the seed, so never a section's first bar), only where the
+    // phrase mask plays every bar (a sparse mask has its own air), at a
+    // chance that keeps the share near the dial, and only inside a whole
+    // eight-bar block of the section: so the share is ≤ 1/8
+    const dropRoll = R.r();
+    const slot = 1 + (style.seed % 7);
+    if (d.drop > 0 && c.mask === "xxxx" && c.idx != null && c.len != null && c.idx % 8 === slot && c.idx - slot + 8 <= c.len && dropRoll < Math.min(1, d.drop * 8)) return [];
+    const varOn = () => R.r() < d.variation;
+    const at = {};
+    const put = (e) => { at[e.i] = e; };
+    const out = () => Object.keys(at).map(Number).sort((a, b) => a - b).map((i) => at[i]);
+    const up = (i) => i % 2 === 1;
+    const chordPos = written.filter((e) => e.stroke !== "chuck").map((e) => e.i);
+    if (style.id === "rodgers") {
+      // the written chords as partial chords by the hand; octaves stay octaves
+      for (const e of written) {
+        if (e.oct != null) { put(Object.assign({}, e)); continue; }
+        if (e.stroke === "chuck") { put({ i: e.i, vel: e.vel, stroke: "chuck", strings: "partial", acc: e.acc }); continue; }
+        put({ i: e.i, vel: up(e.i) ? 0.66 : 0.7, stroke: up(e.i) ? "up" : "down", strings: "partial", acc: up(e.i) ? 1 : 0 });
+      }
+      // the per-bar operators, on the base bar
+      const chords = () => Object.values(at).filter((e) => e.stroke !== "chuck" && e.oct == null);
+      if (varOn()) { const ch = chords(); if (ch.length) { const e = ch[Math.floor(R.r() * ch.length) % ch.length]; const j = e.i + (R.r() < 0.5 ? -1 : 1); if (j >= 0 && j < 16 && !at[j]) { delete at[e.i]; put(Object.assign({}, e, { i: j, stroke: up(j) ? "up" : "down", acc: up(j) ? 1 : 0 })); } } }
+      if (varOn()) { const j = 1 + 2 * Math.floor(R.r() * 8); if (!at[j] || at[j].stroke === "chuck") put({ i: j, vel: 0.7, stroke: "up", strings: "partial", acc: 1 }); }
+      if (varOn()) { const ch = chords(); if (ch.length > 1) { const e = ch[Math.floor(R.r() * ch.length) % ch.length]; put({ i: e.i, vel: 0.5, stroke: "chuck", strings: "partial", acc: 0 }); } }
+      // the left hand keeps the sixteenths going: chucks on the empty steps
+      for (let i = 0; i < 16; i++) { const roll = R.r(); if (!at[i] && roll < d.density) put({ i, vel: i % 4 === 2 ? 0.55 : 0.48, stroke: "chuck", strings: "partial", acc: 0 }); }
+      return out();
+    }
+    if (style.id === "byrne") {
+      // the written chord positions (or the beats) thinned to the density
+      let pos = chordPos.length ? chordPos.slice() : [0, 6, 10];
+      const k = Math.max(1, Math.round(d.density));
+      while (pos.length > k) pos.splice(Math.floor(R.r() * pos.length) % pos.length, 1);
+      while (pos.length < k) { const j = Math.floor(R.r() * 16); if (pos.indexOf(j) < 0) pos.push(j); }
+      // displaced per bar, preferring the off-beat steps (the drummer's air)
+      pos = pos.map((i) => {
+        if (!varOn()) return i;
+        const m = 1 + Math.floor(R.r() * 3), j = i + (R.r() < 0.5 ? -m : m);
+        return j >= 0 && j < 16 && (j % 4 !== 0 || R.r() < 0.5) ? j : i;
+      });
+      const jab = R.r() < 0.1 ? Math.floor(R.r() * k) : -1;
+      pos.sort((a, b) => a - b).forEach((i, n) => {
+        if (at[i]) return;
+        const hold = R.r() < d.length;
+        if (n === jab) put({ i, vel: 0.82, stroke: "down", strings: "full", str: -1, acc: 1 });
+        else put({ i, vel: 0.86, stroke: hold ? "down" : "stab", strings: "full", acc: 1 });
+      });
+      return out();
+    }
+    if (style.id === "skank") {
+      // the off-beat eighths whatever the written pattern (stab_sparse keeps
+      // its own two)
+      const base = pat.id === "gtr.stab_sparse" ? chordPos.map((i) => (i % 4 === 2 ? i : (i + 2) % 16)) : [2, 6, 10, 14];
+      for (const i of base) {
+        put({ i, vel: i === 6 || i === 14 ? 0.86 : 0.8, stroke: "stab", strings: "partial", acc: i === 6 || i === 14 ? 1 : 0 });
+        const roll = R.r();
+        if (roll < d.density && i + 1 < 16 && !at[i + 1]) put({ i: i + 1, vel: 0.62, stroke: "stab", strings: "partial", acc: 0 });
+      }
+      if (varOn()) { const sk = Object.values(at); if (sk.length > 2) delete at[sk[Math.floor(R.r() * sk.length) % sk.length].i]; }
+      if (varOn()) { const sk = Object.values(at).filter((e) => !at[e.i + 1] && e.i + 1 < 16); if (sk.length) { const e = sk[Math.floor(R.r() * sk.length) % sk.length]; delete at[e.i]; put(Object.assign({}, e, { i: e.i + 1 })); } }
+      return out();
+    }
+    // arpeggio: single strings let ring, eighths always, the odd sixteenths
+    // at the density; a held strum at a section head
+    let ord = U.GTR_ARP_ORDERS[d.order];
+    if (varOn()) { const r0 = Math.floor(R.r() * ord.length); ord = ord.slice(r0).concat(ord.slice(0, r0)); }
+    if (varOn()) ord = ord.slice().reverse();
+    const fill = Math.min(1, d.density + (pat.grid === 16 ? 0.3 : 0));
+    let n = 0;
+    const strum = c.head && R.r() < d.length;
+    for (let i = 0; i < 16; i++) {
+      const roll = R.r();
+      if (i % 2 === 1 && roll >= fill) continue;
+      if (i === 0 && strum) { put({ i, vel: 0.78, stroke: "down", strings: "full", acc: 1 }); continue; }
+      put({ i, vel: i % 4 === 0 ? 0.72 : 0.66, stroke: "down", strings: "full", str: ord[n++ % ord.length], acc: i % 8 === 0 ? 1 : 0 });
+    }
+    return out();
+  };
+
+  // one bar in the style: the style's strokes through the session guitarist
+  // with the shifted record, then the swing lean on the odd sixteenths.
+  // c: {bar, s16, swing, pattern (the U.RHYTHMGTR entry), head, idx (the
+  // bar's index in its section), len (the section's length), mask (the
+  // phrase mask, U.GTR_PHRASE)}.
+  U.playGtrStyleBar = function (c, style) {
+    const strokes = U.applyGtrStyle(U.gtrWritten(c.pattern), c, style);
+    if (!strokes.length) return [];
+    const rec = style.record.applied;
+    const evs = U.playGtrBar(strokes, { bar: c.bar, s16: c.s16, swing: c.swing, pattern: c.pattern.id }, rec);
+    const byI = {}; for (const e of strokes) byI[e.i] = e;
+    const lean = (U.GTR_STYLES[style.id].lean || 0) * c.s16, barEnd = 16 * c.s16;
+    const nominal = (i) => i * c.s16 + (i % 2 ? (c.swing || 0) * c.s16 : 0);
+    for (const o of evs) {
+      const w = byI[o.i];
+      if (!o.ghost && w && w.str != null) o.str = w.str;
+      if (lean && o.i % 2 === 1) o.off = Math.min(barEnd - 0.002 - nominal(o.i), o.off + lean);
+    }
+    return evs;
+  };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/fmplayer.js @ ab4b839 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/fmplayer.js @ 3bbd1ae — verbatim from jeffdavis-studio/unison-engine ===== */
 // fmplayer.js — the PERFORMANCE half of the FM keys: a session keyboard
 // player on the FM chord strips (compA's tine EP, colour's glass and brass).
 //
@@ -12003,7 +12259,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/testPhrase.js @ ab4b839 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/testPhrase.js @ 3bbd1ae — verbatim from jeffdavis-studio/unison-engine ===== */
 // testPhrase.js — deterministic 8-bar test phrase, ported from the bake-off
 // (phrase.js) onto the engine's canonical PRNG (core/prng.js).
 //
@@ -12097,7 +12353,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/form.js @ ab4b839 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/form.js @ 3bbd1ae — verbatim from jeffdavis-studio/unison-engine ===== */
 // form.js — the song's form: the book of returns (2026-10-30, Asana
 // 1220073468300418; design files/unison/structure-design-2026-10-30 in the
 // morgan repo, DESIGN.md + draw.py, transcribed here as written).
@@ -12418,7 +12674,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/session.js @ ab4b839 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/session.js @ 3bbd1ae — verbatim from jeffdavis-studio/unison-engine ===== */
 // session.js — the session sheet and the arrangement realizer.
 //
 // Two tiers, in this order, each on its own stream (core/prng.js):
@@ -13543,12 +13799,17 @@
     // the gtrBook fork), levelled to its voicing; the book's patterns carry
     // their own measured offset on the strip (GTR_PATTERN_TRIM_DB).
     if (sheet.gtrVoicing && up("rhythmGtr") && sheet.gtrPlayer) {
-      desk.strips.rhythmGtr.trim.gain.value = Math.pow(10, (GTR_TRIM_DB[sheet.gtrVoicing] + (GTR_PATTERN_TRIM_DB[P.rhythmGtr.id] || 0)) / 20);
+      // + the playing style's measured level on di (guitar books slice 2,
+      // U.gtrStyleLevel: after the board on every other chain); none with
+      // U.GTR_STYLE_OFF
+      const gsl = U.gtrStyleLevel ? U.gtrStyleLevel(sheet.gtrBook) : { trimDb: 0, chain: sheet.gtrBook && sheet.gtrBook.chain };
+      const gstDb = gsl.trimDb;
+      desk.strips.rhythmGtr.trim.gain.value = Math.pow(10, (GTR_TRIM_DB[sheet.gtrVoicing] + (GTR_PATTERN_TRIM_DB[P.rhythmGtr.id] || 0) + gstDb) / 20);
       gtrInst = U.createRhythmGuitar(ctx, desk.strips.rhythmGtr, sheet.gtrBook ? sheet.gtrBook.params : sheet.gtrVoicing);
       // the player's board (guitar books slice 1, 2026-11-04): the drawn
       // chain's pedals and amp, desk blocks in the strip's board slot; di adds
       // nothing (the instrument's own compressor and chorus)
-      if (sheet.gtrBook && sheet.gtrBook.chain && U.applyGtrChain) U.applyGtrChain(desk, "rhythmGtr", sheet.gtrBook.chain, sheet.bpm);
+      if (sheet.gtrBook && sheet.gtrBook.chain && U.applyGtrChain) U.applyGtrChain(desk, "rhythmGtr", gsl.chain, sheet.bpm);
     }
     // The mono engine on counter and arp (the Minimoog, 2026-10-05): the riff
     // re-strikes EVERY note. The song's swung 16ths can run an offbeat note a
@@ -13864,12 +14125,19 @@
       // spread, variation, drift), on the bar's chord tones as compA has them
       if (gtrInst && on("rhythmGtr", bar) && GTR_PHRASE[sheet.masks.gtr % GTR_PHRASE.length][b.indexInSection % 4] === "x") {
         const pr = P.rhythmGtr;
-        for (const o of U.playGtrBar(U.gtrWritten(pr), { bar, s16, swing, pattern: pr.id }, sheet.gtrPlayer)) {
+        // the playing style (guitar books slice 2, gtrplayer.js): the style's
+        // strokes through the player record it shifted; U.GTR_STYLE_OFF plays
+        // the written pattern as before
+        const gst = !U.GTR_STYLE_OFF && sheet.gtrBook && sheet.gtrBook.style && sheet.gtrBook.style.record.applied ? sheet.gtrBook.style : null;
+        const gev = gst ? U.playGtrStyleBar({ bar, s16, swing, pattern: pr, head: b.indexInSection === 0, idx: b.indexInSection, len: b.sectionLen, mask: GTR_PHRASE[sheet.masks.gtr % GTR_PHRASE.length] }, gst)
+          : U.playGtrBar(U.gtrWritten(pr), { bar, s16, swing, pattern: pr.id }, sheet.gtrPlayer);
+        for (const o of gev) {
           // the book's patterns: an octave shape on the melody's next chord
           // tone, or one string of the voicing for an arpeggio
           let strings = o.strings, frets;
           if (o.oct != null) frets = U.rhythmGuitarOctave(mTones[pr.mel[o.oct % pr.mel.length] % mTones.length]);
           if (o.arp != null) { const fv = U.rhythmGuitarVoicing(mTones).full; strings = [fv[pr.order[o.arp % pr.order.length] % fv.length].s]; }
+          if (o.str != null) { const fv = U.rhythmGuitarVoicing(mTones).full; strings = [fv[((o.str % fv.length) + fv.length) % fv.length].s]; }
           gtrInst.strike(stepT(bar, o.i) + o.off, o.vel * lvl, o.stroke, mTones, strings, o.spreadMul, frets);
           events++;
         }
@@ -14013,7 +14281,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/render/renderer.js @ ab4b839 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/render/renderer.js @ 3bbd1ae — verbatim from jeffdavis-studio/unison-engine ===== */
 // renderer.js — song assembly + the render pipeline (Technical Architecture
 // v1.2 playback model): live-first, with (a) a cheap analysis pre-render for
 // verification/metrics and (b) an on-demand full OfflineAudioContext render
@@ -14131,7 +14399,7 @@
         return o;
       })(),
       // the rhythmGtr strip's guitar (draws 85–87, 2026-10-03); absent when muted
-      ...(!sheet.mutes.rhythmGtr && sheet.gtrVoicing ? { rhythmGtr: "gtr/" + sheet.gtrVoicing + "/" + sheet.picks.rhythmGtr.id.replace("gtr.", "") + (sheet.gtrBook && sheet.gtrBook.chain ? "/" + sheet.gtrBook.chain.id : "") } : {}),
+      ...(!sheet.mutes.rhythmGtr && sheet.gtrVoicing ? { rhythmGtr: "gtr/" + sheet.gtrVoicing + "/" + sheet.picks.rhythmGtr.id.replace("gtr.", "") + (sheet.gtrBook && sheet.gtrBook.chain ? "/" + sheet.gtrBook.chain.id : "") + (sheet.gtrBook && sheet.gtrBook.style && !U.GTR_STYLE_OFF ? "/" + sheet.gtrBook.style.id : "") } : {}),
       kit: sheet.kit, bars: sheet.totalBars,
       // The drawn drum machine (draw 69) and, on a Linn song, its panel.
       drumMachine: sheet.drumMachine,
@@ -14972,9 +15240,11 @@
       var ug = G.r();
       // the drawn chain stays (the amp and pedal books, 2026-11-04): a model
       // pick changes the guitar, not the player's board
-      var chain = s.gtrBook && s.gtrBook.chain, gp = U.resolveRhythmGuitarPatch(s.gtrVoicing, pn, ug, P.rhythmGtr.id);
+      var chain = s.gtrBook && s.gtrBook.chain, style0 = s.gtrBook && s.gtrBook.style, gp = U.resolveRhythmGuitarPatch(s.gtrVoicing, pn, ug, P.rhythmGtr.id);
       if (chain && chain.id !== "di") Object.assign(gp, U.GTR_BOARD_OFF);
+      // the drawn playing style stays too (slice 2): the pick is the guitar
       s.gtrBook = { model: pn, voicing: s.gtrVoicing, tone: +ug.toFixed(4), chain: chain, params: gp };
+      if (style0) s.gtrBook.style = style0;
       return true;
     }
     var so = synthOf(inst, s); if (!so) return false;
@@ -14990,8 +15260,9 @@
     var d = INST_BY[inst], st = d.strips[0];
     if (d.cls === "drums") return s.jamPicked && opt && opt.pn ? "Kit " + opt.pn.slice(4) : (inst === "d808" ? "808" : "Linn") + " panel";
     if (inst === "bgtr") return s.bassBook ? bassLabel(s.bassBook.model, s.bassBook.style) : "";
-    // the chain and the model (the amp and pedal books, 2026-11-04): "gtr dubEcho · Strat-style"
-    if (inst === "rgtr") return s.gtrBook ? (s.gtrBook.chain ? "gtr " + s.gtrBook.chain.id + " · " : "") + U.RHYTHMGUITAR_MODELS[s.gtrBook.model].label : "";
+    // the chain, the model and the playing style (the amp and pedal books,
+    // 2026-11-04, slices 1 and 2): "gtr dubEcho · Strat-style · skank"
+    if (inst === "rgtr") return s.gtrBook ? (s.gtrBook.chain ? "gtr " + s.gtrBook.chain.id + " · " : "") + U.RHYTHMGUITAR_MODELS[s.gtrBook.model].label + (s.gtrBook.style ? " · " + s.gtrBook.style.id : "") : "";
     var books = [s.fmPatches, s.obxaPatches, s.minimoogPatches, s.junoPatches];
     var want = { juno: s.junoPatches, obxa: s.obxaPatches, minimoog: s.minimoogPatches, fm: s.fmPatches };
     var v = s.voices[st];
