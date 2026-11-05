@@ -137,6 +137,71 @@
   #pal button.mono{border-color:var(--red)}
   #pal button:disabled{opacity:.35;cursor:default}
   footer{flex:0 0 16px;color:#77736b;font-size:11px;text-align:right;margin-top:2px}
+  /* phone (Jeff 11/04, Asana 1220235611707489): the 1280 rows above wrap into one
+     scrolling column; taps 44 px or taller, text 15 px or larger. Layout only. */
+  @media (max-width:700px){
+    html,body{height:auto}
+    body{display:block;height:auto;min-height:100vh;overflow-x:hidden;overflow-y:auto;padding:10px 10px calc(14px + env(safe-area-inset-bottom))}
+    #top{height:auto;-webkit-flex-wrap:wrap;flex-wrap:wrap;gap:8px}
+    #top.row > *,#top.row > *:last-child{margin:0}
+    #play{flex:0 0 100%;width:100%;height:60px}
+    .knob{flex:1 1 auto;height:auto;min-width:0;padding:6px 8px 8px}
+    .knob label{font-size:15px;letter-spacing:.04em}
+    #top > .knob:nth-child(2){flex:3 1 0;width:0}   /* tempo and key share a row */
+    #top > .knob:nth-child(3){flex:2 1 0;width:0}
+    #top > .knob:nth-child(4),#swing{flex:1 1 100%}
+    .knob > .row > *{flex:1 1 auto}
+    .knob > .row > .val{flex:0 0 auto;min-width:36px}
+    .knob .row > *{margin-right:4px}
+    .knob .row button,.knob .seg button{height:44px;min-width:40px;font-size:16px}
+    .knob .row button.rnd{font-size:15px}
+    .knob .row.seg button,#swing .seg button{flex:1 1 auto;padding:0 8px;font-size:15px}
+    #top .spacer{display:none}
+    #ends{flex:0 0 100%;width:100%;height:auto;-webkit-box-orient:horizontal;flex-direction:row;gap:8px}
+    #ends button{flex:1 1 0;width:0;height:48px;font-size:16px}
+    #ends #save{margin:0}
+    #harm{display:block;height:auto;margin-top:10px}
+    .sec{width:auto;height:auto;margin:0 0 8px 0}
+    #harm.row > .sec{margin-right:0}
+    .sec .head{height:auto;-webkit-flex-wrap:wrap;flex-wrap:wrap;gap:8px}
+    .sec .head.row > *{margin:0}
+    .sec .go{flex:1 1 auto;width:auto;height:48px}
+    .sec .roll{height:48px}
+    .sec select{-webkit-box-ordinal-group:4;order:3;flex:0 0 100%;width:100%;height:48px}
+    .chords{height:auto;margin-top:8px;-webkit-flex-wrap:wrap;flex-wrap:wrap;gap:6px}
+    .chords div,.chords div:last-child{flex:1 0 calc(25% - 6px);width:auto;min-width:0;height:52px;margin:0;font-size:24px;overflow:hidden;white-space:nowrap}
+    .chords.many div{font-size:19px}
+    #bars{height:auto;-webkit-flex-wrap:wrap;flex-wrap:wrap;margin-top:4px}
+    #status{flex:0 0 100%;width:100%;height:auto;margin-top:6px;text-align:left;font-size:15px}
+    #layers{display:block;margin-top:10px}
+    #layers .layer,#layers.four .layer{width:auto;height:auto;padding:10px}
+    #layers .layer:nth-child(n),#layers.four .layer:nth-child(n){margin:0 0 10px 0}
+    #layers .layer .hd,#layers.four .layer .hd{height:auto;-webkit-flex-wrap:wrap;flex-wrap:wrap}
+    #layers .layer .hd > *,#layers.four .layer .hd > *{margin:0}
+    #layers .layer .name,#layers.four .layer .name{flex:0 0 100%;font-size:20px;margin-bottom:6px}
+    #layers .layer select.pick{flex:0 0 100%;width:100%;height:44px;font-size:16px}
+    .layer .sub{font-size:15px;height:auto;margin:6px 0}
+    #layers .layer .ctl button,#layers.four .layer .ctl button{height:48px;font-size:15px;line-height:1.1;padding:0 4px}
+    #layers.four .layer .row > *{margin-right:10px}
+    #layers.four .layer .row > *:last-child{margin-right:0}
+    #layers .layer .ctl .oct button,#layers.four .layer .ctl .oct button{flex:0 0 44px;width:44px}
+    #layers .layer .oct span,#layers.four .layer .oct span{flex:0 0 52px;width:52px;font-size:15px}
+    .layer .ctl2{margin-top:8px}
+    #layers .layer .ctl2 .seg button,#layers.four .layer .ctl2 .seg button{height:48px;font-size:15px}
+    #layers .layer .ctl2 > button,#layers.four .layer .ctl2 > button{height:48px;font-size:16px}
+    #layers.four .layer .x{flex:0 0 52px !important;width:52px !important}
+    .layer .lvl{height:44px;margin-top:8px}
+    .layer .lvl label{font-size:15px}
+    .layer .lvl input{height:44px}
+    #layers .layer .lvl .dbv,#layers.four .layer .lvl .dbv{flex:0 0 64px;width:64px;font-size:17px}
+    .empty{font-size:17px;padding:16px 4px}
+    #add{display:block;height:auto;margin-top:6px}
+    #add .lbl{width:auto;font-size:15px;-webkit-box-orient:horizontal;flex-direction:row;-webkit-box-align:center;align-items:center;margin:0 0 8px 0}
+    #add .lbl button{flex:0 0 auto;height:44px;width:auto;padding:0 18px;font-size:15px}
+    #pal{height:auto;gap:8px}
+    #pal button,#pal button:nth-child(9n){width:calc((100% - 16px) / 3);height:52px;margin:0;font-size:15px}
+    footer{font-size:15px;line-height:1.3;text-align:left;margin-top:12px}
+  }
 </style>
 </head>
 <body>
@@ -157,10 +222,10 @@
 <div id="bars" class="row"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><div id="status"></div></div>
 <div id="layers"></div>
 <div id="add" class="row"><div class="lbl">Add a layer<button id="palRnd" title="add a random instrument (one you don't have yet, while any are left)">Random</button></div><div id="pal"></div></div>
-<footer title="engine @4a7b3e6 · built 2026-11-04">Unison jam &middot; every sound is synthesized in this page by the engine at 4a7b3e6</footer>
+<footer title="engine @60e96c7 · built 2026-11-05">Unison jam &middot; every sound is synthesized in this page by the engine at 60e96c7</footer>
 
 <script>
-/* ===== src/core/prng.js @ 4a7b3e6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/prng.js @ 60e96c7 — verbatim from jeffdavis-studio/unison-engine ===== */
 // prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
 // token hash, consumed in canonical draw order (Technical Architecture v1.2).
 //
@@ -233,7 +298,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/core/mix.js @ 4a7b3e6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/mix.js @ 60e96c7 — verbatim from jeffdavis-studio/unison-engine ===== */
 // mix.js — the fan-in ≤2 summing rule, as a primitive.
 //
 // Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
@@ -402,7 +467,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/desk/desk.js @ 4a7b3e6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/desk/desk.js @ 60e96c7 — verbatim from jeffdavis-studio/unison-engine ===== */
 // desk.js — the 24-track desk as a running audio graph.
 //
 // The desk is the data structure, not a metaphor (Composition Brief 2 / Tech
@@ -1042,7 +1107,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/production.js @ 4a7b3e6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/production.js @ 60e96c7 — verbatim from jeffdavis-studio/unison-engine ===== */
 // production.js — the production room, v0.
 //
 // PLACEMENT DECISION (Morgan's call, ratified by Jeff 2026-08-03). Production
@@ -1377,7 +1442,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/analogpoly.js @ 4a7b3e6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/analogpoly.js @ 60e96c7 — verbatim from jeffdavis-studio/unison-engine ===== */
 // analogpoly.js — the analog poly core: one module that builds every Juno and
 // OB-Xa voice, behind a family lock. Asana 1220084594874974, slice 1
 // (2026-11-02); the rack doc's build 3 (files/unison/rack-parts-proposal-
@@ -2003,7 +2068,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/juno.js @ 4a7b3e6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/juno.js @ 60e96c7 — verbatim from jeffdavis-studio/unison-engine ===== */
 // juno.js — Juno-60-flavor poly voice, raw Web Audio, zero dependencies.
 // Ported from the 2026-07-21 bake-off winner (voice-raw.js), restructured to
 // live behind a desk strip: U.createJuno(ctx, strip, patchName) builds its own
@@ -2570,7 +2635,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/minimoog.js @ 4a7b3e6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/minimoog.js @ 60e96c7 — verbatim from jeffdavis-studio/unison-engine ===== */
 // minimoog.js — Minimoog Model D-lineage mono voice, zero dependencies.
 //
 // THE MONO BASS LANE (build order 808 → Juno → Minimoog → …; it also absorbs
@@ -3357,7 +3422,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/obxa.js @ 4a7b3e6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/obxa.js @ 60e96c7 — verbatim from jeffdavis-studio/unison-engine ===== */
 // obxa.js — Oberheim OB-Xa-lineage poly voice, zero dependencies.
 //
 // THE BRASS/PAD POLY LANE (build order 808 → Juno → Minimoog → OB-Xa → …).
@@ -3902,7 +3967,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/fm.js @ 4a7b3e6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/fm.js @ 60e96c7 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fm.js — six-operator FM keys voice (the DX7 lineage), zero dependencies.
 //
 // THE FM LANE (build order 808 → Juno → Minimoog → OB-Xa → Linn → FM).
@@ -4923,7 +4988,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/bassguitar.js @ 4a7b3e6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/bassguitar.js @ 60e96c7 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassguitar.js — electric bass guitar, the first session player of the human
 // rack (Rack 2), zero dependencies.
 //
@@ -5512,7 +5577,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/rhythmguitar.js @ 4a7b3e6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/rhythmguitar.js @ 60e96c7 — verbatim from jeffdavis-studio/unison-engine ===== */
 // rhythmguitar.js — clean electric rhythm guitar, the fourth and last stop of
 // the human rack (Rack 2), zero dependencies.
 //
@@ -6288,7 +6353,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/tr808.js @ 4a7b3e6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/tr808.js @ 60e96c7 — verbatim from jeffdavis-studio/unison-engine ===== */
 // tr808.js — THE MACHINE. A TR-808-lineage core voice: bass drum, snare,
 // closed hat, open hat, each with a front panel the token actually turns.
 //
@@ -7572,7 +7637,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/linn.js @ 4a7b3e6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/linn.js @ 60e96c7 — verbatim from jeffdavis-studio/unison-engine ===== */
 // linn.js — THE STUDIO MACHINE. A Linn-family (LM-1 / LinnDrum lineage)
 // drum computer: the new wave / synth-pop / 80s R&B kit.
 //
@@ -8394,7 +8459,7 @@
     get EPROM_HZ() { return U.CIRCUIT_LINN.epromHz; }, get RECON_HZ() { return U.CIRCUIT_LINN.reconHz; } };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drumengine.js @ 4a7b3e6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drumengine.js @ 60e96c7 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drumengine.js — ONE DRUM ENGINE, THE MACHINES AS FAMILIES (2026-11-02,
 // drum engine slice 1, Asana 1219959495948201; the rack and parts doc,
 // 10/31).
@@ -8625,7 +8690,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drums.js @ 4a7b3e6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drums.js @ 60e96c7 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drums.js — the drum machine: 808/LM-1-flavor voices, synthesized at runtime
 // into short AudioBuffers, played back as one-shots.
 //
@@ -8962,7 +9027,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/books.js @ 4a7b3e6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/books.js @ 60e96c7 — verbatim from jeffdavis-studio/unison-engine ===== */
 // books.js — Pattern Books v1, as data.
 //
 // This file IS the document: "Unison — Pattern Books v1 (draft)" (Morgan,
@@ -11327,7 +11392,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/bassplayer.js @ 4a7b3e6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/bassplayer.js @ 60e96c7 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassplayer.js — the PERFORMANCE half of the bass guitar: a session player.
 //
 // Rack 2's rule (kb/projects/unison.md, 2026-07-11): every human instrument is
@@ -11579,7 +11644,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/gtrplayer.js @ 4a7b3e6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/gtrplayer.js @ 60e96c7 — verbatim from jeffdavis-studio/unison-engine ===== */
 // gtrplayer.js — the PERFORMANCE half of the rhythm guitar: a session
 // guitarist on the rhythmGtr strip.
 //
@@ -11797,7 +11862,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/fmplayer.js @ 4a7b3e6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/fmplayer.js @ 60e96c7 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fmplayer.js — the PERFORMANCE half of the FM keys: a session keyboard
 // player on the FM chord strips (compA's tine EP, colour's glass and brass).
 //
@@ -11938,7 +12003,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/testPhrase.js @ 4a7b3e6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/testPhrase.js @ 60e96c7 — verbatim from jeffdavis-studio/unison-engine ===== */
 // testPhrase.js — deterministic 8-bar test phrase, ported from the bake-off
 // (phrase.js) onto the engine's canonical PRNG (core/prng.js).
 //
@@ -12032,7 +12097,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/form.js @ 4a7b3e6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/form.js @ 60e96c7 — verbatim from jeffdavis-studio/unison-engine ===== */
 // form.js — the song's form: the book of returns (2026-10-30, Asana
 // 1220073468300418; design files/unison/structure-design-2026-10-30 in the
 // morgan repo, DESIGN.md + draw.py, transcribed here as written).
@@ -12353,7 +12418,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/session.js @ 4a7b3e6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/session.js @ 60e96c7 — verbatim from jeffdavis-studio/unison-engine ===== */
 // session.js — the session sheet and the arrangement realizer.
 //
 // Two tiers, in this order, each on its own stream (core/prng.js):
@@ -13948,7 +14013,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/render/renderer.js @ 4a7b3e6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/render/renderer.js @ 60e96c7 — verbatim from jeffdavis-studio/unison-engine ===== */
 // renderer.js — song assembly + the render pipeline (Technical Architecture
 // v1.2 playback model): live-first, with (a) a cheap analysis pre-render for
 // verification/metrics and (b) an on-demand full OfflineAudioContext render
