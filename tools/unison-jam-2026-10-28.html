@@ -222,10 +222,10 @@
 <div id="bars" class="row"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><div id="status"></div></div>
 <div id="layers"></div>
 <div id="add" class="row"><div class="lbl">Add a layer<button id="palRnd" title="add a random instrument (one you don't have yet, while any are left)">Random</button></div><div id="pal"></div></div>
-<footer title="engine @bf663b5 · built 2026-11-05">Unison jam &middot; every sound is synthesized in this page by the engine at bf663b5</footer>
+<footer title="engine @07b6ef6 · built 2026-11-05">Unison jam &middot; every sound is synthesized in this page by the engine at 07b6ef6</footer>
 
 <script>
-/* ===== src/core/prng.js @ bf663b5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/prng.js @ 07b6ef6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
 // token hash, consumed in canonical draw order (Technical Architecture v1.2).
 //
@@ -298,7 +298,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/core/mix.js @ bf663b5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/mix.js @ 07b6ef6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // mix.js — the fan-in ≤2 summing rule, as a primitive.
 //
 // Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
@@ -467,7 +467,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/desk/desk.js @ bf663b5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/desk/desk.js @ 07b6ef6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // desk.js — the 24-track desk as a running audio graph.
 //
 // The desk is the data structure, not a metaphor (Composition Brief 2 / Tech
@@ -1136,7 +1136,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/production.js @ bf663b5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/production.js @ 07b6ef6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // production.js — the production room, v0.
 //
 // PLACEMENT DECISION (Morgan's call, ratified by Jeff 2026-08-03). Production
@@ -1478,7 +1478,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/vocoder.js @ bf663b5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/vocoder.js @ 07b6ef6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // vocoder.js — the production room's vocoder insert, slice 1 (2026-11-05,
 // Asana 1220085081650427; design in files/unison/vocoder-2026-11-05/RESULT.md).
 //
@@ -1814,7 +1814,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/analogpoly.js @ bf663b5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/analogpoly.js @ 07b6ef6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // analogpoly.js — the analog poly core: one module that builds every Juno and
 // OB-Xa voice, behind a family lock. Asana 1220084594874974, slice 1
 // (2026-11-02); the rack doc's build 3 (files/unison/rack-parts-proposal-
@@ -2440,7 +2440,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/juno.js @ bf663b5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/juno.js @ 07b6ef6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // juno.js — Juno-60-flavor poly voice, raw Web Audio, zero dependencies.
 // Ported from the 2026-07-21 bake-off winner (voice-raw.js), restructured to
 // live behind a desk strip: U.createJuno(ctx, strip, patchName) builds its own
@@ -3007,7 +3007,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/minimoog.js @ bf663b5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/minimoog.js @ 07b6ef6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // minimoog.js — Minimoog Model D-lineage mono voice, zero dependencies.
 //
 // THE MONO BASS LANE (build order 808 → Juno → Minimoog → …; it also absorbs
@@ -3794,7 +3794,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/obxa.js @ bf663b5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/obxa.js @ 07b6ef6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // obxa.js — Oberheim OB-Xa-lineage poly voice, zero dependencies.
 //
 // THE BRASS/PAD POLY LANE (build order 808 → Juno → Minimoog → OB-Xa → …).
@@ -4339,7 +4339,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/fm.js @ bf663b5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/fm.js @ 07b6ef6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fm.js — six-operator FM keys voice (the DX7 lineage), zero dependencies.
 //
 // THE FM LANE (build order 808 → Juno → Minimoog → OB-Xa → Linn → FM).
@@ -5360,7 +5360,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/bassguitar.js @ bf663b5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/bassguitar.js @ 07b6ef6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassguitar.js — electric bass guitar, the first session player of the human
 // rack (Rack 2), zero dependencies.
 //
@@ -6071,7 +6071,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/rhythmguitar.js @ bf663b5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/rhythmguitar.js @ 07b6ef6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // rhythmguitar.js — clean electric rhythm guitar, the fourth and last stop of
 // the human rack (Rack 2), zero dependencies.
 //
@@ -6847,7 +6847,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/tr808.js @ bf663b5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/tr808.js @ 07b6ef6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // tr808.js — THE MACHINE. A TR-808-lineage core voice: bass drum, snare,
 // closed hat, open hat, each with a front panel the token actually turns.
 //
@@ -8131,7 +8131,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/linn.js @ bf663b5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/linn.js @ 07b6ef6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // linn.js — THE STUDIO MACHINE. A Linn-family (LM-1 / LinnDrum lineage)
 // drum computer: the new wave / synth-pop / 80s R&B kit.
 //
@@ -8953,7 +8953,7 @@
     get EPROM_HZ() { return U.CIRCUIT_LINN.epromHz; }, get RECON_HZ() { return U.CIRCUIT_LINN.reconHz; } };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drumengine.js @ bf663b5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drumengine.js @ 07b6ef6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drumengine.js — ONE DRUM ENGINE, THE MACHINES AS FAMILIES (2026-11-02,
 // drum engine slice 1, Asana 1219959495948201; the rack and parts doc,
 // 10/31).
@@ -9184,7 +9184,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/sampler.js @ bf663b5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/sampler.js @ 07b6ef6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // sampler.js — THE SAMPLER KEYBOARD, the gap filler (2026-11-05, slice 1,
 // Asana 1220085081678265; build 7 of the 10/31 rack and parts doc; design in
 // files/unison/sampler-2026-11-05/RESULT.md in the morgan repo).
@@ -9244,37 +9244,37 @@
   const R = (bass, chords, pad, arpeggio, lead, color, comp) => ({ bass, chords, pad, arpeggio, lead, color, comp });
   // measured per vowel (the bank alone varies by vowel on a brass carrier)
   const CHOIR_LEVEL = { a: [-14.3, 1.06], o: [-15.9, 1.35], u: [-17.8, 1.68] };
-  const choir = (v) => ({ id: "choir-" + v, kind: "cchoir", name: "choir, '" + v + "' vowel",
+  const choir = (v) => ({ id: "choir-" + v, w: 0.09, kind: "cchoir", name: "choir, '" + v + "' vowel",
     source: { parts: [{ engine: "obxa", patch: "OB brass", notes: [0], vel: 0.85, dur: 3.6 }], vowel: v },
     root: 57, len: 3.2, loop: { from: 0.9, to: 1.5 }, range: [45, 69], release: 0.35, level: CHOIR_LEVEL[v][0], track: CHOIR_LEVEL[v][1], roles: R(0, 0.8, 0.9, 0, 0.3, 0.6, 0) });
   U.SAMPLER_DISK = [
-    { id: "orch-hit", kind: "corch", name: "orchestra hit",
+    { id: "orch-hit", w: 0.28, kind: "corch", name: "orchestra hit",
       source: { parts: [{ engine: "obxa", patch: "Low Strings", notes: [0, 7, 12, 28], vel: 0.9, dur: 0.25, override: { a: 0.005, fA: 0.01 } },
         { engine: "juno", patch: "bright brass stab", notes: [0, 7, 12, 28], vel: 0.9, dur: 0.25 }] },
       root: 60, len: 1.0, loop: null, range: [48, 72], level: -8.7, track: 2.64, roles: R(0, 0.5, 0, 0, 0.3, 1, 0.6) },
     choir("a"), choir("o"), choir("u"),
-    { id: "horn-stab", kind: "lhorns", name: "horn section stab",
+    { id: "horn-stab", w: 0.8, kind: "lhorns", name: "horn section stab",
       source: { parts: [{ engine: "fm", patch: "FM brass section", notes: [0], vel: 0.9, dur: 0.3 },
         { engine: "fm", patch: "bright brass, more feedback", notes: [12], vel: 0.9, dur: 0.3, gainDb: -6 }] },
       root: 62, len: 0.8, loop: null, range: [50, 74], level: -6.4, track: 2.06, roles: R(0, 0.6, 0, 0, 0.6, 1, 0.5) },
-    { id: "texture", kind: "csampled", name: "sampled string texture",
+    { id: "texture", w: 1.15, kind: "csampled", name: "sampled string texture",
       source: { parts: [{ engine: "juno", patch: "PWM strings", notes: [0], vel: 0.85, dur: 3.6 },
         { engine: "fm", patch: "breathy FM voice", notes: [12], vel: 0.8, dur: 3.6, gainDb: 2 },
         { engine: "fm", patch: "crystal bell", notes: [24], vel: 0.7, dur: 0.5, gainDb: -10 }] },
       root: 60, len: 3.2, loop: { from: 0.9, to: 1.5 }, range: [53, 72], release: 0.35, level: -15.8, track: -0.44, roles: R(0, 0.8, 0.9, 0, 0.3, 0.6, 0.2) },
-    { id: "strings", kind: "cstrings", name: "string section",
+    { id: "strings", w: 0, kind: "cstrings", name: "string section",
       source: { parts: [{ engine: "juno", patch: "Juno strings", notes: [0], vel: 0.85, dur: 3.6 },
         { engine: "obxa", patch: "Low Strings", notes: [-12], vel: 0.85, dur: 3.6, gainDb: -4 }] },
       root: 60, len: 3.2, loop: { from: 0.9, to: 1.5 }, range: [48, 76], release: 0.35, level: -12.6, track: -1.42, roles: R(0, 0.8, 0.9, 0, 0.3, 0.3, 0.2) },
-    { id: "bass", kind: "bsamp", name: "sampled bass",
+    { id: "bass", w: 1, kind: "bsamp", name: "sampled bass",
       source: { parts: [{ engine: "minimoog", patch: "round sub bass", notes: [0], vel: 0.9, dur: 2.2 },
         { engine: "fm", patch: "wood bass", notes: [0], vel: 0.9, dur: 2.2, gainDb: -8 }] },
       root: 36, len: 2.0, loop: { from: 0.35, to: 0.7 }, range: [28, 48], release: 0.02, level: -8.0, track: 1.25, roles: R(1, 0, 0, 0, 0, 0, 0) },
-    { id: "mallet", kind: "mallet", name: "glass mallet",
+    { id: "mallet", w: 0, kind: "mallet", name: "glass mallet",
       source: { parts: [{ engine: "fm", patch: "marimba", notes: [0], vel: 0.85, dur: 0.4 },
         { engine: "fm", patch: "glass keys", notes: [12], vel: 0.85, dur: 0.4, gainDb: -6 }] },
       root: 72, len: 1.2, loop: null, range: [60, 88], level: -15.2, track: 1.92, roles: R(0, 0.3, 0, 0.8, 0.3, 1, 0.2) },
-    { id: "breath", kind: "breath", name: "breath tone",
+    { id: "breath", w: 0, kind: "breath", name: "breath tone",
       source: { parts: [{ engine: "fm", patch: "FM flute", notes: [0], vel: 0.8, dur: 1.4 }] },
       root: 72, len: 1.6, loop: null, gate: true, range: [60, 84], release: 0.12, level: -19.9, track: 0.84, roles: R(0, 0, 0.3, 0, 0.3, 1, 0) },
   ];
@@ -9495,7 +9495,7 @@
       const evs = pending; pending = [];
       const t0 = evs.reduce((m, x) => Math.min(m, x.t), Infinity);
       const data = U.buildSamplerLine(e, d, evs.map((x) => ({ t: x.t - t0, midi: x.midi, vel: x.vel, dur: x.dur })), C);
-      const buf = ctx.createBuffer(1, data.length, ctx.sampleRate);
+      const buf = ctx.createBuffer(1, data.length, SR);   // the line is 44.1 kHz; a lower-rate context resamples (slice 2)
       buf.getChannelData(0).set(data);
       const src = ctx.createBufferSource();
       src.buffer = buf; src.connect(target); src.start(t0);
@@ -9544,9 +9544,133 @@
     }
     return out;
   };
+
+  // ===================================================================
+  // SLICE 2 (2026-11-05, Asana 1220085081678265): THE TAKEOVER DRAW. The
+  // census's stand-in parts play from the sampler on the hundred's share.
+  // Per strip in U.ROLE_STRIPS order, its own fork U.forkPrng(hash,
+  // "samplerBook." + strip): one flag uniform, then a fixed block of
+  // U.SAMPLER_UNIFORMS (0 the entry pick, 1-3 spares), read for EVERY strip
+  // on EVERY song whatever the outcome (the vocoder's rule), after the role
+  // draw and the vocoder's resolve, which it reads and never changes.
+  // Targets and their source: files/unison/sampler-2026-11-05/RESULT.md,
+  // Slice 2, Design.
+  U.SAMPLER_UNIFORMS = 4;
+  // the hundred's role share / the strip's up-rate (0 = never taken)
+  U.SAMPLER_STRIP_SHARE = { bass: 0.022, compA: 0.041, pad: 0.077, arp: 0, lead: 0.125, counter: 0, color: 0.137 };
+  U.SAMPLER_LANE_WEIGHT = { synthPop: 2.0, funk: 1.3, synthRnB: 0.9, newWave: 0.4, earlyHipHop: 0.4 };
+  // a second (third) take on one song costs more than the first
+  U.SAMPLER_SECOND_TAKE = 0.6;
+  // the whole share's scale (1; 0 disables every take: the identity commit)
+  U.SAMPLER_SHARE_SCALE = 1;
+  // by entry id, else by kind
+  U.SAMPLER_LANE_BIAS = {
+    synthPop: { texture: 1.4, "orch-hit": 1.4, cchoir: 1.6, "horn-stab": 0.35 },
+    funk: { texture: 0.6, "horn-stab": 2.2, "orch-hit": 0.9, cchoir: 0.3 },
+    synthRnB: { texture: 0.6, "horn-stab": 2.2, "orch-hit": 0.8, cchoir: 0.5 },
+    newWave: { texture: 1.3, "horn-stab": 0.5, "orch-hit": 0.7, cchoir: 1.0 },
+    earlyHipHop: { texture: 0.5, "horn-stab": 1.0, "orch-hit": 2.5, cchoir: 0.3 },
+  };
+  // the trim cells, dB on the strip's trim gain, per entry x strip (absent
+  // = 0: the entry's level already holds it on its home strip). Measured by
+  // harness/smp2-trims.mjs (files/unison/sampler-2026-11-05/smp2-trims.json).
+  // MEASURED 2026-11-05 (fit: seed 1 census, 6 songs a cell, the taken strip
+  // against its own stand-in on the same song, K-weighted at the insert over
+  // the first 90 s; the three choirs share one cell per strip; compA keyed by
+  // the strip's role where the horn stab and the orchestra hit play both a
+  // held chord and a comping figure). Checked on seed 2's songs.
+  U.SAMPLER_TRIMS = {
+    "bass": {"bass":  0.2},
+    "choir-a": {"color":  -2.3, "compA":  1.9, "lead":  2.7, "pad":  -1.5},
+    "choir-o": {"color":  -2.3, "compA":  1.9, "lead":  2.7, "pad":  -1.5},
+    "choir-u": {"color":  -2.3, "compA":  1.9, "lead":  2.7, "pad":  -1.5},
+    "horn-stab": {"color":  -9.6, "compA.comp":  -4.2, "compA.chords":  2.4, "lead":  1.5},
+    "orch-hit": {"color":  -5.2, "compA.comp":  -2.0, "compA.chords":  1.0, "lead":  4.0},
+    "texture": {"color":  -1.6, "compA":  1.1, "lead":  4.0, "pad":  0.5},
+  };
+  U.samplerTrimDb = function (id, strip, role) {
+    const row = U.SAMPLER_TRIMS[id] || {};
+    const v = row[strip + "." + role];
+    return v != null ? v : row[strip] || 0;
+  };
+  U.samplerCandidates = function (role, lane) {
+    const gate = U.ROLE_GATE[role], bias = U.SAMPLER_LANE_BIAS[lane] || {}, list = [];
+    for (const e of U.SAMPLER_DISK) {
+      const f = (e.roles && e.roles[role]) || 0, b = bias[e.id] != null ? bias[e.id] : bias[e.kind] != null ? bias[e.kind] : 1;
+      const w = (e.w || 0) * f * b;
+      if (f >= gate && w > 0) list.push({ e, w });
+    }
+    return list;
+  };
+  // the bass rule: a synth bass the Fairlight bass could stand in for (not
+  // the bass guitar, not a sine sub)
+  U.SAMPLER_BASS_NEVER_KIND = { sub808: 1, pedal: 1 };
+  U.samplerBassOk = function (sheet) {
+    const e = sheet.voices && sheet.voices.bass;
+    if (!e || e === "bassguitar") return false;
+    const book = { juno: sheet.junoPatches, obxa: sheet.obxaPatches, minimoog: sheet.minimoogPatches, fm: sheet.fmPatches }[e];
+    const r = book && book.bass;
+    if (!r || /sub/i.test(r.name)) return false;
+    return !U.SAMPLER_BASS_NEVER_KIND[sheet.picks.bass.kind];
+  };
+  U.drawSampler = function (hash) {
+    const reads = {};
+    for (const strip of U.ROLE_STRIPS) {
+      const G = U.forkPrng(hash, "samplerBook." + strip), u = G.r(), uni = [];
+      for (let k = 0; k < U.SAMPLER_UNIFORMS; k++) uni.push(G.r());
+      reads[strip] = { u, uni };
+    }
+    return reads;
+  };
+  U.resolveSampler = function (sheet, reads) {
+    const rec = { reads, strips: {}, n: 0 };
+    const books = { juno: sheet.junoPatches, obxa: sheet.obxaPatches, minimoog: sheet.minimoogPatches, fm: sheet.fmPatches };
+    for (const strip of U.ROLE_STRIPS) {
+      const r = reads[strip];
+      if (sheet.mutes[strip]) continue;
+      const p = U.SAMPLER_SHARE_SCALE * (U.SAMPLER_STRIP_SHARE[strip] || 0) * (U.SAMPLER_LANE_WEIGHT[sheet.lane] || 1) * (rec.n ? U.SAMPLER_SECOND_TAKE : 1);
+      if (!(r.u < p)) continue;
+      if (strip === "bass" && !U.samplerBassOk(sheet)) continue;
+      if (strip === "lead" && sheet.vocoder && sheet.vocoder.on) continue;
+      const role = U.stripRole(strip, sheet.picks), list = U.samplerCandidates(role, sheet.lane);
+      if (!list.length) continue;
+      let tot = 0; for (const c of list) tot += c.w;
+      let x = r.uni[0] * tot, pick = list[list.length - 1];
+      for (const c of list) { x -= c.w; if (x < 0) { pick = c; break; } }
+      const e = sheet.voices[strip], b = books[e], pr = b && b[strip];
+      rec.strips[strip] = { entry: pick.e.id, kind: pick.e.kind, name: pick.e.name, role, p, w: pick.w / tot, u: r.u, uni: r.uni,
+        from: { engine: e, patch: pr ? pr.name : null } };
+      rec.n++;
+    }
+    return rec;
+  };
+  // the record for a hash without building the song (U.vocoderFor's method)
+  U.samplerFor = function (hash, forceLane) {
+    const s = U.drawSession(U.makePrng(hash), forceLane);
+    if (U.drawRolePatches) {
+      const rp = U.drawRolePatches(hash, s), by = { juno: {}, obxa: {}, minimoog: {}, fm: {} };
+      for (const st in rp) by[rp[st].engine][st] = rp[st];
+      s.junoPatches = by.juno; s.obxaPatches = by.obxa; s.minimoogPatches = by.minimoog; s.fmPatches = by.fm;
+    }
+    if (U.vocoderFor) s.vocoder = U.vocoderFor(hash, forceLane);
+    return U.resolveSampler(s, U.drawSampler(hash));
+  };
+  // the disk load a song needs: the drawn entries at the sampler's record,
+  // into the one cache; nothing on an untaken song
+  U.samplerEntriesOf = function (rec) {
+    const ids = [];
+    for (const st in (rec && rec.strips) || {}) if (ids.indexOf(rec.strips[st].entry) < 0) ids.push(rec.strips[st].entry);
+    return ids;
+  };
+  U.samplerLoadFor = async function (hash, forceLane) {
+    if (typeof OfflineAudioContext === "undefined") return [];
+    const ids = U.samplerEntriesOf(U.samplerFor(hash, forceLane));
+    if (ids.length) await U.loadSamplerDisk(ids);
+    return ids;
+  };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drums.js @ bf663b5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drums.js @ 07b6ef6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drums.js — the drum machine: 808/LM-1-flavor voices, synthesized at runtime
 // into short AudioBuffers, played back as one-shots.
 //
@@ -9883,7 +10007,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/books.js @ bf663b5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/books.js @ 07b6ef6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // books.js — Pattern Books v1, as data.
 //
 // This file IS the document: "Unison — Pattern Books v1 (draft)" (Morgan,
@@ -12248,7 +12372,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/bassplayer.js @ bf663b5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/bassplayer.js @ 07b6ef6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassplayer.js — the PERFORMANCE half of the bass guitar: a session player.
 //
 // Rack 2's rule (kb/projects/unison.md, 2026-07-11): every human instrument is
@@ -12843,7 +12967,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/gtrplayer.js @ bf663b5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/gtrplayer.js @ 07b6ef6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // gtrplayer.js — the PERFORMANCE half of the rhythm guitar: a session
 // guitarist on the rhythmGtr strip.
 //
@@ -13317,7 +13441,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/fmplayer.js @ bf663b5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/fmplayer.js @ 07b6ef6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fmplayer.js — the PERFORMANCE half of the FM keys: a session keyboard
 // player on the FM chord strips (compA's tine EP, colour's glass and brass).
 //
@@ -13458,7 +13582,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/testPhrase.js @ bf663b5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/testPhrase.js @ 07b6ef6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // testPhrase.js — deterministic 8-bar test phrase, ported from the bake-off
 // (phrase.js) onto the engine's canonical PRNG (core/prng.js).
 //
@@ -13552,7 +13676,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/form.js @ bf663b5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/form.js @ 07b6ef6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // form.js — the song's form: the book of returns (2026-10-30, Asana
 // 1220073468300418; design files/unison/structure-design-2026-10-30 in the
 // morgan repo, DESIGN.md + draw.py, transcribed here as written).
@@ -13873,7 +13997,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/session.js @ bf663b5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/session.js @ 07b6ef6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // session.js — the session sheet and the arrangement realizer.
 //
 // Two tiers, in this order, each on its own stream (core/prng.js):
@@ -14960,7 +15084,31 @@
     // Juno's house patch for the strip by name, untrimmed.
     const REC_KEY = { juno: "junoPatches", obxa: "obxaPatches", minimoog: "minimoogPatches", fm: "fmPatches" };
     const recOf = (strip) => { const k = REC_KEY[sheet.voices[strip]]; return k && sheet[k] && sheet[k][strip] ? sheet[k][strip] : null; };
+    // The sampler keyboard's takeover (slice 2, sampler.js): a taken strip
+    // plays the drawn disk entry at its trim cell (+ the hook trim the lead's
+    // stand-in gets), every event exactly as before; sheet.voices and the
+    // patch record stay as drawn (the record's `from`).
+    const smp = (sheet.sampler && sheet.sampler.strips) || {};
+    // The level (trim pass 2): the strip's own makeup, measured per song on
+    // the bus trim's pre-render (U.preBusLufs: the stand-in's level after
+    // the trim against the sampler line's, K-weighted), where it ran; the
+    // cell table where it did not (the jam). On that pre-render the sampler
+    // is bypassed (as the vocoder is): the stand-in plays and the strip's
+    // events are kept for the measurement.
     const create = (strip, house) => {
+      if (smp[strip] && !sheet.satProbe) {
+        const r = smp[strip], st = desk.strips[strip];
+        st.trim.gain.value = Math.pow(10, (r.makeupDb != null ? r.makeupDb : U.samplerTrimDb(r.entry, strip, r.role) + (strip === "lead" && P.lead.kind === "hook" ? U.HOOK_TRIM_DB : 0)) / 20);
+        return U.createSampler(ctx, st, r.entry);
+      }
+      const v = createStandIn(strip, house);
+      if (!smp[strip]) return v;
+      const ev = smp[strip].probeEvents = [];
+      return { held: v.held, patch: v.patch,
+        noteOn(t, midi, vel, dur, cut) { ev.push({ t, midi, vel, dur }); v.noteOn(t, midi, vel, dur, cut); },
+        flush() { if (v.flush) v.flush(); } };
+    };
+    const createStandIn = (strip, house) => {
       const e = sheet.voices[strip], rec = recOf(strip), st = desk.strips[strip];
       if (!rec) return U.createJuno(ctx, st, house);
       st.trim.gain.value = Math.pow(10, (U.stripTrimDb(e, strip, rec.role, P) + (strip === "lead" && P.lead.kind === "hook" ? U.HOOK_TRIM_DB : 0)) / 20);
@@ -15029,7 +15177,7 @@
     // Minimoog lead. A poly engine on these strips plays as written.
     const mono = (strip, house) => {
       const v = create(strip, house);
-      if (sheet.voices[strip] !== "minimoog" || strip === "lead" || !recOf(strip)) return v;
+      if (sheet.voices[strip] !== "minimoog" || strip === "lead" || !recOf(strip) || smp[strip]) return v;
       const evs = [];
       return { held: v.held, patch: v.patch,
         noteOn(t, midi, vel, dur, cut) { evs.push({ t, midi, vel, dur, cut }); },
@@ -15500,7 +15648,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/render/renderer.js @ bf663b5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/render/renderer.js @ 07b6ef6 — verbatim from jeffdavis-studio/unison-engine ===== */
 // renderer.js — song assembly + the render pipeline (Technical Architecture
 // v1.2 playback model): live-first, with (a) a cheap analysis pre-render for
 // verification/metrics and (b) an on-demand full OfflineAudioContext render
@@ -15567,6 +15715,13 @@
     // flag and fixed block resolved against the style, the lane and the
     // lead's carrier; on | declined | stepAside | off. Never moves a draw.
     if (U.resolveVocoder && sheet.productionDetail) sheet.vocoder = U.resolveVocoder(sheet, sheet.productionDetail.vocoder);
+    // The sampler keyboard's takeover (2026-11-05 slice 2, sampler.js): per
+    // strip on its own fork "samplerBook." + strip, a flag and a fixed block
+    // read for every strip of every song; a taken strip plays the drawn disk
+    // entry with its own events. Reads the role patches and the vocoder,
+    // changes neither. The disk is loaded before the build
+    // (U.samplerLoadFor, awaited by the bus trim and the renders below).
+    if (U.drawSampler) sheet.sampler = U.resolveSampler(sheet, U.drawSampler(hash));
 
     // Tier 2's per-bar draws come from their own fork of the hash, never from
     // R: tier 1 owns the song stream, tier 2 owns "bars" (2026-10-03).
@@ -15592,6 +15747,10 @@
     sheet.gateTrim = o.gateTrim || mp.gateTrim || null;
     // the vocoder's makeup per vowel, measured on the same pre-render
     // (vocoder.js U.vocoderMakeupFromSignal); absent, the fallback table
+    // the sampler's makeup per taken strip, measured on the same pre-render
+    // (U.preBusLufs); absent, the cell table (U.SAMPLER_TRIMS)
+    const sm = o.samplerMakeupDb || mp.samplerMakeupDb;
+    if (sm && sheet.sampler) for (const st in sheet.sampler.strips) if (typeof sm[st] === "number") { sheet.sampler.strips[st].makeupDb = sm[st]; sheet.sampler.strips[st].makeupFrom = "probe"; }
     const vm = o.vocoderMakeupDb || mp.vocoderMakeupDb;
     if (vm && sheet.vocoder && sheet.vocoder.on) { for (const v of sheet.vocoder.vowels) sheet.vocoder.makeupDb[v] = vm[v]; sheet.vocoder.makeupFrom = "probe"; }
     sheet.satProbe = !!o.preBus;
@@ -15625,6 +15784,9 @@
         }
         // the vocoder insert on the lead strip (vocoder.js), where it is on
         if (sheet.vocoder && sheet.vocoder.on) o.lead += "/vocoder";
+        // the sampler keyboard on a taken strip (sampler.js, slice 2)
+        const smp = sheet.sampler && sheet.sampler.strips;
+        if (smp) for (const st in smp) o[st] = "sampler/" + smp[st].name;
         return o;
       })(),
       // the rhythmGtr strip's guitar (draws 85–87, 2026-10-03); absent when muted
@@ -15758,6 +15920,7 @@
   U.mixProbeCache = {};
   U.preBusLufs = async function (hash, forceLane, seconds, rate, mono) {
     rate = rate || U.BUS_TRIM_PRE.rate;
+    if (U.samplerLoadFor) await U.samplerLoadFor(hash, forceLane);   // the sampler's disk, before the build
     const probe = U.drawSession(U.makePrng(hash), forceLane);
     if (!seconds) seconds = LEAD + probe.lengthSec + TAIL;
     const nch = mono ? 1 : 2;
@@ -15766,7 +15929,10 @@
     // the vocoder (2026-11-05, vocoder.js): on an "on" song the lead strip's
     // own signal, for the per-song makeup per vowel (the last two channels)
     const voc = U.vocoderFor ? U.vocoderFor(hash, forceLane) : null, vocOn = !!(voc && voc.on);
-    const nExtra = 2 * satIds.length + (prod.comp ? 2 : 0) + (prod.gate ? 4 : 0) + (vocOn ? 2 : 0);
+    // the sampler (slice 2): each taken strip's trim output, the stand-in
+    // playing, for the per-strip makeup
+    const smpRec = U.samplerFor ? U.samplerFor(hash, forceLane) : null, smpIds = smpRec ? Object.keys(smpRec.strips) : [];
+    const nExtra = 2 * satIds.length + (prod.comp ? 2 : 0) + (prod.gate ? 4 : 0) + (vocOn ? 2 : 0) + 2 * smpIds.length;
     const ctx = U.jitAttach(new OfflineAudioContext(nch + nExtra, Math.ceil(seconds * rate), rate));
     const song = U.buildSong(ctx, hash, forceLane, { preBus: true });
     const desk = song.desk;
@@ -15784,6 +15950,7 @@
       tapNodes.push(["gated", desk.gated.wet]);
     }
     if (vocOn) tapNodes.push(["voc", desk.strips.lead.fader]);
+    for (const st of smpIds) tapNodes.push(["smp:" + st, desk.strips[st].trim]);
     const chOf = {};
     if (tapNodes.length) {
       ctx.destination.channelInterpretation = "discrete";
@@ -15832,6 +15999,21 @@
         for (let i = 0; i < m.length; i++) m[i] = 0.5 * (L[i] + R[i]);
         mp.vocoderMakeupDb = U.vocoderMakeupFromSignal(m, rate, song.sheet.vocoder.wet);
       }
+      if (smpIds.length && song.sheet.sampler) {
+        const out = {};
+        for (const st of smpIds) {
+          const r = song.sheet.sampler.strips[st];
+          if (!r || !r.probeEvents) continue;
+          const [L, R] = two("smp:" + st);
+          let eR = 0; for (let i = 0; i < R.length; i += 13) eR += R[i] * R[i];
+          const ks = eR === 0 ? U.kWeightedMeanDb([L], rate) : U.kWeightedMeanDb([L, R], rate) - 10 * Math.log10(2);
+          const C = U.drumConverterAt(U.SAMPLER_CONVERTER_POS);
+          const line = r.probeEvents.length ? U.buildSamplerLine(U.samplerEntry(r.entry), U.samplerDiskCached(r.entry, C), r.probeEvents, C, L.length / rate) : null;
+          const kl = line ? U.kWeightedMeanDb([line], 44100) : -Infinity;
+          if (isFinite(ks) && isFinite(kl)) out[st] = Math.round((ks - kl) * 100) / 100;
+        }
+        mp.samplerMakeupDb = out;
+      }
       U.mixProbeCache[key] = mp;
     }
     return U.integratedLufs(ch, rate);
@@ -15850,11 +16032,12 @@
   // a page cannot play a baked trim with the reads missing.
   U.songNeedsMixProbe = function (hash, forceLane) {
     const p = U.drawSession(U.makePrng(hash), forceLane).production || {};
-    return !!(p.sat || p.comp || p.gate) || !!(U.vocoderFor && U.vocoderFor(hash, forceLane).on);
+    return !!(p.sat || p.comp || p.gate) || !!(U.vocoderFor && U.vocoderFor(hash, forceLane).on) || !!(U.samplerFor && U.samplerFor(hash, forceLane).n);
   };
   U.songBusTrimDb = function (hash, forceLane, baked) {
     const key = hash + "|" + (forceLane || "");
-    if (typeof baked === "number" && !busTrimCache[key] && !U.songNeedsMixProbe(hash, forceLane)) return Promise.resolve(baked);
+    if (typeof baked === "number" && !busTrimCache[key] && !U.songNeedsMixProbe(hash, forceLane))
+      return U.samplerLoadFor ? U.samplerLoadFor(hash, forceLane).then(() => baked) : Promise.resolve(baked);
     if (!busTrimCache[key]) busTrimCache[key] = (async () => {
       const m = await U.preBusLufs(hash, forceLane, U.BUS_TRIM_PRE.seconds, U.BUS_TRIM_PRE.rate);
       U.busPreLufs[key] = m;
@@ -15869,6 +16052,7 @@
   // The bus trim is measured first unless the caller already has it.
   U.renderSong = async function (hash, forceLane, opts) {
     opts = Object.assign({}, opts);
+    if (U.samplerLoadFor) await U.samplerLoadFor(hash, forceLane);   // the sampler's disk (slice 2): nothing on an untaken song
     if (typeof opts.busTrimDb !== "number") opts.busTrimDb = await U.songBusTrimDb(hash, forceLane);
     const probe = U.drawSession(U.makePrng(hash), forceLane);   // length probe only
     const dur = LEAD + probe.lengthSec + TAIL;
@@ -15887,6 +16071,7 @@
   // before every live playback.
   U.analysisPrerender = async function (hash, seconds, rate, forceLane, busTrimDb) {
     seconds = seconds || 8; rate = rate || 11025;
+    if (U.samplerLoadFor) await U.samplerLoadFor(hash, forceLane);
     if (typeof busTrimDb !== "number") busTrimDb = await U.songBusTrimDb(hash, forceLane);
     const ctx = U.jitAttach(new OfflineAudioContext(1, Math.ceil(seconds * rate), rate));
     const song = U.buildSong(ctx, hash, forceLane, { busTrimDb });
