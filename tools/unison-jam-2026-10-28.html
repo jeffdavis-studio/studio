@@ -222,10 +222,10 @@
 <div id="bars" class="row"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><div id="status"></div></div>
 <div id="layers"></div>
 <div id="add" class="row"><div class="lbl">Add a layer<button id="palRnd" title="add a random instrument (one you don't have yet, while any are left)">Random</button></div><div id="pal"></div></div>
-<footer title="engine @20b72b3 · built 2026-11-05">Unison jam &middot; every sound is synthesized in this page by the engine at 20b72b3</footer>
+<footer title="engine @23ad208 · built 2026-11-05">Unison jam &middot; every sound is synthesized in this page by the engine at 23ad208</footer>
 
 <script>
-/* ===== src/core/prng.js @ 20b72b3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/prng.js @ 23ad208 — verbatim from jeffdavis-studio/unison-engine ===== */
 // prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
 // token hash, consumed in canonical draw order (Technical Architecture v1.2).
 //
@@ -298,7 +298,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/core/mix.js @ 20b72b3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/mix.js @ 23ad208 — verbatim from jeffdavis-studio/unison-engine ===== */
 // mix.js — the fan-in ≤2 summing rule, as a primitive.
 //
 // Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
@@ -467,7 +467,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/desk/desk.js @ 20b72b3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/desk/desk.js @ 23ad208 — verbatim from jeffdavis-studio/unison-engine ===== */
 // desk.js — the 24-track desk as a running audio graph.
 //
 // The desk is the data structure, not a metaphor (Composition Brief 2 / Tech
@@ -1116,7 +1116,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/production.js @ 20b72b3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/production.js @ 23ad208 — verbatim from jeffdavis-studio/unison-engine ===== */
 // production.js — the production room, v0.
 //
 // PLACEMENT DECISION (Morgan's call, ratified by Jeff 2026-08-03). Production
@@ -1451,7 +1451,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/analogpoly.js @ 20b72b3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/analogpoly.js @ 23ad208 — verbatim from jeffdavis-studio/unison-engine ===== */
 // analogpoly.js — the analog poly core: one module that builds every Juno and
 // OB-Xa voice, behind a family lock. Asana 1220084594874974, slice 1
 // (2026-11-02); the rack doc's build 3 (files/unison/rack-parts-proposal-
@@ -2077,7 +2077,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/juno.js @ 20b72b3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/juno.js @ 23ad208 — verbatim from jeffdavis-studio/unison-engine ===== */
 // juno.js — Juno-60-flavor poly voice, raw Web Audio, zero dependencies.
 // Ported from the 2026-07-21 bake-off winner (voice-raw.js), restructured to
 // live behind a desk strip: U.createJuno(ctx, strip, patchName) builds its own
@@ -2644,7 +2644,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/minimoog.js @ 20b72b3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/minimoog.js @ 23ad208 — verbatim from jeffdavis-studio/unison-engine ===== */
 // minimoog.js — Minimoog Model D-lineage mono voice, zero dependencies.
 //
 // THE MONO BASS LANE (build order 808 → Juno → Minimoog → …; it also absorbs
@@ -3431,7 +3431,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/obxa.js @ 20b72b3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/obxa.js @ 23ad208 — verbatim from jeffdavis-studio/unison-engine ===== */
 // obxa.js — Oberheim OB-Xa-lineage poly voice, zero dependencies.
 //
 // THE BRASS/PAD POLY LANE (build order 808 → Juno → Minimoog → OB-Xa → …).
@@ -3976,7 +3976,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/fm.js @ 20b72b3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/fm.js @ 23ad208 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fm.js — six-operator FM keys voice (the DX7 lineage), zero dependencies.
 //
 // THE FM LANE (build order 808 → Juno → Minimoog → OB-Xa → Linn → FM).
@@ -4997,7 +4997,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/bassguitar.js @ 20b72b3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/bassguitar.js @ 23ad208 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassguitar.js — electric bass guitar, the first session player of the human
 // rack (Rack 2), zero dependencies.
 //
@@ -5708,7 +5708,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/rhythmguitar.js @ 20b72b3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/rhythmguitar.js @ 23ad208 — verbatim from jeffdavis-studio/unison-engine ===== */
 // rhythmguitar.js — clean electric rhythm guitar, the fourth and last stop of
 // the human rack (Rack 2), zero dependencies.
 //
@@ -6484,7 +6484,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/tr808.js @ 20b72b3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/tr808.js @ 23ad208 — verbatim from jeffdavis-studio/unison-engine ===== */
 // tr808.js — THE MACHINE. A TR-808-lineage core voice: bass drum, snare,
 // closed hat, open hat, each with a front panel the token actually turns.
 //
@@ -7768,7 +7768,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/linn.js @ 20b72b3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/linn.js @ 23ad208 — verbatim from jeffdavis-studio/unison-engine ===== */
 // linn.js — THE STUDIO MACHINE. A Linn-family (LM-1 / LinnDrum lineage)
 // drum computer: the new wave / synth-pop / 80s R&B kit.
 //
@@ -8590,7 +8590,7 @@
     get EPROM_HZ() { return U.CIRCUIT_LINN.epromHz; }, get RECON_HZ() { return U.CIRCUIT_LINN.reconHz; } };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drumengine.js @ 20b72b3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drumengine.js @ 23ad208 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drumengine.js — ONE DRUM ENGINE, THE MACHINES AS FAMILIES (2026-11-02,
 // drum engine slice 1, Asana 1219959495948201; the rack and parts doc,
 // 10/31).
@@ -8821,7 +8821,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drums.js @ 20b72b3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drums.js @ 23ad208 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drums.js — the drum machine: 808/LM-1-flavor voices, synthesized at runtime
 // into short AudioBuffers, played back as one-shots.
 //
@@ -9158,7 +9158,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/books.js @ 20b72b3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/books.js @ 23ad208 — verbatim from jeffdavis-studio/unison-engine ===== */
 // books.js — Pattern Books v1, as data.
 //
 // This file IS the document: "Unison — Pattern Books v1 (draft)" (Morgan,
@@ -11523,7 +11523,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/bassplayer.js @ 20b72b3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/bassplayer.js @ 23ad208 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassplayer.js — the PERFORMANCE half of the bass guitar: a session player.
 //
 // Rack 2's rule (kb/projects/unison.md, 2026-07-11): every human instrument is
@@ -11668,6 +11668,26 @@
       for (let k = 0; k < U.BASS_CHAIN_UNIFORMS; k++) us.push(G.r());
       out.chain = U.resolveBassChain(cid, us, out.voicing);
     }
+    // THE TECHNIQUE (bass books slice 2, 2026-11-05, Asana 1220085081674111):
+    // appended after slice 1's reads, which stay where they are. One read for
+    // the technique (lane × kind × chain × model × voicing weights), one for
+    // its seed, then a FIXED block of U.BASS_TECHNIQUE_UNIFORMS, read whatever
+    // the technique.
+    if (U.BASS_TECHNIQUES && out.chain) {
+      const TW = Object.keys(U.BASS_TECHNIQUES).map((id) => {
+        const T = U.BASS_TECHNIQUES[id];
+        const f = (o, k) => (o && o[k] != null ? o[k] : 1);
+        return { id, w: (T.wl[lane] != null ? T.wl[lane] : T.wl.synthPop) * f(T.kx, kind) * f(T.cx, out.chain.id) * f(T.mx, model) * f(T.vx, out.voicing) };
+      });
+      let tid = U.pickWeighted(G, TW).id;
+      let tseed = G.ri(1, 2147483646);
+      const tu = [];
+      for (let k = 0; k < U.BASS_TECHNIQUE_UNIFORMS; k++) tu.push(G.r());
+      // census and level harnesses only: the same song played by a given technique
+      const F = U.BASS_TECHNIQUE_FORCE;
+      if (F && U.BASS_TECHNIQUES[F.id]) { tid = F.id; if (F.seed) tseed = F.seed; }
+      out.technique = U.resolveBassTechnique(tid, tseed, tu, sheet, out, voicing);
+    }
     return out;
   };
 
@@ -11792,9 +11812,313 @@
     }
     return out;
   };
+
+  // ---- THE PLAYING TECHNIQUES (bass books slice 2, 2026-11-05, Asana
+  // 1220085081674111; the rack and parts doc, "The players' books": "Four
+  // styles: funk fingerstyle with ghost notes and octave pops, slap, new wave
+  // eighth-note root pumping with the Hook variant that climbs into melody,
+  // and reggae"). Called TECHNIQUES in the code: the five written figures
+  // above are the book's "styles" and keep the name. A technique is drawn on
+  // the bassBook fork after the chain (U.drawBassBook) and played by
+  // U.playBassTechniqueBar: the technique turns the bar's events (after the
+  // figure, U.bassStyleBar) into its own (U.applyBassTechnique: the bar
+  // vocabulary and its per-bar operators), U.playBassBar realizes them with
+  // the record the technique shifted (push, jitter, ghosts, length, touch),
+  // then a tail (the technique's dead notes kept dead, the swing lean). The
+  // instrument is untouched: plain plucks, art "pop", mute (a dead note) and
+  // slide (a hammer-on is a fast slide from a whole step under) are the
+  // voice's own. Every centre is general knowledge of the era's session
+  // playing, labeled estimate (`est`); `ref`: titles in
+  // files/unison/dossier/track-table.md. band: each dial's range (RESULT.md
+  // slice 2, Design). rec: multipliers on the drawn player record. lean:
+  // added swing on the odd sixteenths (fraction of a sixteenth).
+  U.BASS_TECHNIQUE_OFF = false;     // harnesses only: play the figure and the player as before
+  U.BASS_TECHNIQUE_FORCE = null;    // harnesses only: { id, seed? }
+  U.BASS_TECHNIQUE_UNIFORMS = 8;
+  U.BASS_TECHNIQUES = {
+    fingerFunk: {
+      wl: { funk: 46, synthRnB: 42, newWave: 12, synthPop: 15, earlyHipHop: 28 },
+      kx: { synco16: 2, seq16: 2, oneNote: 2, walk: 2, riffHook: 1.5, octaveSlide: 1.5, rootEighths: 0.6, rootQuarters: 0.6, octaveAlt: 0.7, octavePush: 0.7 },
+      cx: { compBright: 1.3, compDi: 1.2 }, mx: { j: 1.3, active: 1.3 }, vx: { muted: 0.5 },
+      band: { density: [0.12, 0.33], len: [0.7, 0.9], vel: [1.2, 1.4], ghost: [2, 3], push: [-3, -1], six: [0, 0], seven: [0.3, 0.9] },
+      rec: { jitter: 0.8 }, lean: 0,
+      ref: ["Scritti Politti — Perfect Way", "Patrice Rushen — Feels So Real"], est: true,
+      note: "fingerstyle funk: the written line kept alive with dead notes in the open sixteenths, an octave pop spent like punctuation, hammer-ons into chord tones, a hair ahead" },
+    slap: {
+      wl: { funk: 36, synthRnB: 16, newWave: 5, synthPop: 5, earlyHipHop: 20 },
+      kx: { synco16: 2, oneNote: 2, octaveAlt: 2, riffHook: 1.5, seq16: 1.2, octavePush: 1.2, walk: 0.5, rootEighths: 0.6, rootQuarters: 0.4, octaveSlide: 0.8 },
+      cx: { compBright: 2, chorusFretless: 0.3 }, mx: { active: 1.5, fretless: 0.2 }, vx: { slap: 1.6, muted: 0 },
+      band: { density: [0.35, 0.8], len: [0.6, 0.8], vel: [1.3, 1.7], ghost: [1.2, 1.8], push: [-2, 0], six: [0, 0], seven: [0, 2.999] },
+      rec: { jitter: 0.8 }, lean: 0,
+      ref: ["Level 42 — Something About You", "Thompson Twins — Love Lies Bleeding"], est: true,
+      note: "slap: a drummer with thumb and index, the thumb loud on the downbeats and the root, the pops bright on the off-sixteenths, dead thumbs and hammer-ons between" },
+    rootPump: {
+      wl: { funk: 6, synthRnB: 12, newWave: 46, synthPop: 40, earlyHipHop: 14 },
+      kx: { rootEighths: 2, octaveAlt: 2, octavePush: 2, rootQuarters: 2, synco16: 0.5, seq16: 0.6, oneNote: 0.6, walk: 0.6, riffHook: 0.7, octaveSlide: 0.7 },
+      cx: { compChorus: 1.5, ampDrive: 1.5 }, mx: { p: 1.3, shortScale: 1.3 }, vx: { pick: 1.5, muted: 1.5 },
+      band: { density: [0, 0.25], len: [0.6, 0.8], vel: [0.3, 0.5], ghost: [0, 0], push: [-1, 1], six: [0, 0.5], seven: [0, 2.999] },
+      rec: { jitter: 0.6 }, lean: 0,
+      ref: ["Duran Duran — Hungry Like the Wolf", "Kajagoogoo — Too Shy"], est: true,
+      note: "new wave root pumping: straight eighths on the root at one velocity so the chorus and the drive do the moving; the Hook climb leaves the root for a run up the neck where the song turns" },
+    reggae: {
+      wl: { funk: 3, synthRnB: 5, newWave: 8, synthPop: 14, earlyHipHop: 20 },
+      kx: { rootQuarters: 1.5, walk: 1.2 },
+      cx: { ampWarm: 1.5, di: 1.3 }, mx: {}, vx: { muted: 0, slap: 0 },
+      band: { density: [2, 5.999], len: [1.1, 1.3], vel: [0.7, 1.0], ghost: [0, 0], push: [4, 8], six: [0.1, 0.4], seven: [0, 1] },
+      rec: { jitter: 0.9 }, lean: 0.02, toneMul: 0.4,
+      ref: ["UB40 — Cherry Oh Baby", "Culture Club — Do You Really Want to Hurt Me"], est: true,
+      note: "reggae: beat one (or three) left empty, the root and fifth held long and dark, a sparse line behind the kick, a pickup into the change" },
+  };
+  // the guardrails (RESULT.md slice 2, Design), measured on the census.
+  // ghostCap: the applied ghost chance, held under it (the fill places dead
+  // notes of its own, so the record's share is capped below the guitar's)
+  U.BASS_TECHNIQUE_GUARD = { minGapSteps: 0.5, minEv: 1, maxEv: 16, pushMs: 8, ghostDensity: 0.6, restShare: 0.15, minEvPer2Bars: 1, ghostCap: 0.35, peakDb: 3 };
+  // measured per technique and WRITTEN PATTERN KIND, dB, applied after the
+  // board (U.bassTechniqueLevel), so every technique sits at the written
+  // playing's K-weighted level. Keyed on the kind (slice 1 found the kind
+  // drives the spread through a compressor). MEASURED 2026-11-05
+  // (harness/bassguitar-book-level.mjs --techniques: each technique forced vs
+  // U.BASS_TECHNIQUE_OFF, the first 30 s, through the song's drawn chain and
+  // params, the trim the session sets, at the insert; 91 songs over two sets,
+  // seeds 1-2, 6-10 per cell (reggae × synco16: 3); cell = −mean gap, `all`
+  // where the cell was not measured; per-cell sd 0.2-1.3 dB;
+  // files/unison/bass-books-2026-11-05/bass2-level-table.json).
+  U.BASS_TECHNIQUE_LEVEL_DB = {"fingerFunk":{"all":0.2,"octaveAlt":0.3,"octavePush":0.1,"octaveSlide":0.9,"oneNote":-0.1,"riffHook":0,"rootEighths":0.5,"rootQuarters":-0.8,"seq16":0.4,"synco16":0.1,"walk":0.9},"slap":{"all":0.8,"octaveAlt":0.8,"octavePush":1,"octaveSlide":1.2,"oneNote":-0.1,"riffHook":0.2,"rootEighths":0.7,"seq16":0.7,"synco16":0.5,"walk":2.3},"rootPump":{"all":-0.3,"octaveAlt":0.6,"octavePush":0.5,"octaveSlide":0.4,"oneNote":-1.8,"riffHook":-1.6,"rootEighths":1,"rootQuarters":-1.9,"seq16":0.8,"synco16":-1.9,"walk":0.5},"reggae":{"all":-1.4,"octaveAlt":-0.5,"octavePush":-1.6,"octaveSlide":-0.8,"riffHook":-3.5,"rootEighths":-1,"seq16":-1.1,"walk":-0.1,"synco16":-3.5}};
+
+  const tlerp = (b, u) => b[0] + u * (b[1] - b[0]);
+  // the technique record: dials from the fixed block, the record offsets on
+  // the drawn player record (sheet.bassPlayer), the level, the climb bars
+  U.resolveBassTechnique = function (id, seed, tu, sheet, book, voicing) {
+    const T = U.BASS_TECHNIQUES[id], B = T.band;
+    const dials = {
+      variation: +tlerp([0.1, 0.6], tu[0]).toFixed(3),
+      density: +tlerp(B.density, tu[1]).toFixed(3),
+      len: +tlerp(B.len, tu[2]).toFixed(3),
+      vel: +tlerp(B.vel, tu[3]).toFixed(3),
+      ghost: +tlerp(B.ghost, tu[4]).toFixed(3),
+      push: +tlerp(B.push, tu[5]).toFixed(2),
+      six: +tlerp(B.six, tu[6]).toFixed(3),
+      seven: +tlerp(B.seven, tu[7]).toFixed(3),
+    };
+    const drawn = sheet.bassPlayer || null;
+    let applied = null;
+    if (drawn) {
+      const L = U.BASS_PLAYER_LANE[sheet.lane] || U.BASS_PLAYER_LANE.synthPop;
+      const G = U.BASS_TECHNIQUE_GUARD;
+      const lf = Math.max(B.len[0] - 0.05, Math.min(B.len[1] + 0.05, dials.len + 0.5 * (drawn.lengthFeel - L.len)));
+      applied = Object.assign({}, drawn, {
+        push: +Math.max(-G.pushMs, Math.min(G.pushMs, dials.push + 0.5 * (drawn.push - L.push))).toFixed(2),
+        jitter: +(drawn.jitter * T.rec.jitter).toFixed(2),
+        velSpread: +(drawn.velSpread * dials.vel).toFixed(3),
+        ghostP: +Math.min(G.ghostCap, drawn.ghostP * dials.ghost).toFixed(3),
+        lengthFeel: +lf.toFixed(3),
+      });
+    }
+    const kind = sheet.picks && sheet.picks.bass ? sheet.picks.bass.kind : null;
+    const Lv = U.BASS_TECHNIQUE_LEVEL_DB[id];
+    const levelDb = Lv == null ? 0 : typeof Lv === "number" ? Lv : (Lv[kind] != null ? Lv[kind] : Lv.all || 0);
+    const out = { id, seed, dials, record: { drawn, applied }, levelDb };
+    // the Hook climb: decided per bar from the seed, on the eligible bars (a
+    // section's last bar, or every eighth bar of a section: where the song turns)
+    if (id === "rootPump") {
+      out.climbBars = [];
+      const bars = sheet.bars || [];
+      for (let k = 0; k < bars.length; k++) {
+        const b = bars[k];
+        if (!(b.indexInSection === b.sectionLen - 1 || b.indexInSection % 8 === 7)) continue;
+        if (U.forkPrng((seed >>> 0).toString(16), "climb" + k).r() < dials.six) out.climbBars.push(k);
+      }
+    }
+    // reggae's dark touch: the model's tone position pulled down inside its range
+    if (T.toneMul && book && book.params) {
+      out.toneU = +(book.tone * T.toneMul).toFixed(4);
+      out.params = U.resolveBassGuitarPatch(voicing, book.model, book.style, out.toneU);
+    }
+    return out;
+  };
+
+  // where the technique's level goes: after the board when there is one
+  // (folded into the chain's output level: the amp's outDb or the board's
+  // level block, so the compressor never sees it), on the strip's trim on di.
+  // Nothing with U.BASS_TECHNIQUE_OFF.
+  U.bassTechniqueLevel = function (book) {
+    const t = book && book.technique, ch = book && book.chain;
+    if (!t || U.BASS_TECHNIQUE_OFF || !t.levelDb) return { trimDb: 0, chain: ch };
+    if (ch && ch.id !== "di") return { trimDb: 0, chain: Object.assign({}, ch, { levelDb: +((ch.levelDb || 0) + t.levelDb).toFixed(2) }) };
+    return { trimDb: t.levelDb, chain: ch };
+  };
+  // the technique in play on a song (null = the written playing)
+  U.bassTechniqueOn = (book) => (!U.BASS_TECHNIQUE_OFF && book && book.technique && book.technique.record.applied ? book.technique : null);
+
+  // pitch classes of the song's scale
+  const scalePcs = (c) => { const o = {}; for (const d of c.scale || [0, 2, 4, 5, 7, 9, 11]) o[((c.tonicPc || 0) + d) % 12] = 1; return o; };
+  // the Hook climb: the root, scale tones rising, the target (a chord tone of
+  // the next chord), n notes from step 8 (eighths for 4, sixteenths after)
+  function climb(c, tsel, n) {
+    const root = c.root, nr = c.nextRoot;
+    // the next chord's fifth, octave or third, as the chord has them
+    const nt = c.nextTones || [nr, nr + 4, nr + 7];
+    let target = [nt[2] != null ? nt[2] : nr + 7, nr + 12, nt[1] != null ? nt[1] : nr + 4][tsel];
+    while (target < root + 7) target += 12;
+    while (target > 64) target -= 12;
+    if (target <= root + 2) target += 12;
+    const pcs = scalePcs(c), inner = [];
+    for (let m = root + 1; m < target; m++) if (pcs[((m % 12) + 12) % 12]) inner.push(m);
+    const k = Math.max(1, Math.min(n - 2, inner.length));
+    const pick = [];
+    for (let j = 0; j < k; j++) pick.push(inner[Math.round(((j + 1) * (inner.length + 1)) / (k + 1)) - 1] || inner[inner.length - 1]);
+    const notes = [root, ...pick, target].filter((m, j, a) => j === 0 || m > a[j - 1]);
+    const cnt = notes.length, out = [];
+    const stepOf = cnt <= 4 ? (j) => 16 - 2 * (cnt - j) : (j) => 16 - (cnt - j);
+    for (let j = 0; j < cnt; j++) {
+      const i = Math.max(8, stepOf(j)), last = j === cnt - 1;
+      out.push({ i, midi: notes[j], vel: last ? 0.9 : 0.8 + 0.02 * j, dur: last ? 16 - i + 1 : (cnt <= 4 ? 1.8 : 0.95) });
+    }
+    return { evs: out.filter((e, j, a) => j === 0 || e.i > a[j - 1].i), target, nextTones: (c.nextTones || []).map((m) => ((m % 12) + 12) % 12) };
+  }
+
+  // one bar's events in the technique. written: the bar after the figure
+  // ([{i, midi, vel, dur, art?, harm?, slide?}]); c: {bar, root, tones,
+  // nextRoot, nextTones, scale, tonicPc, idx, len, kind}. Returns the
+  // technique's events (dead notes carry mute: true); a Hook climb bar
+  // carries .climb = { target, nextTones }.
+  U.applyBassTechnique = function (written, c, t) {
+    const T = U.BASS_TECHNIQUES[t.id], d = t.dials;
+    const R = U.forkPrng((t.seed >>> 0).toString(16), "tbar" + c.bar);
+    const root = c.root, evs = written.map((e) => Object.assign({}, e)).sort((a, b) => a.i - b.i);
+    const has = (out, i) => out.some((e) => e.i === i);
+    const lastAt = (out, i) => { let l = null; for (const e of out) if (e.i <= i) l = e; return l; };
+    const sortI = (a) => a.sort((x, y) => x.i - y.i);
+    if (t.id === "fingerFunk") {
+      const out = evs;
+      // hammer-on into a chord tone off the downbeat
+      if (R.r() < d.variation) {
+        const cand = out.filter((e) => e.i % 4 && e.midi !== root && !e.slide && !e.art);
+        if (cand.length) { const e = cand[Math.floor(R.r() * cand.length)]; e.slide = -2; e.slideTime = 0.03; }
+      }
+      // the octave pop on an empty off-sixteenth, a second at half the share
+      for (const share of [d.seven, d.seven * 0.5]) {
+        if (R.r() >= share) continue;
+        const slots = [];
+        for (let i = 1; i < 16; i += 2) if (!has(out, i)) slots.push(i);
+        if (!slots.length) break;
+        const i = slots[Math.floor(R.r() * slots.length)];
+        out.push({ i, midi: root + 12, vel: 0.86, dur: 0.7, art: "pop" });
+        sortI(out);
+      }
+      // dead notes in the open sixteenths
+      const fill = [];
+      for (let i = 0; i < 16; i++) {
+        const r = R.r(), gv = R.r();
+        if (has(out, i) || r >= d.density) continue;
+        const l = lastAt(out, i) || out[0];
+        fill.push({ i, midi: l ? l.midi : root, vel: 0.26 + 0.12 * gv, dur: 0.4, mute: true });
+      }
+      return sortI(out.concat(fill));
+    }
+    if (t.id === "slap") {
+      const out = [];
+      const popSlot = Math.floor(d.seven);           // 0: the "and"s, 1: the "e" and "a", 2: the "a"s
+      const slotOk = (i) => (popSlot === 0 ? i % 4 === 2 : popSlot === 1 ? i % 2 === 1 : i % 4 === 3);
+      for (const e of evs) {
+        if (e.mute) { out.push(e); continue; }
+        const thumb = e.i % 4 === 0 || e.midi === root;
+        if (thumb) out.push({ i: e.i, midi: e.midi >= root + 7 ? e.midi - 12 : e.midi, vel: 0.95, dur: Math.min(e.dur, 1.6) });
+        else if (R.r() < d.density) out.push({ i: e.i, midi: root + 12, vel: 0.88, dur: Math.min(e.dur, 0.9), art: "pop" });
+        else out.push({ i: e.i, midi: e.midi >= root + 7 ? e.midi - 12 : e.midi, vel: 0.82, dur: Math.min(e.dur, 1.2) });
+      }
+      // extra pops into the empty slots of the placement
+      for (let i = 1; i < 16; i++) { const r = R.r(); if (slotOk(i) && !has(out, i) && r < d.density * 0.5) out.push({ i, midi: root + 12, vel: 0.85, dur: 0.8, art: "pop" }); }
+      sortI(out);
+      // a thumb followed by a hammer-on to the next chord tone
+      if (R.r() < d.variation) {
+        for (let k = 0; k < out.length; k++) {
+          const e = out[k];
+          if (e.art || e.mute || has(out, e.i + 1) || e.i + 1 > 15) continue;
+          const up = c.tones && c.tones[1] != null ? c.tones[1] : root + 3;
+          out.push({ i: e.i + 1, midi: up, vel: 0.7, dur: 0.8, slide: -2, slideTime: 0.025 });
+          break;
+        }
+        sortI(out);
+      }
+      // dead thumbs on the empty even sixteenths
+      for (let i = 0; i < 16; i += 2) { const r = R.r(); if (!has(out, i) && r < Math.min(0.5, 0.15 * d.ghost)) out.push({ i, midi: root, vel: 0.34, dur: 0.4, mute: true }); }
+      return sortI(out);
+    }
+    if (t.id === "rootPump") {
+      const octKind = c.kind === "octaveAlt" || c.kind === "octavePush";
+      const climbing = t.climbBars && t.climbBars.indexOf(c.bar) >= 0;
+      const out = [];
+      for (let i = 0; i < 16; i += 2) {
+        const r = R.r();
+        if (climbing && i >= 8) continue;
+        const w = evs.find((e) => e.i === i);
+        let midi = root;
+        if (octKind && w && w.midi === root + 12) midi = root + 12;
+        else if (!octKind && i % 4 === 2 && r < d.density) midi = root + 12;
+        out.push({ i, midi, vel: i === 0 ? 0.9 : 0.86, dur: 1.7 });
+      }
+      if (climbing) {
+        const cl = climb(c, Math.floor(d.seven), 4 + Math.floor(R.r() * 5));
+        const res = sortI(out.concat(cl.evs));
+        res.climb = { bar: c.bar, target: cl.target, nextTones: cl.nextTones };
+        return res;
+      }
+      // a sixteenth push into the next root
+      if (R.r() < d.variation * 0.5 && c.nextRoot != null && c.nextRoot !== root) out.push({ i: 15, midi: c.nextRoot, vel: 0.84, dur: 1.0 });
+      return sortI(out);
+    }
+    if (t.id === "reggae") {
+      // the per-song template of slots (from the seed), the one-drop beat held for the song
+      const S = U.forkPrng((t.seed >>> 0).toString(16), "tmpl");
+      const drop1 = d.seven < 0.5;
+      const pool = drop1 ? [[2, 3], [6, 8], [10, 12], [7, 14], [11, 4]] : [[0], [3, 4], [6, 10], [12, 14], [11, 2]];
+      const slots = pool.map((p) => p[Math.floor(S.r() * p.length)]);
+      const fifth = root + 7, oct = root + 12, third = c.tones && c.tones[1] != null ? c.tones[1] : root + 3;
+      const pitchFor = [root, fifth, root, third, oct];
+      let n = Math.floor(d.density);
+      if (R.r() < d.variation * 0.5) n = Math.max(2, Math.min(5, n + (R.r() < 0.5 ? -1 : 1)));
+      const use = slots.slice(0, n).map((i, j) => ({ i, j }));
+      // a per-bar operator: one note moves to its slot's neighbour
+      if (R.r() < d.variation && use.length > 1) { const k = 1 + Math.floor(R.r() * (use.length - 1)); const i2 = use[k].i + (R.r() < 0.5 ? -1 : 1); if (i2 > 0 && i2 < 16 && (drop1 ? i2 !== 0 : i2 !== 8)) use[k].i = i2; }
+      const seen = {}, out = [];
+      for (const u of use.sort((a, b) => a.i - b.i)) { if (seen[u.i]) continue; seen[u.i] = 1; out.push({ i: u.i, midi: pitchFor[u.j], vel: u.j === 0 ? 0.9 : 0.82, dur: 3 }); }
+      // the pickup into the change
+      const change = c.nextRoot != null && c.nextRoot !== root;
+      if (R.r() < d.six * (change ? 1 : 0.3) && c.nextRoot != null) {
+        const pi = 14 + (R.r() < 0.5 ? 1 : 0);
+        for (let k = out.length - 1; k >= 0; k--) if (out[k].i >= pi - 1) out.splice(k, 1);
+        out.push({ i: pi, midi: c.nextRoot + (c.nextRoot > root ? -2 : 2), vel: 0.8, dur: 16 - pi + 0.5 });
+      }
+      sortI(out);
+      // long notes: each held to the next onset (the length dial does the rest)
+      for (let k = 0; k < out.length; k++) out[k].dur = Math.max(out[k].dur, (k + 1 < out.length ? out[k + 1].i : 16) - out[k].i);
+      return out;
+    }
+    return evs;
+  };
+
+  // one bar in the technique: its events through the session player with the
+  // shifted record, then the tail (dead notes kept dead: U.playBassBar does
+  // not copy `mute`; the swing lean on the odd sixteenths).
+  U.playBassTechniqueBar = function (written, c, t) {
+    const evs = U.applyBassTechnique(written, c, t);
+    if (!evs.length) return [];
+    const out = U.playBassBar(evs, { bar: c.bar, s16: c.s16, swing: c.swing }, t.record.applied);
+    const byI = {}; for (const e of evs) byI[e.i] = e;
+    const lean = (U.BASS_TECHNIQUES[t.id].lean || 0) * c.s16, barEnd = 16 * c.s16;
+    const nominal = (i) => i * c.s16 + (i % 2 ? (c.swing || 0) * c.s16 : 0);
+    for (const o of out) {
+      const w = byI[o.i];
+      if (w && w.mute && !o.mute) o.mute = true;
+      if (lean && o.i % 2 === 1) o.off = Math.min(barEnd - 0.002 - nominal(o.i), o.off + lean);
+    }
+    if (evs.climb) out.climb = evs.climb;
+    return out;
+  };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/gtrplayer.js @ 20b72b3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/gtrplayer.js @ 23ad208 — verbatim from jeffdavis-studio/unison-engine ===== */
 // gtrplayer.js — the PERFORMANCE half of the rhythm guitar: a session
 // guitarist on the rhythmGtr strip.
 //
@@ -12268,7 +12592,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/fmplayer.js @ 20b72b3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/fmplayer.js @ 23ad208 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fmplayer.js — the PERFORMANCE half of the FM keys: a session keyboard
 // player on the FM chord strips (compA's tine EP, colour's glass and brass).
 //
@@ -12409,7 +12733,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/testPhrase.js @ 20b72b3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/testPhrase.js @ 23ad208 — verbatim from jeffdavis-studio/unison-engine ===== */
 // testPhrase.js — deterministic 8-bar test phrase, ported from the bake-off
 // (phrase.js) onto the engine's canonical PRNG (core/prng.js).
 //
@@ -12503,7 +12827,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/form.js @ 20b72b3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/form.js @ 23ad208 — verbatim from jeffdavis-studio/unison-engine ===== */
 // form.js — the song's form: the book of returns (2026-10-30, Asana
 // 1220073468300418; design files/unison/structure-design-2026-10-30 in the
 // morgan repo, DESIGN.md + draw.py, transcribed here as written).
@@ -12824,7 +13148,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/session.js @ 20b72b3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/session.js @ 23ad208 — verbatim from jeffdavis-studio/unison-engine ===== */
 // session.js — the session sheet and the arrangement realizer.
 //
 // Two tiers, in this order, each on its own stream (core/prng.js):
@@ -13933,12 +14257,18 @@
       // there is no record (pages, older callers).
       const book = sheet.bassBook;
       bgVoicing = book ? book.voicing : BASSGUITAR_FOR_KIND(P.bass.kind, sheet.lane);
-      desk.strips.bass.trim.gain.value = Math.pow(10, BASSGUITAR_TRIM_DB[bgVoicing] / 20);
-      bassInst = U.createBassGuitar(ctx, desk.strips.bass, book ? book.params : bgVoicing);
+      // the playing technique (bass books slice 2, bassplayer.js): its
+      // measured level after the board (on the trim on di), and its own patch
+      // where it moves a knob (reggae's darker tone); none with
+      // U.BASS_TECHNIQUE_OFF
+      const btech = U.bassTechniqueOn ? U.bassTechniqueOn(book) : null;
+      const btl = btech ? U.bassTechniqueLevel(book) : { trimDb: 0, chain: book && book.chain };
+      desk.strips.bass.trim.gain.value = Math.pow(10, (BASSGUITAR_TRIM_DB[bgVoicing] + btl.trimDb) / 20);
+      bassInst = U.createBassGuitar(ctx, desk.strips.bass, book ? (btech && btech.params ? btech.params : book.params) : bgVoicing);
       // the player's board (bass books slice 1, 2026-11-05): the drawn
       // chain's pedals and amp, desk blocks in the strip's board slot; di adds
       // nothing (the instrument's own DI sound)
-      if (book && book.chain && U.applyBassChain) U.applyBassChain(desk, "bass", book.chain);
+      if (book && book.chain && U.applyBassChain) U.applyBassChain(desk, "bass", btl.chain);
     } else {
       bassInst = create("bass", P.bass.kind === "sub808" ? "sub" : "bass");
     }
@@ -14231,7 +14561,15 @@
         if (bgVoicing && barEv.length) {
           // the book's style writes its figure over the bar (plain: the bar)
           const written = sheet.bassBook ? U.bassStyleBar(barEv, sheet.bassBook, { bar }) : barEv;
-          for (const n of U.playBassBar(written, { bar, s16, swing }, sheet.bassPlayer)) {
+          // the playing technique (bass books slice 2): the technique's bar
+          // through the player record it shifted; U.BASS_TECHNIQUE_OFF plays
+          // the figure through the drawn record as before
+          const btq = U.bassTechniqueOn ? U.bassTechniqueOn(sheet.bassBook) : null;
+          const bplayed = btq
+            ? U.playBassTechniqueBar(written, { bar, s16, swing, root: bRoot, tones: bTones, nextRoot: bassMidi(nch.deg), nextTones: tones(bassMidi(nch.deg), nch.type, 4),
+              scale, tonicPc: sheet.tonicPc, idx: b.indexInSection, len: b.sectionLen, kind: k }, btq)
+            : U.playBassBar(written, { bar, s16, swing }, sheet.bassPlayer);
+          for (const n of bplayed) {
             const ex = {};
             if (n.mute) ex.mute = true;
             if (n.slide) ex.slide = n.slide;
@@ -14435,7 +14773,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/render/renderer.js @ 20b72b3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/render/renderer.js @ 23ad208 — verbatim from jeffdavis-studio/unison-engine ===== */
 // renderer.js — song assembly + the render pipeline (Technical Architecture
 // v1.2 playback model): live-first, with (a) a cheap analysis pre-render for
 // verification/metrics and (b) an on-demand full OfflineAudioContext render
@@ -14547,7 +14885,7 @@
         const o = {}, recs = Object.assign({}, sheet.junoPatches, sheet.obxaPatches, sheet.minimoogPatches, sheet.fmPatches);
         for (const st of U.ROLE_STRIPS) {
           const e = sheet.voices[st];
-          o[st] = e === "bassguitar" ? "bassguitar/" + (sheet.bassBook ? sheet.bassBook.voicing + "/" + sheet.bassBook.model + (sheet.bassBook.chain ? "/" + sheet.bassBook.chain.id : "") : U.BASSGUITAR_FOR_KIND(p.bass.kind, sheet.lane))
+          o[st] = e === "bassguitar" ? "bassguitar/" + (sheet.bassBook ? sheet.bassBook.voicing + "/" + sheet.bassBook.model + (sheet.bassBook.chain ? "/" + sheet.bassBook.chain.id : "") + (sheet.bassBook.technique && !U.BASS_TECHNIQUE_OFF ? "/" + sheet.bassBook.technique.id : "") : U.BASSGUITAR_FOR_KIND(p.bass.kind, sheet.lane))
             : recs[st] && recs[st].engine === e ? e + "/" + recs[st].name : e;
         }
         return o;
@@ -15388,10 +15726,18 @@
       // the drawn chain stays (the bass pedal books, 2026-11-05): a pick is
       // the bass and its figure, not the player's board; its level follows
       // the voicing the pick plays
-      var bc = s.bassBook && s.bassBook.chain, bv = U.bassGuitarVoicingFor(vc, style);
+      var bc = s.bassBook && s.bassBook.chain, bv = U.bassGuitarVoicingFor(vc, style), tq = s.bassBook && s.bassBook.technique;
       s.bassBook = { model: model, style: style, voicing: bv, tone: +u.toFixed(4),
         figure: Object.assign({ seed: seed }, U.bassBookFigure(style, a, b)), params: U.resolveBassGuitarPatch(vc, model, style, u) };
       if (bc && U.BASS_CHAIN_LEVEL_DB) { var L = U.BASS_CHAIN_LEVEL_DB[bc.id] || {}; s.bassBook.chain = Object.assign({}, bc, { levelDb: (L[bv] != null ? L[bv] : L.all) || 0 }); }
+      // the drawn playing technique stays too (bass books slice 2): the pick
+      // is the bass and its figure; reggae's darker patch follows the pick
+      if (tq) {
+        tq = Object.assign({}, tq);
+        var TT = U.BASS_TECHNIQUES[tq.id];
+        if (TT && TT.toneMul) { tq.toneU = +(u * TT.toneMul).toFixed(4); tq.params = U.resolveBassGuitarPatch(vc, model, style, tq.toneU); }
+        s.bassBook.technique = tq;
+      }
       return true;
     }
     if (inst === "rgtr") {
@@ -15418,9 +15764,10 @@
   function patchName(inst, s, opt) {
     var d = INST_BY[inst], st = d.strips[0];
     if (d.cls === "drums") return s.jamPicked && opt && opt.pn ? "Kit " + opt.pn.slice(4) : (inst === "d808" ? "808" : "Linn") + " panel";
-    // the chain, the model and the figure (the bass pedal books, 2026-11-05):
-    // "bass compChorus · P-style · plain"
-    if (inst === "bgtr") return s.bassBook ? (s.bassBook.chain ? "bass " + s.bassBook.chain.id + " · " : "") + bassLabel(s.bassBook.model, s.bassBook.style) : "";
+    // the chain, the model and the playing technique (the bass pedal books,
+    // 2026-11-05, slices 1 and 2): "bass compChorus · P-style · rootPump";
+    // the written figure is in the strip label and the dropdown
+    if (inst === "bgtr") return s.bassBook ? (s.bassBook.chain ? "bass " + s.bassBook.chain.id + " · " : "") + U.BASSGUITAR_MODELS[s.bassBook.model].label + (s.bassBook.technique ? " · " + s.bassBook.technique.id : " · " + (STYLE_NAMES[s.bassBook.style] || s.bassBook.style)) : "";
     // the chain, the model and the playing style (the amp and pedal books,
     // 2026-11-04, slices 1 and 2): "gtr dubEcho · Strat-style · skank"
     if (inst === "rgtr") return s.gtrBook ? (s.gtrBook.chain ? "gtr " + s.gtrBook.chain.id + " · " : "") + U.RHYTHMGUITAR_MODELS[s.gtrBook.model].label + (s.gtrBook.style ? " · " + s.gtrBook.style.id : "") : "";
