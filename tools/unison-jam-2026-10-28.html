@@ -222,10 +222,10 @@
 <div id="bars" class="row"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><div id="status"></div></div>
 <div id="layers"></div>
 <div id="add" class="row"><div class="lbl">Add a layer<button id="palRnd" title="add a random instrument (one you don't have yet, while any are left)">Random</button></div><div id="pal"></div></div>
-<footer title="engine @470fdb5 · built 2026-11-06">Unison jam &middot; every sound is synthesized in this page by the engine at 470fdb5</footer>
+<footer title="engine @7e52f7a · built 2026-11-06">Unison jam &middot; every sound is synthesized in this page by the engine at 7e52f7a</footer>
 
 <script>
-/* ===== src/core/prng.js @ 470fdb5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/prng.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
 // prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
 // token hash, consumed in canonical draw order (Technical Architecture v1.2).
 //
@@ -298,7 +298,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/core/mix.js @ 470fdb5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/mix.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
 // mix.js — the fan-in ≤2 summing rule, as a primitive.
 //
 // Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
@@ -467,7 +467,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/desk/desk.js @ 470fdb5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/desk/desk.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
 // desk.js — the 24-track desk as a running audio graph.
 //
 // The desk is the data structure, not a metaphor (Composition Brief 2 / Tech
@@ -1136,7 +1136,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/production.js @ 470fdb5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/production.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
 // production.js — the production room, v0.
 //
 // PLACEMENT DECISION (Morgan's call, ratified by Jeff 2026-08-03). Production
@@ -1478,7 +1478,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/vocoder.js @ 470fdb5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/vocoder.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
 // vocoder.js — the production room's vocoder insert, slice 1 (2026-11-05,
 // Asana 1220085081650427; design in files/unison/vocoder-2026-11-05/RESULT.md).
 //
@@ -1814,7 +1814,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/analogpoly.js @ 470fdb5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/analogpoly.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
 // analogpoly.js — the analog poly core: one module that builds every Juno and
 // OB-Xa voice, behind a family lock. Asana 1220084594874974, slice 1
 // (2026-11-02); the rack doc's build 3 (files/unison/rack-parts-proposal-
@@ -2440,7 +2440,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/juno.js @ 470fdb5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/juno.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
 // juno.js — Juno-60-flavor poly voice, raw Web Audio, zero dependencies.
 // Ported from the 2026-07-21 bake-off winner (voice-raw.js), restructured to
 // live behind a desk strip: U.createJuno(ctx, strip, patchName) builds its own
@@ -3007,7 +3007,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/minimoog.js @ 470fdb5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/minimoog.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
 // minimoog.js — Minimoog Model D-lineage mono voice, zero dependencies.
 //
 // THE MONO BASS LANE (build order 808 → Juno → Minimoog → …; it also absorbs
@@ -3794,7 +3794,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/obxa.js @ 470fdb5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/obxa.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
 // obxa.js — Oberheim OB-Xa-lineage poly voice, zero dependencies.
 //
 // THE BRASS/PAD POLY LANE (build order 808 → Juno → Minimoog → OB-Xa → …).
@@ -4339,7 +4339,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/fm.js @ 470fdb5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/fm.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
 // fm.js — six-operator FM keys voice (the DX7 lineage), zero dependencies.
 //
 // THE FM LANE (build order 808 → Juno → Minimoog → OB-Xa → Linn → FM).
@@ -5360,7 +5360,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/bassguitar.js @ 470fdb5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/bassguitar.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassguitar.js — electric bass guitar, the first session player of the human
 // rack (Rack 2), zero dependencies.
 //
@@ -6071,7 +6071,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/rhythmguitar.js @ 470fdb5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/rhythmguitar.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
 // rhythmguitar.js — clean electric rhythm guitar, the fourth and last stop of
 // the human rack (Rack 2), zero dependencies.
 //
@@ -6847,7 +6847,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/tr808.js @ 470fdb5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/tr808.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
 // tr808.js — THE MACHINE. A TR-808-lineage core voice: bass drum, snare,
 // closed hat, open hat, each with a front panel the token actually turns.
 //
@@ -8131,7 +8131,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/linn.js @ 470fdb5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/linn.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
 // linn.js — THE STUDIO MACHINE. A Linn-family (LM-1 / LinnDrum lineage)
 // drum computer: the new wave / synth-pop / 80s R&B kit.
 //
@@ -8953,7 +8953,535 @@
     get EPROM_HZ() { return U.CIRCUIT_LINN.epromHz; }, get RECON_HZ() { return U.CIRCUIT_LINN.reconHz; } };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drumengine.js @ 470fdb5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/romkits.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
+// romkits.js — THE OTHER SAMPLED MACHINE: the DMX (Oberheim lineage, 1981),
+// drum engine slice 3, 2026-11-03, Asana 1219959495948201.
+//
+// Homage, not trademark: nothing user-facing names a model number.
+//
+// THE SAMPLED FAMILY'S CONVERTER IS SHARED; THE CHIPS ARE NOT. The DMX
+// played short recordings of acoustic drums from EPROMs, like the Linn, so
+// its voices go through the family's data path (linn.js burn + play: the
+// compander, the bits, the clock, the zero-order-hold DAC, the output
+// filter) at ONE position on the converter curve (drumengine.js
+// U.DMX_CONVERTER_POS; the lock holds it there). What the chips HOLD is the
+// box's own: its own drums, recorded its own way, so a DMX snare is not the Linn's snare at another bit depth. Unison ships no
+// samples, so each "recording" is synthesised from math at build time to the
+// box's published character (sources and estimates: RESULT.md, slice 3,
+// Design) and then burned.
+//
+// What else differs from the Linn, per box, is in its voice path below: the
+// DMX has no voltage-controlled filter closing on its tails (the LinnDrum's
+// CEM3320 is the Linn's), so its 8-bit grit rides the tom and kick tails to
+// the end; its chips are short (4 KB) and its two-sound cards shorter; its
+// cards run at their own clocks (per-voice ratios to the family clock,
+// exactly as the Linn's hat chip).
+//
+// DETERMINISM. One fixed-seed noise stream per machine, consumed in a fixed
+// chip order; no Math.random, no song draws.
+// Load order: after linn.js (the family's data path), before drumengine.js.
+(function (g) {
+  "use strict";
+  const U = (g.U = g.U || {});
+  const SR = 44100;
+
+  // ---- private DSP helpers (the same primitives as linn.js) -----------------
+  const alloc = (sec) => new Float32Array(Math.max(1, Math.round(sec * SR)));
+  function onePoleHP(x, hz) {
+    const a = Math.exp((-2 * Math.PI * hz) / SR);
+    let y = 0, xp = 0;
+    for (let i = 0; i < x.length; i++) { const xi = x[i]; y = a * (y + xi - xp); x[i] = y; xp = xi; }
+    return x;
+  }
+  function onePoleLP(x, hz) {
+    const a = 1 - Math.exp((-2 * Math.PI * hz) / SR);
+    let y = 0;
+    for (let i = 0; i < x.length; i++) { y += a * (x[i] - y); x[i] = y; }
+    return x;
+  }
+  function biquad(x, type, hz, q) {
+    const w = (2 * Math.PI * hz) / SR, al = Math.sin(w) / (2 * q), cw = Math.cos(w);
+    let b0, b1, b2;
+    if (type === "bp") { b0 = al; b1 = 0; b2 = -al; }
+    else if (type === "lp") { b0 = (1 - cw) / 2; b1 = 1 - cw; b2 = (1 - cw) / 2; }
+    else { b0 = (1 + cw) / 2; b1 = -(1 + cw); b2 = (1 + cw) / 2; }
+    const a0 = 1 + al, a1 = -2 * cw, a2 = 1 - al;
+    let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+    for (let i = 0; i < x.length; i++) {
+      const xi = x[i], y = (b0 * xi + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2) / a0;
+      x2 = x1; x1 = xi; y2 = y1; y1 = y; x[i] = y;
+    }
+    return x;
+  }
+  function normalize(x, target) {
+    let pk = 0; for (let i = 0; i < x.length; i++) pk = Math.max(pk, Math.abs(x[i]));
+    if (pk < 1e-9) return x;
+    const k = target / pk; for (let i = 0; i < x.length; i++) x[i] *= k;
+    return x;
+  }
+  function noise(n, rnd) { const x = new Float32Array(n); for (let i = 0; i < n; i++) x[i] = rnd() * 2 - 1; return x; }
+  const scale = (y, k) => { for (let i = 0; i < y.length; i++) y[i] *= k; return y; };
+  const dB = (d) => Math.pow(10, d / 20);
+
+  // ---- the source models: what a recorded drum is made of -------------------
+  // A membrane: modes at f x ratios[k] with weights w[k], each decaying at
+  // tau x td[k] (higher modes die first); the pitch falls from f x (1 + drop)
+  // over dropTau (the head's tension relaxing); a rise (bloom); a beater or
+  // stick strike (noise burst, its own band, strikeTau); skin noise riding
+  // the body (low-passed, skinTau). Every drum here is this shape with its
+  // own numbers; the DMX's are not the Linn's.
+  function membrane(p, rnd) {
+    const x = alloc(p.len);
+    const ph = p.ratios.map(() => 0);
+    for (let i = 0; i < x.length; i++) {
+      const t = i / SR, f = p.f * (1 + p.drop * Math.exp(-t / p.dropTau));
+      let s = 0;
+      for (let k = 0; k < p.ratios.length; k++) {
+        ph[k] += (2 * Math.PI * f * p.ratios[k]) / SR;
+        s += p.w[k] * Math.sin(ph[k]) * Math.exp(-t / (p.tau * p.td[k]));
+      }
+      x[i] = s * (1 - Math.exp(-t / p.bloom));
+    }
+    if (p.skin > 0) {
+      const sk = noise(x.length, rnd); onePoleLP(sk, p.skinLP); onePoleLP(sk, p.skinLP); onePoleHP(sk, 120); normalize(sk, 1);
+      for (let i = 0; i < x.length; i++) x[i] += p.skin * sk[i] * Math.exp(-i / SR / p.skinTau);
+    }
+    const n = Math.round(Math.min(p.len, 8 * p.strikeTau + 0.002) * SR);
+    const c = noise(n, rnd); biquad(c, "bp", p.strikeF, p.strikeQ);
+    normalize(c, 1);
+    for (let i = 0; i < n; i++) x[i] += p.strike * c[i] * Math.exp(-i / SR / p.strikeTau);
+    if (p.drive) for (let i = 0; i < x.length; i++) x[i] = Math.tanh(p.drive * x[i]) / Math.tanh(p.drive);
+    return normalize(x, 0.95);
+  }
+  // A snare: a membrane for the shell plus the wires: noise band-passed at
+  // wireF (Q wireQ) with its own decay, and a rim crack (crack, crackF).
+  function snareSrc(p, rnd) {
+    const shell = membrane(p, rnd);
+    const w = noise(shell.length, rnd); onePoleHP(w, p.wireHP); onePoleHP(w, p.wireHP); biquad(w, "bp", p.wireF, p.wireQ); normalize(w, 1);
+    const x = new Float32Array(shell.length);
+    for (let i = 0; i < x.length; i++) {
+      const t = i / SR;
+      x[i] = (1 - p.wire) * shell[i] + p.wire * w[i] * Math.exp(-t / p.wireTau) * (1 - Math.exp(-t / 0.0008));
+    }
+    return normalize(x, 0.95);
+  }
+  // A cymbal plate (the hats): inharmonic partials (freqs) over high-passed
+  // noise, the partials ringing modeLen x the wash; `bloom` the stick's rise.
+  function plateSrc(p, rnd) {
+    const x = alloc(p.len), nz = noise(x.length, rnd), ph = p.freqs.map(() => 0);
+    for (let i = 0; i < x.length; i++) {
+      const t = i / SR;
+      let m = 0;
+      for (let k = 0; k < p.freqs.length; k++) { ph[k] += (2 * Math.PI * p.freqs[k]) / SR; m += Math.sin(ph[k]) / (1 + 0.4 * k); }
+      const rise = 1 - Math.exp(-t / p.bloom);
+      x[i] = (p.ring * m * Math.exp(-t / (p.tau * p.modeLen)) / p.freqs.length * 3 + (1 - p.ring) * nz[i] * Math.exp(-t / p.tau)) * rise;
+    }
+    onePoleHP(x, p.hp); onePoleHP(x, p.hp);
+    const r = Float32Array.from(x); biquad(r, "bp", p.peak, p.peakQ);
+    for (let i = 0; i < x.length; i++) x[i] += p.peakAmt * r[i];
+    return normalize(x, 0.95);
+  }
+  // Hands clapping: `n` claps at irregular offsets (ms, the people are not in
+  // time), each a short noise burst, then the room's tail; band-passed.
+  function clapSrc(p, rnd) {
+    const x = alloc(p.len), nz = noise(x.length, rnd);
+    for (let i = 0; i < x.length; i++) {
+      const t = i / SR;
+      let e = 0;
+      for (let k = 0; k < p.at.length; k++) { const d = t - p.at[k] / 1000; if (d >= 0) e = Math.max(e, p.amp[k] * Math.exp(-d / p.burstTau)); }
+      const last = p.at[p.at.length - 1] / 1000;
+      if (t >= last) e = Math.max(e, p.room * Math.exp(-(t - last) / p.tau));
+      x[i] = nz[i] * e;
+    }
+    biquad(x, "bp", p.bp, p.q); onePoleHP(x, p.hp);
+    return normalize(x, 0.95);
+  }
+  // Jingles (the tambourine): noise through narrow resonances (the discs)
+  // plus a shake, a soft front; `back` (s) and `backAmt` a second shake
+  // (the hand bringing the tambourine back), absent = one.
+  function jingleSrc(p, rnd) {
+    const x = alloc(p.len), nz = noise(x.length, rnd);
+    for (let i = 0; i < x.length; i++) {
+      const t = i / SR;
+      const b = p.back && t > p.back ? p.backAmt * Math.min(1, (t - p.back) / p.attack) * Math.exp(-(t - p.back) / p.tau) : 0;
+      nz[i] *= Math.min(1, t / p.attack) * Math.exp(-t / p.tau) + b;
+    }
+    for (const f of p.res) { const r = Float32Array.from(nz); biquad(r, "bp", f, p.q); for (let i = 0; i < x.length; i++) x[i] += p.ring * r[i]; }
+    const y = Float32Array.from(nz); onePoleHP(y, p.hp);
+    for (let i = 0; i < x.length; i++) x[i] += (1 - p.ring) * y[i];
+    return normalize(x, 0.95);
+  }
+  // Beads or seeds in a shell (the shaker): high-passed noise, a scrape in
+  // and a scrape back (two humps), no strike.
+  function shakeSrc(p, rnd) {
+    const x = noise(Math.round(p.len * SR), rnd);
+    onePoleHP(x, p.hp); onePoleHP(x, p.hp); onePoleLP(x, p.lp);
+    for (let i = 0; i < x.length; i++) {
+      const t = i / SR;
+      const a = Math.min(1, t / p.attack) * Math.exp(-t / p.tau);
+      const b = t > p.back ? p.backAmt * Math.min(1, (t - p.back) / p.attack) * Math.exp(-(t - p.back) / p.tau) : 0;
+      x[i] *= a + b;
+    }
+    return normalize(x, 0.95);
+  }
+  // A struck metal or wood bar (the cowbell, the claves): partials f1, f2
+  // (and f3 at a3, absent = none), the upper ones dying td2 x as fast, and a
+  // stick strike: a noise burst band-passed at strikeF (strike, 1 ms).
+  function bellSrc(p, rnd) {
+    const x = alloc(p.len);
+    for (let i = 0; i < x.length; i++) {
+      const t = i / SR;
+      const s = Math.sin(2 * Math.PI * p.f1 * t) + (p.a2 * Math.sin(2 * Math.PI * p.f2 * t) + (p.a3 || 0) * Math.sin(2 * Math.PI * (p.f3 || 0) * t)) * Math.exp(-t / (p.tau * p.td2));
+      x[i] = s * Math.exp(-t / p.tau) * (1 - Math.exp(-t / p.attack));
+    }
+    if (p.strike) {
+      const n = Math.round(0.008 * SR), c = noise(n, rnd); biquad(c, "bp", p.strikeF, 1); normalize(c, 1);
+      for (let i = 0; i < n; i++) x[i] += p.strike * c[i] * Math.exp(-i / (0.001 * SR));
+    }
+    return normalize(x, 0.95);
+  }
+  const MODEL = { membrane, snare: snareSrc, plate: plateSrc, clap: clapSrc, jingle: jingleSrc, shake: shakeSrc, bell: bellSrc };
+
+  // ---- a machine: its voicing table, its chips, its voice path --------------
+  // A machine record: `seed` its noise stream, `chips` in burn order { name: { model, cap (s, at the
+  // Linn's chip scale), clock (ratio to the family clock), src: {...} } },
+  // `voices` { generic name: { chip, tune (panel key or a number), decay
+  // (panel key: a VCA after the DAC, or null), recon (ratio to the family's
+  // output corner, or 1), gain, level (panel key), trimDb (the measured trim
+  // to the Linn's loudness for the same role; data, drum-machines.mjs) } }.
+  function makeMachine(M, TRIM_DB) {
+    const romCache = new Map();
+    function roms(C) {
+      const key = JSON.stringify(C);
+      if (romCache.has(key)) return romCache.get(key);
+      const rnd = U.makePrng(M.seed).r, R = {};
+      for (const c of Object.keys(M.chips)) {
+        const q = M.chips[c], cap = q.cap * C.capScale;
+        const src = MODEL[q.model](Object.assign({ len: cap + 0.02 }, q.src), rnd);
+        R[c] = U._linn.burn(src, cap, C.epromHz * q.clock, C);
+      }
+      romCache.set(key, R);
+      if (romCache.size > 4) romCache.delete(romCache.keys().next().value);
+      return R;
+    }
+    function voice(p, v, C) {
+      const d = M.voices[v], q = M.chips[d.chip], R = roms(C);
+      const tune = typeof d.tune === "string" ? p[d.tune] : d.tune || 1;
+      let y = U._linn.play(R[d.chip], tune, C.reconHz * (d.recon || 1), C.epromHz * q.clock, C);
+      if (d.decay) y = U._linn.vca(y, typeof d.decay === "string" ? p[d.decay] : d.decay);
+      return scale(y, d.gain * (d.level ? p[d.level] : 1) * dB(TRIM_DB[v] || 0) * C.level);
+    }
+    return { roms, voice };
+  }
+
+  // A panel helper set for a machine, the same shape as the Linn's: RANGE,
+  // GEOMETRIC keys, CENTRE (positions; a key not listed opens at 0.5).
+  function makePanel(name, RANGE, GEOMETRIC, CENTRE) {
+    const span = (k, t) => { const r = RANGE[k]; return GEOMETRIC[k] ? r[0] * Math.pow(r[1] / r[0], t) : r[0] + (r[1] - r[0]) * t; };
+    const fromPos = function (pos) {
+      const v = {}, at = {};
+      for (const k in RANGE) {
+        const d = CENTRE[k] === undefined ? 0.5 : CENTRE[k];
+        const t = pos && pos[k] !== undefined ? Math.max(0, Math.min(1, pos[k])) : d;
+        at[k] = t;
+        v[k] = span(k, t);
+      }
+      v.pos = at;
+      v.machine = name;
+      return v;
+    };
+    return fromPos;
+  }
+  const posFor = (RANGE, GEOMETRIC, k, v) => { const r = RANGE[k]; return GEOMETRIC[k] ? Math.log(v / r[0]) / Math.log(r[1] / r[0]) : (v - r[0]) / (r[1] - r[0]); };
+  const st = (r) => (12 * Math.log2(r) >= 0 ? "+" : "") + (12 * Math.log2(r)).toFixed(1);
+
+  // ======================== THE DMX =========================================
+  // Eight voice cards, one 8-bit mu-law chip each (a 2732, 4 KB) behind the
+  // card's companding DAC (an AM6070, which is also the card's VCA), its
+  // envelope and a fixed output low-pass; most cards clocked near 24 kHz,
+  // each trimmable 16-32 kHz (electrongate, DMX voice cards and DMX Files
+  // FAQ). The stock cards: bass, snare, hi-hat, tom 1, tom 2, tambourine /
+  // rimshot, shaker / handclaps, cowbell / claves: 11 recordings behind the
+  // 24 sounds (loud / medium / soft and closed / accent / open are the card's
+  // envelope and level on one recording; Wikipedia, Oberheim DMX). No cymbal
+  // card in the stock eight, and the kits have no cymbals (stage 0.3).
+  // ESTIMATES (nothing published): a two-sound card splits its 4 KB chip, 2
+  // KB a sound, and runs at the slow end of its trim (16 kHz, so 128 ms a
+  // sound); each card's output low-pass sits at the same share of its clock;
+  // the synthesized recordings' numbers are voiced to the box's character,
+  // not measured from it (no measured pitch or decay of the stock sounds is
+  // published). Chip length: cap x the converter's capScale (0.7 at the
+  // DMX's position) is the chip: 4096 / 24000 = 171 ms, 2048 / 16000 = 128.
+  const K4 = 4096 / 24000 / 0.7, K2 = 2048 / 16000 / 0.7, SLOW = 2 / 3;
+  const DMX = {
+    seed: "d3a0d3a0d3a0d3a0d3a0d3a0d3a0d3a0",
+    chips: {
+      kick:  { model: "membrane", cap: K4, clock: 1,
+        src: { f: 52, ratios: [1, 1.47, 2.1], w: [1, 0.35, 0.12], td: [1, 0.45, 0.25], tau: 0.11, drop: 0.55, dropTau: 0.012, bloom: 0.003,
+          skin: 0.12, skinLP: 300, skinTau: 0.05, strike: 0.55, strikeF: 900, strikeQ: 0.7, strikeTau: 0.003, drive: 1.6 } },
+      snare: { model: "snare", cap: K4, clock: 1,
+        src: { f: 196, ratios: [1, 1.59, 2.14], w: [1, 0.6, 0.35], td: [1, 0.7, 0.5], tau: 0.07, drop: 0.08, dropTau: 0.01, bloom: 0.0012,
+          skin: 0, skinLP: 1, skinTau: 1, strike: 0.9, strikeF: 3200, strikeQ: 0.9, strikeTau: 0.004, drive: 1.3,
+          wire: 0.55, wireHP: 1800, wireF: 4200, wireQ: 0.55, wireTau: 0.085 } },
+      hat:   { model: "plate", cap: K4, clock: 1,
+        src: { freqs: [3410, 4870, 6250, 7810, 9330, 10870], ring: 0.2, tau: 0.16, modeLen: 1.4, bloom: 0.001, hp: 5600, peak: 7600, peakQ: 1.6, peakAmt: 0.7 } },
+      tom1:  { model: "membrane", cap: K4, clock: 1,
+        src: { f: 196, ratios: [1, 1.5, 1.98], w: [1, 0.3, 0.15], td: [1, 0.5, 0.35], tau: 0.12, drop: 0.3, dropTau: 0.05, bloom: 0.004,
+          skin: 0.25, skinLP: 1600, skinTau: 0.08, strike: 0.7, strikeF: 2200, strikeQ: 0.8, strikeTau: 0.003, drive: 1.2 } },
+      tom2:  { model: "membrane", cap: K4, clock: 1,
+        src: { f: 131, ratios: [1, 1.5, 1.98], w: [1, 0.3, 0.15], td: [1, 0.5, 0.35], tau: 0.14, drop: 0.34, dropTau: 0.06, bloom: 0.005,
+          skin: 0.25, skinLP: 1400, skinTau: 0.09, strike: 0.65, strikeF: 1900, strikeQ: 0.8, strikeTau: 0.003, drive: 1.2 } },
+      tamb:  { model: "jingle", cap: K2, clock: SLOW,
+        src: { res: [2500, 3400, 4600, 5900], q: 9, ring: 0.85, tau: 0.03, attack: 0.008, hp: 2000, back: 0.05, backAmt: 0.8 } },
+      rim:   { model: "membrane", cap: K2, clock: SLOW,
+        src: { f: 420, ratios: [1, 2.31, 3.6], w: [0.7, 0.8, 0.45], td: [1, 0.6, 0.4], tau: 0.035, drop: 0.02, dropTau: 0.01, bloom: 0.0003,
+          skin: 0, skinLP: 1, skinTau: 1, strike: 1.3, strikeF: 2900, strikeQ: 1.4, strikeTau: 0.0025, drive: 1.5 } },
+      shake: { model: "shake", cap: K2, clock: SLOW,
+        src: { hp: 3000, lp: 7500, attack: 0.016, tau: 0.026, back: 0.055, backAmt: 0.55 } },
+      clap:  { model: "clap", cap: K2, clock: SLOW,
+        src: { at: [0, 6.5, 11, 19, 24.5, 31], amp: [0.8, 1, 0.7, 0.9, 0.6, 0.75], burstTau: 0.0035, room: 0.55, tau: 0.045, bp: 1050, q: 0.55, hp: 450 } },
+      cowbell: { model: "bell", cap: K2, clock: SLOW, src: { f1: 815, f2: 1210, a2: 0.8, f3: 1730, a3: 0.9, td2: 1, tau: 0.05, attack: 0.0008, strike: 0.8, strikeF: 3000 } },
+      clave: { model: "bell", cap: K2, clock: SLOW, src: { f1: 2100, f2: 5300, a2: 0.15, td2: 0.4, tau: 0.018, attack: 0.0002 } },
+    },
+    // recon: the card's output low-pass as a share of the family's corner
+    // (= its clock ratio, the estimate above). decay: a key read as the
+    // card's VCA time constant after the DAC.
+    voices: {
+      kick:      { chip: "kick", tune: "kickTune", gain: 0.8, level: "kickLevel" },
+      snare:     { chip: "snare", tune: "snareTune", gain: 0.8, level: "snareLevel" },
+      clap:      { chip: "clap", tune: 1, gain: 0.78, level: "clapLevel", recon: SLOW },
+      rim:       { chip: "rim", tune: 1, gain: 0.6, level: "percLevel", recon: SLOW },
+      hatClosed: { chip: "hat", tune: "hatTune", decay: 0.028, gain: 0.6, level: "hatLevel" },
+      hatOpen:   { chip: "hat", tune: "hatTune", decay: "hatDecay", gain: 0.6, level: "hatLevel" },
+      tomHi:     { chip: "tom1", tune: "tomHiTune", decay: "tomDecay", gain: 0.8, level: "tomLevel" },
+      tomMid:    { chip: "tom2", tune: "tomMidTune", decay: "tomDecay", gain: 0.8, level: "tomLevel" },
+      tomLo:     { chip: "tom2", tune: "tomLoTune", decay: "tomDecay", gain: 0.8, level: "tomLevel" },
+      cowbell:   { chip: "cowbell", tune: 1, gain: 0.5, level: "percLevel", recon: SLOW },
+      clave:     { chip: "clave", tune: 1, gain: 0.5, level: "percLevel", recon: SLOW },
+      tamb:      { chip: "tamb", tune: 1, gain: 0.5, level: "percLevel", recon: SLOW },
+      cabasa:    { chip: "shake", tune: 1, gain: 0.45, level: "percLevel", recon: SLOW },
+    },
+  };
+  // The tune keys are the cards' clock trims: 16-32 kHz around 24 (x2/3 to
+  // x4/3), so a key's whole span is the trimmer's. The low tom is the tom 2
+  // card trimmed down (opens at x0.75), as a card's pitch variants are.
+  const TRIM = [2 / 3, 4 / 3];
+  const DMX_RANGE = {
+    kickTune: TRIM, kickLevel: [0.86, 1.14],
+    snareTune: TRIM, snareLevel: [0.86, 1.14],
+    hatTune: TRIM, hatDecay: [0.03, 0.4], hatLevel: [0.82, 1.18],
+    tomHiTune: TRIM, tomMidTune: TRIM, tomLoTune: TRIM, tomDecay: [0.06, 0.5], tomLevel: [0.84, 1.16],
+    clapLevel: [0.84, 1.16], percLevel: [0.8, 1.2],
+  };
+  const DMX_GEO = { kickTune: 1, snareTune: 1, hatTune: 1, hatDecay: 1, tomHiTune: 1, tomMidTune: 1, tomLoTune: 1, tomDecay: 1 };
+  const DMX_CENTRE = {};
+  for (const k of ["kickTune", "snareTune", "hatTune", "tomHiTune", "tomMidTune"]) DMX_CENTRE[k] = posFor(DMX_RANGE, DMX_GEO, k, 1);
+  DMX_CENTRE.tomLoTune = posFor(DMX_RANGE, DMX_GEO, "tomLoTune", 0.75);
+  DMX_CENTRE.hatDecay = posFor(DMX_RANGE, DMX_GEO, "hatDecay", 0.12);
+  DMX_CENTRE.tomDecay = posFor(DMX_RANGE, DMX_GEO, "tomDecay", 0.2);
+  U.PANEL_DMX_RANGES = DMX_RANGE;
+  U.PANEL_DMX_KEYS = Object.keys(DMX_RANGE);
+  U.DMX_CENTRE = DMX_CENTRE;
+  U.panelDMXFromPos = makePanel("dmx", DMX_RANGE, DMX_GEO, DMX_CENTRE);
+  U.describeDMX = (p) => "BD " + st(p.kickTune) + "st | SD " + st(p.snareTune) + "st | HH " + st(p.hatTune) + "st d" + Math.round(p.hatDecay * 1000) +
+    "ms | TOM " + st(p.tomHiTune) + "/" + st(p.tomMidTune) + "/" + st(p.tomLoTune) + " d" + Math.round(p.tomDecay * 1000) + "ms";
+  U.DMX_VOICING = DMX;
+  U.DMX_VOICES = Object.keys(DMX.voices);
+  // Level trims against the Linn's loudness for the same role (dB, data;
+  // measured by analysis/drum-machines.mjs, the kit-judge loudness).
+  // Measured 2026-11-03 at panel centre (RESULT.md slice 3, Measurement).
+  U.DMX_TRIM_DB = Object.freeze({ kick: -3.4, snare: -4.9, clap: 1, rim: -6.4, hatClosed: 3.3, hatOpen: 7.1, tomHi: -3.3, tomMid: -2.4, tomLo: -1.8,
+    cowbell: 0.6, clave: -1.1, tamb: -1.1, cabasa: -0.6 });
+  const dmx = makeMachine(DMX, U.DMX_TRIM_DB);
+  // panel -> { voice: Float32Array at 44.1 kHz }, generic names; `record`
+  // (analysis only, as U.buildLinn's): build through that converter record.
+  U.buildDMX = function (panel, record) {
+    const p = panel || U.panelDMXFromPos({}), C = record || U.drumConverterAt(U.DMX_CONVERTER_POS), out = {};
+    for (const v of U.DMX_VOICES) out[v] = dmx.voice(p, v, C);
+    return out;
+  };
+  U._romkits = { dmx };
+
+  // THE MCS (Movement Systems' Percussion Computer) IS NOT BUILT HERE, on the
+  // record (RESULT.md slice 3): it was a hybrid, analog voices in the
+  // Simmons manner beside up to five 8-bit sampled ones, about 30 made, no
+  // published sample rate or voice split. A machine in two families is what
+  // the lock refuses; the MCS is a kit drawn across families, which is slice 4.
+})(typeof window !== "undefined" ? window : globalThis);
+
+/* ===== src/instruments/simmons.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
+// simmons.js — THE ELECTRONIC FAMILY'S FIRST MACHINE: the Simmons toms
+// (SDS-V lineage, 1981; SDS-7, 1983), drum engine slice 3, 2026-11-03,
+// Asana 1219959495948201.
+//
+// Homage, not trademark: nothing user-facing names a model number.
+//
+// WHAT IS DIFFERENT ABOUT THIS MACHINE. The 808 is a circuit per hit too, but
+// a quiet one: its toms are a bridged-T ringing at one pitch. The Simmons
+// tom is a VCO, not a resonator, and its pitch is a control voltage: the pad
+// hit fires an envelope that BENDS the oscillator down over the hit, so the
+// drum falls in pitch from attack to tail (the "pew"). Beside the oscillator
+// sit a NOISE generator through its own filter with its own decay (the
+// head's skin), and a CLICK, a short pulse that is the stick. The module's
+// knobs are those stages: pitch, bend (how far the sweep falls), decay,
+// noise and its filter, click, and the balance between tone and noise. Every
+// hit is computed straight into the buffer, as tr808.js does: no converter,
+// no chip (the electronic family's lock).
+//
+// THE VALUES, from the period documentation where it says, labelled as
+// estimates where it does not: files/unison/drum-engine-2026-11-02/RESULT.md,
+// slice 3, Design.
+//
+// drums.js's fixed-sine `tom(hz, decay)` is not touched: these toms replace
+// it only where a kit draws the electronic family, and that draw is slice 4.
+//
+// DETERMINISM. One fixed-seed noise stream (SIMMONS_SEED), consumed in a
+// fixed voice order. No Math.random, no song draws; the panel is the only
+// per-song input.
+(function (g) {
+  "use strict";
+  const U = (g.U = g.U || {});
+
+  const SR = 44100;
+  const SIMMONS_SEED = "5d55d55d55d55d55d55d55d55d55d55d";
+
+  // ---- the panel ------------------------------------------------------------
+  // tune: the oscillator's resting pitch as a ratio of each tom's own; sweep:
+  // the bend depth, the start pitch as a multiple of the end pitch (2 = the
+  // drum starts an octave above where it settles); sweepTime: the bend's
+  // time constant, s (on the module the bend rides the decay envelope, so it
+  // opens at the decay's time constant); decay: the envelope's decay time,
+  // s (the SDS-7's 8-600 ms; the VCA's time constant is a third of it, so
+  // decay is about the -26 dB point); noise: the noise's share of the mix
+  // (the balance knob); noiseHz: the noise filter's corner (the noise tone
+  // knob); click: the stick pulse's level; level: the output trim.
+  const RANGE = {
+    tune:      [0.80, 1.25],
+    sweep:     [1.25, 3.00],
+    sweepTime: [0.04, 0.40],
+    decay:     [0.08, 0.60],
+    noise:     [0.00, 0.60],
+    noiseHz:   [400, 8000],
+    click:     [0.00, 1.00],
+    level:     [0.84, 1.16],
+  };
+  const GEOMETRIC = { tune: 1, sweep: 1, sweepTime: 1, decay: 1, noiseHz: 1 };
+  U.PANEL_SIMMONS_RANGES = RANGE;
+  U.PANEL_SIMMONS_KEYS = Object.keys(RANGE);
+  const span = (k, t) => { const r = RANGE[k]; return GEOMETRIC[k] ? r[0] * Math.pow(r[1] / r[0], t) : r[0] + (r[1] - r[0]) * t; };
+  const posFor = (k, v) => { const r = RANGE[k]; return GEOMETRIC[k] ? Math.log(v / r[0]) / Math.log(r[1] / r[0]) : (v - r[0]) / (r[1] - r[0]); };
+
+  // Where the panel opens: the voiced module (Design). A knob not listed
+  // opens at 0.5.
+  const CENTRE = { tune: posFor("tune", 1), sweep: posFor("sweep", 2), sweepTime: posFor("sweepTime", 0.15),
+    decay: posFor("decay", 0.45), noise: posFor("noise", 0.25), noiseHz: posFor("noiseHz", 2000), click: 0.5 };
+  U.SIMMONS_CENTRE = CENTRE;
+
+  U.panelSimmonsFromPos = function (pos) {
+    const v = {}, at = {};
+    for (const k in RANGE) {
+      const d = CENTRE[k] === undefined ? 0.5 : CENTRE[k];
+      const t = pos && pos[k] !== undefined ? Math.max(0, Math.min(1, pos[k])) : d;
+      at[k] = t;
+      v[k] = span(k, t);
+    }
+    v.pos = at;
+    v.machine = "simmons";
+    return v;
+  };
+
+  U.describeSimmons = function (p) {
+    const st = (r) => (12 * Math.log2(r) >= 0 ? "+" : "") + (12 * Math.log2(r)).toFixed(1);
+    return "TOMS " + st(p.tune) + "st | bend " + st(p.sweep) + "st over " + Math.round(p.sweepTime * 1000) + "ms | decay " +
+      Math.round(p.decay * 1000) + "ms | noise " + Math.round(p.noise * 100) + "% @" + Math.round(p.noiseHz) + "Hz | click " + Math.round(p.click * 100) + "%";
+  };
+
+  // ---- the three tom modules ------------------------------------------------
+  // f: where the oscillator settles (Hz) at tune 1; the rest of each hit is
+  // the panel's. The three share one panel, as a kit's tom modules were set
+  // alike and tuned apart. Trims: the output level against the Linn's tom of
+  // the same role (drum-machines.mjs, the auto-trim method), dB.
+  const TOMS = { tomHi: { f: 196 }, tomMid: { f: 147 }, tomLo: { f: 98 } };
+  U.SIMMONS_TOMS = TOMS;
+  // Measured 2026-11-03 at panel centre (RESULT.md slice 3, Measurement).
+  U.SIMMONS_TRIM_DB = Object.freeze({ tomHi: -3.7, tomMid: -3.5, tomLo: -3.4 });
+  // a lower tom's envelope is a little longer (bigger pad, same module)
+  const DECAY_BY = { tomHi: 0.85, tomMid: 1, tomLo: 1.2 };
+
+  function onePoleLP(x, hz) {
+    const a = 1 - Math.exp((-2 * Math.PI * hz) / SR);
+    let y = 0;
+    for (let i = 0; i < x.length; i++) { y += a * (x[i] - y); x[i] = y; }
+    return x;
+  }
+  function onePoleHP(x, hz) {
+    const a = Math.exp((-2 * Math.PI * hz) / SR);
+    let y = 0, xp = 0;
+    for (let i = 0; i < x.length; i++) { const xi = x[i]; y = a * (y + xi - xp); x[i] = y; xp = xi; }
+    return x;
+  }
+  function normalize(x, target) {
+    let pk = 0; for (let i = 0; i < x.length; i++) pk = Math.max(pk, Math.abs(x[i]));
+    if (pk < 1e-9) return x;
+    const k = target / pk; for (let i = 0; i < x.length; i++) x[i] *= k;
+    return x;
+  }
+
+  // One hit of one module: the circuit, sample by sample.
+  //   VCO     f(t) = f_end (1 + (sweep - 1) e^(-t / sweepTime)): the bend
+  //           envelope discharging into the oscillator's CV, so the pitch
+  //           falls fast and settles. A triangle core summed with its
+  //           filtered copy (the SDS-V voice board takes both; the filtered
+  //           triangle is near a sine, so the sine stands in for it).
+  //   VCA     e^(-3t / decay) after a 1 ms rise.
+  //   NOISE   white noise through a four-pole low-pass at noiseHz (the
+  //           board's SSM2044), its own decay (0.35 x the tone's), mixed by
+  //           `noise` (the board's balance VCAs).
+  //   CLICK   a 1 ms pulse, high-passed at 1.5 kHz (the stick).
+  function hit(f, p, decay, rnd) {
+    const tau = decay / 3, len = Math.min(2.5, 2.4 * decay + 0.05);
+    const x = new Float32Array(Math.round(len * SR));
+    const nz = new Float32Array(x.length);
+    for (let i = 0; i < nz.length; i++) nz[i] = rnd() * 2 - 1;
+    for (let k = 0; k < 4; k++) onePoleLP(nz, p.noiseHz);
+    normalize(nz, 1);
+    const ck = new Float32Array(Math.round(0.006 * SR));
+    for (let i = 0; i < ck.length; i++) ck[i] = i < Math.round(0.001 * SR) ? 1 : 0;
+    onePoleHP(ck, 1500);
+    let ph = 0;
+    const nTau = 0.35 * tau;
+    for (let i = 0; i < x.length; i++) {
+      const t = i / SR, fi = f * (1 + (p.sweep - 1) * Math.exp(-t / p.sweepTime));
+      ph += fi / SR;
+      const u = ph % 1, tri = 4 * Math.abs(u - 0.5) - 1;
+      const rise = 1 - Math.exp(-t / 0.001);
+      const tone = (0.5 * tri + 0.5 * Math.cos(2 * Math.PI * ph)) * Math.exp(-t / tau) * rise;
+      const skin = nz[i] * Math.exp(-t / nTau) * rise;
+      x[i] = (1 - p.noise) * tone + p.noise * skin + (i < ck.length ? p.click * 0.8 * ck[i] : 0);
+    }
+    // the last 2 ms to zero: the buffer ends where the tail is long gone
+    const n = Math.round(0.002 * SR);
+    for (let i = 0; i < n; i++) x[x.length - 1 - i] *= i / n;
+    return normalize(x, 0.95);
+  }
+
+  // THE KIT: panel -> { tomHi, tomMid, tomLo } at 44.1 kHz, the generic kit's
+  // tom names, so createDrumKit's "panel" merge puts them where the toms are.
+  // No converter mark: a circuit voice carries none (the lock).
+  U.buildSimmons = function (panel) {
+    const p = panel || U.panelSimmonsFromPos({}), out = {}, rnd = U.makePrng(SIMMONS_SEED).r;
+    for (const v of U.SIMMONS_VOICES) {
+      const y = hit(TOMS[v].f * p.tune, p, p.decay * DECAY_BY[v], rnd);
+      const g = 0.8 * p.level * Math.pow(10, U.SIMMONS_TRIM_DB[v] / 20);
+      for (let i = 0; i < y.length; i++) y[i] *= g;
+      out[v] = y;
+    }
+    return out;
+  };
+  U.SIMMONS_VOICES = ["tomHi", "tomMid", "tomLo"];
+})(typeof window !== "undefined" ? window : globalThis);
+
+/* ===== src/instruments/drumengine.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
 // drumengine.js — ONE DRUM ENGINE, THE MACHINES AS FAMILIES (2026-11-02,
 // drum engine slice 1, Asana 1219959495948201; the rack and parts doc,
 // 10/31).
@@ -9184,7 +9712,365 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/sampler.js @ 470fdb5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drumkits.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
+// drumkits.js — the drum engine, slice 4 (2026-11-06, Asana 1219959495948201):
+// THE KIT BOOKS and THE KIT AS A DRAW ACROSS FAMILIES.
+//
+// The books: a handful of named kits per machine, the way a drum programmer
+// kept a few tuned setups per box. Each kit is an archetype with ranges over
+// the machine's EXISTING panel keys, in knob POSITION (0..1, the position
+// every panel already takes through its machine's FromPos), so a kit can never
+// leave the machine's own sourced range; a key a kit does not list sits at the
+// machine's centre. No new keys, no new voices. Where inside the range a kit
+// sits is an estimate (no period document names a kit setting); the ranges
+// themselves are each machine file's (tr808.js, linn.js, romkits.js,
+// simmons.js). Each kit carries `trim` (dB per kit strip), measured by
+// analysis/drum-kits.mjs: one bar of the reference groove per strip at the
+// kit's centre against the machine's centre, K-weighted.
+//
+// The draw: one fork, U.forkPrng(hash, "drumKit"), read by buildSong
+// (renderer.js) after the sampler's fork; a flag, then a FIXED block (the same
+// count whether the flag fires or not), so an untaken song's every draw and
+// every sample stays where it was. Layout and the share's evidence:
+// files/unison/drum-engine-2026-11-02/RESULT.md, Slice 4, Design.
+(function (g) {
+  "use strict";
+  const U = (g.U = g.U || {});
+
+  // the strips, in createDrumKit's order
+  U.DRUM_KIT_STRIPS = ["kick", "snare", "hats", "tomsFills", "ePerc", "percTime", "percAccent"];
+  U.DRUM_KIT_AUX = { ePerc: 1, percTime: 1, percAccent: 1 };
+  // the strips a machine can play on a taken kit (the Simmons is three toms)
+  U.DRUM_KIT_MACHINE_STRIPS = { "808": U.DRUM_KIT_STRIPS, linn: U.DRUM_KIT_STRIPS, dmx: U.DRUM_KIT_STRIPS, simmons: ["tomsFills"] };
+
+  // a machine's panel keys a kit may range over, in the order its uniforms are
+  // read (the Linn: the fifteen drawn keys, then conv, the converter dial)
+  U.drumKitKeys = function (machine) {
+    if (machine === "808") return Object.keys(U.PANEL_808_RANGES);
+    if (machine === "linn") return U.PANEL_LINN_DRAWN.concat(["conv"]);
+    if (machine === "dmx") return U.PANEL_DMX_KEYS.slice();
+    if (machine === "simmons") return U.PANEL_SIMMONS_KEYS.slice();
+    throw new Error("drumkits: no panel for machine " + machine);
+  };
+  U.DRUM_KIT_PANEL_UNIFORMS = 21;   // the largest panel (the 808's 21 keys)
+  U.DRUM_KIT_STRIP_UNIFORMS = 2 + U.DRUM_KIT_PANEL_UNIFORMS;
+  U.DRUM_KIT_UNIFORMS = 2 + U.DRUM_KIT_STRIPS.length * U.DRUM_KIT_STRIP_UNIFORMS;   // 163
+
+  const FROM_POS = { "808": "panel808FromPos", linn: "panelLinnFromPos", dmx: "panelDMXFromPos", simmons: "panelSimmonsFromPos" };
+  // a kit's panel at positions `at` (key -> 0..1 inside the kit's range); a
+  // key not listed sits at the machine's centre
+  U.drumKitPanel = function (machine, kit, at) {
+    const pos = {};
+    for (const k in kit.ranges) {
+      const r = kit.ranges[k], t = at && at[k] !== undefined ? at[k] : 0.5;
+      pos[k] = r[0] + (r[1] - r[0]) * t;
+    }
+    return U[FROM_POS[machine]](pos);
+  };
+  U.drumKitCentre = (machine, kit) => U.drumKitPanel(machine, kit, null);
+  // the draw: one panel from the kit and its uniforms (the kit's keys in the
+  // machine's key order; uniforms past the kit's key count are dropped)
+  U.drawDrumKitFromBook = function (machine, kit, uni) {
+    const at = {};
+    let i = 0;
+    for (const k of U.drumKitKeys(machine)) if (kit.ranges[k]) at[k] = uni[i++];
+    return U.drumKitPanel(machine, kit, at);
+  };
+
+  // ---- THE BOOKS ------------------------------------------------------------
+  // trim: measured (analysis/drum-kits.mjs), dB per strip, at the kit's centre
+  // against the machine's centre. Filled below from TRIMS.
+  const k = (id, name, forWhat, ranges) => ({ id, name, for: forWhat, ranges });
+  const BOOKS = {
+    // 808 positions: the spans are the corpus's fitted cells (tr808.js RANGE);
+    // bdDecay and ohDecay are warped-geometric, so 0.5 is not the middle value
+    "808": [
+      k("boom", "808 boom", "a long, low kick under low toms and a long open hat (the hip-hop boom)",
+        { bdTune: [0.05, 0.35], bdDecay: [0.78, 1], bdTone: [0, 0.25], sdSnappy: [0.3, 0.55], ohDecay: [0.55, 0.85], ltTune: [0.1, 0.4], mtTune: [0.1, 0.4], htTune: [0.1, 0.4] }),
+      k("tight", "808 tight", "a short clicky kick, a snappy snare and short hats (dance)",
+        { bdTune: [0.55, 0.85], bdDecay: [0.08, 0.28], bdTone: [0.6, 0.9], sdSnappy: [0.6, 0.85], chDecay: [0, 0.25], ohDecay: [0.05, 0.3] }),
+      k("electro", "808 electro", "a bright click on the kick, a bright snare and hats, the accent hard (electro)",
+        { bdTone: [0.8, 1], bdDecay: [0.45, 0.7], sdTune: [0.6, 0.9], sdTone: [0.65, 0.95], chTone: [0.7, 1], ohTone: [0.7, 1], accent: [0.65, 0.95] }),
+      k("soft", "808 soft", "a dark round kick and snare, dark hats, a light accent (ballad, slow jam)",
+        { bdTone: [0, 0.2], bdDecay: [0.5, 0.75], sdSnappy: [0, 0.25], sdTone: [0, 0.3], chTone: [0, 0.3], ohTone: [0, 0.3], accent: [0, 0.3] }),
+      k("crack", "808 crack", "the snare tuned up and all snap, a short kick, a long closed hat and a short open one (snare-forward)",
+        { sdTune: [0.75, 1], sdSnappy: [0.82, 1], sdTone: [0.7, 1], bdDecay: [0.15, 0.3], bdTone: [0.35, 0.55], chDecay: [0.75, 1], ohDecay: [0.05, 0.2] }),
+      k("deep", "808 deep", "toms and kick at the bottom of their tuning, long decays",
+        { bdTune: [0, 0.25], bdDecay: [0.6, 0.85], ltTune: [0, 0.2], mtTune: [0, 0.2], htTune: [0, 0.2], ohDecay: [0.65, 0.95], chDecay: [0.6, 0.9] }),
+      k("bright", "808 bright", "toms and kick at the top of their tuning, the hats open and bright",
+        { bdTune: [0.7, 1], bdDecay: [0.3, 0.5], ltTune: [0.8, 1], mtTune: [0.8, 1], htTune: [0.8, 1], chTone: [0.6, 0.85], ohTone: [0.6, 0.85], ohDecay: [0.35, 0.6] }),
+    ],
+    // Linn positions: tunes geometric over the trimmer spans (the snare's
+    // centre, tune 1, is pos 0.48; tomHi 0.635, tomMid 0.49, tomLo 0.352);
+    // hatDecay 0.06-0.6 s geometric (centre 0.432 s = pos 0.857); conv is the
+    // converter dial's own position (0 LM-1 / DMX, 0.3 the LinnDrum, 1 the
+    // 1984 12-bit machines), drawn inside the kit's range
+    linn: [
+      k("stock", "LinnDrum stock", "the LinnDrum near its chips' own pitch (a dry machine kit)",
+        { kickTune: [0.42, 0.58], snareTune: [0.42, 0.54], hatDecay: [0.78, 0.9], tomHiTune: [0.58, 0.68], tomMidTune: [0.44, 0.54], tomLoTune: [0.3, 0.4], conv: [0.25, 0.35] }),
+      k("fat", "Linn fat", "kick and snare tuned down, low toms (the pitched-down Minneapolis snare)",
+        { kickTune: [0.08, 0.32], snareTune: [0.15, 0.35], tomHiTune: [0.45, 0.58], tomMidTune: [0.3, 0.43], tomLoTune: [0.15, 0.28], hatDecay: [0.82, 0.95], conv: [0.2, 0.35] }),
+      k("tight", "Linn tight", "snare and kick tuned up, hats short (a tight dance kit)",
+        { kickTune: [0.62, 0.88], snareTune: [0.62, 0.82], hatTune: [0.6, 0.9], hatDecay: [0.4, 0.6], tomHiTune: [0.7, 0.8], tomMidTune: [0.57, 0.67], tomLoTune: [0.44, 0.54], conv: [0.3, 0.5] }),
+      k("lm1", "LM-1 crunch", "the dial at the LM-1 end: 8 bit, slow clock, short chips (a crunchy 8-bit kit)",
+        { kickTune: [0.35, 0.6], snareTune: [0.35, 0.55], hatDecay: [0.6, 0.8], conv: [0, 0.12] }),
+      k("clean", "Linn clean 12-bit", "the dial at the 1984 end: 12 bit, fast clock, long chips (a clean kit)",
+        { snareTune: [0.45, 0.6], hatDecay: [0.85, 0.97], conv: [0.75, 1] }),
+      k("long", "Linn long tail", "the open hat long, toms spread low and ringing (a long-tail kit)",
+        { hatDecay: [0.93, 1], tomHiTune: [0.48, 0.6], tomMidTune: [0.3, 0.42], tomLoTune: [0.12, 0.25], kickTune: [0.3, 0.45], conv: [0.3, 0.6] }),
+      k("gated", "Linn gated", "toms tuned high and close, a short hat, the snare a touch up (an 80s gated kit)",
+        { snareTune: [0.52, 0.65], kickTune: [0.5, 0.65], tomHiTune: [0.75, 0.88], tomMidTune: [0.66, 0.78], tomLoTune: [0.55, 0.68], hatDecay: [0.5, 0.68], conv: [0.25, 0.45] }),
+    ],
+    // DMX positions: tunes are the cards' clock trims, x2/3 to x4/3
+    // geometric (x1 is pos 0.585; the low tom opens at x0.75, pos 0.17);
+    // hatDecay 30-400 ms (centre 120 ms, pos 0.535), tomDecay 60-500 ms
+    // (centre 200 ms, pos 0.568). No conv: the DMX sits at its own position 0.
+    dmx: [
+      k("stock", "DMX stock", "the cards at their own clock (the box as shipped)",
+        { kickTune: [0.52, 0.65], snareTune: [0.52, 0.65], hatDecay: [0.48, 0.6], tomDecay: [0.5, 0.62] }),
+      k("boom", "DMX boom", "kick, snare and toms trimmed down toward the slow end, toms long (hip-hop)",
+        { kickTune: [0.05, 0.2], snareTune: [0.15, 0.3], tomHiTune: [0.2, 0.35], tomMidTune: [0.2, 0.35], tomLoTune: [0, 0.08], tomDecay: [0.85, 1], hatDecay: [0.7, 0.85] }),
+      k("tight", "DMX tight", "kick, snare and hat trimmed to the fast end, the toms trimmed low and short (a tight kit with low gated toms)",
+        { kickTune: [0.85, 1], snareTune: [0.88, 1], hatTune: [0.75, 0.9], hatDecay: [0.05, 0.2], tomHiTune: [0, 0.06], tomMidTune: [0, 0.06], tomLoTune: [0, 0.08], tomDecay: [0.05, 0.2] }),
+      k("dark", "DMX dark", "every card at the slow end of its trimmer (dark, longer chips)",
+        { kickTune: [0, 0.08], snareTune: [0, 0.08], hatTune: [0, 0.08], tomHiTune: [0, 0.08], tomMidTune: [0, 0.08], tomLoTune: [0, 0.05], hatDecay: [0.55, 0.7] }),
+      k("bright", "DMX bright", "every card at the fast end of its trimmer (bright, short chips)",
+        { kickTune: [0.88, 1], snareTune: [0.88, 1], hatTune: [0.9, 1], tomHiTune: [0.9, 1], tomMidTune: [0.9, 1], tomLoTune: [0.5, 0.65], hatDecay: [0.3, 0.45] }),
+      k("fills", "DMX fills", "the tom cards trimmed up and spread, kick and snare down (a fill kit)",
+        { tomHiTune: [0.9, 1], tomMidTune: [0.75, 0.85], tomLoTune: [0.4, 0.5], tomDecay: [0.92, 1], kickTune: [0.15, 0.3], snareTune: [0.2, 0.35] }),
+    ],
+    // Simmons positions (SDS-V / SDS-7 ranges, simmons.js): tune x0.8-1.25
+    // (1 = pos 0.5), sweep x1.25-3 (2 = pos 0.537), sweepTime 40-400 ms
+    // (150 ms = 0.574), decay 80-600 ms (450 ms = 0.858), noise 0-0.6 (0.25 =
+    // 0.417), noiseHz 400-8000 (2 kHz = 0.537), click 0-1
+    simmons: [
+      k("sdsv", "SDS-V", "a big bend over a long decay (the SDS-V tom)",
+        { sweep: [0.6, 0.8], sweepTime: [0.5, 0.7], decay: [0.82, 0.95] }),
+      k("pew", "Simmons pew", "the deepest bend, fast, with a hard click (the fill's pew)",
+        { sweep: [0.88, 1], sweepTime: [0.12, 0.32], decay: [0.6, 0.78], click: [0.65, 0.95] }),
+      k("flat", "Simmons flat", "almost no bend, little noise (a tonal tom)",
+        { sweep: [0, 0.12], noise: [0, 0.12], decay: [0.75, 0.92] }),
+      k("noisy", "Simmons noisy", "the noise skin up and bright, a middling bend",
+        { noise: [0.75, 1], noiseHz: [0.62, 0.85], sweep: [0.35, 0.55], decay: [0.55, 0.72] }),
+      k("short", "Simmons short", "a short decay, a fast bend and the click up (a gated tom)",
+        { decay: [0.15, 0.35], sweepTime: [0.08, 0.28], click: [0.7, 1], sweep: [0.4, 0.6] }),
+      k("thunder", "Simmons thunder", "tuned low, long, dark noise (the low end of the kit)",
+        { tune: [0, 0.2], sweep: [0.45, 0.65], decay: [0.92, 1], noise: [0.12, 0.3], noiseHz: [0.08, 0.28] }),
+    ],
+  };
+  // MEASURED level trims, dB per strip (analysis/drum-kits.mjs, RESULT.md
+  // slice 4 Measurement). Absent here = not yet measured: the lock refuses it.
+  // MEASURED 2026-11-06 (analysis/drum-kits.mjs: one bar of the reference
+  // groove per strip, K-weighted integrated loudness, the kit's centre against
+  // the machine's centre; RESULT.md slice 4 Measurement). dB per strip.
+  const TRIMS = {
+    "808": {
+      "boom": { kick: -1.4, snare: -0.1, hats: -0.2, tomsFills: -0.1, ePerc: 0, percTime: 0, percAccent: 0 },
+      "tight": { kick: 2.2, snare: -0.2, hats: 1.5, tomsFills: 0, ePerc: 0, percTime: 0, percAccent: 0 },
+      "electro": { kick: -0.3, snare: 0.1, hats: 0.3, tomsFills: 0, ePerc: 0, percTime: 0, percAccent: 0 },
+      "soft": { kick: -0.5, snare: -2.0, hats: 0.2, tomsFills: 0, ePerc: 0, percTime: 0, percAccent: 0 },
+      "crack": { kick: 1.7, snare: -1.1, hats: 0.3, tomsFills: 0, ePerc: 0, percTime: 0, percAccent: 0 },
+      "deep": { kick: -0.2, snare: 0, hats: -0.6, tomsFills: 0.1, ePerc: 0, percTime: 0, percAccent: 0 },
+      "bright": { kick: 0.3, snare: 0, hats: 1.0, tomsFills: 0, ePerc: 0, percTime: 0, percAccent: 0 },
+    },
+    "linn": {
+      "stock": { kick: 0, snare: 0, hats: 0, tomsFills: -0.1, ePerc: 0, percTime: 0, percAccent: 0 },
+      "fat": { kick: 0.2, snare: -0.6, hats: 0, tomsFills: -0.5, ePerc: 0, percTime: 0, percAccent: 0 },
+      "tight": { kick: 0, snare: 0.5, hats: 0.8, tomsFills: 0.6, ePerc: 0, percTime: -0.1, percAccent: -0.1 },
+      "lm1": { kick: 0, snare: 0.1, hats: 0.8, tomsFills: 0.1, ePerc: 0.1, percTime: 0.5, percAccent: 0.2 },
+      "clean": { kick: 0, snare: -0.1, hats: -0.3, tomsFills: 0, ePerc: 0, percTime: -0.6, percAccent: -0.2 },
+      "long": { kick: 0.1, snare: 0, hats: -0.2, tomsFills: -0.2, ePerc: 0, percTime: -0.3, percAccent: -0.1 },
+      "gated": { kick: 0, snare: 0.2, hats: 0.6, tomsFills: 0.7, ePerc: 0, percTime: -0.2, percAccent: 0 },
+    },
+    "dmx": {
+      "stock": { kick: 0, snare: 0, hats: 0, tomsFills: 0, ePerc: 0, percTime: 0, percAccent: 0 },
+      "boom": { kick: 1.6, snare: -0.2, hats: -0.7, tomsFills: -1.1, ePerc: 0, percTime: 0, percAccent: 0 },
+      "tight": { kick: -0.1, snare: 0.1, hats: 2.4, tomsFills: 2.7, ePerc: 0, percTime: 0, percAccent: 0 },
+      "dark": { kick: 1.7, snare: -0.4, hats: -1.9, tomsFills: -0.2, ePerc: 0, percTime: 0, percAccent: 0 },
+      "bright": { kick: -0.1, snare: 0.1, hats: 2.1, tomsFills: 0.4, ePerc: 0, percTime: 0, percAccent: 0 },
+      "fills": { kick: 0.9, snare: -0.5, hats: 0, tomsFills: -0.7, ePerc: 0, percTime: 0, percAccent: 0 },
+    },
+    "simmons": {
+      "sdsv": { tomsFills: -0.4 },
+      "pew": { tomsFills: 1.4 },
+      "flat": { tomsFills: -0.4 },
+      "noisy": { tomsFills: 3.1 },
+      "short": { tomsFills: 4.0 },
+      "thunder": { tomsFills: -1.6 },
+    },
+    "mcs": {
+      "linn": { kick: 0, snare: 0.3, hats: 0.8, tomsFills: 0.1, ePerc: 0.1, percTime: 0.6, percAccent: 0.3 },
+      "simmons": { tomsFills: 0.4 },
+    },
+  };
+  U.DRUM_KIT_TRIMS = TRIMS;
+
+  // THE MCS (Movement Systems' Percussion Computer): one cross-family kit.
+  // Kick, snare and hats on the Linn's voices burned at the dial's crunch
+  // end (the sources call its sampled voices "LinnDrum style" 8-bit), the toms
+  // on the Simmons (its analog voices "Simmons SDS-V style"). Lanes: synthPop
+  // only (Thompson Twins, Eurythmics, Kajagoogoo, 1983).
+  U.DRUM_KIT_MCS = {
+    id: "mcs", name: "MCS", for: "Movement Percussion Computer: LinnDrum-style 8-bit kick, snare and hats over Simmons-style analog toms",
+    machines: { kick: "linn", snare: "linn", hats: "linn", tomsFills: "simmons" },
+    kits: {
+      linn: k("mcs", "MCS 8-bit", "the MCS's sampled voices", { kickTune: [0.4, 0.6], snareTune: [0.4, 0.58], hatDecay: [0.55, 0.75], conv: [0, 0.1] }),
+      simmons: k("mcs", "MCS analog", "the MCS's analog toms", { sweep: [0.5, 0.7], sweepTime: [0.45, 0.65], decay: [0.7, 0.88], noise: [0.3, 0.5] }),
+    },
+  };
+
+  U.DRUM_KIT_BOOKS = BOOKS;
+  U.applyDrumKitTrims = function () {
+    for (const m in BOOKS) for (const kit of BOOKS[m]) if (TRIMS[m] && TRIMS[m][kit.id]) kit.trim = TRIMS[m][kit.id];
+    for (const m in U.DRUM_KIT_MCS.kits) if (TRIMS.mcs && TRIMS.mcs[m]) U.DRUM_KIT_MCS.kits[m].trim = TRIMS.mcs[m];
+  };
+  U.applyDrumKitTrims();
+
+  // ---- THE SHARE (estimate; RESULT.md slice 4 Design, the table) ----------
+  U.DRUM_KIT_SHARE = { synthPop: 0.40, funk: 0.40, synthRnB: 0.30, newWave: 0.25, earlyHipHop: 0.25 };
+  U.DRUM_KIT_SHARE_SCALE = 1;   // 0 forces the flag off (the identity run)
+  U.DRUM_KIT_MCS_SHARE = { synthPop: 0.15, funk: 0, synthRnB: 0, newWave: 0, earlyHipHop: 0 };
+  // per lane, per core strip: machine weights. The aux strips stay on the
+  // song's own machine (draw 68): the aux rule, the cowbell's linnOnly mute
+  // and the patterns' linnVoice are keyed to it.
+  U.DRUM_KIT_STRIP_MACHINES = {
+    newWave: { kick: { linn: 4, dmx: 3, "808": 3 }, snare: { linn: 5, dmx: 4, "808": 1 }, hats: { linn: 5, dmx: 5 }, tomsFills: { simmons: 5, linn: 3, dmx: 2 } },
+    synthPop: { kick: { linn: 4, "808": 4, dmx: 2 }, snare: { linn: 5, dmx: 3, "808": 2 }, hats: { linn: 5, dmx: 3, "808": 2 }, tomsFills: { simmons: 5, linn: 3, dmx: 1, "808": 1 } },
+    synthRnB: { kick: { linn: 4, "808": 4, dmx: 2 }, snare: { linn: 5, dmx: 3, "808": 2 }, hats: { linn: 6, dmx: 2, "808": 2 }, tomsFills: { simmons: 4, linn: 4, "808": 2 } },
+    earlyHipHop: { kick: { "808": 7, dmx: 3 }, snare: { dmx: 5, "808": 5 }, hats: { "808": 5, dmx: 5 }, tomsFills: { "808": 5, dmx: 3, simmons: 2 } },
+    funk: { kick: { "808": 5, linn: 4, dmx: 1 }, snare: { linn: 5, "808": 4, dmx: 1 }, hats: { linn: 5, "808": 4, dmx: 1 }, tomsFills: { "808": 4, linn: 3, simmons: 3 } },
+  };
+
+  // the cumulative weight walk (U.pickWeighted's shape, open)
+  const walk = (wts, u) => {
+    const ks = Object.keys(wts);
+    let tot = 0; for (const x of ks) tot += wts[x];
+    let x = u * tot;
+    for (const key of ks) { if (x < wts[key]) return key; x -= wts[key]; }
+    return ks[ks.length - 1];
+  };
+
+  // THE FORK: the flag and the fixed block, every song, whatever the flag.
+  U.drawDrumKit = function (hash) {
+    const G = U.forkPrng(hash, "drumKit"), u = [];
+    for (let i = 0; i < U.DRUM_KIT_UNIFORMS; i++) u.push(G.r());
+    return u;
+  };
+
+  // the reads -> sheet.drumKit. Reads the lane and draw 68's machine; never
+  // writes another sheet field.
+  U.resolveDrumKit = function (sheet, u) {
+    const lane = sheet.lane;
+    const share = (U.DRUM_KIT_SHARE[lane] || 0) * U.DRUM_KIT_SHARE_SCALE;
+    if (!(u[0] < share) || !sheet.drumMachine) return { taken: false };
+    const mcs = u[1] < (U.DRUM_KIT_MCS_SHARE[lane] || 0);
+    const kits = {}, strips = {}, panels = {};
+    U.DRUM_KIT_STRIPS.forEach((st, i) => {
+      const b = 2 + i * U.DRUM_KIT_STRIP_UNIFORMS;
+      const uni = u.slice(b + 2, b + 2 + U.DRUM_KIT_PANEL_UNIFORMS);
+      let machine, kit;
+      if (U.DRUM_KIT_AUX[st]) machine = sheet.drumMachine;
+      else if (mcs && U.DRUM_KIT_MCS.machines[st]) machine = U.DRUM_KIT_MCS.machines[st];
+      else machine = walk(U.DRUM_KIT_STRIP_MACHINES[lane][st], u[b]);
+      if (!kits[machine]) {
+        if (mcs && U.DRUM_KIT_MCS.kits[machine]) kit = U.DRUM_KIT_MCS.kits[machine];
+        else { const book = BOOKS[machine]; kit = book[Math.min(book.length - 1, Math.floor(u[b + 1] * book.length))]; }
+        kits[machine] = { id: kit.id, name: kit.name, mcs: kit === (U.DRUM_KIT_MCS.kits[machine] || null) };
+        panels[machine] = U.drawDrumKitFromBook(machine, kit, uni);
+      }
+      strips[st] = { machine, kit: kits[machine].id };
+    });
+    const short = { "808": "808", linn: "Linn", dmx: "DMX", simmons: "Simmons" };
+    const order = []; for (const st of U.DRUM_KIT_STRIPS) if (order.indexOf(strips[st].machine) < 0) order.push(strips[st].machine);
+    const names = mcs ? "MCS" : order.map((m) => kits[m].name).join(" + ");
+    const label = "kit: " + names + " · " + ["kick", "snare", "hats", "tomsFills"].map((st) => (st === "tomsFills" ? "toms" : st) + " " + short[strips[st].machine]).join(" / ");
+    return { taken: true, mcs, kits, strips, panels, label };
+  };
+
+  // the trim (dB) a strip plays at on a taken kit: its machine's song trim
+  // plus the kit's measured trim. `t`: { LINN_TRIM_DB, TRIM_LINN_PERC_DB,
+  // TRIM_808_PERC_DB } (session.js's tables, read, never changed). The 808's
+  // core strips have no song trim (null: the desk's own value stands).
+  U.drumKitStripTrimDb = function (machine, kitRec, st, t) {
+    const kt = (kitRec.trim && kitRec.trim[st]) || 0;
+    if (machine === "808") return { base: t.TRIM_808_PERC_DB[st] !== undefined ? t.TRIM_808_PERC_DB[st] : null, kit: kt };
+    return { base: (t.LINN_TRIM_DB[st] || 0) + (t.TRIM_LINN_PERC_DB[st] || 0), kit: kt };
+  };
+  U.drumKitRecord = function (machine, id, mcs) {
+    if (mcs) return U.DRUM_KIT_MCS.kits[machine];
+    return BOOKS[machine].find((x) => x.id === id);
+  };
+
+  // THE MIXED-KIT LOCK: a taken song's kit, strip by strip. Each strip's
+  // machine may play that strip (the Simmons only the toms), and the voices of
+  // the strip's panel pass the machine's own lock (U.drumLockCheck: a DMX
+  // strip burned anywhere but its position 0, a Simmons strip carrying a
+  // converter, a Linn strip off the curve at its drawn conv, are violations).
+  // `voicesOf(machine, panel)`: the build (default U.buildDrumVoices; the
+  // probes pass a tampered one). Returns { strips, voices, violations }.
+  U.drumKitLockCheck = function (dk, voicesOf) {
+    const out = [], built = new Map(), vo = voicesOf || ((m, p) => U.buildDrumVoices(m, p));
+    let n = 0;
+    if (!dk || !dk.taken) return { strips: 0, voices: 0, violations: out };
+    for (const st of U.DRUM_KIT_STRIPS) {
+      const s = dk.strips[st]; if (!s) { out.push(st + ": no machine"); continue; }
+      const m = s.machine, panel = dk.panels[m];
+      if ((U.DRUM_KIT_MACHINE_STRIPS[m] || []).indexOf(st) < 0) out.push(st + ": the " + m + " does not play this strip");
+      if (!panel) { out.push(st + ": no panel for the " + m); continue; }
+      if (!built.has(panel)) {
+        const v = vo(m, panel); built.set(panel, v); n += Object.keys(v).length;
+        for (const x of U.drumLockCheck(m, panel, v)) out.push(st + " (" + m + "): " + x);
+      }
+    }
+    return { strips: U.DRUM_KIT_STRIPS.length, voices: n, violations: out };
+  };
+  // the book walk: every kit at its centre and at both ends of every key's
+  // range (one key at an end, the rest at the kit's centre), built and run
+  // through the machine's lock. Returns { panels, voices, violations }.
+  U.drumKitLockBook = function () {
+    const out = [], rep = { panels: 0, voices: 0, violations: out, byMachine: {} };
+    const walk = (m, kit, tag) => {
+      const r = (rep.byMachine[m] = rep.byMachine[m] || { kits: 0, panels: 0, voices: 0 });
+      r.kits++;
+      const ats = [["centre", null]];
+      for (const key in kit.ranges) for (const e of [0, 1]) ats.push([key + "@" + e, { [key]: e }]);
+      for (const [at, pos] of ats) {
+        const panel = U.drumKitPanel(m, kit, pos), v = U.buildDrumVoices(m, panel);
+        r.panels++; r.voices += Object.keys(v).length; rep.panels++; rep.voices += Object.keys(v).length;
+        for (const x of U.drumLockCheck(m, panel, v)) out.push(tag + " " + at + ": " + x);
+      }
+    };
+    for (const m in BOOKS) for (const kit of BOOKS[m]) walk(m, kit, m + " " + kit.id);
+    for (const m in U.DRUM_KIT_MCS.kits) walk(m, U.DRUM_KIT_MCS.kits[m], "mcs " + m);
+    for (const x of U.drumKitBookCheck()) out.push("book: " + x);
+    return rep;
+  };
+
+  // THE BOOK LOCK: the records themselves. Returns violations.
+  U.drumKitBookCheck = function (books, mcsKit) {
+    const out = [], B = books || BOOKS, M = mcsKit || U.DRUM_KIT_MCS;
+    const one = (m, kit, where) => {
+      const keys = U.drumKitKeys(m);
+      for (const key in kit.ranges) {
+        const r = kit.ranges[key];
+        if (key === "conv" && m !== "linn") out.push(where + ": a conv range on the " + m + " (the dial is the Linn's; the " + m + " is fixed)");
+        else if (keys.indexOf(key) < 0) out.push(where + ": key " + key + " is not on the " + m + "'s panel");
+        if (!Array.isArray(r) || r.length !== 2 || !(r[0] >= 0 && r[1] <= 1 && r[0] <= r[1])) out.push(where + ": range " + key + " " + JSON.stringify(r) + " is not inside [0, 1]");
+      }
+      const need = m === "simmons" ? ["tomsFills"] : U.DRUM_KIT_STRIPS;
+      for (const st of need) if (!kit.trim || typeof kit.trim[st] !== "number") out.push(where + ": no trim for " + st);
+    };
+    for (const m in B) {
+      if (!FROM_POS[m]) { out.push("book " + m + ": no such machine"); continue; }
+      for (const kit of B[m]) one(m, kit, m + " " + kit.id);
+    }
+    for (const st in M.machines) { try { U.drumFamilyOf(M.machines[st]); } catch (e) { out.push("mcs " + st + ": " + e.message); } }
+    for (const m in M.kits) one(m, M.kits[m], "mcs " + m);
+    return out;
+  };
+})(typeof window !== "undefined" ? window : globalThis);
+
+/* ===== src/instruments/sampler.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
 // sampler.js — THE SAMPLER KEYBOARD, the gap filler (2026-11-05, slice 1,
 // Asana 1220085081678265; build 7 of the 10/31 rack and parts doc; design in
 // files/unison/sampler-2026-11-05/RESULT.md in the morgan repo).
@@ -9670,7 +10556,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drums.js @ 470fdb5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drums.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
 // drums.js — the drum machine: 808/LM-1-flavor voices, synthesized at runtime
 // into short AudioBuffers, played back as one-shots.
 //
@@ -10005,9 +10891,66 @@
 
     return { fire, buffers: bufs, held, panel: panel || null };
   };
+
+  // THE KIT ACROSS FAMILIES (2026-11-06, the drum engine slice 4,
+  // instruments/drumkits.js): a taken song's kit, strip by strip. `panels`:
+  // strip id -> the panel of the machine that strip drew (strips on one
+  // machine share one panel object). Per strip the machine's voices
+  // (U.buildDrumVoices) merged over the generic buffers by its family's rule,
+  // the strip's accent by its machine (U.drumAccent), the hat choke within the
+  // strip as createDrumKit's. createDrumKit itself is not touched: an untaken
+  // song never comes here.
+  U.createMixedDrumKit = function (ctx, strips, flavor, panels) {
+    const byPanel = new Map(), bufsOf = {}, accOf = {};
+    for (const id in strips) {
+      const panel = panels[id];
+      if (!panel) throw new Error("drums.js: a mixed kit needs a panel on every strip (" + id + ")");
+      if (!byPanel.has(panel)) {
+        const machine = U.drumMachineOf(panel), raw = buildBuffers(flavor), v = U.buildDrumVoices(machine, panel);
+        if (U.drumFamilyOf(machine).replaces === "all") { for (const k in v) raw[k] = v[k]; }
+        else for (const k of PANEL_VOICES) if (v[k]) raw[k] = v[k];
+        const bufs = {};
+        for (const k in raw) bufs[k] = toAudioBuffer(ctx, raw[k]);
+        byPanel.set(panel, { bufs, acc: U.drumAccent(machine, panel) });
+      }
+      bufsOf[id] = byPanel.get(panel).bufs; accOf[id] = byPanel.get(panel).acc;
+    }
+    const buses = {};
+    for (const id in strips) {
+      const bus = ctx.createGain();
+      strips[id].input.add(bus);
+      buses[id] = { node: bus, mix: U.chainMixer(ctx, bus) };
+    }
+    const held = [], openHat = {};
+    function fire(stripId, bufName, t, gain, accent) {
+      const bus = buses[stripId];
+      if (!bus) return;
+      const bufs = bufsOf[stripId], acc = accOf[stripId];
+      if (!bufs[bufName]) return;   // a voice the strip's machine does not have is silent, never another machine's
+      const src = ctx.createBufferSource();
+      src.buffer = bufs[bufName];
+      const g = ctx.createGain();
+      const level = gain * (accent ? acc.hit : acc.rest);
+      g.gain.value = level;
+      if (bufName === "hatClosed" || bufName === "hatOpen") {
+        const pending = openHat[stripId];
+        if (pending && t > pending.t && t < pending.end) {
+          pending.g.gain.setValueAtTime(pending.gain, t);
+          pending.g.gain.linearRampToValueAtTime(0, t + 0.004);
+          openHat[stripId] = null;
+        }
+        if (bufName === "hatOpen") openHat[stripId] = { g, gain: level, t, end: t + bufs.hatOpen.duration };
+      }
+      src.connect(g);
+      bus.mix.add(g, t, t + src.buffer.duration);
+      src.start(t);
+      held.push(src, g);
+    }
+    return { fire, buffers: bufsOf, held, panels, mixed: true };
+  };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/books.js @ 470fdb5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/books.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
 // books.js — Pattern Books v1, as data.
 //
 // This file IS the document: "Unison — Pattern Books v1 (draft)" (Morgan,
@@ -12372,7 +13315,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/bassplayer.js @ 470fdb5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/bassplayer.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassplayer.js — the PERFORMANCE half of the bass guitar: a session player.
 //
 // Rack 2's rule (kb/projects/unison.md, 2026-07-11): every human instrument is
@@ -12967,7 +13910,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/gtrplayer.js @ 470fdb5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/gtrplayer.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
 // gtrplayer.js — the PERFORMANCE half of the rhythm guitar: a session
 // guitarist on the rhythmGtr strip.
 //
@@ -13441,7 +14384,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/fmplayer.js @ 470fdb5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/fmplayer.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
 // fmplayer.js — the PERFORMANCE half of the FM keys: a session keyboard
 // player on the FM chord strips (compA's tine EP, colour's glass and brass).
 //
@@ -13582,7 +14525,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/testPhrase.js @ 470fdb5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/testPhrase.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
 // testPhrase.js — deterministic 8-bar test phrase, ported from the bake-off
 // (phrase.js) onto the engine's canonical PRNG (core/prng.js).
 //
@@ -13676,7 +14619,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/form.js @ 470fdb5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/form.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
 // form.js — the song's form: the book of returns (2026-10-30, Asana
 // 1220073468300418; design files/unison/structure-design-2026-10-30 in the
 // morgan repo, DESIGN.md + draw.py, transcribed here as written).
@@ -13997,7 +14940,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/session.js @ 470fdb5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/session.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
 // session.js — the session sheet and the arrangement realizer.
 //
 // Two tiers, in this order, each on its own stream (core/prng.js):
@@ -15058,13 +16001,30 @@
     const machine = opts.legacyDrums ? null : sheet.drumMachine;
     const use808 = machine === "808" && sheet.kit === "machine";
     const useLinn = machine === "linn";
+    // (slice 4: the desk's own kit trims, read before either machine sets them)
+    const deskTrim0 = {};
+    for (const id in kitStrips) deskTrim0[id] = kitStrips[id].trim.gain.value;
     if (useLinn) for (const id in kitStrips) kitStrips[id].trim.gain.value = Math.pow(10, (LINN_TRIM_DB[id] || 0) / 20);
     // the 808's aux strips in the background (TRIM_808_PERC_DB)
     if (use808) for (const id in TRIM_808_PERC_DB) kitStrips[id].trim.gain.value = Math.pow(10, TRIM_808_PERC_DB[id] / 20);
     // the Linn's aux strips sparingly (TRIM_LINN_PERC_DB, on top of the
     // strip's LINN_TRIM_DB)
     if (useLinn) for (const id in TRIM_LINN_PERC_DB) kitStrips[id].trim.gain.value = Math.pow(10, ((LINN_TRIM_DB[id] || 0) + TRIM_LINN_PERC_DB[id]) / 20);
-    const kit = U.createDrumKit(ctx, kitStrips, sheet.kit, use808 ? sheet.panel808 : useLinn ? sheet.panelLinn : null);
+    // THE KIT ACROSS FAMILIES (slice 4, drumkits.js): a taken song builds its
+    // kit strip by strip from the machines and book kits sheet.drumKit drew;
+    // each strip at its machine's song trim (the tables above, read) plus the
+    // kit's measured trim. An untaken song (and legacyDrums) takes the line
+    // below it, exactly as before.
+    const dk = !opts.legacyDrums && sheet.drumKit && sheet.drumKit.taken ? sheet.drumKit : null;
+    const dkPanels = {};
+    if (dk) for (const id in kitStrips) {
+      const s = dk.strips[id], m = s.machine, tr = U.drumKitStripTrimDb(m, U.drumKitRecord(m, s.kit, dk.kits[m].mcs), id, { LINN_TRIM_DB, TRIM_LINN_PERC_DB, TRIM_808_PERC_DB });
+      const g = kitStrips[id].trim.gain;
+      g.value = tr.base === null ? deskTrim0[id] * Math.pow(10, tr.kit / 20) : Math.pow(10, (tr.base + tr.kit) / 20);
+      dkPanels[id] = dk.panels[m];
+    }
+    const kit = dk ? U.createMixedDrumKit(ctx, kitStrips, sheet.kit, dkPanels)
+      : U.createDrumKit(ctx, kitStrips, sheet.kit, use808 ? sheet.panel808 : useLinn ? sheet.panelLinn : null);
     const lv = (e, dflt) => (useLinn && e.linnVoice) || e.voice || dflt;
     // The Linn's crash (each section's first downbeat) and ride (in place of
     // the closed hat on a ride song) were removed 2026-10-27; the hats strip
@@ -15648,7 +16608,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/render/renderer.js @ 470fdb5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/render/renderer.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
 // renderer.js — song assembly + the render pipeline (Technical Architecture
 // v1.2 playback model): live-first, with (a) a cheap analysis pre-render for
 // verification/metrics and (b) an on-demand full OfflineAudioContext render
@@ -15722,6 +16682,12 @@
     // changes neither. The disk is loaded before the build
     // (U.samplerLoadFor, awaited by the bus trim and the renders below).
     if (U.drawSampler) sheet.sampler = U.resolveSampler(sheet, U.drawSampler(hash));
+    // The kit across families (2026-11-06, the drum engine slice 4,
+    // drumkits.js): its own fork "drumKit", a flag and a fixed block of 163
+    // uniforms read on every song; a taken song's kit is drawn strip by strip
+    // across the families from the machines' kit books. Reads the lane and
+    // draw 68's machine, changes neither; sheet.drumKit is the only field.
+    if (U.drawDrumKit) sheet.drumKit = U.resolveDrumKit(sheet, U.drawDrumKit(hash));
 
     // Tier 2's per-bar draws come from their own fork of the hash, never from
     // R: tier 1 owns the song stream, tier 2 owns "bars" (2026-10-03).
@@ -16599,6 +17565,13 @@
     // loads the entry's disk and only then sets s.sampler (the planner's
     // captures get the stand-in, whose events are the taken strip's)
     if (U.resolveSampler && d.strips[0] === "pad" && !s.jamPicked) { var smp = U.resolveSampler(PS, U.drawSampler(patchH)); if (smp.n) s.samplerJam = smp; }
+    // the kit across families (2026-11-06, the drum engine slice 4,
+    // drumkits.js): the drums layers draw the engine's kit on their own patch
+    // seed's drumKit fork against the layer's patch lane and machine, at the
+    // song's share (not always); a taken layer plays the kit strip by strip
+    // and its card reads the kit's label. A picked kit (the dropdown) is the
+    // listener's choice of panel, so a picked layer plays it.
+    if (U.resolveDrumKit && d.cls === "drums" && !s.jamPicked) { var dkj = U.resolveDrumKit(PS, U.drawDrumKit(patchH)); if (dkj.taken) s.drumKit = dkj; }
     var E = v > 0 ? elems(inst, vrOf(v)) : [];
     if (E.length) {
       var drums = d.cls === "drums";
@@ -16706,7 +17679,7 @@
   }
   function patchName(inst, s, opt) {
     var d = INST_BY[inst], st = d.strips[0];
-    if (d.cls === "drums") return s.jamPicked && opt && opt.pn ? "Kit " + opt.pn.slice(4) : (inst === "d808" ? "808" : "Linn") + " panel";
+    if (d.cls === "drums") return s.jamPicked && opt && opt.pn ? "Kit " + opt.pn.slice(4) : s.drumKit && s.drumKit.taken ? s.drumKit.label : (inst === "d808" ? "808" : "Linn") + " panel";
     // the chain, the model and the playing technique (the bass pedal books,
     // 2026-11-05, slices 1 and 2): "bass compChorus · P-style · rootPump";
     // the written figure is in the strip label and the dropdown
