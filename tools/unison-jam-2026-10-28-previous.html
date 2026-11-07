@@ -222,10 +222,10 @@
 <div id="bars" class="row"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><div id="status"></div></div>
 <div id="layers"></div>
 <div id="add" class="row"><div class="lbl">Add a layer<button id="palRnd" title="add a random instrument (one you don't have yet, while any are left)">Random</button></div><div id="pal"></div></div>
-<footer title="engine @7e52f7a · built 2026-11-06">Unison jam &middot; every sound is synthesized in this page by the engine at 7e52f7a</footer>
+<footer title="engine @94bd835 · built 2026-11-07">Unison jam &middot; every sound is synthesized in this page by the engine at 94bd835</footer>
 
 <script>
-/* ===== src/core/prng.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/prng.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
 // prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
 // token hash, consumed in canonical draw order (Technical Architecture v1.2).
 //
@@ -298,7 +298,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/core/mix.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/mix.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
 // mix.js — the fan-in ≤2 summing rule, as a primitive.
 //
 // Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
@@ -467,7 +467,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/desk/desk.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/desk/desk.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
 // desk.js — the 24-track desk as a running audio graph.
 //
 // The desk is the data structure, not a metaphor (Composition Brief 2 / Tech
@@ -1136,7 +1136,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/production.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/production.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
 // production.js — the production room, v0.
 //
 // PLACEMENT DECISION (Morgan's call, ratified by Jeff 2026-08-03). Production
@@ -1478,7 +1478,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/vocoder.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/vocoder.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
 // vocoder.js — the production room's vocoder insert, slice 1 (2026-11-05,
 // Asana 1220085081650427; design in files/unison/vocoder-2026-11-05/RESULT.md).
 //
@@ -1814,7 +1814,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/analogpoly.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/analogpoly.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
 // analogpoly.js — the analog poly core: one module that builds every Juno and
 // OB-Xa voice, behind a family lock. Asana 1220084594874974, slice 1
 // (2026-11-02); the rack doc's build 3 (files/unison/rack-parts-proposal-
@@ -2440,7 +2440,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/juno.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/juno.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
 // juno.js — Juno-60-flavor poly voice, raw Web Audio, zero dependencies.
 // Ported from the 2026-07-21 bake-off winner (voice-raw.js), restructured to
 // live behind a desk strip: U.createJuno(ctx, strip, patchName) builds its own
@@ -3007,7 +3007,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/minimoog.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/minimoog.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
 // minimoog.js — Minimoog Model D-lineage mono voice, zero dependencies.
 //
 // THE MONO BASS LANE (build order 808 → Juno → Minimoog → …; it also absorbs
@@ -3794,7 +3794,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/obxa.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/obxa.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
 // obxa.js — Oberheim OB-Xa-lineage poly voice, zero dependencies.
 //
 // THE BRASS/PAD POLY LANE (build order 808 → Juno → Minimoog → OB-Xa → …).
@@ -4339,7 +4339,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/fm.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/fm.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fm.js — six-operator FM keys voice (the DX7 lineage), zero dependencies.
 //
 // THE FM LANE (build order 808 → Juno → Minimoog → OB-Xa → Linn → FM).
@@ -4782,6 +4782,34 @@
         ], { vib: 8, lfoRate: 5.3, lfoDelay: 0.35 }, BRASS_TOUCH),
         range: { bright: [-3, 3], vib: [5, 11] },
         note: "a double reed, voiced toward the DX7 OBOE: algorithm 16, one carrier and three branches. Op 1 carrier ratio 1 level 99; op 2 ratio 1 level 80 (the body); op 3 ratio 3 level 70 with op 4 ratio 1 level 50 on it (the nasal third-harmonic formant); op 5 ratio 2 level 65 with op 6 ratio 1 level 60 at feedback 6 (the reed's edge). Attack about 25 ms, held, vibrato 8 cents after 0.35 s. Brass's narrow touch. A DX substitute: it stands in for a clarinet credit (census track 5) and does not close the sax hole, which is a player, not a patch" },
+      // ACOUSTIC STAND-INS (2026-11-06, Asana 1220133283892196; Jeff by
+      // voice 11/02). w 0: the role draw never picks them; they reach a song
+      // only through the sampler's disk (sampler.js, the acoustic entries),
+      // the band's fiction that acoustic instruments come in through the
+      // sampler. Measured against the University of Iowa alto saxophone runs
+      // (analysis/psx-fit.mjs, files/unison/piano-sax-2026-11-06).
+      { name: "tenor sax", w: 0,
+        base: fmNew(5, 7, 0.4, [
+          { r: 1, lvl: 99, vs: 2, rs: 1, eg: [60, 40, 30, 62, 99, 95, 92, 0] },
+          { r: 1, lvl: 99, vs: 3, rs: 1, eg: [56, 45, 30, 62, 99, 93, 90, 0], bp: 62, rd: 35, rc: "-lin" },
+          { r: 3, lvl: 84, vs: 3, rs: 1, eg: [58, 45, 30, 62, 99, 92, 88, 0] },
+          { r: 1, lvl: 92, vs: 3, rs: 1, eg: [56, 45, 30, 62, 99, 92, 88, 0], bp: 62, rd: 35, rc: "-lin" },
+          { r: 1, lvl: 62, vs: 2, rs: 1, eg: [99, 58, 40, 62, 99, 66, 52, 0] },
+          { r: 1, lvl: 84, vs: 3, rs: 1, eg: [99, 60, 40, 62, 99, 74, 62, 0] },
+        ], { vib: 14, lfoRate: 5.2, lfoDelay: 0.45 }, BRASS_TOUCH),
+        range: { bright: [-3, 3], vib: [10, 18] },
+        note: "a solo reed, voiced toward a breathy tenor: algorithm 5, three stacks. Op 1 carrier ratio 1 under op 2 ratio 1 level 86 at velocity 5 (the body: velocity into brightness); op 3 carrier ratio 3 level 78 under op 4 ratio 1 level 72 (the formant shelf around the third harmonic, the odd-rich edge); op 5 carrier ratio 1 level 64 under op 6 ratio 1 at feedback 7 (noise: the breath, loudest on the onset, falling to a low hiss). Attack about 30 ms, held, vibrato 14 cents at 5.2 Hz after 0.45 s. Weight 0: reached only through the sampler disk." },
+      { name: "alto sax", w: 0,
+        base: fmNew(5, 7, 0.4, [
+          { r: 1, lvl: 99, vs: 2, rs: 1, eg: [62, 40, 30, 62, 99, 95, 92, 0] },
+          { r: 1, lvl: 97, vs: 3, rs: 1, eg: [58, 45, 30, 62, 99, 93, 90, 0], bp: 64, rd: 35, rc: "-lin" },
+          { r: 2, lvl: 84, vs: 3, rs: 1, eg: [60, 45, 30, 62, 99, 92, 88, 0] },
+          { r: 2, lvl: 88, vs: 3, rs: 1, eg: [58, 45, 30, 62, 99, 92, 88, 0], bp: 64, rd: 35, rc: "-lin" },
+          { r: 1, lvl: 60, vs: 2, rs: 1, eg: [99, 58, 40, 62, 99, 64, 50, 0] },
+          { r: 1, lvl: 84, vs: 3, rs: 1, eg: [99, 60, 40, 62, 99, 74, 62, 0] },
+        ], { vib: 12, lfoRate: 5.6, lfoDelay: 0.4 }, BRASS_TOUCH),
+        range: { bright: [-3, 3], vib: [8, 16] },
+        note: "the lighter reed: as the tenor, but op 3 carrier ratio 2 under a ratio-2 modulator (a brighter, less hollow shelf an octave up), the body's modulator two steps down, breath a little lower; vibrato 12 cents at 5.6 Hz after 0.4 s. Weight 0: reached only through the sampler disk." },
     ],
     pluck: [
       { name: "koto", w: 16,
@@ -4842,6 +4870,49 @@
         range: { release: [0.8, 1.3], vib: [4, 10] },
         note: "a choir-like stack on algorithm 32 (six carriers, the extension): two voices at ratio 1, +7 and -7 cents, level 95 (the section); ratio 2 at 85, 3 at 78 and 4 at 70 as a fixed vowel shape, the upper two falling away above C4 (-exp); op 6 ratio 1 level 80 at feedback 6 on its own phase, the breathy edge. Swells in over about half a second, holds, releases over about two; vibrato 7 cents after 0.4 s. A DX substitute for a sampled choir: the Juno choir pad is the rack's named stand-in" },
     ],
+    // ACOUSTIC PIANO (2026-11-06, Asana 1220133283892196; Jeff by voice
+    // 11/02: "No separate acoustic piano or sax instrument. Build the best
+    // synthesized stand-ins in the existing books ... then they ship as
+    // entries in the sampler's disk library"). Its own key, not the ep's: a
+    // hammered string body, not a tine. Every entry w 0: the role draw never
+    // picks one; a song reaches them only through the sampler disk. Fitted
+    // to the University of Iowa Steinway notes C2-C6 (analysis/psx-fit.mjs:
+    // attack centroid, partial stretch, two-stage decay).
+    piano: [
+      { name: "acoustic piano", w: 0,
+        base: fmNew(5, 5, 0.32, [
+          { r: 1, lvl: 99, vs: 2, rs: 5, eg: [99, 42, 21, 66, 99, 90, 0, 0] },
+          { r: 1, det: 14, lvl: 97, vs: 3, rs: 4, eg: [99, 54, 26, 62, 99, 78, 0, 0], bp: 60, rd: 45, rc: "-lin" },
+          { r: 1, det: 2, lvl: 92, vs: 2, rs: 5, eg: [99, 40, 20, 66, 99, 89, 0, 0] },
+          { r: 3, det: 14, lvl: 88, vs: 3, rs: 4, eg: [99, 62, 28, 62, 99, 62, 0, 0], bp: 60, rd: 50, rc: "-exp" },
+          { r: 1, det: -2, lvl: 90, vs: 2, rs: 5, eg: [99, 42, 21, 66, 99, 90, 0, 0] },
+          { r: 7, det: 20, lvl: 95, vs: 4, rs: 4, eg: [99, 78, 50, 70, 99, 0, 0, 0], bp: 60, rd: 40, rc: "-lin" },
+        ], { release: 0.9 }, EP_TOUCH),
+        range: { bright: [-3, 3], decay: [0.85, 1.2] },
+        note: "a hammered string body on algorithm 5: three carriers at ratio 1 a few cents apart (the unison strings, beating), each under a modulator detuned up (op 2 ratio 1 +9 cents, op 4 ratio 3 +14) so the upper partials sit sharp of the harmonic series (the stretch rising with pitch is the rate and level scaling's), and op 6 ratio 7 +20 cents at feedback 5 gone in about 50 ms: the strike. Two-stage decay (a fast drop to level 85, then a slow fall to silence while held), rate scaling 4 shortens the top, release 66 the damper. Weight 0: reached only through the sampler disk." },
+      { name: "bright piano", w: 0,
+        base: fmNew(5, 5, 0.3, [
+          { r: 1, lvl: 99, vs: 2, rs: 4, eg: [99, 52, 23, 66, 99, 84, 0, 0] },
+          { r: 1, det: 9, lvl: 85, vs: 6, rs: 4, eg: [99, 56, 28, 62, 99, 74, 0, 0], bp: 60, rd: 16, rc: "-lin" },
+          { r: 1, det: 2, lvl: 92, vs: 2, rs: 4, eg: [99, 48, 22, 66, 99, 82, 0, 0] },
+          { r: 3, det: 14, lvl: 72, vs: 6, rs: 4, eg: [99, 62, 30, 62, 99, 62, 0, 0], bp: 60, rd: 24, rc: "-exp" },
+          { r: 1, det: -2, lvl: 90, vs: 2, rs: 4, eg: [99, 50, 23, 66, 99, 83, 0, 0] },
+          { r: 7, det: 20, lvl: 80, vs: 7, rs: 4, eg: [99, 80, 50, 70, 99, 0, 0, 0] },
+        ], { release: 0.9 }, EP_TOUCH),
+        range: { bright: [-3, 3], decay: [0.85, 1.2] },
+        note: "the pop-record piano: as the acoustic piano with the modulators up (op 2 85, op 4 72) and less key scaling, the strike louder and a touch longer; the decay a little faster. Weight 0: reached only through the sampler disk." },
+      { name: "mellow piano", w: 0,
+        base: fmNew(5, 4, 0.34, [
+          { r: 1, lvl: 99, vs: 2, rs: 4, eg: [99, 48, 21, 64, 99, 87, 0, 0] },
+          { r: 1, det: 9, lvl: 74, vs: 6, rs: 4, eg: [99, 60, 28, 62, 99, 66, 0, 0], bp: 60, rd: 28, rc: "-lin" },
+          { r: 1, det: 2, lvl: 92, vs: 2, rs: 4, eg: [99, 45, 20, 64, 99, 85, 0, 0] },
+          { r: 3, det: 14, lvl: 58, vs: 6, rs: 4, eg: [99, 66, 30, 62, 99, 54, 0, 0], bp: 60, rd: 34, rc: "-exp" },
+          { r: 1, det: -2, lvl: 90, vs: 2, rs: 4, eg: [99, 47, 21, 64, 99, 86, 0, 0] },
+          { r: 7, det: 20, lvl: 66, vs: 7, rs: 4, eg: [99, 86, 50, 70, 99, 0, 0, 0] },
+        ], { release: 0.9 }, EP_TOUCH),
+        range: { bright: [-3, 3], decay: [0.85, 1.2] },
+        note: "the felt-and-ballad piano: modulators down (op 2 74, op 4 58), the strike softer, the decay a little longer. Weight 0: reached only through the sampler disk." },
+    ],
   };
   for (const role in U.FM_BOOK) for (const a of U.FM_BOOK[role]) a.role = role;
 
@@ -4894,6 +4965,14 @@
     "plucked FM guitar": R(0, 0.4, 0, 1, 0.4, 0.8, 0.6),
     "breathy FM voice": R(0, 0.3, 1, 0, 0.4, 0.9, 0),
     "FM choir": R(0, 0.5, 1, 0, 0.1, 0.8, 0),
+    // the acoustic stand-ins (w 0, reached through the sampler disk only):
+    // the census's piano parts are chords (33, 56) and colour (34, 35); its
+    // sax parts are all lead solos (4, 35, 59)
+    "acoustic piano": R(0, 0.9, 0.2, 0.3, 0.3, 0.8, 1),
+    "bright piano": R(0, 0.8, 0.1, 0.4, 0.4, 0.9, 1),
+    "mellow piano": R(0, 1, 0.3, 0.2, 0.2, 0.6, 0.9),
+    "tenor sax": R(0, 0, 0, 0.1, 1, 0.6, 0),
+    "alto sax": R(0, 0, 0, 0.2, 1, 0.7, 0),
   };
   // BEGIN FM_BOOK_REFS (generated: files/unison/patch-books-2026-10-31/fm-gen-refs.mjs)
   U.FM_BOOK_REFS = {
@@ -5360,7 +5439,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/bassguitar.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/bassguitar.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassguitar.js — electric bass guitar, the first session player of the human
 // rack (Rack 2), zero dependencies.
 //
@@ -6071,7 +6150,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/rhythmguitar.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/rhythmguitar.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
 // rhythmguitar.js — clean electric rhythm guitar, the fourth and last stop of
 // the human rack (Rack 2), zero dependencies.
 //
@@ -6847,7 +6926,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/tr808.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/tr808.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
 // tr808.js — THE MACHINE. A TR-808-lineage core voice: bass drum, snare,
 // closed hat, open hat, each with a front panel the token actually turns.
 //
@@ -8131,7 +8210,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/linn.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/linn.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
 // linn.js — THE STUDIO MACHINE. A Linn-family (LM-1 / LinnDrum lineage)
 // drum computer: the new wave / synth-pop / 80s R&B kit.
 //
@@ -8953,7 +9032,7 @@
     get EPROM_HZ() { return U.CIRCUIT_LINN.epromHz; }, get RECON_HZ() { return U.CIRCUIT_LINN.reconHz; } };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/romkits.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/romkits.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
 // romkits.js — THE OTHER SAMPLED MACHINE: the DMX (Oberheim lineage, 1981),
 // drum engine slice 3, 2026-11-03, Asana 1219959495948201.
 //
@@ -9309,7 +9388,7 @@
   // the lock refuses; the MCS is a kit drawn across families, which is slice 4.
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/simmons.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/simmons.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
 // simmons.js — THE ELECTRONIC FAMILY'S FIRST MACHINE: the Simmons toms
 // (SDS-V lineage, 1981; SDS-7, 1983), drum engine slice 3, 2026-11-03,
 // Asana 1219959495948201.
@@ -9481,7 +9560,7 @@
   U.SIMMONS_VOICES = ["tomHi", "tomMid", "tomLo"];
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drumengine.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drumengine.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drumengine.js — ONE DRUM ENGINE, THE MACHINES AS FAMILIES (2026-11-02,
 // drum engine slice 1, Asana 1219959495948201; the rack and parts doc,
 // 10/31).
@@ -9712,7 +9791,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drumkits.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drumkits.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drumkits.js — the drum engine, slice 4 (2026-11-06, Asana 1219959495948201):
 // THE KIT BOOKS and THE KIT AS A DRAW ACROSS FAMILIES.
 //
@@ -10070,7 +10149,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/sampler.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/sampler.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
 // sampler.js — THE SAMPLER KEYBOARD, the gap filler (2026-11-05, slice 1,
 // Asana 1220085081678265; build 7 of the 10/31 rack and parts doc; design in
 // files/unison/sampler-2026-11-05/RESULT.md in the morgan repo).
@@ -10163,6 +10242,26 @@
     { id: "breath", w: 0, kind: "breath", name: "breath tone",
       source: { parts: [{ engine: "fm", patch: "FM flute", notes: [0], vel: 0.8, dur: 1.4 }] },
       root: 72, len: 1.6, loop: null, gate: true, range: [60, 84], release: 0.12, level: -19.9, track: 0.84, roles: R(0, 0, 0.3, 0, 0.3, 1, 0) },
+    // THE ACOUSTIC ENTRIES (2026-11-06, Asana 1220133283892196; Jeff by voice
+    // 11/02: acoustic instruments reach the record through the sampler). Their
+    // sources are FM book archetypes at w 0 (the role draw never picks them).
+    // The piano is MULTI-SAMPLED: zones, each its own ROM at its own root,
+    // the note picks the zone whose range holds it (a Fairlight or Emulator
+    // piano was a few zones, never one note stretched across the keyboard);
+    // root, range, level and track are the whole keyboard's. A one-shot that
+    // releases at key-up (the damper). The sax is one looped ROM; its source
+    // carries the player's slide into the note (source.scoop, baked into the
+    // ROM's onset) and its vibrato is the sampler's own delayed LFO at
+    // playback (vib), so the loop holds a steady tone. Record:
+    // files/unison/piano-sax-2026-11-06/RESULT.md.
+    { id: "piano", w: 1, kind: "apiano", name: "sampled piano", acoustic: true,
+      source: { parts: [{ engine: "fm", patch: "acoustic piano", notes: [0], vel: 0.7, dur: 3.2 }] },
+      zones: [{ root: 43, range: [36, 51], len: 3.0 }, { root: 60, range: [52, 67], len: 2.4 }, { root: 76, range: [68, 88], len: 1.6 }],
+      root: 60, len: 2.4, loop: null, gate: true, range: [36, 88], release: 0.15, level: -11.7, track: 0.08, roles: R(0, 0.9, 0.1, 0.2, 0.2, 1, 1) },
+    { id: "sax", w: 1, kind: "asax", name: "sampled tenor sax", acoustic: true,
+      source: { parts: [{ engine: "fm", patch: "tenor sax", notes: [0], vel: 0.8, dur: 3.6, override: { vib: 0 } }], scoop: { cents: -30, ms: 60 } },
+      vib: { cents: 14, hz: 5.2, delay: 0.45, rise: 0.3 },
+      root: 63, len: 3.2, loop: { from: 0.7, to: 1.5 }, range: [54, 78], release: 0.1, level: -14.8, track: -0.84, roles: R(0, 0, 0, 0.1, 1, 0.2, 0) },
   ];
   // THE STAND-IN each entry replaces today (the census's stand-in kinds): the
   // engine and patch (its book's centre), the strip its level is matched on,
@@ -10180,8 +10279,11 @@
     bass: { engine: "minimoog", patch: "round sub bass", strip: "bass" },
     mallet: { engine: "fm", patch: "glass keys", strip: "color" },
     breath: { engine: "fm", patch: "FM flute", strip: "color" },
+    // the acoustic entries: the patch each census part plays today
+    piano: { engine: "fm", patch: "tine EP", strip: "compA" },
+    sax: { engine: "fm", patch: "FM brass section", strip: "lead" },
   };
-  U.SAMPLER_KINDS = ["bsamp", "csampled", "cchoir", "corch", "cstrings", "lhorns", "mallet", "breath"];
+  U.SAMPLER_KINDS = ["bsamp", "csampled", "cchoir", "corch", "cstrings", "lhorns", "mallet", "breath", "apiano", "asax"];
   U.samplerEntry = function (id) {
     const e = U.SAMPLER_DISK.find((x) => x.id === id);
     if (!e) throw new Error("sampler: no disk entry " + id);
@@ -10241,7 +10343,21 @@
     const L = buf.getChannelData(0), Rr = buf.getChannelData(1), n0 = Math.round(T0 * SR);
     const x = new Float32Array(buf.length - n0);
     let pk = 0;
-    for (let i = 0; i < x.length; i++) { x[i] = 0.5 * (L[i + n0] + Rr[i + n0]); pk = Math.max(pk, Math.abs(x[i])); }
+    for (let i = 0; i < x.length; i++) x[i] = 0.5 * (L[i + n0] + Rr[i + n0]);
+    // the player's slide into the note (acoustic entries only): the onset read
+    // at a rate 2^(c(t)/1200), c rising from scoop.cents to 0 over scoop.ms
+    // (quadratic), then at rate 1; linear interpolation
+    if (entry.source.scoop) {
+      const sc = entry.source.scoop, T = sc.ms / 1000, y = new Float32Array(x.length);
+      let ph = 0;
+      for (let i = 0; i < y.length; i++) {
+        const t = i / SR, c = t < T ? sc.cents * (1 - t / T) * (1 - t / T) : 0, j = Math.floor(ph), f = ph - j;
+        y[i] = j + 1 < x.length ? x[j] * (1 - f) + x[j + 1] * f : 0;
+        ph += Math.pow(2, c / 1200);
+      }
+      x.set(y);
+    }
+    for (let i = 0; i < x.length; i++) pk = Math.max(pk, Math.abs(x[i]));
     if (pk > 1e-9) { const k = 0.95 / pk; for (let i = 0; i < x.length; i++) x[i] *= k; }
     keep.length = 0;
     return x;
@@ -10290,10 +10406,24 @@
     const C = converterOf(null, record), key = keyOf(entry.id, C);
     if (disk.has(key)) return disk.get(key);
     if (!U._linn || !U._linn.burn) throw new Error("sampler.js: the burn needs instruments/linn.js loaded");
-    const src = await U.renderSamplerSource(entry);
-    const rom = U._linn.burn(src, entry.len * C.capScale, undefined, C);
-    const loop = U.samplerFindLoop(rom, entry, C);
-    const d = { id: entry.id, rom, loop, src, converter: C };
+    let d;
+    if (entry.zones) {
+      // a multi-sampled entry: one ROM per zone, the source played at the
+      // zone's root; d.rom / d.loop / d.src are the zone holding entry.root
+      const zones = [];
+      for (const z of entry.zones) {
+        const ez = Object.assign({}, entry, { root: z.root, len: z.len || entry.len, range: z.range, zones: null });
+        const src = await U.renderSamplerSource(ez), rom = U._linn.burn(src, ez.len * C.capScale, undefined, C);
+        zones.push({ root: z.root, range: z.range, len: ez.len, rom, loop: U.samplerFindLoop(rom, ez, C), src });
+      }
+      const m = zones.find((z) => entry.root >= z.range[0] && entry.root <= z.range[1]) || zones[0];
+      d = { id: entry.id, rom: m.rom, loop: m.loop, src: m.src, zones, converter: C };
+    } else {
+      const src = await U.renderSamplerSource(entry);
+      const rom = U._linn.burn(src, entry.len * C.capScale, undefined, C);
+      const loop = U.samplerFindLoop(rom, entry, C);
+      d = { id: entry.id, rom, loop, src, converter: C };
+    }
     disk.set(key, d);
     return d;
   };
@@ -10311,12 +10441,20 @@
 
   // ONE NOTE: the ROM re-clocked to the note (behavior 2), looped while held
   // (behavior 1), through the drums' DAC; vel and release here, level on the line.
+  // the zone that plays a note: the one whose range holds it, else the nearest
+  const zoneFor = (zones, midi) => {
+    let best = zones[0], bd = Infinity;
+    for (const z of zones) { const dd = midi < z.range[0] ? z.range[0] - midi : midi > z.range[1] ? midi - z.range[1] : 0; if (dd < bd) { bd = dd; best = z; } }
+    return best;
+  };
   function playNote(entry, d, midi, vel, dur, C) {
-    const tune = Math.pow(2, (midi - entry.root) / 12), rom = d.rom, H = C.epromHz * tune;
+    let zr = entry.root, zrom = d.rom, zloop = d.loop;
+    if (d.zones) { const z = zoneFor(d.zones, midi); zr = z.root; zrom = z.rom; zloop = z.loop; }
+    const tune = Math.pow(2, (midi - zr) / 12), rom = zrom, H = C.epromHz * tune;
     let data = rom, relAt = entry.gate ? Math.round(dur * SR) : Infinity;
     const tau = entry.release || 0.25;
-    if (d.loop) {
-      const need = Math.ceil((dur + 5 * tau) * H) + 8, lp = d.loop, L = lp.end - lp.start;
+    if (zloop) {
+      const need = Math.ceil((dur + 5 * tau) * H) + 8, lp = zloop, L = lp.end - lp.start;
       if (need > lp.end) {
         data = new Float32Array(need);
         data.set(rom.subarray(0, lp.end));
@@ -10326,7 +10464,19 @@
       if (!data.converter) mark(data, rom.converter);
       relAt = Math.round(dur * SR);
     }
-    const y = U._linn.play(data, tune, undefined, undefined, C);
+    let y = U._linn.play(data, tune, undefined, undefined, C);
+    // the sampler's own delayed vibrato (acoustic entries only): a modulated
+    // read of the played note, depth vib.cents at vib.hz from vib.delay,
+    // faded in over vib.rise (the Emulator II's LFO with a delay)
+    if (entry.vib) {
+      const v = entry.vib, A = v.cents * SR / (1731.234 * 2 * Math.PI * v.hz), w = 2 * Math.PI * v.hz / SR, n0 = Math.round(v.delay * SR), nr = Math.max(1, Math.round(v.rise * SR));
+      const z = new Float32Array(y.length);
+      for (let i = 0; i < y.length; i++) {
+        const k = i - n0, D = k > 0 ? A * Math.min(1, k / nr) * (1 - Math.cos(w * k)) : 0, p = i - D, j = Math.floor(p), f = p - j;
+        z[i] = j >= 0 && j + 1 < y.length ? y[j] * (1 - f) + y[j + 1] * f : 0;
+      }
+      y = mark(z, y.converter);
+    }
     const gv = (0.35 + 0.65 * vel) * Math.pow(10, ((entry.track || 0) * (midi - entry.root)) / 12 / 20);
     const k = Math.exp(-1 / (tau * SR));
     let r = 1;
@@ -10482,8 +10632,33 @@
   U.samplerCandidates = function (role, lane) {
     const gate = U.ROLE_GATE[role], bias = U.SAMPLER_LANE_BIAS[lane] || {}, list = [];
     for (const e of U.SAMPLER_DISK) {
+      if (e.acoustic) continue;   // the acoustic entries draw on their own band (below)
       const f = (e.roles && e.roles[role]) || 0, b = bias[e.id] != null ? bias[e.id] : bias[e.kind] != null ? bias[e.kind] : 1;
       const w = (e.w || 0) * f * b;
+      if (f >= gate && w > 0) list.push({ e, w });
+    }
+    return list;
+  };
+  // THE ACOUSTIC BAND (2026-11-06, Asana 1220133283892196). The census's
+  // carrying piano parts (33 and 56 chords on compA, 34 and 35 colour) and
+  // sax parts (4, 35, 59, all lead solos) added to the sampler's evidence on
+  // a band of their own ABOVE the old one on the same flag: a strip the old
+  // draw takes (u < p) is exactly as before; an untaken strip is taken by an
+  // acoustic entry when p <= u < p + pA, picked on the block's spare uni[1].
+  // So every old take is unchanged and the draw count is still 35 a song.
+  // pA = scale x U.SAMPLER_ACOUSTIC_SHARE[strip] x lane weight x (second
+  // take). Shares: the census addition / the strip's up-rate / the mean lane
+  // weight, set by the census pass (RESULT.md, Design and Identity).
+  // the acoustic band's own scale (1; 0 = the band off, every song as before: the identity proof)
+  U.SAMPLER_ACOUSTIC_SCALE = 1;
+  U.SAMPLER_ACOUSTIC_SHARE = { bass: 0, compA: 0.022, pad: 0, arp: 0, lead: 0.05, counter: 0, color: 0.05 };
+  // the tracks' lanes (six of the seven parts synthRnB, one newWave), shrunk toward 1
+  U.SAMPLER_ACOUSTIC_LANE_WEIGHT = { synthRnB: 2.2, newWave: 0.8, funk: 0.8, synthPop: 0.7, earlyHipHop: 0.3 };
+  U.samplerAcousticCandidates = function (role) {
+    const gate = U.ROLE_GATE[role], list = [];
+    for (const e of U.SAMPLER_DISK) {
+      if (!e.acoustic) continue;
+      const f = (e.roles && e.roles[role]) || 0, w = (e.w || 0) * f;
       if (f >= gate && w > 0) list.push({ e, w });
     }
     return list;
@@ -10510,12 +10685,28 @@
   };
   U.resolveSampler = function (sheet, reads) {
     const rec = { reads, strips: {}, n: 0 };
+    let nOld = 0;
     const books = { juno: sheet.junoPatches, obxa: sheet.obxaPatches, minimoog: sheet.minimoogPatches, fm: sheet.fmPatches };
     for (const strip of U.ROLE_STRIPS) {
       const r = reads[strip];
       if (sheet.mutes[strip]) continue;
-      const p = U.SAMPLER_SHARE_SCALE * (U.SAMPLER_STRIP_SHARE[strip] || 0) * (U.SAMPLER_LANE_WEIGHT[sheet.lane] || 1) * (rec.n ? U.SAMPLER_SECOND_TAKE : 1);
-      if (!(r.u < p)) continue;
+      const p = U.SAMPLER_SHARE_SCALE * (U.SAMPLER_STRIP_SHARE[strip] || 0) * (U.SAMPLER_LANE_WEIGHT[sheet.lane] || 1) * (nOld ? U.SAMPLER_SECOND_TAKE : 1);
+      if (!(r.u < p)) {
+        // the acoustic band, on a strip the old draw left alone
+        const pA = U.SAMPLER_SHARE_SCALE * U.SAMPLER_ACOUSTIC_SCALE * (U.SAMPLER_ACOUSTIC_SHARE[strip] || 0) * (U.SAMPLER_ACOUSTIC_LANE_WEIGHT[sheet.lane] || 1) * (rec.n ? U.SAMPLER_SECOND_TAKE : 1);
+        if (!(r.u < p + pA)) continue;
+        if (strip === "lead" && sheet.vocoder && sheet.vocoder.on) continue;
+        const roleA = U.stripRole(strip, sheet.picks), listA = U.samplerAcousticCandidates(roleA);
+        if (!listA.length) continue;
+        let totA = 0; for (const c of listA) totA += c.w;
+        let xa = r.uni[1] * totA, pickA = listA[listA.length - 1];
+        for (const c of listA) { xa -= c.w; if (xa < 0) { pickA = c; break; } }
+        const ea = sheet.voices[strip], ba = books[ea], pra = ba && ba[strip];
+        rec.strips[strip] = { entry: pickA.e.id, kind: pickA.e.kind, name: pickA.e.name, role: roleA, p: p + pA, w: pickA.w / totA, u: r.u, uni: r.uni, acoustic: true,
+          from: { engine: ea, patch: pra ? pra.name : null } };
+        rec.n++;
+        continue;
+      }
       if (strip === "bass" && !U.samplerBassOk(sheet)) continue;
       if (strip === "lead" && sheet.vocoder && sheet.vocoder.on) continue;
       const role = U.stripRole(strip, sheet.picks), list = U.samplerCandidates(role, sheet.lane);
@@ -10526,7 +10717,7 @@
       const e = sheet.voices[strip], b = books[e], pr = b && b[strip];
       rec.strips[strip] = { entry: pick.e.id, kind: pick.e.kind, name: pick.e.name, role, p, w: pick.w / tot, u: r.u, uni: r.uni,
         from: { engine: e, patch: pr ? pr.name : null } };
-      rec.n++;
+      rec.n++; nOld++;
     }
     return rec;
   };
@@ -10556,7 +10747,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drums.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drums.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drums.js — the drum machine: 808/LM-1-flavor voices, synthesized at runtime
 // into short AudioBuffers, played back as one-shots.
 //
@@ -10950,7 +11141,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/books.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/books.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
 // books.js — Pattern Books v1, as data.
 //
 // This file IS the document: "Unison — Pattern Books v1 (draft)" (Morgan,
@@ -11002,14 +11193,40 @@
   };
   // Weight = list order. Zipf-ish taper, so lane 1 is meaningfully more likely
   // than lane 5 without lane 5 becoming rare.
-  U.LANE_WEIGHTS = [30, 24, 19, 14, 13];
+  // STAGE 4 SLICE 1 (2026-11-07, Asana 1219959300559541): toward the Unison
+  // Reference's lane proxy (synth-pop 59 / new wave 16 / funk 9 / synth R&B 7 /
+  // hip-hop 4, n=99), the 4% outside the five folded in, synth R&B and early
+  // hip-hop on a floor of 8 so no lane disappears (Morgan's call, changeable by
+  // Jeff). Was [30, 24, 19, 14, 13]. Same draw 1, value only.
+  U.LANE_WEIGHTS = [17, 58, 8, 8, 9];
 
   // Tempo + swing are SONG-GLOBAL settings (Jeff, 2026-08-03). ONE wide range,
   // wide enough for every lane. These two lines are the build-time dials — the
   // whole project's tempo character is tuned here, by ear, later.
   U.SONG_TEMPO = {
-    bpm:   [96, 142],
+    // Stage 4 slice 1 (2026-11-07): walls 80 to 168 (the Reference runs
+    // 76 to 172 over n=99; was 96 to 142, Morgan's wall, not Jeff's)
+    bpm:   [80, 168],
     swing: [0.00, 0.20],   // applied to odd 16ths
+    // The tempo quantile curve (2026-11-07): draw 2's value t mapped to a
+    // deviation from the lane's median in BPM, piecewise linear through these
+    // knots [t, dev], t=0 at the low wall and t=1 at the high wall, so every
+    // lane still reaches both walls. Shaped so 5,000 songs sit on the
+    // Reference (full-audio tempo p25 / median / p75 105 / 118 / 125, ~12%
+    // above 142, ~7% below 96). Absent = the old median-preserving pow curve
+    // (U.biasedPos), which swing still uses.
+    curve: [[0.05, -24], [0.12, -18], [0.25, -14], [0.5, 0], [0.75, 3], [0.90, 21]],
+  };
+  // draw 2's value -> bpm. lane median = the range at feel.bpmBias.
+  U.tempoBpm = function (t, bias) {
+    const T = U.SONG_TEMPO, lo = T.bpm[0], hi = T.bpm[1];
+    if (!T.curve) return Math.round(lo + (hi - lo) * U.biasedPos(t, bias));
+    const med = lo + (hi - lo) * bias;
+    const pts = [[0, lo]].concat(T.curve.map(([x, d]) => [x, Math.min(hi, Math.max(lo, med + d))]), [[1, hi]]);
+    for (let i = 1; i < pts.length; i++) {
+      if (t <= pts[i][0]) { const a = pts[i - 1], b = pts[i]; return Math.round(a[1] + (b[1] - a[1]) * (t - a[0]) / (b[0] - a[0])); }
+    }
+    return hi;
   };
 
   // Lane feel. `bpmBias` / `swingBias` are the lane's MEDIAN position in the
@@ -11018,13 +11235,25 @@
   // lands near its bias most of the time. The medians reproduce the old per-lane
   // table's centres, so lane character survives the mechanism change.
   // `mode` picks the harmony orientation the lane's books are written in.
+  // Stage 4 slice 1 (2026-11-07): bpmBias retuned on the 80-168 range so each
+  // lane's median stays where it was (125 / 120.5 / 111 / 113 / 115; was 0.65,
+  // 0.52, 0.32, 0.36, 0.41 on 96-142). `mode` is now the lane's HOME mode (the
+  // one its first books were written in, read by the instrument pages); the
+  // song's mode is a draw, U.LANE_MAJOR below.
   U.LANE_FEEL = {
-    newWave:     { bpmBias: 0.65, swingBias: 0.200, kit: "studio",  mode: "minor" },
-    synthPop:    { bpmBias: 0.52, swingBias: 0.125, kit: "studio",  mode: "major" },
-    synthRnB:    { bpmBias: 0.32, swingBias: 0.375, kit: "studio",  mode: "minor" },
-    earlyHipHop: { bpmBias: 0.36, swingBias: 0.250, kit: "machine", mode: "minor" },
-    funk:        { bpmBias: 0.41, swingBias: 0.625, kit: "machine", mode: "minor" },
+    newWave:     { bpmBias: 0.5114, swingBias: 0.200, kit: "studio",  mode: "minor" },
+    synthPop:    { bpmBias: 0.4602, swingBias: 0.125, kit: "studio",  mode: "major" },
+    synthRnB:    { bpmBias: 0.3523, swingBias: 0.375, kit: "studio",  mode: "minor" },
+    earlyHipHop: { bpmBias: 0.375,  swingBias: 0.250, kit: "machine", mode: "minor" },
+    funk:        { bpmBias: 0.3977, swingBias: 0.625, kit: "machine", mode: "minor" },
   };
+  // THE MODE DRAW (2026-11-07, Asana 1219959300559541; Jeff by voice 10/28:
+  // "Key: half major, half minor"). P(major) per lane, one roll of
+  // U.forkPrng(hash, "mode") after the tonic, so no song-stream draw moves.
+  // Shape: synth-pop most major, early hip-hop least; set so 5,000 songs land
+  // at 50% major under U.LANE_WEIGHTS. Was the lane's fixed mode (synthPop 1,
+  // every other lane 0).
+  U.LANE_MAJOR = { newWave: 0.35, synthPop: 0.67, synthRnB: 0.30, earlyHipHop: 0.12, funk: 0.22 };
 
   // Median-preserving bias curve: pow(t, k) with k chosen so the median of a
   // uniform t lands exactly on `bias`. Endpoints stay reachable for every lane.
@@ -11063,48 +11292,93 @@
   // ---- Part 1 — harmony books --------------------------------------------
   // chords: [degreeInSemitonesFromTonic, chordType]. barsPer = harmonic rhythm.
   // `chorus` (optional) = a different cycle for chorus sections.
+  // `mode` (2026-11-07): the mode the row is written in, by its tonic chord;
+  // draw 5 picks among the rows of the song's drawn mode (U.harmonyBook).
+  // `scale` (optional): the scale the realizer plays the row in, where it is
+  // not the mode's own (a major row with a flat-VII or a I7 plays mixolydian).
+  // `s4`: a row added by stage 4 slice 1 (the plumbing proof leaves them out).
 
   U.HARMONY = {
     newWave: [
-      { id: "nw.h.aeolian_descent", w: 22, barsPer: 1, chords: [[0, "m"], [10, "M"], [8, "M"], [10, "M"]] },
-      { id: "nw.h.two_chord_minor", w: 16, barsPer: 2, chords: [[0, "m"], [8, "M"]] },
-      { id: "nw.h.parked_minor",    w: 14, barsPer: 4, chords: [[0, "m"]] },
-      { id: "nw.h.minor_lift",      w: 22, barsPer: 1, chords: [[0, "m"], [8, "M"], [3, "M"], [10, "M"]] },
-      { id: "nw.h.iv_pull",         w: 14, barsPer: 1, chords: [[0, "m"], [5, "m"], [0, "m"], [10, "M"]] },
-      { id: "nw.h.relative_flip",   w: 12, barsPer: 1, chords: [[0, "m"], [10, "M"]],
+      { mode: "minor", id: "nw.h.aeolian_descent", w: 22, barsPer: 1, chords: [[0, "m"], [10, "M"], [8, "M"], [10, "M"]] },
+      { mode: "minor", id: "nw.h.two_chord_minor", w: 16, barsPer: 2, chords: [[0, "m"], [8, "M"]] },
+      { mode: "minor", id: "nw.h.parked_minor",    w: 14, barsPer: 4, chords: [[0, "m"]] },
+      { mode: "minor", id: "nw.h.minor_lift",      w: 22, barsPer: 1, chords: [[0, "m"], [8, "M"], [3, "M"], [10, "M"]] },
+      { mode: "minor", id: "nw.h.iv_pull",         w: 14, barsPer: 1, chords: [[0, "m"], [5, "m"], [0, "m"], [10, "M"]] },
+      { mode: "minor", id: "nw.h.relative_flip",   w: 12, barsPer: 1, chords: [[0, "m"], [10, "M"]],
         chorus: [[3, "M"], [10, "M"], [0, "m"], [8, "M"]] },
+      // stage 4 slice 1 (2026-11-07): the lane in major. The pop axis with a
+      // flat-VII (mixolydian where the flat-VII sounds), a two-chord I-vi, and
+      // the parked chord at the minor book's parked share (14%).
+      { mode: "major", s4: true, scale: "mixolydian", id: "nw.h.flat7_drive",  w: 30, barsPer: 1, chords: [[0, "M"], [10, "M"], [5, "M"], [0, "M"]] },
+      { mode: "major", s4: true, scale: "mixolydian", id: "nw.h.pop_axis_b7",  w: 28, barsPer: 1, chords: [[0, "M"], [9, "m"], [5, "M"], [10, "M"]] },
+      { mode: "major", s4: true, id: "nw.h.two_chord_major", w: 28, barsPer: 2, chords: [[0, "M"], [9, "m"]] },
+      { mode: "major", s4: true, id: "nw.h.parked_major",    w: 14, barsPer: 4, chords: [[0, "M"]] },
     ],
     synthPop: [
-      { id: "sp.h.pop_axis",         w: 24, barsPer: 1, chords: [[0, "M"], [7, "M"], [9, "m"], [5, "M"]] },
-      { id: "sp.h.vi_start",         w: 18, barsPer: 1, chords: [[9, "m"], [5, "M"], [0, "M"], [7, "M"]] },
-      { id: "sp.h.mixolydian_vamp",  w: 14, barsPer: 1, chords: [[0, "M"], [10, "M"]] },
-      { id: "sp.h.two_five_one",     w: 12, barsPer: 1, chords: [[2, "m7"], [7, "d7"], [0, "M7"], [0, "M7"]] },
-      { id: "sp.h.bright_two_chord", w: 16, barsPer: 2, chords: [[0, "M"], [5, "M"]] },
-      { id: "sp.h.sus_pad",          w: 12, barsPer: 1, chords: [[0, "sus4"], [0, "M"], [5, "sus2"], [5, "M"]] },
+      { mode: "major", id: "sp.h.pop_axis",         w: 24, barsPer: 1, chords: [[0, "M"], [7, "M"], [9, "m"], [5, "M"]] },
+      { mode: "major", id: "sp.h.vi_start",         w: 18, barsPer: 1, chords: [[9, "m"], [5, "M"], [0, "M"], [7, "M"]] },
+      { mode: "major", id: "sp.h.mixolydian_vamp",  w: 14, barsPer: 1, chords: [[0, "M"], [10, "M"]] },
+      { mode: "major", id: "sp.h.two_five_one",     w: 12, barsPer: 1, chords: [[2, "m7"], [7, "d7"], [0, "M7"], [0, "M7"]] },
+      { mode: "major", id: "sp.h.bright_two_chord", w: 16, barsPer: 2, chords: [[0, "M"], [5, "M"]] },
+      { mode: "major", id: "sp.h.sus_pad",          w: 12, barsPer: 1, chords: [[0, "sus4"], [0, "M"], [5, "sus2"], [5, "M"]] },
+      // stage 4 slice 1 (2026-11-07): the lane in minor. The minor axis
+      // (i-bVI-bIII-bVII), the aeolian descent, a two-chord minor, the sus pad
+      // in minor; no parked row, as the major book.
+      { mode: "minor", s4: true, id: "sp.h.minor_axis",       w: 30, barsPer: 1, chords: [[0, "m"], [8, "M"], [3, "M"], [10, "M"]] },
+      { mode: "minor", s4: true, id: "sp.h.aeolian_descent",  w: 26, barsPer: 1, chords: [[0, "m"], [10, "M"], [8, "M"], [7, "m"]] },
+      { mode: "minor", s4: true, id: "sp.h.two_chord_minor",  w: 22, barsPer: 2, chords: [[0, "m"], [8, "M"]] },
+      { mode: "minor", s4: true, id: "sp.h.minor_sus",        w: 22, barsPer: 1, chords: [[0, "sus2"], [0, "m"], [8, "M"], [10, "M"]] },
     ],
     synthRnB: [
-      { id: "rb.h.min7_vamp",     w: 22, barsPer: 2, chords: [[0, "m7"], [5, "d7"]] },
-      { id: "rb.h.two_five_loop", w: 16, barsPer: 1, chords: [[2, "m7"], [7, "d7"]] },
-      { id: "rb.h.parked_min9",   w: 16, barsPer: 4, chords: [[0, "m9"]] },
-      { id: "rb.h.descent",       w: 14, barsPer: 1, chords: [[5, "M7"], [3, "d7"], [2, "m7"], [0, "m7"]] },
-      { id: "rb.h.gospel_turn",   w: 12, barsPer: 1, chords: [[0, "m7"], [8, "M7"], [2, "m7b5"], [7, "d7"]] },
-      { id: "rb.h.bright_rb",     w: 14, barsPer: 1, chords: [[0, "M7"], [9, "m7"], [2, "m7"], [7, "d7"]] },
+      { mode: "minor", id: "rb.h.min7_vamp",     w: 22, barsPer: 2, chords: [[0, "m7"], [5, "d7"]] },
+      { mode: "minor", id: "rb.h.two_five_loop", w: 16, barsPer: 1, chords: [[2, "m7"], [7, "d7"]] },
+      { mode: "minor", id: "rb.h.parked_min9",   w: 16, barsPer: 4, chords: [[0, "m9"]] },
+      { mode: "minor", id: "rb.h.descent",       w: 14, barsPer: 1, chords: [[5, "M7"], [3, "d7"], [2, "m7"], [0, "m7"]] },
+      { mode: "minor", id: "rb.h.gospel_turn",   w: 12, barsPer: 1, chords: [[0, "m7"], [8, "M7"], [2, "m7b5"], [7, "d7"]] },
+      { mode: "major", id: "rb.h.bright_rb",     w: 14, barsPer: 1, chords: [[0, "M7"], [9, "m7"], [2, "m7"], [7, "d7"]] },
+      // stage 4 slice 1 (2026-11-07): the lane in major. bright_rb above is
+      // the I-vi-ii-V loop; the Rhodes M7 vamp, a quiet-storm walk, and the
+      // parked M7 at the old book's parked share (16%).
+      { mode: "major", s4: true, id: "rb.h.maj7_vamp",    w: 20, barsPer: 2, chords: [[0, "M7"], [5, "M7"]] },
+      { mode: "major", s4: true, id: "rb.h.quiet_storm",  w: 18, barsPer: 1, chords: [[0, "M7"], [4, "m7"], [9, "m7"], [2, "m7"]] },
+      { mode: "major", s4: true, id: "rb.h.parked_maj7",  w: 10, barsPer: 4, chords: [[0, "M7"]] },
     ],
     earlyHipHop: [
       // "the lane's harmony is mostly refusal" — parked is weighted heaviest
-      { id: "hh.h.parked",       w: 44, barsPer: 4, chords: [[0, "m"]] },
-      { id: "hh.h.two_bar_riff", w: 22, barsPer: 2, chords: [[0, "m"], [10, "M"]] },
-      { id: "hh.h.stab_only",    w: 20, barsPer: 4, chords: [[0, "m"]], forceColor: true },
-      { id: "hh.h.iv_shift",     w: 14, barsPer: 4, chords: [[0, "m"], [5, "m"]] },
+      { mode: "minor", id: "hh.h.parked",       w: 44, barsPer: 4, chords: [[0, "m"]] },
+      { mode: "minor", id: "hh.h.two_bar_riff", w: 22, barsPer: 2, chords: [[0, "m"], [10, "M"]] },
+      { mode: "minor", id: "hh.h.stab_only",    w: 20, barsPer: 4, chords: [[0, "m"]], forceColor: true },
+      { mode: "minor", id: "hh.h.iv_shift",     w: 14, barsPer: 4, chords: [[0, "m"], [5, "m"]] },
+      // stage 4 slice 1 (2026-11-07): the lane in major, still mostly
+      // refusal: the parked M7, the two-bar riff on I and flat-VII, the stab,
+      // the IV shift (parked + stab 64%, as the minor book).
+      { mode: "major", s4: true, id: "hh.h.parked_major7",  w: 44, barsPer: 4, chords: [[0, "M7"]] },
+      { mode: "major", s4: true, scale: "mixolydian", id: "hh.h.two_bar_riff_major", w: 22, barsPer: 2, chords: [[0, "M"], [10, "M"]] },
+      { mode: "major", s4: true, id: "hh.h.stab_major",     w: 20, barsPer: 4, chords: [[0, "M"]], forceColor: true },
+      { mode: "major", s4: true, id: "hh.h.iv_shift_major", w: 14, barsPer: 4, chords: [[0, "M"], [5, "M"]] },
     ],
     funk: [
-      { id: "fk.h.one_chord_vamp", w: 28, barsPer: 4, chords: [[0, "m7"]] },
-      { id: "fk.h.two_chord_push", w: 20, barsPer: 2, chords: [[0, "m7"], [5, "d9"]] },
-      { id: "fk.h.dorian_vamp",    w: 20, barsPer: 1, chords: [[0, "m7"], [5, "d7"]] },
-      { id: "fk.h.turnaround_bar", w: 18, barsPer: 1,
+      { mode: "minor", id: "fk.h.one_chord_vamp", w: 28, barsPer: 4, chords: [[0, "m7"]] },
+      { mode: "minor", id: "fk.h.two_chord_push", w: 20, barsPer: 2, chords: [[0, "m7"], [5, "d9"]] },
+      { mode: "minor", id: "fk.h.dorian_vamp",    w: 20, barsPer: 1, chords: [[0, "m7"], [5, "d7"]] },
+      { mode: "minor", id: "fk.h.turnaround_bar", w: 18, barsPer: 1,
         chords: [[0, "m7"], [0, "m7"], [0, "m7"], [0, "m7"], [0, "m7"], [0, "m7"], [2, "m7"], [7, "d7"]] },
-      { id: "fk.h.stab_answer",    w: 14, barsPer: 4, chords: [[0, "m7"]], forceColor: true },
+      { mode: "minor", id: "fk.h.stab_answer",    w: 14, barsPer: 4, chords: [[0, "m7"]], forceColor: true },
+      // stage 4 slice 1 (2026-11-07): the lane in major, mixolydian (funk's
+      // major is the dominant): the I9 vamp, a IV-I push, the turnaround on
+      // flat-VII and IV, the stab (one-chord share 42%, as the minor book).
+      { mode: "major", s4: true, scale: "mixolydian", id: "fk.h.dom_vamp",         w: 28, barsPer: 4, chords: [[0, "d9"]] },
+      { mode: "major", s4: true, scale: "mixolydian", id: "fk.h.four_one_push",    w: 30, barsPer: 1, chords: [[5, "M"], [5, "M"], [0, "d7"], [0, "d7"]] },
+      { mode: "major", s4: true, scale: "mixolydian", id: "fk.h.turnaround_major", w: 28, barsPer: 1,
+        chords: [[0, "d7"], [0, "d7"], [0, "d7"], [0, "d7"], [0, "d7"], [0, "d7"], [10, "M"], [5, "M"]] },
+      { mode: "major", s4: true, scale: "mixolydian", id: "fk.h.stab_dom",         w: 14, barsPer: 4, chords: [[0, "d7"]], forceColor: true },
     ],
+  };
+  // The lane's harmony book in the song's mode (2026-11-07): the rows tagged
+  // with it. An untagged row counts in both modes.
+  U.harmonyBook = function (lane, mode) {
+    return U.HARMONY[lane].filter((h) => !h.mode || h.mode === mode);
   };
 
   // ---- Part 2 — drum books ------------------------------------------------
@@ -11522,12 +11796,22 @@
   //   funk 0.45/0.55 x (1 + 1.222 + 0 + .045) = 1.855
   // A pattern the bass guitar never plays (U.BASSGUITAR_NEVER) takes it off
   // the list.
+  // STAGE 4 SLICE 1 (2026-11-07, Asana 1219959300559541): the bass guitar's
+  // share s moves toward the Reference (bass guitar credited on 51% of its
+  // records) under the new lane weights, s = U.BASSGUITAR_TARGET below, the
+  // same arithmetic:
+  //   newWave 0.55/0.45 x 1.580 = 1.931      (was s 0.35, 0.851)
+  //   synthPop 0.54/0.46 x 2.537 = 2.978     (was s 0.20, 0.634)
+  //   synthRnB 0.45/0.55 x 2.033 = 1.663     (was s 0.25, 0.678)
+  //   earlyHipHop 0.15/0.85 x 1.447 = 0.2554 (was s 0.05, 0.0762)
+  //   funk 0.65/0.35 x 2.267 = 4.210         (was s 0.45, 1.855)
+  U.BASSGUITAR_TARGET = { newWave: 0.55, synthPop: 0.54, synthRnB: 0.45, earlyHipHop: 0.15, funk: 0.65 };
   U.BASS_PULL = {
-    newWave:     { juno: 1, obxa: 0.840, minimoog: 0.538, fm: 0,     bassguitar: 0.851 },
-    synthPop:    { juno: 1, obxa: 0.740, minimoog: 1.000, fm: 0.500, bassguitar: 0.634 },
-    synthRnB:    { juno: 1, obxa: 0.660, minimoog: 0.600, fm: 0.400, bassguitar: 0.678 },
-    earlyHipHop: { juno: 1, obxa: 0.379, minimoog: 0.214, fm: 0.214, bassguitar: 0.0762 },
-    funk:        { juno: 1, obxa: 0.900, minimoog: 1.222, fm: 0,     bassguitar: 1.855 },
+    newWave:     { juno: 1, obxa: 0.840, minimoog: 0.538, fm: 0,     bassguitar: 1.931 },
+    synthPop:    { juno: 1, obxa: 0.740, minimoog: 1.000, fm: 0.500, bassguitar: 2.978 },
+    synthRnB:    { juno: 1, obxa: 0.660, minimoog: 0.600, fm: 0.400, bassguitar: 1.663 },
+    earlyHipHop: { juno: 1, obxa: 0.379, minimoog: 0.214, fm: 0.214, bassguitar: 0.2554 },
+    funk:        { juno: 1, obxa: 0.900, minimoog: 1.222, fm: 0,     bassguitar: 4.210 },
   };
   // The engine list a strip draws from on this song: { id, w } with
   // w = fit x pull x strip lean, zero weights dropped, in U.ENGINES order.
@@ -11588,7 +11872,11 @@
     { id: "gtr.arp",          p: "a.a.a.a.a.a.a.a.", grid: 8,  strings: "full", order: [0, 2, 3, 4, 3, 2, 1, 2], wl: { funk: 2, synthRnB: 8, synthPop: 14, newWave: 16, earlyHipHop: 2 } },
     { id: "gtr.palmMute8",    p: "P.p.p.p.P.p.p.p.", grid: 8,  strings: "low",  wl: { synthRnB: 2, synthPop: 14, newWave: 22, earlyHipHop: 4 } },
   ];
-  U.RHYTHMGTR_MUTE = { funk: 0.40, synthRnB: 0.50, newWave: 0.55, synthPop: 0.70, earlyHipHop: 0.85 };
+  // Stage 4 slice 1 (2026-11-07, Asana 1219959300559541): toward the
+  // Reference (guitar credited on 64% of its records): the strip up on ~60%
+  // of songs under the new lane weights. Was funk 0.40, synthRnB 0.50,
+  // newWave 0.55, synthPop 0.70, earlyHipHop 0.85 (up on ~41%).
+  U.RHYTHMGTR_MUTE = { funk: 0.30, synthRnB: 0.40, newWave: 0.35, synthPop: 0.38, earlyHipHop: 0.70 };
   // the book for a lane, as U.pickWeighted reads it
   U.rhythmGtrBook = function (lane) {
     const out = [];
@@ -13315,7 +13603,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/bassplayer.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/bassplayer.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassplayer.js — the PERFORMANCE half of the bass guitar: a session player.
 //
 // Rack 2's rule (kb/projects/unison.md, 2026-07-11): every human instrument is
@@ -13910,7 +14198,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/gtrplayer.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/gtrplayer.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
 // gtrplayer.js — the PERFORMANCE half of the rhythm guitar: a session
 // guitarist on the rhythmGtr strip.
 //
@@ -14384,7 +14672,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/fmplayer.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/fmplayer.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fmplayer.js — the PERFORMANCE half of the FM keys: a session keyboard
 // player on the FM chord strips (compA's tine EP, colour's glass and brass).
 //
@@ -14525,7 +14813,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/testPhrase.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/testPhrase.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
 // testPhrase.js — deterministic 8-bar test phrase, ported from the bake-off
 // (phrase.js) onto the engine's canonical PRNG (core/prng.js).
 //
@@ -14619,7 +14907,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/form.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/form.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
 // form.js — the song's form: the book of returns (2026-10-30, Asana
 // 1220073468300418; design files/unison/structure-design-2026-10-30 in the
 // morgan repo, DESIGN.md + draw.py, transcribed here as written).
@@ -14940,7 +15228,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/session.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/session.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
 // session.js — the session sheet and the arrangement realizer.
 //
 // Two tiers, in this order, each on its own stream (core/prng.js):
@@ -15056,6 +15344,14 @@
 // fixed 40-48 bar forms. The other tier-1 forks (auxPerc, moogRoles,
 // padVoice) are read below as before.
 //
+// THE MODE (2026-11-07, Asana 1219959300559541): drawn from its own fork,
+// U.forkPrng(hash, "mode"), one roll against U.LANE_MAJOR[lane] right after
+// draw 4, so the count stays 86. Draw 5 then picks among the lane's harmony
+// rows in that mode (U.harmonyBook, books.js). Until 2026-11-07 the mode was
+// the lane's fixed LANE_FEEL.mode. Draw 2's value maps through
+// U.tempoBpm (books.js, the Reference-shaped curve on 80-168) since the
+// same day; the draw itself is where it was.
+//
 // THE MOTOR, slice 1 (2026-11-01, Asana 1220084594858479): the arpeggiator's
 // setting is read from its own fork, U.forkPrng(hash, "motor.arp"), by
 // U.drawArpMotor (books.js; 20 values, order there) for every song, after
@@ -15123,7 +15419,9 @@
   "use strict";
   const U = (g.U = g.U || {});
 
-  const SCALES = { minor: [0, 2, 3, 5, 7, 8, 10], major: [0, 2, 4, 5, 7, 9, 11] };
+  // mixolydian (2026-11-07): the scale a major-mode harmony row with a flat-VII
+  // or a I7 asks for (U.HARMONY row `scale`); the song's mode stays "major"
+  const SCALES = { minor: [0, 2, 3, 5, 7, 8, 10], major: [0, 2, 4, 5, 7, 9, 11], mixolydian: [0, 2, 4, 5, 7, 9, 10] };
 
   // ---- form -----------------------------------------------------------------
   // The form is drawn by src/session/form.js (U.drawForm) on its own fork,
@@ -15216,12 +15514,19 @@
     // draws 2,3 — tempo and swing are SONG-GLOBAL (Jeff 2026-08-03): one wide
     // range for all lanes, the lane only biasing where in it the draw lands.
     const T = U.SONG_TEMPO;
-    const bpm = Math.round(lerp(T.bpm[0], T.bpm[1], U.biasedPos(R.r(), feel.bpmBias)));
+    // (2026-11-07: through U.tempoBpm, the Reference-shaped curve on 80-168; same draw)
+    const bpm = U.tempoBpm(R.r(), feel.bpmBias);
     const swing = +lerp(T.swing[0], T.swing[1], U.biasedPos(R.r(), feel.swingBias)).toFixed(3);
 
     const tonicPc = R.ri(0, 11);                                      // draw 4
-    const mode = feel.mode;
-    const harmony = U.pickWeighted(R, U.HARMONY[lane]);               // draw 5
+    // THE MODE (2026-11-07, Asana 1219959300559541): a per-song draw on its
+    // own fork, U.forkPrng(hash, "mode"), one roll against U.LANE_MAJOR[lane]
+    // (books.js). Not a song-stream draw, so the count stays 86 and nothing
+    // after it moves. Was feel.mode, fixed per lane.
+    if (!R.hash) throw new Error("drawSession: the mode fork needs the stream's hash (U.makePrng)");
+    const mode = U.forkPrng(R.hash, "mode").r() < (U.LANE_MAJOR[lane] || 0) ? "major" : "minor";
+    // draw 5 — the harmony book in the drawn mode (U.harmonyBook, books.js)
+    const harmony = U.pickWeighted(R, U.harmonyBook(lane, mode));     // draw 5
     // the form: its own fork, after the tempo it reads (form.js)
     if (!R.hash) throw new Error("drawSession: the form fork needs the stream's hash (U.makePrng)");
     if (!U.drawForm) throw new Error("drawSession: src/session/form.js is not loaded");
@@ -15936,7 +16241,7 @@
     opts = opts || {};
     const s16 = (60 / sheet.bpm) / 4;
     const swing = sheet.swing;
-    const scale = SCALES[sheet.mode];
+    const scale = SCALES[(sheet.harmony && sheet.harmony.scale) || sheet.mode];
     const P = sheet.picks;
     let events = 0;
 
@@ -16165,6 +16470,19 @@
       counter: mono("counter", "arp"),
       color: poly("color", "stab"),
     };
+    // A page-side note log for harnesses (2026-11-07, harness/s4-render-check.mjs):
+    // when U.__noteLog is an array, every pitched note is pushed as [strip, t,
+    // midi] after a ["start", t0, barSec] marker. Off (undefined) in every
+    // render the engine ships; nothing here changes what is scheduled.
+    if (Array.isArray(U.__noteLog)) {
+      U.__noteLog.push(["start", t0, sheet.barSec]);
+      const seen = new Map();   // strips that share one instrument object log once, under the first strip's name
+      for (const k of Object.keys(inst)) {
+        const o = inst[k]; if (seen.has(o)) continue; seen.set(o, k);
+        const f = o.noteOn;
+        o.noteOn = function (t, midi) { U.__noteLog.push([k, t, midi]); return f.apply(this, arguments); };
+      }
+    }
     // `lvl` is the current bar's section level; every velocity and drum gain
     // rides it, so the whole band gets louder into a chorus.
     let lvl = 1;
@@ -16608,7 +16926,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/render/renderer.js @ 7e52f7a — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/render/renderer.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
 // renderer.js — song assembly + the render pipeline (Technical Architecture
 // v1.2 playback model): live-first, with (a) a cheap analysis pre-render for
 // verification/metrics and (b) an on-demand full OfflineAudioContext render
@@ -17178,7 +17496,7 @@
     U.HARMONY[lane].forEach(function (h) {
       var tonic = null;
       h.chords.forEach(function (c) { if (c[0] === 0 && tonic === null) tonic = c[1]; });
-      var mode = tonic === null ? U.LANE_FEEL[lane].mode : (/^(M|sus|d)/.test(tonic) ? "major" : "minor");
+      var mode = h.mode || (tonic === null ? U.LANE_FEEL[lane].mode : (/^(M|sus|d)/.test(tonic) ? "major" : "minor"));
       var name = h.id.split(".").pop().replace(/_/g, " ").replace(/\bii\b|\biv\b|\bvi\b|\bv\b/g, function (x) { return x.toUpperCase(); });
       name = name.charAt(0).toUpperCase() + name.slice(1);
       var p = { id: h.id, lane: lane, mode: mode, name: name, h: h, chorus: !!h.chorus };
@@ -17493,8 +17811,9 @@
   // saturation on bass, lead, chords and guitar) next to the others' gated
   // room, so a board would mix rooms. One fixed room instead: the one v3
   // played for four styles of five (prod.gated_room; on a pitched strip it is
-  // the plate alone at send 0.85, the gate and its sends are the snare's and
-  // toms'). The engine's plate wash was measured first (harness/jam-levels.mjs,
+  // the plate at send 0.85, plus, since stage 2 pass 5, chorus I on the bass and
+  // on chord layers (compA) whose voice does not print its own BBD, i.e. not the
+  // Juno; the gate and its sends are the snare's and toms'). The engine's plate wash was measured first (harness/jam-levels.mjs,
   // 10/29): it lifts pitched layers 0.8-4.5 dB by reverb alone (pads +3.2/+4.5,
   // leads +3.4/+4.3, brass +3.0), which would void LEVEL_DB; this room keeps
   // every layer where v3 measured it. Drums stay dry (DRY_KIT).
