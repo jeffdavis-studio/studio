@@ -122,6 +122,9 @@ cards.forEach((c) => {
     cards.forEach((o) => { if (o !== c) stop(o); });
     cur = c; c.classList.add("on"); c.querySelector(".play").innerHTML = "&#10073;&#10073;";
     a.play().catch(() => stop(c));
+    // warm the next card while this one plays, so every clip starts as fast as the last one
+    const nx = cards[cards.indexOf(c) + 1];
+    if (nx) { const na = nx.querySelector("audio"); if (na.preload !== "auto") { na.preload = "auto"; na.load(); } }
   });
   a.addEventListener("timeupdate", () => { t.textContent = fmt(a.currentTime); });
   a.addEventListener("ended", () => { stop(c); });
