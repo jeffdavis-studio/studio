@@ -222,10 +222,10 @@
 <div id="bars" class="row"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><div id="status"></div></div>
 <div id="layers"></div>
 <div id="add" class="row"><div class="lbl">Add a layer<button id="palRnd" title="add a random instrument (one you don't have yet, while any are left)">Random</button></div><div id="pal"></div></div>
-<footer title="engine @94bd835 · built 2026-11-07">Unison jam &middot; every sound is synthesized in this page by the engine at 94bd835</footer>
+<footer title="engine @4421fbe · built 2026-11-07">Unison jam &middot; every sound is synthesized in this page by the engine at 4421fbe</footer>
 
 <script>
-/* ===== src/core/prng.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/prng.js @ 4421fbe — verbatim from jeffdavis-studio/unison-engine ===== */
 // prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
 // token hash, consumed in canonical draw order (Technical Architecture v1.2).
 //
@@ -298,7 +298,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/core/mix.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/mix.js @ 4421fbe — verbatim from jeffdavis-studio/unison-engine ===== */
 // mix.js — the fan-in ≤2 summing rule, as a primitive.
 //
 // Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
@@ -467,7 +467,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/desk/desk.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/desk/desk.js @ 4421fbe — verbatim from jeffdavis-studio/unison-engine ===== */
 // desk.js — the 24-track desk as a running audio graph.
 //
 // The desk is the data structure, not a metaphor (Composition Brief 2 / Tech
@@ -1136,7 +1136,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/production.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/production.js @ 4421fbe — verbatim from jeffdavis-studio/unison-engine ===== */
 // production.js — the production room, v0.
 //
 // PLACEMENT DECISION (Morgan's call, ratified by Jeff 2026-08-03). Production
@@ -1478,7 +1478,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/vocoder.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/vocoder.js @ 4421fbe — verbatim from jeffdavis-studio/unison-engine ===== */
 // vocoder.js — the production room's vocoder insert, slice 1 (2026-11-05,
 // Asana 1220085081650427; design in files/unison/vocoder-2026-11-05/RESULT.md).
 //
@@ -1814,7 +1814,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/analogpoly.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/analogpoly.js @ 4421fbe — verbatim from jeffdavis-studio/unison-engine ===== */
 // analogpoly.js — the analog poly core: one module that builds every Juno and
 // OB-Xa voice, behind a family lock. Asana 1220084594874974, slice 1
 // (2026-11-02); the rack doc's build 3 (files/unison/rack-parts-proposal-
@@ -2440,7 +2440,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/juno.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/juno.js @ 4421fbe — verbatim from jeffdavis-studio/unison-engine ===== */
 // juno.js — Juno-60-flavor poly voice, raw Web Audio, zero dependencies.
 // Ported from the 2026-07-21 bake-off winner (voice-raw.js), restructured to
 // live behind a desk strip: U.createJuno(ctx, strip, patchName) builds its own
@@ -3007,7 +3007,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/minimoog.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/minimoog.js @ 4421fbe — verbatim from jeffdavis-studio/unison-engine ===== */
 // minimoog.js — Minimoog Model D-lineage mono voice, zero dependencies.
 //
 // THE MONO BASS LANE (build order 808 → Juno → Minimoog → …; it also absorbs
@@ -3794,7 +3794,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/obxa.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/obxa.js @ 4421fbe — verbatim from jeffdavis-studio/unison-engine ===== */
 // obxa.js — Oberheim OB-Xa-lineage poly voice, zero dependencies.
 //
 // THE BRASS/PAD POLY LANE (build order 808 → Juno → Minimoog → OB-Xa → …).
@@ -4339,7 +4339,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/fm.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/fm.js @ 4421fbe — verbatim from jeffdavis-studio/unison-engine ===== */
 // fm.js — six-operator FM keys voice (the DX7 lineage), zero dependencies.
 //
 // THE FM LANE (build order 808 → Juno → Minimoog → OB-Xa → Linn → FM).
@@ -5439,7 +5439,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/bassguitar.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/bassguitar.js @ 4421fbe — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassguitar.js — electric bass guitar, the first session player of the human
 // rack (Rack 2), zero dependencies.
 //
@@ -6150,7 +6150,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/rhythmguitar.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/rhythmguitar.js @ 4421fbe — verbatim from jeffdavis-studio/unison-engine ===== */
 // rhythmguitar.js — clean electric rhythm guitar, the fourth and last stop of
 // the human rack (Rack 2), zero dependencies.
 //
@@ -6926,7 +6926,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/tr808.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/tr808.js @ 4421fbe — verbatim from jeffdavis-studio/unison-engine ===== */
 // tr808.js — THE MACHINE. A TR-808-lineage core voice: bass drum, snare,
 // closed hat, open hat, each with a front panel the token actually turns.
 //
@@ -8210,7 +8210,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/linn.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/linn.js @ 4421fbe — verbatim from jeffdavis-studio/unison-engine ===== */
 // linn.js — THE STUDIO MACHINE. A Linn-family (LM-1 / LinnDrum lineage)
 // drum computer: the new wave / synth-pop / 80s R&B kit.
 //
@@ -9032,7 +9032,7 @@
     get EPROM_HZ() { return U.CIRCUIT_LINN.epromHz; }, get RECON_HZ() { return U.CIRCUIT_LINN.reconHz; } };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/romkits.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/romkits.js @ 4421fbe — verbatim from jeffdavis-studio/unison-engine ===== */
 // romkits.js — THE OTHER SAMPLED MACHINE: the DMX (Oberheim lineage, 1981),
 // drum engine slice 3, 2026-11-03, Asana 1219959495948201.
 //
@@ -9388,7 +9388,7 @@
   // the lock refuses; the MCS is a kit drawn across families, which is slice 4.
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/simmons.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/simmons.js @ 4421fbe — verbatim from jeffdavis-studio/unison-engine ===== */
 // simmons.js — THE ELECTRONIC FAMILY'S FIRST MACHINE: the Simmons toms
 // (SDS-V lineage, 1981; SDS-7, 1983), drum engine slice 3, 2026-11-03,
 // Asana 1219959495948201.
@@ -9560,7 +9560,7 @@
   U.SIMMONS_VOICES = ["tomHi", "tomMid", "tomLo"];
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drumengine.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drumengine.js @ 4421fbe — verbatim from jeffdavis-studio/unison-engine ===== */
 // drumengine.js — ONE DRUM ENGINE, THE MACHINES AS FAMILIES (2026-11-02,
 // drum engine slice 1, Asana 1219959495948201; the rack and parts doc,
 // 10/31).
@@ -9791,7 +9791,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drumkits.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drumkits.js @ 4421fbe — verbatim from jeffdavis-studio/unison-engine ===== */
 // drumkits.js — the drum engine, slice 4 (2026-11-06, Asana 1219959495948201):
 // THE KIT BOOKS and THE KIT AS A DRAW ACROSS FAMILIES.
 //
@@ -10149,7 +10149,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/sampler.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/sampler.js @ 4421fbe — verbatim from jeffdavis-studio/unison-engine ===== */
 // sampler.js — THE SAMPLER KEYBOARD, the gap filler (2026-11-05, slice 1,
 // Asana 1220085081678265; build 7 of the 10/31 rack and parts doc; design in
 // files/unison/sampler-2026-11-05/RESULT.md in the morgan repo).
@@ -10747,7 +10747,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drums.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drums.js @ 4421fbe — verbatim from jeffdavis-studio/unison-engine ===== */
 // drums.js — the drum machine: 808/LM-1-flavor voices, synthesized at runtime
 // into short AudioBuffers, played back as one-shots.
 //
@@ -11141,7 +11141,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/books.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/books.js @ 4421fbe — verbatim from jeffdavis-studio/unison-engine ===== */
 // books.js — Pattern Books v1, as data.
 //
 // This file IS the document: "Unison — Pattern Books v1 (draft)" (Morgan,
@@ -13601,9 +13601,140 @@
     }
     return out;
   };
+
+  // ---------------------------------------------------------------------------
+  // REGISTER (stage 4 slice 2, 2026-11-07, Asana 1219959300559541; Jeff by
+  // voice 10/31: "register becomes a draw per part per song, a center octave
+  // and a spread, with pockets instead of walls ... octave moves become
+  // section events"). Morgan's settings, changeable by Jeff. The record:
+  // files/unison/stage4-register-2026-11-07/RESULT.md "### Design".
+  //
+  // Each pitched strip (rhythmGtr and the drums stay physical, fixed) draws a
+  // center offset in octaves from today's register and a spread (the fold
+  // window's width) from its own FORK, U.forkPrng(hash, "register." + strip),
+  // two rolls, read for EVERY song in U.ROLE_STRIPS order whether or not the
+  // strip plays. A song carries 0, 1 or 2 octave moves as section events from
+  // a second fork, U.forkPrng(hash, "register.events"), a fixed block of three
+  // rolls (count, kind, kind). Neither is a song-stream draw: tier 1 stays 86.
+  // The window (center + spread) slides into the strip's pocket; the figures
+  // over it overhang softly as they do today. Only the bass has a hard floor
+  // (28, E1), on the bass instrument's every note (session.js).
+  // ---------------------------------------------------------------------------
+  U.REGISTER_POCKETS = { bass: [28, 55], compA: [48, 79], pad: [43, 84], arp: [48, 96], lead: [57, 96], counter: [52, 91], color: [55, 96] };
+  U.BASS_FLOOR = 28;
+  // today's fold: the base the root starts from and the window it folds into
+  // (shift: what the strip adds over the window, lead and pad +12)
+  U.REGISTER_TODAY = {
+    bass: { base: 36, win: [33, 44], shift: 0 }, compA: { base: 60, win: [55, 66], shift: 0 }, pad: { base: 60, win: [55, 66], shift: 12 },
+    arp: { base: 60, win: [55, 66], shift: 0 }, lead: { base: 60, win: [55, 66], shift: 12 }, counter: { base: 60, win: [55, 66], shift: 0 }, color: { base: 60, win: [55, 66], shift: 0 },
+  };
+  // center offset weights [-1, 0, +1] octave, per strip per lane
+  U.REGISTER = {
+    bass:    { newWave: [15, 85, 0], synthPop: [15, 85, 0], synthRnB: [20, 80, 0], earlyHipHop: [35, 65, 0], funk: [5, 95, 0] },
+    compA:   { newWave: [10, 80, 10], synthPop: [10, 80, 10], synthRnB: [15, 80, 5], earlyHipHop: [10, 85, 5], funk: [10, 85, 5] },
+    pad:     { newWave: [10, 80, 10], synthPop: [10, 80, 10], synthRnB: [25, 70, 5], earlyHipHop: [20, 75, 5], funk: [15, 80, 5] },
+    arp:     { newWave: [10, 75, 15], synthPop: [10, 75, 15], synthRnB: [15, 80, 5], earlyHipHop: [10, 85, 5], funk: [10, 85, 5] },
+    lead:    { newWave: [5, 70, 25], synthPop: [5, 70, 25], synthRnB: [15, 80, 5], earlyHipHop: [10, 85, 5], funk: [10, 85, 5] },
+    counter: { newWave: [10, 75, 15], synthPop: [10, 75, 15], synthRnB: [15, 75, 10], earlyHipHop: [10, 80, 10], funk: [10, 80, 10] },
+    color:   { newWave: [0, 80, 20], synthPop: [0, 80, 20], synthRnB: [0, 85, 15], earlyHipHop: [0, 80, 20], funk: [0, 85, 15] },
+  };
+  U.REGISTER_SPREAD = [{ id: 7, w: 15 }, { id: 12, w: 70 }, { id: 17, w: 15 }];
+  // the events book: how many (0/1/2) and which, without replacement; each
+  // kind is its own strip, so never two events on one strip
+  U.REGISTER_EVENT_COUNT = [{ id: 0, w: 40 }, { id: 1, w: 45 }, { id: 2, w: 15 }];
+  U.REGISTER_EVENTS = [
+    { id: "leadUpLastChorus", w: 30, strip: "lead", shift: 12, section: "chorus" },
+    { id: "arpUpBridge", w: 25, strip: "arp", shift: 12, section: "bridge" },
+    { id: "padDownBreak", w: 25, strip: "pad", shift: -12, section: "break" },
+    { id: "bassPopChorus", w: 20, strip: "bass", shift: 12, section: "chorus" },
+  ];
+  // the bars an event covers, from the form (sections are [name, bars, loop?])
+  U.registerEventBars = function (kind, form) {
+    const secs = form.sections, start = []; let b = 0;
+    for (const s of secs) { start.push(b); b += s[1]; }
+    const out = [];
+    if (kind === "leadUpLastChorus") {
+      for (let i = secs.length - 1; i >= 0; i--) if (secs[i][0] === "chorus") { for (let k = 0; k < secs[i][1]; k++) out.push(start[i] + k); break; }
+    } else if (kind === "arpUpBridge" || kind === "padDownBreak") {
+      const name = kind === "arpUpBridge" ? "bridge" : "break";
+      secs.forEach((s, i) => { if (s[0] === name) for (let k = 0; k < s[1]; k++) out.push(start[i] + k); });
+    } else if (kind === "bassPopChorus") {
+      secs.forEach((s, i) => { if (s[0] === "chorus" && i > 0 && secs[i - 1][0] !== "chorus") for (let k = Math.max(0, start[i] - 2); k < start[i]; k++) out.push(k); });
+    }
+    return out;
+  };
+  // THE DRAW. Reads only its forks; the census and the realizer read the result.
+  U.drawRegister = function (hash, lane, form) {
+    const legacy = !!globalThis.UE_S4B_LEGACY;
+    const strips = {};
+    for (const strip of U.ROLE_STRIPS) {
+      const G = U.forkPrng(hash, "register." + strip);
+      const w = (U.REGISTER[strip] || {})[lane] || [0, 1, 0];
+      const r1 = G.r(), r2 = G.r();
+      let x = r1 * (w[0] + w[1] + w[2]), off = 1;
+      if ((x -= w[0]) < 0) off = -1; else if ((x -= w[1]) < 0) off = 0;
+      const spread = U.pickWeighted({ r: () => r2 }, U.REGISTER_SPREAD).id;
+      strips[strip] = legacy ? { drawn: off, off: 0, spread: 12 } : { drawn: off, off, spread };
+    }
+    const E = U.forkPrng(hash, "register.events");
+    const r = [E.r(), E.r(), E.r()];
+    const count = U.pickWeighted({ r: () => r[0] }, U.REGISTER_EVENT_COUNT).id;
+    const events = [];
+    let pool = U.REGISTER_EVENTS.slice();
+    for (let k = 0; k < count; k++) {
+      const e = U.pickWeighted({ r: () => r[1 + k] }, pool);
+      pool = pool.filter((p) => p !== e);
+      const bars = U.registerEventBars(e.id, form);
+      events.push({ kind: e.id, strip: e.strip, shift: e.shift, live: bars.length > 0 });
+    }
+    return { strips, events: legacy ? [] : events };
+  };
+  // the window a strip's roots fold into on a bar, in the strip's own base
+  // coordinates (lead and pad: before their +12). Today's window when the
+  // strip's offset is 0, its spread 12 and no event covers the bar.
+  // opts.holdUp: the sampler holds upward moves (its disk entries' ranges).
+  U.registerWindow = function (sheet, strip, bar, opts) {
+    const T = U.REGISTER_TODAY[strip], reg = sheet.register;
+    const st = reg && reg.strips[strip];
+    let move = st ? 12 * st.off : 0;
+    const RB = opts && opts.bars;
+    const ev = RB && RB[strip] && RB[strip][bar] ? RB[strip][bar] : 0;
+    if (strip !== "bass") move += ev;   // the bass event is a pop on the figure, not a window move
+    if (opts && opts.holdUp && move > 0) move = 0;
+    const spread = st ? st.spread : 12;
+    if (!move && spread === 12) return T.win;
+    const d = spread - 12;
+    let lo = T.win[0] - Math.floor(d / 2) + move, hi = T.win[1] + Math.ceil(d / 2) + move;
+    const P = U.REGISTER_POCKETS[strip], plo = P[0] - T.shift + (strip === "bass" ? 2 : 0), phi = P[1] - T.shift;
+    if (lo < plo) { hi += plo - lo; lo = plo; }
+    if (hi > phi) { lo -= hi - phi; hi = phi; }
+    if (lo < plo) lo = plo;
+    return [lo, hi];
+  };
+  // the root a strip plays for a degree on a bar: today's fold on today's
+  // window (identical numbers), else the drawn window; a window narrower than
+  // an octave puts the pitch at its octave nearest the window's center
+  U.registerRoot = function (sheet, strip, deg, bar, opts) {
+    const T = U.REGISTER_TODAY[strip], w = U.registerWindow(sheet, strip, bar, opts);
+    let m = T.base + sheet.tonicPc + deg;
+    if (w[1] - w[0] >= 11) { while (m < w[0]) m += 12; while (m > w[1]) m -= 12; return m; }
+    const c = (w[0] + w[1]) / 2;
+    return m + 12 * Math.round((c - m) / 12);
+  };
+  // the per-strip bar map of the events, built once per sheet (realizer)
+  U.registerBars = function (sheet) {
+    const out = {};
+    if (!sheet.register) return out;
+    for (const e of sheet.register.events) {
+      if (!e.live) continue;
+      const m = out[e.strip] || (out[e.strip] = {});
+      for (const b of U.registerEventBars(e.kind, sheet.form)) m[b] = e.shift;
+    }
+    return out;
+  };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/bassplayer.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/bassplayer.js @ 4421fbe — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassplayer.js — the PERFORMANCE half of the bass guitar: a session player.
 //
 // Rack 2's rule (kb/projects/unison.md, 2026-07-11): every human instrument is
@@ -14198,7 +14329,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/gtrplayer.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/gtrplayer.js @ 4421fbe — verbatim from jeffdavis-studio/unison-engine ===== */
 // gtrplayer.js — the PERFORMANCE half of the rhythm guitar: a session
 // guitarist on the rhythmGtr strip.
 //
@@ -14672,7 +14803,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/fmplayer.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/fmplayer.js @ 4421fbe — verbatim from jeffdavis-studio/unison-engine ===== */
 // fmplayer.js — the PERFORMANCE half of the FM keys: a session keyboard
 // player on the FM chord strips (compA's tine EP, colour's glass and brass).
 //
@@ -14813,7 +14944,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/testPhrase.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/testPhrase.js @ 4421fbe — verbatim from jeffdavis-studio/unison-engine ===== */
 // testPhrase.js — deterministic 8-bar test phrase, ported from the bake-off
 // (phrase.js) onto the engine's canonical PRNG (core/prng.js).
 //
@@ -14907,7 +15038,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/form.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/form.js @ 4421fbe — verbatim from jeffdavis-studio/unison-engine ===== */
 // form.js — the song's form: the book of returns (2026-10-30, Asana
 // 1220073468300418; design files/unison/structure-design-2026-10-30 in the
 // morgan repo, DESIGN.md + draw.py, transcribed here as written).
@@ -15228,7 +15359,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/session.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/session.js @ 4421fbe — verbatim from jeffdavis-studio/unison-engine ===== */
 // session.js — the session sheet and the arrangement realizer.
 //
 // Two tiers, in this order, each on its own stream (core/prng.js):
@@ -15801,6 +15932,11 @@
     // song whether or not the lead is up or is the hook, so tier 1 stays 86
     // draws and no other strip's draw moves. Only a hook song plays it.
     const melody = U.drawMelody(R.hash, { picks, mutes, motor, form });
+    // THE REGISTER (stage 4 slice 2, 2026-11-07, Asana 1219959300559541):
+    // each pitched strip's center octave and spread, and the song's octave
+    // moves as section events, from forks "register." + strip and
+    // "register.events" (U.drawRegister, books.js), read for EVERY song.
+    const register = U.drawRegister(R.hash, lane, form);
     // the rhythmGtr strip's voicing for its pattern (heard only when the strip is up)
     const gtrVoicing = U.GTR_FOR_PATTERN(picks.rhythmGtr.id, lane);
     // bar map. A looped section (ride, repeat-out, coda vamp) keeps its name
@@ -15841,6 +15977,8 @@
       // the melody engine (2026-11-03): sheet.melody = { motif, plan, home,
       // dials, handoff, label, table }
       melody,
+      // the register (2026-11-07): sheet.register = { strips: { strip: { drawn, off, spread } }, events: [{ kind, strip, shift, live }] }
+      register,
       masks: { bass: bassMask, comp: compMask, lead: leadPhrase, counter: counterPhrase, gtr: gtrMask },
       bars, totalBars: bars.length, barSec, lengthSec: bars.length * barSec,
       kit: U.LANE_FEEL[lane].kit,
@@ -16483,12 +16621,41 @@
         o.noteOn = function (t, midi) { U.__noteLog.push([k, t, midi]); return f.apply(this, arguments); };
       }
     }
+    // THE BASS FLOOR (stage 4 slice 2, 2026-11-07; installed over the note
+    // log so a harness reads the note that sounds): no bass note sounds below
+    // U.BASS_FLOOR (28, E1), whatever wrote it (figure, technique, pop, fold);
+    // raised by octaves at the instrument's note call. Today's bass never
+    // reaches it (slice 1 read 31 lowest), so no unmoved note changes.
+    // On a bar the register moved for the bass (its window, or a
+    // bassPopChorus bar) the note also keeps inside the pocket's top, and on a
+    // pop bar every second low note (at or under the bar's root + 7, after the
+    // book's style and technique wrote the bar, so never a second +12 on a
+    // pop) goes up the octave.
+    const regMv = {}, regPop = { on: false, k: 0, root: 0 };
+    if (inst.bass && inst.bass.noteOn) {
+      const f0 = inst.bass.noteOn, BP = U.REGISTER_POCKETS.bass;
+      inst.bass.noteOn = function (t, midi) {
+        const m0 = midi;
+        if (regMv.bass) {
+          if (regPop.on && midi <= regPop.root + 7 && regPop.k++ % 2 === 1 && midi + 12 <= BP[1]) midi += 12;
+          while (midi > BP[1]) midi -= 12;
+        }
+        while (midi < U.BASS_FLOOR) midi += 12;
+        if (midi !== m0) arguments[1] = midi;
+        return f0.apply(this, arguments);
+      };
+    }
     // `lvl` is the current bar's section level; every velocity and drum gain
     // rides it, so the whole band gets louder into a chorus.
     let lvl = 1;
     // cut: the motor's filter row (U.motorFilterCut, octaves), arp and
     // counter only; every other call leaves it undefined
-    const note = (part, t, midi, vel, dur, cut) => { inst[part].noteOn(t, midi, vel * lvl, dur, cut); events++; };
+    // (stage 4 slice 2) on a bar the register moved for the strip (regMv, set
+    // at the bar's top), a note outside the strip's pocket folds into it by
+    // octaves: a chord's top tone drops (an inversion), a line's top note
+    // turns down. Unmoved bars play exactly as written.
+    const regFit = (part, midi) => { if (!regMv[part]) return midi; const P = U.REGISTER_POCKETS[part]; while (midi > P[1]) midi -= 12; while (midi < P[0]) midi += 12; return midi; };
+    const note = (part, t, midi, vel, dur, cut) => { inst[part].noteOn(t, regFit(part, midi), vel * lvl, dur, cut); events++; };
     // `accent` is the machine's accent track. The books don't carry one, so it
     // is derived the way an 808 is actually programmed: the quarter-note steps
     // of the bar get the accent. Ignored entirely by the generic kit.
@@ -16558,6 +16725,13 @@
     }
     const arpYield = (bar) => !!(hookScore && hookScore.yieldBars[bar]);
 
+    // THE REGISTER (stage 4 slice 2): each strip's root on a bar through its
+    // drawn window (U.registerRoot, books.js), the events' bars (U.registerBars).
+    // Today's fold, number for number, where the strip is unmoved; rhythmGtr
+    // stays on mRoot / mTones (physical, not scope). A strip the sampler takes
+    // holds its upward moves.
+    const RB = U.registerBars(sheet);
+    const rroot = (strip, deg, bar) => U.registerRoot(sheet, strip, deg, bar, { bars: RB, holdUp: !!smp[strip] });
     // ---- the bar loop. ONE draw per bar, used for every variation decision. ----
     for (let bar = 0; bar < sheet.totalBars; bar++) {
       const b = sheet.bars[bar];
@@ -16565,10 +16739,18 @@
       lvl = SECTION_LEVEL[b.section];
       const ch = chordAt(bar);
       const nch = chordAt(Math.min(bar + 1, sheet.totalBars - 1));
-      const bRoot = bassMidi(ch.deg);
+      const bRoot = rroot("bass", ch.deg, bar);
       const mRoot = midMidi(ch.deg);
       const bTones = tones(bRoot, ch.type, 4);
       const mTones = tones(mRoot, ch.type, 4);
+      // a strip's root and tones on this bar (today's mRoot / mTones when unmoved)
+      const sR = (strip) => rroot(strip, ch.deg, bar);
+      for (const k of U.ROLE_STRIPS) {
+        const w = U.registerWindow(sheet, k, bar, { bars: RB, holdUp: !!smp[k] }), T = U.REGISTER_TODAY[k].win;
+        regMv[k] = w[0] !== T[0] || w[1] !== T[1] || (k === "bass" && !!(RB.bass && RB.bass[bar]));
+      }
+      regPop.on = !!(RB.bass && RB.bass[bar]); regPop.k = 0; regPop.root = bRoot;
+      const sTones = (strip) => { const r = sR(strip); return r === mRoot ? mTones : tones(r, ch.type, 4); };
       const dense = eff(b.energy);
 
       // --- kick ---
@@ -16684,7 +16866,7 @@
           for (let i = 0; i < 16; i++) put(i, bTones[i % 4] - (i % 8 < 4 ? 0 : 0), 0.72 + (i % 4 === 0 ? 0.2 : 0), 0.9);
         } else if (k === "walk") {
           put(0, bRoot, 0.95, 3.6); put(4, bRoot, 0.85, 3.6); put(8, bRoot, 0.85, 3.6);
-          const target = bassMidi(nch.deg);
+          const target = rroot("bass", nch.deg, bar);
           put(12, bRoot + (target > bRoot ? 2 : -2), 0.8, 1.7);
           put(14, target - (target > bRoot ? 1 : -1), 0.8, 1.7);
         } else if (k === "synco16") {
@@ -16698,7 +16880,7 @@
           put(0, bRoot, 1.0, 7.0); put(8, bRoot, 0.9, 6.5);
         } else if (k === "oneNote") {
           const mask = ONE_NOTE[sheet.masks.bass % ONE_NOTE.length];
-          const pitch = bassMidi(sheet.harmony.chords[0][0]);
+          const pitch = rroot("bass", sheet.harmony.chords[0][0], bar);
           for (let i = 0; i < 16; i++) if (mask[i] !== ".") put(i, pitch, i === 0 ? 0.95 : 0.78, 1.1);
         } else if (k === "riffHook") {
           const riff = RIFF2[sheet.masks.bass % RIFF2.length];
@@ -16717,7 +16899,7 @@
           // the figure through the drawn record as before
           const btq = U.bassTechniqueOn ? U.bassTechniqueOn(sheet.bassBook) : null;
           const bplayed = btq
-            ? U.playBassTechniqueBar(written, { bar, s16, swing, root: bRoot, tones: bTones, nextRoot: bassMidi(nch.deg), nextTones: tones(bassMidi(nch.deg), nch.type, 4),
+            ? U.playBassTechniqueBar(written, { bar, s16, swing, root: bRoot, tones: bTones, nextRoot: rroot("bass", nch.deg, bar), nextTones: tones(rroot("bass", nch.deg, bar), nch.type, 4),
               scale, tonicPc: sheet.tonicPc, idx: b.indexInSection, len: b.sectionLen, kind: k }, btq)
             : U.playBassBar(written, { bar, s16, swing }, sheet.bassPlayer);
           for (const n of bplayed) {
@@ -16745,7 +16927,8 @@
         const put = fmKeys.compA
           ? (i, midi, vel, durSteps) => ev.push({ i, midi, vel, dur: durSteps })
           : (i, midi, vel, durSteps) => note("compA", stepT(bar, i), midi, vel, durSteps * s16);
-        const chord = (i, vel, durSteps) => { for (const m of mTones) put(i, m, vel, durSteps); };
+        const cT = sTones("compA");
+        const chord = (i, vel, durSteps) => { for (const m of cT) put(i, m, vel, durSteps); };
         if (k === "grid") {
           for (let i = 0; i < 16; i++) if (P.compA.p[i] !== ".") chord(i, 0.8, 1.4);
         } else if (k === "hold") {
@@ -16756,7 +16939,7 @@
         } else if (k === "rhodes16") {
           for (let i = 0; i < 16; i++) {
             if ((i + sheet.masks.comp) % 3 === 0) continue;
-            put(i, mTones[(i * 2 + Math.floor(i / 4)) % mTones.length], 0.55, 1.2);
+            put(i, cT[(i * 2 + Math.floor(i / 4)) % cT.length], 0.55, 1.2);
           }
         }
         if (ev && ev.length) for (const n of U.playFmBar(ev, { bar, s16, swing }, sheet.fmPlayer)) note("compA", stepT(bar, n.i) + n.off, n.midi, n.vel, n.dur * s16);
@@ -16791,10 +16974,11 @@
         const k = P.pad.kind;
         const wantSection = k !== "sectionOnly" || b.section === "chorus" || b.section === "bridge";
         if (wantSection) {
+          const pT = sTones("pad");
           if (k === "swell") {
-            if (bar % 2 === 0) for (const m of mTones) note("pad", stepT(bar, 0), m + 12, 0.6, 2 * 16 * s16);
+            if (bar % 2 === 0) for (const m of pT) note("pad", stepT(bar, 0), m + 12, 0.6, 2 * 16 * s16);
           } else {
-            for (const m of mTones) note("pad", stepT(bar, 0), m + 12, 0.6, 15.6 * s16);
+            for (const m of pT) note("pad", stepT(bar, 0), m + 12, 0.6, 15.6 * s16);
           }
         }
       }
@@ -16816,14 +17000,15 @@
       // arpeggiator re-latches, as after a bar off).
       if (on("arp", bar) && P.arp.machine === "seq") {
         const S = P.arp.motor, pch = bar > 0 ? chordAt(bar - 1) : null;
-        const root = S.transpose === "chordRoot" ? mRoot : midMidi(0);
-        const prevRoot = S.transpose === "chordRoot" && pch && pch.deg !== ch.deg ? midMidi(pch.deg) : null;
+        const root = S.transpose === "chordRoot" ? sR("arp") : rroot("arp", 0, bar);
+        const prevRoot = S.transpose === "chordRoot" && pch && pch.deg !== ch.deg ? rroot("arp", pch.deg, bar) : null;
         if (!arpYield(bar)) for (const st of U.seqBar(S, bar, root, prevRoot, degMidi)) note("arp", stepT(bar, st.pos), st.midi, st.vel, st.dur * s16, U.motorFilterCut(sheet.motor.layer, st.pos));
       } else if (on("arp", bar)) {
         const A = P.arp.motor;
-        const key = P.arp.id + "|" + mRoot + ch.type;
+        const aRoot = sR("arp");
+        const key = P.arp.id + "|" + aRoot + ch.type;
         if (key !== arpLatch || arpLast !== bar - 1) { arpLatch = key; arpK = 0; }
-        const fig = U.arpBar(A, U.arpSequence(A, mRoot, ch.type), arpK);
+        const fig = U.arpBar(A, U.arpSequence(A, aRoot, ch.type), arpK);
         arpK = fig.next; arpLast = bar;
         for (const st of fig.steps) {
           if (!st.play || st.midi == null || arpYield(bar)) continue;
@@ -16838,23 +17023,23 @@
       // section whenever the strip is up, the rest where the entry gate lets
       // the lead in), in the lead's register, midMidi(0) + 12.
       if (hookScore && up("lead")) {
-        const base = midMidi(0) + 12;
+        const base = rroot("lead", 0, bar) + 12;
         for (const x of hookScore.notes[bar] || []) note("lead", stepT(bar, x.i), base + x.semi, x.vel, x.dur * 1.05 * s16);
       } else if (soloScore) {
         // the solo job (slice 2): the window's phrases (and the chorus hook)
         // as U.soloScore laid them out, over the lead's register
-        const base = midMidi(0) + 12;
+        const base = rroot("lead", 0, bar) + 12;
         for (const x of soloScore.notes[bar] || []) note("lead", stepT(bar, x.i), base + x.semi, x.vel, x.dur * 1.05 * s16);
       } else if (lineScore) {
         // the line job (slice 3): the verses' phrases (and the chorus hook)
         // as U.lineScore laid them out, over the lead's register
-        const base = midMidi(0) + 12;
+        const base = rroot("lead", 0, bar) + 12;
         for (const x of lineScore.notes[bar] || []) note("lead", stepT(bar, x.i), base + x.semi, x.vel, x.dur * 1.05 * s16);
       } else if (up("lead") && eff(b.energy) >= leadEntry) {
         {
           const ph = PHRASES[sheet.masks.lead % PHRASES.length];
           const off = (bar % 2) * 16;
-          const base = midMidi(0) + 12;
+          const base = rroot("lead", 0, bar) + 12;
           for (let i = 0; i < 16; i++) {
             const c = ph[off + i];
             if (c === "." || c === "-") continue;
@@ -16874,7 +17059,7 @@
       // register, an octave below or above; no hold step.
       if (on("counter", bar) && P.counter.layer === 2) {
         const S = P.counter.motor;
-        const root = (S.transpose === "chordRoot" ? mRoot : midMidi(0)) + (S.register === "below" ? -12 : 12);
+        const root = (S.transpose === "chordRoot" ? sR("counter") : rroot("counter", 0, bar)) + (S.register === "below" ? -12 : 12);
         for (const st of U.seqBar(S, bar, root, null, degMidi)) note("counter", stepT(bar, st.pos), st.midi, st.vel, st.dur * s16, U.motorFilterCut(S, st.pos));
       } else if (on("counter", bar)) {
         // the counter's one kind since 2026-11-02 is "answer" (its silence is
@@ -16884,7 +17069,7 @@
         const active = bar % 2 === 1;
         if (active) {
           const off = (bar % 2) * 16;
-          const base = midMidi(0);
+          const base = rroot("counter", 0, bar);
           for (let i = 0; i < 16; i++) {
             const c = ph[off + i];
             if (c === "." || c === "-") continue;
@@ -16900,10 +17085,11 @@
         const put = fmKeys.color
           ? (i, midi, vel, durSteps) => ev.push({ i, midi, vel, dur: durSteps })
           : (i, midi, vel, durSteps) => note("color", stepT(bar, i), midi, vel, durSteps * s16);
+        const kT = sTones("color");
         if (P.color.kind === "sectionHit") {
-          if (b.indexInSection === 0) for (const m of mTones) put(0, m, 0.9, 1.6);
+          if (b.indexInSection === 0) for (const m of kT) put(0, m, 0.9, 1.6);
         } else if (P.color.kind === "brassOffbeat") {
-          for (const i of [6, 14]) for (const m of mTones) put(i, m, 0.7, 1.2);
+          for (const i of [6, 14]) for (const m of kT) put(i, m, 0.7, 1.2);
         }
         if (ev && ev.length) for (const n of U.playFmBar(ev, { bar, s16, swing }, sheet.fmPlayer)) note("color", stepT(bar, n.i) + n.off, n.midi, n.vel, n.dur * s16);
       }
@@ -16926,7 +17112,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/render/renderer.js @ 94bd835 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/render/renderer.js @ 4421fbe — verbatim from jeffdavis-studio/unison-engine ===== */
 // renderer.js — song assembly + the render pipeline (Technical Architecture
 // v1.2 playback model): live-first, with (a) a cheap analysis pre-render for
 // verification/metrics and (b) an on-demand full OfflineAudioContext render
