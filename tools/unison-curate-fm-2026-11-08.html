@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Unison — FM patch curation</title>
-<!-- engine @ce8b26f · built 2026-11-08 · analysis/build-curate-page.mjs fm -->
+<!-- engine @1a19371 · built 2026-11-08 · analysis/build-curate-page.mjs fm -->
 <style>
   :root{ --bg:#16161a; --panel:#1f1f25; --edge:#34343d; --ink:#e8e8ec; --dim:#8d8d99;
     --accent:#c9a15a; --keep:#6fae78; --cut:#c0675f; }
@@ -33,6 +33,9 @@
   .seg button.sel[data-v="u"]{background:#3a3a44;color:var(--ink);border-color:#5a5a66}
   .seg button.sel[data-v="k"]{background:var(--keep);border-color:var(--keep);color:#10160f;font-weight:600}
   .seg button.sel[data-v="c"]{background:var(--cut);border-color:var(--cut);color:#1a0f0e;font-weight:600}
+  .books{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}
+  .books a{display:inline-flex;align-items:center;min-height:44px;padding:0 14px;border:1px solid var(--edge);border-radius:8px;color:var(--ink);text-decoration:none;background:#2a2a32}
+  .books a.on{background:var(--panel);border-color:var(--accent);color:var(--accent);font-weight:600}
   #copied{color:var(--keep);font-size:14px}
   #fallback{width:100%;font:13px ui-monospace,monospace;background:#111;color:var(--ink);border:1px solid var(--edge);border-radius:6px;padding:6px;display:none}
   .note{color:var(--dim);font-size:14px;margin:6px 0 0}
@@ -43,6 +46,7 @@
 <div class="wrap">
   <h1>FM patch curation</h1>
   <p class="sub">Each patch plays in two places: on its own as single notes, and in chords. Tap to hear it, tap again to stop. Mark each one keep, cut or unsure. Every patch in a group plays the same phrase, so only the sound changes.</p>
+  <nav class="books"><a href="unison-curate-fm-2026-11-08.html" class="on">FM</a><a href="unison-curate-obxa-2026-11-08.html">OB-Xa</a><a href="unison-curate-juno-2026-11-08.html">Juno</a><a href="unison-curate-minimoog-2026-11-08.html">Minimoog</a></nav>
   <div class="bar">
     <button id="copy">Copy link</button>
     <span class="hint">Copy the link and text it back, done or not. Your picks are in it.</span>
@@ -54,7 +58,7 @@
 </div>
 
 <script>
-/* ===== src/core/prng.js @ ce8b26f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/prng.js @ 1a19371 — verbatim from jeffdavis-studio/unison-engine ===== */
 // prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
 // token hash, consumed in canonical draw order (Technical Architecture v1.2).
 //
@@ -127,7 +131,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/core/mix.js @ ce8b26f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/mix.js @ 1a19371 — verbatim from jeffdavis-studio/unison-engine ===== */
 // mix.js — the fan-in ≤2 summing rule, as a primitive.
 //
 // Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
@@ -296,7 +300,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/desk/desk.js @ ce8b26f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/desk/desk.js @ 1a19371 — verbatim from jeffdavis-studio/unison-engine ===== */
 // desk.js — the 24-track desk as a running audio graph.
 //
 // The desk is the data structure, not a metaphor (Composition Brief 2 / Tech
@@ -965,7 +969,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/production.js @ ce8b26f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/production.js @ 1a19371 — verbatim from jeffdavis-studio/unison-engine ===== */
 // production.js — the production room, v0.
 //
 // PLACEMENT DECISION (Morgan's call, ratified by Jeff 2026-08-03). Production
@@ -1317,7 +1321,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/vocoder.js @ ce8b26f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/vocoder.js @ 1a19371 — verbatim from jeffdavis-studio/unison-engine ===== */
 // vocoder.js — the production room's vocoder insert, slice 1 (2026-11-05,
 // Asana 1220085081650427; design in files/unison/vocoder-2026-11-05/RESULT.md).
 //
@@ -1653,7 +1657,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/analogpoly.js @ ce8b26f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/analogpoly.js @ 1a19371 — verbatim from jeffdavis-studio/unison-engine ===== */
 // analogpoly.js — the analog poly core: one module that builds every Juno and
 // OB-Xa voice, behind a family lock. Asana 1220084594874974, slice 1
 // (2026-11-02); the rack doc's build 3 (files/unison/rack-parts-proposal-
@@ -2279,7 +2283,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/juno.js @ ce8b26f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/juno.js @ 1a19371 — verbatim from jeffdavis-studio/unison-engine ===== */
 // juno.js — Juno-60-flavor poly voice, raw Web Audio, zero dependencies.
 // Ported from the 2026-07-21 bake-off winner (voice-raw.js), restructured to
 // live behind a desk strip: U.createJuno(ctx, strip, patchName) builds its own
@@ -2846,7 +2850,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/minimoog.js @ ce8b26f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/minimoog.js @ 1a19371 — verbatim from jeffdavis-studio/unison-engine ===== */
 // minimoog.js — Minimoog Model D-lineage mono voice, zero dependencies.
 //
 // THE MONO BASS LANE (build order 808 → Juno → Minimoog → …; it also absorbs
@@ -3633,7 +3637,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/obxa.js @ ce8b26f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/obxa.js @ 1a19371 — verbatim from jeffdavis-studio/unison-engine ===== */
 // obxa.js — Oberheim OB-Xa-lineage poly voice, zero dependencies.
 //
 // THE BRASS/PAD POLY LANE (build order 808 → Juno → Minimoog → OB-Xa → …).
@@ -4178,7 +4182,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/fm.js @ ce8b26f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/fm.js @ 1a19371 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fm.js — six-operator FM keys voice (the DX7 lineage), zero dependencies.
 //
 // THE FM LANE (build order 808 → Juno → Minimoog → OB-Xa → Linn → FM).
@@ -5278,7 +5282,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/bassguitar.js @ ce8b26f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/bassguitar.js @ 1a19371 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassguitar.js — electric bass guitar, the first session player of the human
 // rack (Rack 2), zero dependencies.
 //
@@ -5989,7 +5993,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/rhythmguitar.js @ ce8b26f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/rhythmguitar.js @ 1a19371 — verbatim from jeffdavis-studio/unison-engine ===== */
 // rhythmguitar.js — clean electric rhythm guitar, the fourth and last stop of
 // the human rack (Rack 2), zero dependencies.
 //
@@ -6765,7 +6769,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/tr808.js @ ce8b26f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/tr808.js @ 1a19371 — verbatim from jeffdavis-studio/unison-engine ===== */
 // tr808.js — THE MACHINE. A TR-808-lineage core voice: bass drum, snare,
 // closed hat, open hat, each with a front panel the token actually turns.
 //
@@ -8049,7 +8053,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/linn.js @ ce8b26f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/linn.js @ 1a19371 — verbatim from jeffdavis-studio/unison-engine ===== */
 // linn.js — THE STUDIO MACHINE. A Linn-family (LM-1 / LinnDrum lineage)
 // drum computer: the new wave / synth-pop / 80s R&B kit.
 //
@@ -8871,7 +8875,7 @@
     get EPROM_HZ() { return U.CIRCUIT_LINN.epromHz; }, get RECON_HZ() { return U.CIRCUIT_LINN.reconHz; } };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/romkits.js @ ce8b26f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/romkits.js @ 1a19371 — verbatim from jeffdavis-studio/unison-engine ===== */
 // romkits.js — THE OTHER SAMPLED MACHINE: the DMX (Oberheim lineage, 1981),
 // drum engine slice 3, 2026-11-03, Asana 1219959495948201.
 //
@@ -9227,7 +9231,7 @@
   // the lock refuses; the MCS is a kit drawn across families, which is slice 4.
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/simmons.js @ ce8b26f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/simmons.js @ 1a19371 — verbatim from jeffdavis-studio/unison-engine ===== */
 // simmons.js — THE ELECTRONIC FAMILY'S FIRST MACHINE: the Simmons toms
 // (SDS-V lineage, 1981; SDS-7, 1983), drum engine slice 3, 2026-11-03,
 // Asana 1219959495948201.
@@ -9399,7 +9403,7 @@
   U.SIMMONS_VOICES = ["tomHi", "tomMid", "tomLo"];
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drumengine.js @ ce8b26f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drumengine.js @ 1a19371 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drumengine.js — ONE DRUM ENGINE, THE MACHINES AS FAMILIES (2026-11-02,
 // drum engine slice 1, Asana 1219959495948201; the rack and parts doc,
 // 10/31).
@@ -9630,7 +9634,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drumkits.js @ ce8b26f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drumkits.js @ 1a19371 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drumkits.js — the drum engine, slice 4 (2026-11-06, Asana 1219959495948201):
 // THE KIT BOOKS and THE KIT AS A DRAW ACROSS FAMILIES.
 //
@@ -9988,7 +9992,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/sampler.js @ ce8b26f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/sampler.js @ 1a19371 — verbatim from jeffdavis-studio/unison-engine ===== */
 // sampler.js — THE SAMPLER KEYBOARD, the gap filler (2026-11-05, slice 1,
 // Asana 1220085081678265; build 7 of the 10/31 rack and parts doc; design in
 // files/unison/sampler-2026-11-05/RESULT.md in the morgan repo).
@@ -10586,7 +10590,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drums.js @ ce8b26f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drums.js @ 1a19371 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drums.js — the drum machine: 808/LM-1-flavor voices, synthesized at runtime
 // into short AudioBuffers, played back as one-shots.
 //
@@ -10980,7 +10984,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/books.js @ ce8b26f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/books.js @ 1a19371 — verbatim from jeffdavis-studio/unison-engine ===== */
 // books.js — Pattern Books v1, as data.
 //
 // This file IS the document: "Unison — Pattern Books v1 (draft)" (Morgan,
@@ -13573,7 +13577,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/bassplayer.js @ ce8b26f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/bassplayer.js @ 1a19371 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassplayer.js — the PERFORMANCE half of the bass guitar: a session player.
 //
 // Rack 2's rule (kb/projects/unison.md, 2026-07-11): every human instrument is
@@ -14168,7 +14172,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/gtrplayer.js @ ce8b26f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/gtrplayer.js @ 1a19371 — verbatim from jeffdavis-studio/unison-engine ===== */
 // gtrplayer.js — the PERFORMANCE half of the rhythm guitar: a session
 // guitarist on the rhythmGtr strip.
 //
@@ -14642,7 +14646,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/fmplayer.js @ ce8b26f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/fmplayer.js @ 1a19371 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fmplayer.js — the PERFORMANCE half of the FM keys: a session keyboard
 // player on the FM chord strips (compA's tine EP, colour's glass and brass).
 //
@@ -14783,7 +14787,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/testPhrase.js @ ce8b26f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/testPhrase.js @ 1a19371 — verbatim from jeffdavis-studio/unison-engine ===== */
 // testPhrase.js — deterministic 8-bar test phrase, ported from the bake-off
 // (phrase.js) onto the engine's canonical PRNG (core/prng.js).
 //
@@ -14877,7 +14881,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/form.js @ ce8b26f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/form.js @ 1a19371 — verbatim from jeffdavis-studio/unison-engine ===== */
 // form.js — the song's form: the book of returns (2026-10-30, Asana
 // 1220073468300418; design files/unison/structure-design-2026-10-30 in the
 // morgan repo, DESIGN.md + draw.py, transcribed here as written).
@@ -15198,7 +15202,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/session.js @ ce8b26f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/session.js @ 1a19371 — verbatim from jeffdavis-studio/unison-engine ===== */
 // session.js — the session sheet and the arrangement realizer.
 //
 // Two tiers, in this order, each on its own stream (core/prng.js):
@@ -16958,7 +16962,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/render/renderer.js @ ce8b26f — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/render/renderer.js @ 1a19371 — verbatim from jeffdavis-studio/unison-engine ===== */
 // renderer.js — song assembly + the render pipeline (Technical Architecture
 // v1.2 playback model): live-first, with (a) a cheap analysis pre-render for
 // verification/metrics and (b) an on-demand full OfflineAudioContext render
@@ -17470,7 +17474,7 @@
    harness/curate-decode.mjs reads it. */
 (function(){
   "use strict";
-  var BOOK = "fm", SHA = "ce8b26f", ORDER = {"ep":["mellow EP, low tine","punchy tine EP","tine EP","hard FM piano","bell-tone EP","reedy FM piano","bright tine EP","FM clav"],"glass":["marimba","vibes","steel drum","glass keys","celesta","crystal bell","tubular bell","harpsichord"],"brass":["soft horn swell","muted horn","bright brass, more feedback","FM brass section","synth brass stab"],"bass":["round sub FM bass","wood bass","solid FM bass","slap FM bass","growl FM bass"],"strings":["slow FM strings","bright FM strings"],"organ":["drawbar organ","three-stack organ"],"wind":["FM flute","FM oboe"],"standin":["mellow piano","bright piano","acoustic piano","alto sax","tenor sax"],"pluck":["FM harp","plucked FM guitar","koto"],"voice":["breathy FM voice","FM choir"]};
+  var BOOK = "fm", SHA = "1a19371", ORDER = {"ep":["mellow EP, low tine","punchy tine EP","tine EP","hard FM piano","bell-tone EP","reedy FM piano","bright tine EP","FM clav"],"glass":["marimba","vibes","steel drum","glass keys","celesta","crystal bell","tubular bell","harpsichord"],"brass":["soft horn swell","muted horn","bright brass, more feedback","FM brass section","synth brass stab"],"bass":["round sub FM bass","wood bass","solid FM bass","slap FM bass","growl FM bass"],"strings":["slow FM strings","bright FM strings"],"organ":["drawbar organ","three-stack organ"],"wind":["FM flute","FM oboe"],"standin":["mellow piano","bright piano","acoustic piano","alto sax","tenor sax"],"pluck":["FM harp","koto","plucked FM guitar"],"voice":["breathy FM voice","FM choir"]};
   if (navigator.audioSession) try { navigator.audioSession.type = "playback"; } catch (e) {}
 
   // ---- the books ----------------------------------------------------------
@@ -17478,6 +17482,9 @@
   // does not play chords; the row says so). trimKey: the book key the strip
   // trim is measured under (the FM stand-in pianos have none, so the house
   // keys trim).
+  // single(key, a) / chord(key, a): the context names below; chord null =
+  // this archetype does not play chords, the row says so (chordless label).
+  var dflt = function(map, d){ return function(k){ return k in map ? map[k] : d; }; };
   var CFG = {
     fm: {
       engine: "fm", book: U.FM_BOOK, levelOf: function(a){ return U.resolveFmArchetype(a, null); },
@@ -17485,10 +17492,38 @@
       label: { ep: "electric piano and keys", glass: "glass, bells and mallets", brass: "brass", bass: "bass",
         strings: "strings", organ: "organ", wind: "wind", pluck: "plucked strings", voice: "voices",
         standin: "stand-ins (acoustic piano and sax, reached only through the sampler)" },
-      single: { bass: "bass", glass: "arp", pluck: "arp" },          // default: lead
-      chord: { bass: null, strings: "pad", voice: "pad", wind: "hits" },   // default: comp
+      single: dflt({ bass: "bass", glass: "arp", pluck: "arp" }, "lead"),
+      chord: function(k, a){ return a.w === 0 && /sax/.test(a.name) ? null : dflt({ bass: null, strings: "pad", voice: "pad", wind: "hits" }, "comp")(k); },
       standin: function(a){ return a.w === 0; },
-      trimKey: { piano: "ep" },
+      trimKey: { piano: "ep" }, monitor: { arp: 9 }, chordless: "Chords: not a chord voice",
+    },
+    obxa: {
+      engine: "obxa", book: U.OBXA_BOOK, levelOf: function(a){ return U.resolveObxaArchetype(a, null); },
+      create: function(c, st, p){ return U.createObxa(c, st, p); },
+      label: { brass: "brass", pad: "pads and strings", comp: "comp and keys", stab: "stabs", bass: "bass", lead: "leads" },
+      single: dflt({ bass: "bass" }, "lead"),
+      chord: dflt({ bass: null, pad: "pad" }, "comp"),
+      standin: function(){ return false; }, trimKey: {}, monitor: { arp: 9 }, chordless: "Chords: not a chord voice",
+    },
+    juno: {
+      engine: "juno", book: U.JUNO_BOOK, levelOf: function(a){ return U.resolveJunoArchetype(a, null); },
+      create: function(c, st, p){ return U.createJuno(c, st, p); },
+      label: { comp: "comp and keys", organ: "organ", pad: "pads and strings", brass: "brass", stab: "stabs",
+        bass: "bass", sub: "sub bass", arp: "arpeggio voices", lead: "leads" },
+      // the Juno's stabs have no measured lead or arp trim (they play
+      // compA and colour only), so they get the chord context alone
+      single: dflt({ bass: "bass", sub: "bass", arp: "arp", stab: null }, "lead"),
+      chord: dflt({ bass: null, sub: null, pad: "pad" }, "comp"),
+      standin: function(){ return false; }, trimKey: {}, monitor: { arp: 9 }, chordless: "Chords: not a chord voice",
+    },
+    minimoog: {
+      engine: "minimoog", book: U.MINIMOOG_BOOK, levelOf: function(a){ return U.resolveMinimoogArchetype(a, null); },
+      create: function(c, st, p){ return U.createMinimoog(c, st, p); },
+      label: { round: "round bass", pluck: "pluck bass", squelch: "squelch bass", fat: "fat bass", lead: "leads",
+        counter: "riffs", arp: "arpeggio voices", perc: "percussion", fx: "effects" },
+      single: dflt({ round: "bass", pluck: "bass", squelch: "bass", fat: "bass", arp: "arp", perc: "shot", fx: "shot" }, "lead"),
+      chord: function(){ return null; },
+      standin: function(){ return false; }, trimKey: {}, monitor: { arp: 4 }, chordless: "Chords: one voice, single notes only",
     },
   };
   var C = CFG[BOOK];
@@ -17500,7 +17535,10 @@
     // mix); alone that is too quiet to judge on a phone, so the context gets a
     // fixed monitor lift, the same for every patch (patch-to-patch levels stay
     // the measured ones)
-    arp:  { strip: "arp",   label: "Arpeggio",   row: "rb.h.bright_rb", bpm: 120, monitorDb: 9 },
+    arp:  { strip: "arp",   label: "Arpeggio",   row: "rb.h.bright_rb", bpm: 120 },
+    // the Minimoog's percussion and effects archetypes: no strip carries a
+    // measured trim for them, so they play untrimmed (0 dB)
+    shot: { strip: null,    label: "Hits",       row: "rb.h.bright_rb", bpm: 120 },
     bass: { strip: "bass",  label: "Bass line",  row: "rb.h.two_five_loop", bpm: 112 },
     comp: { strip: "compA", label: "Comp chords", row: "rb.h.bright_rb", bpm: 120 },
     pad:  { strip: "pad",   label: "Pad chords", row: "sp.h.vi_start", bpm: 120 },
@@ -17525,6 +17563,9 @@
         var tone = function(i){ return lr + (i < iv.length ? iv[i] : iv[0] + 12); };
         [[0, 0.75, 2, 0.9], [1, 0.45, 1, 0.6], [1.5, 1.25, 3, 0.8], [3, 0.45, 2, 0.55], [3.5, 0.45, 4, 0.75]]
           .forEach(function(h){ ev.push({ t: t0 + h[0] * beat, midi: tone(h[2]), vel: h[3], dur: h[1] * beat }); });
+      } else if (kind === "shot"){
+        var sr = 48 + deg; if (sr > 55) sr -= 12;
+        [[0, 0.5, 0.95], [2.5, 0.5, 0.75]].forEach(function(h){ ev.push({ t: t0 + h[0] * beat, midi: sr, vel: h[2], dur: h[1] * beat }); });
       } else if (kind === "arp"){
         var ar = 60 + deg; if (ar > 67) ar -= 12;
         var a = { direction: "up", octaves: 2, tones: "withSeventh", rate: "sixteenths", gate: "medium", skip: null, accent: 0 };
@@ -17555,11 +17596,8 @@
   function groupOf(x){ return C.standin(x.a) ? "standin" : x.key; }
   ALL.forEach(function(x, i){ x.idx = i; x.group = groupOf(x); if (GROUPS.indexOf(x.group) < 0) GROUPS.push(x.group); });
   GROUPS.sort(function(p, q){ return (p === "standin") - (q === "standin"); });
-  function singleOf(x){ return C.single[x.key] || (x.key === "wind" || x.key === "voice" ? "lead" : "lead"); }
-  function chordOf(x){
-    if (x.group === "standin" && /sax/.test(x.a.name)) return null;
-    return x.key in C.chord ? C.chord[x.key] : "comp";
-  }
+  function singleOf(x){ return C.single(x.key, x.a); }
+  function chordOf(x){ return C.chord(x.key, x.a); }
 
   // ---- the picks: u / k / c per archetype per context ---------------------
   var V = ["u", "k", "c"];
@@ -17607,7 +17645,7 @@
     var c = audio(), g = c.createGain(); g.connect(out);
     var trim = c.createGain(); trim.connect(g);
     var cx = CTX[kind], tk = C.trimKey[x.key] || x.key;
-    trim.gain.value = Math.pow(10, (U.stripTrimDb(C.engine, cx.strip, tk, PICKS) + (cx.monitorDb || 0)) / 20);
+    trim.gain.value = Math.pow(10, ((cx.strip ? U.stripTrimDb(C.engine, cx.strip, tk, PICKS) : 0) + (C.monitor[kind] || 0)) / 20);
     var v = C.create(c, { input: U.chainMixer(c, trim) }, C.levelOf(x.a));
     var ev = eventsFor(kind);
     v.schedule(ev, c.currentTime + 0.06);
@@ -17648,10 +17686,10 @@
           b.dataset.kind = kind; b.dataset.i = x.idx;
           b.onclick = function(){ play(x, kind, b); };
           r.appendChild(b);
+          r.appendChild(seg(x, which));
         } else {
-          var na = document.createElement("span"); na.className = "na"; na.textContent = "Chords: not a chord voice"; r.appendChild(na);
+          var na = document.createElement("span"); na.className = "na"; na.textContent = which ? C.chordless : "Single notes: a chord voice only"; r.appendChild(na);
         }
-        r.appendChild(seg(x, which));
         card.appendChild(r);
       });
       listEl.appendChild(card);
