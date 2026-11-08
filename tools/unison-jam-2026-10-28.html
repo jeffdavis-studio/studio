@@ -122,6 +122,39 @@
   #layers.four .layer .ctl2 > button{font-size:15px}
   #layers.four .layer .x{flex:0 0 40px !important;width:40px !important}
   #layers.four .layer .lvl .dbv{flex:0 0 54px;width:54px;font-size:16px}
+  /* production controls (11/07): Room bar, the per-layer button; the modules open as a drawer on the wide layout */
+  #roomBar{flex:0 0 auto;margin-top:6px}
+  .roomBtn{height:30px;font-size:14px;padding:0 12px}
+  .roomBtn.on,.pxbtn.on{border-color:var(--or)}
+  .layer .pxrow{flex:0 0 30px;height:30px;margin-top:6px}
+  .layer .pxbtn{flex:1 1 auto;width:100%;height:30px;font-size:14px;padding:0 6px}
+  .pxmod{position:fixed;top:10px;right:10px;bottom:10px;width:440px;max-width:calc(100% - 20px);overflow-y:auto;z-index:20;background:#2e2e2e;
+    border:2px solid var(--edge);border-radius:12px;padding:12px;box-shadow:0 8px 30px rgba(0,0,0,.6);text-align:left}
+  .pxtitle{display:-webkit-box;display:flex;-webkit-box-align:center;align-items:center;font-size:18px;font-weight:700;margin-bottom:6px}
+  .pxtitle span{flex:1 1 auto;min-width:0}
+  .pxclose{flex:0 0 auto;height:44px;padding:0 14px;font-size:15px}
+  .pxnote{font-size:15px;color:var(--dim);margin:6px 0;line-height:1.3}
+  .pxstrip{font-size:16px;font-weight:700;color:var(--yel);margin:14px 0 4px;text-transform:uppercase;letter-spacing:.06em}
+  .pxfx{background:#383838;border-radius:10px;padding:8px 10px;margin:8px 0}
+  .pxfx.off .pxs,.pxfx.off .pxmodes{opacity:.5}
+  .pxh{display:-webkit-box;display:flex;-webkit-box-align:center;align-items:center}
+  .pxh > *{margin-right:8px}
+  .pxh > *:last-child{margin-right:0}
+  .pxn{flex:1 1 auto;font-size:17px;font-weight:700;min-width:0}
+  .pxon,.pxrs{flex:0 0 auto;min-width:64px;height:44px;font-size:15px;padding:0 12px}
+  .pxon.on,.pxmodes button.on{background:var(--or);border-color:var(--or);color:#1d1d1d}
+  .pxs{margin-top:8px}
+  .pxl,.pxm,.pxfix{display:-webkit-box;display:flex;-webkit-box-pack:justify;justify-content:space-between;font-size:15px}
+  .pxm{color:var(--dim)}
+  .pxfix{margin-top:8px;color:var(--dim)}
+  .pxfix b{color:var(--ink);font-weight:400;text-align:right;margin-left:8px}
+  .pxs input{display:block;width:100%;height:44px;margin:0;accent-color:var(--or);cursor:pointer}
+  .pxmodes{display:-webkit-box;display:flex;-webkit-box-align:center;align-items:center;flex-wrap:wrap;margin-top:8px;font-size:15px}
+  .pxmodes span{flex:1 1 auto;margin-right:8px}
+  .pxmodes button{flex:0 0 auto;height:44px;min-width:64px;padding:0 12px;font-size:15px;margin:0 0 0 6px}
+  .pxstyle{display:-webkit-box;display:flex;-webkit-box-align:center;align-items:center;font-size:16px;margin:4px 0}
+  .pxstyle span{margin-right:10px}
+  .pxstyle select{flex:1 1 auto;width:0;min-width:0;height:44px;font-size:16px}
   .empty{color:var(--dim);font-size:20px;padding:30px 10px}
   /* add palette */
   #add{flex:0 0 112px;height:112px;margin-top:4px}
@@ -201,6 +234,11 @@
     #pal{height:auto;gap:8px}
     #pal button,#pal button:nth-child(9n){width:calc((100% - 16px) / 3);height:52px;margin:0;font-size:15px}
     footer{font-size:15px;line-height:1.3;text-align:left;margin-top:12px}
+    #roomBar{margin-top:10px}
+    .roomBtn{width:100%;height:48px;font-size:16px}
+    .pxmod{position:static;width:auto;max-width:none;box-shadow:none;margin-top:8px;padding:10px;overflow:visible}
+    #layers .layer .pxrow{height:auto;margin-top:8px}
+    #layers .layer .pxbtn{height:48px;font-size:16px}
   }
 </style>
 </head>
@@ -220,12 +258,13 @@
   <div class="sec" data-s="C"><div class="row head"><button class="go">C bridge</button><select></select><button class="roll">New chords</button></div><div class="row chords"></div></div>
 </div>
 <div id="bars" class="row"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><div id="status"></div></div>
+<div id="roomBar"></div>
 <div id="layers"></div>
 <div id="add" class="row"><div class="lbl">Add a layer<button id="palRnd" title="add a random instrument (one you don't have yet, while any are left)">Random</button></div><div id="pal"></div></div>
-<footer title="engine @0c38d55 · built 2026-11-07">Unison jam &middot; every sound is synthesized in this page by the engine at 0c38d55</footer>
+<footer title="engine @d92da06 · built 2026-11-08">Unison jam &middot; every sound is synthesized in this page by the engine at d92da06</footer>
 
 <script>
-/* ===== src/core/prng.js @ 0c38d55 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/prng.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
 // prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
 // token hash, consumed in canonical draw order (Technical Architecture v1.2).
 //
@@ -298,7 +337,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/core/mix.js @ 0c38d55 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/mix.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
 // mix.js — the fan-in ≤2 summing rule, as a primitive.
 //
 // Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
@@ -467,7 +506,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/desk/desk.js @ 0c38d55 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/desk/desk.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
 // desk.js — the 24-track desk as a running audio graph.
 //
 // The desk is the data structure, not a metaphor (Composition Brief 2 / Tech
@@ -1136,7 +1175,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/production.js @ 0c38d55 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/production.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
 // production.js — the production room, v0.
 //
 // PLACEMENT DECISION (Morgan's call, ratified by Jeff 2026-08-03). Production
@@ -1488,7 +1527,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/vocoder.js @ 0c38d55 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/vocoder.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
 // vocoder.js — the production room's vocoder insert, slice 1 (2026-11-05,
 // Asana 1220085081650427; design in files/unison/vocoder-2026-11-05/RESULT.md).
 //
@@ -1824,7 +1863,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/analogpoly.js @ 0c38d55 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/analogpoly.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
 // analogpoly.js — the analog poly core: one module that builds every Juno and
 // OB-Xa voice, behind a family lock. Asana 1220084594874974, slice 1
 // (2026-11-02); the rack doc's build 3 (files/unison/rack-parts-proposal-
@@ -2450,7 +2489,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/juno.js @ 0c38d55 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/juno.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
 // juno.js — Juno-60-flavor poly voice, raw Web Audio, zero dependencies.
 // Ported from the 2026-07-21 bake-off winner (voice-raw.js), restructured to
 // live behind a desk strip: U.createJuno(ctx, strip, patchName) builds its own
@@ -3017,7 +3056,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/minimoog.js @ 0c38d55 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/minimoog.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
 // minimoog.js — Minimoog Model D-lineage mono voice, zero dependencies.
 //
 // THE MONO BASS LANE (build order 808 → Juno → Minimoog → …; it also absorbs
@@ -3804,7 +3843,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/obxa.js @ 0c38d55 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/obxa.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
 // obxa.js — Oberheim OB-Xa-lineage poly voice, zero dependencies.
 //
 // THE BRASS/PAD POLY LANE (build order 808 → Juno → Minimoog → OB-Xa → …).
@@ -4349,7 +4388,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/fm.js @ 0c38d55 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/fm.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fm.js — six-operator FM keys voice (the DX7 lineage), zero dependencies.
 //
 // THE FM LANE (build order 808 → Juno → Minimoog → OB-Xa → Linn → FM).
@@ -5449,7 +5488,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/bassguitar.js @ 0c38d55 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/bassguitar.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassguitar.js — electric bass guitar, the first session player of the human
 // rack (Rack 2), zero dependencies.
 //
@@ -6160,7 +6199,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/rhythmguitar.js @ 0c38d55 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/rhythmguitar.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
 // rhythmguitar.js — clean electric rhythm guitar, the fourth and last stop of
 // the human rack (Rack 2), zero dependencies.
 //
@@ -6936,7 +6975,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/tr808.js @ 0c38d55 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/tr808.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
 // tr808.js — THE MACHINE. A TR-808-lineage core voice: bass drum, snare,
 // closed hat, open hat, each with a front panel the token actually turns.
 //
@@ -8220,7 +8259,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/linn.js @ 0c38d55 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/linn.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
 // linn.js — THE STUDIO MACHINE. A Linn-family (LM-1 / LinnDrum lineage)
 // drum computer: the new wave / synth-pop / 80s R&B kit.
 //
@@ -9042,7 +9081,7 @@
     get EPROM_HZ() { return U.CIRCUIT_LINN.epromHz; }, get RECON_HZ() { return U.CIRCUIT_LINN.reconHz; } };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/romkits.js @ 0c38d55 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/romkits.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
 // romkits.js — THE OTHER SAMPLED MACHINE: the DMX (Oberheim lineage, 1981),
 // drum engine slice 3, 2026-11-03, Asana 1219959495948201.
 //
@@ -9398,7 +9437,7 @@
   // the lock refuses; the MCS is a kit drawn across families, which is slice 4.
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/simmons.js @ 0c38d55 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/simmons.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
 // simmons.js — THE ELECTRONIC FAMILY'S FIRST MACHINE: the Simmons toms
 // (SDS-V lineage, 1981; SDS-7, 1983), drum engine slice 3, 2026-11-03,
 // Asana 1219959495948201.
@@ -9570,7 +9609,7 @@
   U.SIMMONS_VOICES = ["tomHi", "tomMid", "tomLo"];
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drumengine.js @ 0c38d55 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drumengine.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drumengine.js — ONE DRUM ENGINE, THE MACHINES AS FAMILIES (2026-11-02,
 // drum engine slice 1, Asana 1219959495948201; the rack and parts doc,
 // 10/31).
@@ -9801,7 +9840,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drumkits.js @ 0c38d55 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drumkits.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drumkits.js — the drum engine, slice 4 (2026-11-06, Asana 1219959495948201):
 // THE KIT BOOKS and THE KIT AS A DRAW ACROSS FAMILIES.
 //
@@ -10159,7 +10198,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/sampler.js @ 0c38d55 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/sampler.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
 // sampler.js — THE SAMPLER KEYBOARD, the gap filler (2026-11-05, slice 1,
 // Asana 1220085081678265; build 7 of the 10/31 rack and parts doc; design in
 // files/unison/sampler-2026-11-05/RESULT.md in the morgan repo).
@@ -10757,7 +10796,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drums.js @ 0c38d55 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drums.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drums.js — the drum machine: 808/LM-1-flavor voices, synthesized at runtime
 // into short AudioBuffers, played back as one-shots.
 //
@@ -11151,7 +11190,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/books.js @ 0c38d55 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/books.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
 // books.js — Pattern Books v1, as data.
 //
 // This file IS the document: "Unison — Pattern Books v1 (draft)" (Morgan,
@@ -13744,7 +13783,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/bassplayer.js @ 0c38d55 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/bassplayer.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassplayer.js — the PERFORMANCE half of the bass guitar: a session player.
 //
 // Rack 2's rule (kb/projects/unison.md, 2026-07-11): every human instrument is
@@ -14339,7 +14378,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/gtrplayer.js @ 0c38d55 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/gtrplayer.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
 // gtrplayer.js — the PERFORMANCE half of the rhythm guitar: a session
 // guitarist on the rhythmGtr strip.
 //
@@ -14813,7 +14852,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/fmplayer.js @ 0c38d55 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/fmplayer.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fmplayer.js — the PERFORMANCE half of the FM keys: a session keyboard
 // player on the FM chord strips (compA's tine EP, colour's glass and brass).
 //
@@ -14954,7 +14993,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/testPhrase.js @ 0c38d55 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/testPhrase.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
 // testPhrase.js — deterministic 8-bar test phrase, ported from the bake-off
 // (phrase.js) onto the engine's canonical PRNG (core/prng.js).
 //
@@ -15048,7 +15087,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/form.js @ 0c38d55 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/form.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
 // form.js — the song's form: the book of returns (2026-10-30, Asana
 // 1220073468300418; design files/unison/structure-design-2026-10-30 in the
 // morgan repo, DESIGN.md + draw.py, transcribed here as written).
@@ -15369,7 +15408,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/session.js @ 0c38d55 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/session.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
 // session.js — the session sheet and the arrangement realizer.
 //
 // Two tiers, in this order, each on its own stream (core/prng.js):
@@ -17129,7 +17168,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/render/renderer.js @ 0c38d55 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/render/renderer.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
 // renderer.js — song assembly + the render pipeline (Technical Architecture
 // v1.2 playback model): live-first, with (a) a cheap analysis pre-render for
 // verification/metrics and (b) an on-demand full OfflineAudioContext render
@@ -18288,12 +18327,14 @@
     return render2(s, g, sec, inst, pat, v, opt, t0);
   }
   function render2(s, g, sec, inst, pat, v, opt, t0) {
-    var r = renderSheet(s, pat, v, opt.oct || 0);
+    var r = opt.dry ? renderSheetDry(s, pat, v, opt.oct || 0, layerStrips({ inst: inst })) : renderSheet(s, pat, v, opt.oct || 0);
     var tBuild = performance.now() - t0;
-    return r.done.then(function (buf) {
-      var ms = Math.round(performance.now() - t0);
-      renderLog.push({ inst: inst, sec: sec, v: v, ms: ms, buildMs: Math.round(tBuild), events: r.stats.events });
-      return { buf: buf, patch: patchName(inst, s, opt), pattern: patternName(inst, s), options: patchList(inst, s), picked: s.jamPicked };
+    return r.done.then(function (res) {
+      var buf = res.info ? res.buf : res, ms = Math.round(performance.now() - t0);
+      renderLog.push({ inst: inst, sec: sec, v: v, ms: ms, buildMs: Math.round(tBuild), events: r.stats.events, dry: !!opt.dry });
+      var out = { buf: buf, patch: patchName(inst, s, opt), pattern: patternName(inst, s), options: patchList(inst, s), picked: s.jamPicked };
+      if (res.info) { out.hits = res.hits; out.info = res.info; }
+      return out;
     });
   }
   // The octave shift: while the realizer runs, every pitched voice it builds
@@ -18422,33 +18463,37 @@
   // ---- buffer cache + render queue ----
   var cache = {}, busy = null;
   function bkey(g, sec, l, v) { return gKey(g) + "#" + sec + "#" + lSig(l) + "#" + v; }
+  function jkey(x) { return x[4] ? dkey(x[0], x[1], x[2], x[3]) : bkey(x[0], x[1], x[2], x[3]); }
   function variantsFor(l) { return l.vr === 0 ? [0] : l.vr === 1 ? [0, 1, 2] : [0, 3, 4, 5, 6]; }
   function needs() {
     var g = gSnap(), out = [], others = SECS.filter(function (s) { return s !== G.sec; });
     G.L.forEach(function (l) { out.push([g, G.sec, l, 0]); });
+    G.L.forEach(function (l) { if (isLive(l)) out.push([g, G.sec, l, 0, 1]); });   // a live layer's dry render
     var ep = curEpoch();
     if (ep && gKey(ep.g) !== gKey(g)) G.L.forEach(function (l) { out.push([ep.g, ep.sec, l, 0]); });
     others.forEach(function (other) { G.L.forEach(function (l) { out.push([g, other, l, 0]); }); });
     G.L.forEach(function (l) { variantsFor(l).forEach(function (v) { if (v) out.push([g, G.sec, l, v]); }); });
+    G.L.forEach(function (l) { if (isLive(l)) variantsFor(l).forEach(function (v) { if (v) out.push([g, G.sec, l, v, 1]); }); });
     others.forEach(function (other) { G.L.forEach(function (l) { variantsFor(l).forEach(function (v) { if (v) out.push([g, other, l, v]); }); }); });
     return out;
   }
   function pump() {
     if (busy) return;
     var list = needs(), job = null;
-    for (var i = 0; i < list.length; i++) { var k = bkey(list[i][0], list[i][1], list[i][2], list[i][3]); if (!cache[k]) { job = list[i]; job.k = k; break; } }
+    for (var i = 0; i < list.length; i++) { var k = jkey(list[i]); if (!cache[k]) { job = list[i]; job.k = k; break; } }
     if (!job) { prune(); return; }
     busy = job.k;
     var l = job[2];
-    render(job[0], job[1], l.inst, l.pat, l.patch, job[3], lOpt(l)).then(function (r) {
+    render(job[0], job[1], l.inst, l.pat, l.patch, job[3], job[4] ? Object.assign({ dry: true }, lOpt(l)) : lOpt(l)).then(function (r) {
       cache[job.k] = r; busy = null;
+      if (job[4] && job[3] === 0 && l.pxOpen) pxRedraw(l);
       if (job[3] === 0 && job[1] === G.sec && job.k === bkey(gSnap(), G.sec, l, 0)) { l.patchName = r.patch; l.patternName = r.pattern; l.patchOpts = r.options; l.picked = r.picked; drawLayers(); }
       setTimeout(pump, 0);
     }, function (e) { busy = null; console.error("render failed", e); setStatus("A render failed: " + e.message); });
   }
   function prune() {
     var keep = {};
-    needs().forEach(function (n) { keep[bkey(n[0], n[1], n[2], n[3])] = 1; });
+    needs().forEach(function (n) { keep[jkey(n)] = 1; });
     epochs.forEach(function (ep) { G.L.concat(gone).forEach(function (l) { variantsFor(l).forEach(function (v) { keep[bkey(ep.g, ep.sec, l, v)] = 1; }); }); });
     for (var k in cache) if (!keep[k] && !inUse(k)) delete cache[k];
   }
@@ -18456,7 +18501,7 @@
   function cacheStats() {
     var n = 0, bytes = 0, want = {}, pending = 0;
     for (var k in cache) { n++; var b = cache[k].buf; bytes += b.length * b.numberOfChannels * 4; }
-    needs().forEach(function (x) { var k = bkey(x[0], x[1], x[2], x[3]); if (!want[k]) { want[k] = 1; if (!cache[k]) pending++; } });
+    needs().forEach(function (x) { var k = jkey(x); if (!want[k]) { want[k] = 1; if (!cache[k]) pending++; } });
     return { entries: n, mb: Math.round(bytes / 1048576), pending: pending, plans: Object.keys(planCache).length, busy: busy };
   }
   function inUse(k) { for (var i = 0; i < G.L.length; i++) if (G.L[i].used && G.L[i].used[k]) return true; return false; }
@@ -18466,6 +18511,8 @@
   var starts = [];
   function audio() {
     if (!ctx) {
+      // iOS: play through the silent switch (on the plane)
+      try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) {}
       var AC = window.AudioContext || window.webkitAudioContext;
       ctx = new AC();
       master = masterChain(ctx, ctx.destination);
@@ -18531,17 +18578,22 @@
       var ep = curEpoch(t), nx = epochAfter(ep);
       var bs = barSecOf(ep), cl = BARS * bs;
       var k = Math.floor((t - ep.t0) / cl + 1e-6), cs = ep.t0 + k * cl;
-      var v = variantFor(l, k), key = bkey(ep.g, ep.sec, l, v), hit = cache[key];
+      var v = variantFor(l, k), key, hit = null, isDry = false;
+      // a live layer plays its dry render through its live desk, once it has one
+      if (isLive(l)) { key = dkey(ep.g, ep.sec, l, v); hit = cache[key]; if (!hit) { key = dkey(ep.g, ep.sec, l, 0); hit = cache[key]; if (hit) v = 0; } isDry = !!hit; }
+      if (!hit) { v = variantFor(l, k); key = bkey(ep.g, ep.sec, l, v); hit = cache[key]; }
       if (!hit) { key = bkey(ep.g, ep.sec, l, 0); hit = cache[key]; v = 0; }
       if (!hit) break;
+      if (isDry) { var ik = JSON.stringify(hit.info); if (ik !== l.lvInfoKey) { l.lvInfo = hit.info; l.lvInfoKey = ik; if (l.lv) buildLive(l); } }
       var src = ctx.createBufferSource(); src.buffer = hit.buf;
-      var gn = ctx.createGain(); src.connect(gn); gn.connect(l.out);
+      var gn = ctx.createGain(); src.connect(gn); gn.connect(isDry ? ensureLive(l) : l.out);
       var at, off;
       if (t - cs < 1e-4 && cs - LEAD > ctx.currentTime) { at = cs - LEAD; off = 0; }
       else { at = t; off = LEAD + (t - cs); }
       src.start(at, off);
-      var o = { src: src, g: gn, at: at, end: at + hit.buf.duration - off, cs: cs, key: key };
+      var o = { src: src, g: gn, at: at, off: off, end: at + hit.buf.duration - off, cs: cs, key: key, dry: isDry ? hit : null };
       l.srcs.push(o); l.used[key] = (l.used[key] || 0) + 1;
+      if (isDry) scheduleGate(l, o);
       src.onended = (function (o, l) { return function () { l.used[o.key]--; if (!l.used[o.key]) delete l.used[o.key];
         var i = l.srcs.indexOf(o); if (i > -1) l.srcs.splice(i, 1); try { o.g.disconnect(); } catch (e) {} }; })(o, l);
       starts.push({ layer: l.id, at: at, off: off, bar0: at - off + LEAD, t0: ep.t0, barSec: bs, v: v, sec: ep.sec });
@@ -18566,6 +18618,7 @@
         G.L.forEach(function (l) { if (l.out) { stopLayerAt(l, T); l.until = T; } });
         epochs.push({ t0: T, sec: G.sec, g: g });
         if (epochs.length > 4) epochs.shift();
+        setTimeout(pxUpdateAll, Math.max(0, (T - now) * 1000 + 30));   // a new tempo moves the live echo times
         last = epochs[epochs.length - 1];
       }
     }
@@ -18693,8 +18746,11 @@
     // v4 fields: w/wb swing, f family, p an old link's room (v5.1: no lk, the lock is permanent); per layer [8] pattern lane, [9] patch lane (U.LANES index)
     var o = { b: G.bpm, k: G.key, m: G.mode === "minor" ? 1 : 0, h: G.hs, A: G.A, B: G.B, C: G.C, s: G.sec,
       w: G.sw, wb: G.swb, f: G.fam ? U.LANES.indexOf(G.fam) : -1,
-      L: G.L.map(function (l) { return [l.inst, l.pat, l.patch, l.vr, l.mute ? 1 : 0, l.oct || 0, l.db || 0, l.pn || "", U.LANES.indexOf(l.ln), U.LANES.indexOf(l.pl)]; }) };
+      L: G.L.map(function (l) { var a = [l.inst, l.pat, l.patch, l.vr, l.mute ? 1 : 0, l.oct || 0, l.db || 0, l.pn || "", U.LANES.indexOf(l.ln), U.LANES.indexOf(l.pl)];
+        if (l.px && Object.keys(l.px).length) a.push(l.px);   // [10] the production module's overrides
+        return a; }) };
     if (G.prl) o.p = G.prl;
+    if (G.px && (G.px.st || Object.keys(G.px.R).length)) o.x = { s: G.px.st, R: G.px.R };   // the Room
     var s = btoa(JSON.stringify(o)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
     try { history.replaceState(null, "", "#j=" + s); } catch (e) { location.hash = "j=" + s; }
   }
@@ -18727,7 +18783,13 @@
         G.L.push({ id: G.n++, inst: a[0], pat: +a[1] || 1, patch: +a[2] || 1, vr: Math.max(0, Math.min(2, +a[3] || 0)), mute: !!a[4],
           oct: clampOct(a[0], a[5]), db: Math.max(DB_MIN, Math.min(DB_MAX, Math.round(+a[6] || 0))), pn: typeof a[7] === "string" && a[7] ? a[7] : null,
           ln: lane(a[8]), pl: lane(a[9]) });
+        var px = a[10] && typeof a[10] === "object" ? a[10] : null;
+        if (px) { G.L[G.L.length - 1].px = px; G.L[G.L.length - 1].live = true; }
       });
+      if (o.x && typeof o.x === "object") {
+        G.px = { st: styleById(o.x.s) ? o.x.s : null, R: o.x.R && typeof o.x.R === "object" ? o.x.R : {} };
+        if (G.px.st || Object.keys(G.px.R).length) G.L.forEach(function (l) { if (roomApplies(l)) l.live = true; });
+      }
       // a v4 link saved with the lock off can carry bass and drums on different
       // lanes: they take its family (or the first one's lane), patterns kept
       var lk = lockedLayers();
@@ -18741,6 +18803,7 @@
   function setStatus(t) { $("status").textContent = t; }
   function el(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
   function drawLayers() {
+    if (pxHold) { pxPending = true; return; }   // a thumb is on a production slider: redraw on release
     var box = $("layers"); box.innerHTML = ""; box.className = G.L.length > 6 ? "four" : "";
     if (!G.L.length) box.appendChild(el("div", "empty", "Tap an instrument below to start a layer. Every layer plays on the same clock, key and chords."));
     G.L.forEach(function (l) {
@@ -18785,6 +18848,15 @@
       fd.oninput = function () { l.db = +fd.value; dbv.textContent = (l.db > 0 ? "+" : "") + l.db + " dB"; applyGain(l); };
       fd.onchange = function () { setDb(l, fd.value); };
       r3.appendChild(el("label", null, "Level")); r3.appendChild(fd); r3.appendChild(dbv); c.appendChild(r3);
+      // the production module (11/07): the layer's inserts and sends, live
+      var r4 = el("div", "row pxrow"), bpx = el("button", "pxbtn" + (l.pxOpen ? " on" : ""), l.pxOpen ? "Production \u25b4" : "Production \u25be");
+      bpx.onclick = function () {
+        l.pxOpen = !l.pxOpen;
+        if (l.pxOpen) { if (window.innerWidth > 700) G.L.forEach(function (o) { if (o !== l) o.pxOpen = false; }); goLive(l); l.pxEl = null; }
+        drawLayers();
+      };
+      r4.appendChild(bpx); c.appendChild(r4);
+      if (l.pxOpen) { if (!l.pxEl) l.pxEl = pxBuild(l); c.appendChild(l.pxEl); }
       box.appendChild(c);
     });
     var full = G.L.length >= MAXL;
@@ -18848,6 +18920,399 @@
     if (st !== $("status").textContent) setStatus(st);
   }
 
+  // ---- production controls (Jeff 11/07 by voice, Asana 1220326834393543) ----
+  // A layer whose Production module is opened goes LIVE. It renders once more
+  // "dry": each of its strips tapped at the engine's insert point (after the
+  // trim, the high-pass and the player's board; before every production
+  // insert, the fader and the sends), one channel pair per strip. The realtime
+  // context then plays it through a desk of its own that the engine builds
+  // (U.createDesk, then U.applyProduction on a style made from the controls),
+  // so every switch and slider moves the engine's own nodes while it plays: no
+  // second DSP, no re-render. Untouched controls are the drawn room. Ranges are
+  // the spans the engine's tables use (U.PRODUCTION_STYLES, U.SAT_STAGE,
+  // U.CHORUS, U.GATE_CLOSE_CLAMP, U.BUS_TRIM_MAX_DB). The amp and pedal chain
+  // and the vocoder stay printed in the dry render (they sit before the tap).
+  var PXS = U.PRODUCTION_STYLES;
+  function pxSpan(v) { v = v.filter(function (x) { return typeof x === "number" && isFinite(x); }); return v.length ? [Math.min.apply(null, v), Math.max.apply(null, v)] : null; }
+  function pxVals(o) { return o ? Object.keys(o).map(function (k) { return o[k]; }) : []; }
+  function pxAll(f) { var out = []; PXS.forEach(function (s) { var x = f(s); if (x != null) out = out.concat(x); }); return out; }
+  var PXR = {
+    send: pxSpan(pxAll(function (s) { return s.send; })), wet: pxSpan(pxAll(function (s) { return s.wet; })), damp: pxSpan(pxAll(function (s) { return s.damp; })),
+    drive: pxSpan(pxAll(function (s) { return pxVals(s.sat); })), lp: pxSpan(pxVals(U.SAT_STAGE.lpHz)),
+    crate: pxSpan(pxVals(U.CHORUS.modes).map(function (m) { return m.rate; })), cdepth: pxSpan(pxVals(U.CHORUS.modes).map(function (m) { return m.depth * 1000; })),
+    efb: pxSpan(pxAll(function (s) { return s.echo ? s.echo.fb : null; })), elp: pxSpan(pxAll(function (s) { return s.echo ? s.echo.lp : null; })),
+    esend: pxSpan(pxAll(function (s) { return s.echo ? pxVals(s.echo.send) : null; })),
+    gwet: pxSpan(pxAll(function (s) { return s.gate ? s.gate.wet : null; })), gsend: pxSpan(pxAll(function (s) { return s.gate ? pxVals(s.gate.send) : null; })),
+    gclose: [U.GATE_CLOSE_CLAMP[0] * 1000, U.GATE_CLOSE_CLAMP[1] * 1000], bus: [-U.BUS_TRIM_MAX_DB, U.BUS_TRIM_MAX_DB],
+  };
+  // which effects the engine puts on which strip, in any style
+  var PXFX = { sat: {}, ch: {}, ec: {}, gt: {}, lean: {} };
+  PXS.forEach(function (s) {
+    var k;
+    for (k in s.sat || {}) PXFX.sat[k] = 1;
+    for (k in s.chorus || {}) PXFX.ch[k] = 1;
+    if (s.echo) for (k in s.echo.send) PXFX.ec[k] = 1;
+    if (s.gate) for (k in s.gate.send) PXFX.gt[k] = 1;
+    for (k in s.sendByRole || {}) (PXFX.lean[k] = PXFX.lean[k] || [1]).push(s.sendByRole[k]);
+  });
+  var ROLE_BY = {}; U.DESK_ROLES.forEach(function (r) { ROLE_BY[r.id] = r; });
+  var STRIP_NAME = { kick: "Kick", snare: "Snare", hats: "Hats", tomsFills: "Toms and fills", ePerc: "Electronic perc", percTime: "Perc", percAccent: "Perc accent",
+    bass: "Bass", compA: "Chords", compB: "Chords B", rhythmGtr: "Guitar", pad: "Pad", arp: "Arp", lead: "Lead", counter: "Riff", color: "Brass" };
+  var STYLE_LABEL = { "prod.dry_board": "Dry board", "prod.plate_wash": "Plate wash", "prod.gated_room": "Gated room", "prod.tape_slap": "Tape slap", "prod.close_dry": "Close and dry", "prod.dub_chamber": "Dub chamber" };
+  var CH_MODE = { 1: "I", 2: "II", 3: "I+II" };
+  function PX() { return G.px || (G.px = { st: null, R: {} }); }
+  function pxAny(f) { for (var i = 0; i < PXS.length; i++) { var x = f(PXS[i]); if (x != null) return x; } return null; }
+  function layerStrips(l) { var d = INST_BY[l.inst]; return d.strips.concat(d.fill ? [d.fill] : []); }
+  function styleById(id) { return PXS.filter(function (s) { return s.id === id; })[0] || null; }
+  function drawnRoom() { return G.prl ? U.drawProduction(U.makePrng(seedHash(1, "prod")), G.prl) : PLATE; }
+  function drawnStyle(l) { return INST_BY[l.inst].cls === "drums" ? DRY_KIT : drawnRoom(); }
+  function baseStyle(l) { return (PX().st && styleById(PX().st)) || drawnStyle(l); }
+  function roomBase() { return (PX().st && styleById(PX().st)) || drawnRoom(); }
+  // the jam room keeps the drums dry (DRY_KIT); a chosen style takes every layer
+  function roomApplies(l) { return !!(PX().st && styleById(PX().st)) || INST_BY[l.inst].cls !== "drums"; }
+  function pxDetail() { return U.drawProductionDetail(seedHash(1, "prod")); }
+  function closeMs(bpm) { return 1000 * Math.min(U.GATE_CLOSE_CLAMP[1], Math.max(U.GATE_CLOSE_CLAMP[0], U.GATE_CLOSE_BEATS * 60 / (bpm || G.bpm))); }
+  function roomEff() {
+    var b = roomBase(), R = PX().R, e = b.echo, gt = b.gate;
+    var d = {
+      pl: { on: true, send: b.send, wet: b.wet, damp: b.damp },
+      ec: { on: !!e, time: e ? (e.time === "fork" ? pxDetail().echoTime || "dotted8" : e.time) : "slap", fb: e ? e.fb : PXR.efb[0], lp: e ? e.lp : PXR.elp[1] },
+      gt: { on: !!gt, wet: gt ? gt.wet : PXR.gwet[0], close: closeMs(), toms: gt ? gt.keys.indexOf("tomsFills") > -1 : true },
+      bus: { db: 0, glue: true, lim: true },
+    };
+    for (var g in d) if (R[g]) for (var k in R[g]) d[g][k] = R[g][k];
+    return d;
+  }
+  function stripEff(l, id, room) {
+    var b = baseStyle(l), X = (l.px || {})[id] || {}, rApp = roomApplies(l), d = {};
+    room = room || roomEff();
+    if (PXFX.sat[id]) { var sd = (b.sat || {})[id], d0 = sd != null ? sd : PXR.drive[0]; d.sat = { on: sd != null, d: d0, lp: U.SAT_STAGE.lpHz[d0] || PXR.lp[1] }; }
+    if (PXFX.ch[id]) { var cm = (b.chorus || {})[id], m = U.CHORUS.modes[cm || 1]; d.ch = { on: cm != null, rate: m.rate, depth: m.depth * 1000 }; }
+    if (rApp && ROLE_BY[id] && ROLE_BY[id].send > 0) d.pl = { on: true, lean: (b.sendByRole || {})[id] || 1 };
+    if (rApp && PXFX.ec[id]) { var es = b.echo ? b.echo.send[id] : null; d.ec = { on: es != null || (!b.echo && room.ec.on), send: es != null ? es : pxAny(function (s) { return s.echo && s.echo.send[id] != null ? s.echo.send[id] : null; }) }; }
+    if (rApp && PXFX.gt[id]) { var gs = b.gate ? b.gate.send[id] : null; d.gt = { on: gs != null || (!b.gate && room.gt.on), send: gs != null ? gs : pxAny(function (s) { return s.gate && s.gate.send[id] != null ? s.gate.send[id] : null; }) }; }
+    for (var g in d) if (X[g]) for (var k in X[g]) d[g][k] = X[g][k];
+    return d;
+  }
+  function satMakeup(id, d, info) {   // the engine's makeup table, read between its two drives
+    var st = U.SAT_STAGE, L = U.SAT_STAGE.makeupDb[id] || {}, keys = Object.keys(st.lpHz).map(Number).sort(function (a, b) { return a - b; });
+    var at = function (k) { var bv = ((st.makeupByVoice || {})[id] || {})[k], v = id === "bass" && info ? info.bassVoice : null; return bv && v in bv ? bv[v] : L[k] || 0; };
+    var a = keys[0], b = keys[keys.length - 1], t = b > a ? Math.max(0, Math.min(1, (d - a) / (b - a))) : 0;
+    return at(a) + (at(b) - at(a)) * t;
+  }
+  function qd(d) { return Math.round(d * 20) / 20; }
+  function effStyle(l, room) {
+    var b = baseStyle(l), rApp = roomApplies(l), st = { id: "jam.live", send: rApp ? room.pl.send : b.send, wet: rApp ? room.pl.wet : b.wet, damp: rApp ? room.pl.damp : b.damp };
+    var ch = {}, es = {}, gs = {}, nC = 0, nE = 0, nG = 0, info = l.lvInfo || { prints: {} };
+    layerStrips(l).forEach(function (id) {
+      var e = stripEff(l, id, room);
+      if (e.ch && e.ch.on && !info.prints[id]) { ch[id] = { rate: e.ch.rate, depth: e.ch.depth / 1000 }; nC++; }
+      if (e.ec && e.ec.on) { es[id] = e.ec.send; nE++; }
+      if (e.gt && e.gt.on) { gs[id] = e.gt.send; nG++; }
+    });
+    if (nC) st.chorusP = ch;
+    if (rApp && room.ec.on && nE) st.echo = { time: room.ec.time, fb: room.ec.fb, lp: room.ec.lp, send: es };
+    if (rApp && room.gt.on && nG) st.gate = { wet: room.gt.wet, send: gs, keys: room.gt.toms ? ["snare", "tomsFills"] : ["snare"] };
+    return st;
+  }
+  function pxSig(l, room) {
+    var st = effStyle(l, room), sat = [];
+    layerStrips(l).forEach(function (id) { var e = stripEff(l, id, room); if (e.sat && e.sat.on) sat.push(id); });
+    return JSON.stringify([sat, st.chorusP ? Object.keys(st.chorusP).map(function (k) { return k + st.chorusP[k].depth; }) : 0,
+      st.echo ? Object.keys(st.echo.send) : 0, st.gate ? Object.keys(st.gate.send) : 0, room.bus.glue, room.bus.lim, l.lvInfoKey || ""]);
+  }
+  function isLive(l) { return !!l.live; }
+  function dkey(g, sec, l, v) { return bkey(g, sec, l, v) + "#dry"; }
+  // the dry render: the layer's own sheet through the engine's realizer, each
+  // strip tapped at its insert (a muted strip taps silence), on 2 channels a strip
+  var TAP_STYLE = { id: "jam.tap", send: 0, wet: 0, damp: 3000, chorus: { compA: 1, pad: 1, counter: 1, bass: 1 } };
+  function renderSheetDry(s, pat, v, oct, strips) {
+    var n = strips.length, len = Math.ceil((LEAD + s.lengthSec + TAIL) * RATE);
+    var c = new OAC(2 * n, len, RATE);
+    // the chorus on every chorus strip is only there so the engine says which
+    // voices print their own BBD (analogpoly.js steps the insert aside); the
+    // tap sits before it
+    s.production = TAP_STYLE;
+    var hits = null, sp = U.scheduleProductionGate, rz;
+    U.scheduleProductionGate = function (desk, h) { hits = h; return sp.apply(this, arguments); };
+    try { rz = realize(c, s, pat, v, oct); } finally { U.scheduleProductionGate = sp; }
+    var desk = rz.desk;
+    if (desk.masterTrim) desk.masterTrim.disconnect();
+    try { c.destination.channelInterpretation = "discrete"; } catch (e) {}
+    var mg = c.createChannelMerger(2 * n); mg.connect(c.destination);
+    var info = { prints: {}, bassVoice: s.bassVoice, voices: s.voices };
+    strips.forEach(function (id, i) {
+      var st = desk.strips[id];
+      info.prints[id] = !!(st.chorus && st.chorus.bypassed);
+      var tap = c.createGain(); tap.channelCount = 2; tap.channelCountMode = "explicit"; tap.channelInterpretation = "speakers";
+      tap.gain.value = st.fader.gain.value > 0 ? 1 : 0;
+      if (st.vocoder) { st.vocoder.output.disconnect(); st.vocoder.output.connect(tap); }
+      else { st.insert.disconnect(); st.insert.connect(tap); }
+      var spl = c.createChannelSplitter(2); tap.connect(spl); spl.connect(mg, 0, 2 * i); spl.connect(mg, 1, 2 * i + 1);
+    });
+    return { stats: rz.stats, done: c.startRendering().then(function (buf) { void desk; return { buf: buf, hits: hits, info: info }; }) };
+  }
+  // ---- the live desk ----
+  function ensureLive(l) {
+    if (l.lv) return l.lv.inp;
+    var strips = layerStrips(l), n = strips.length, inp = ctx.createChannelSplitter(2 * n), mergers = {};
+    strips.forEach(function (id, i) { var m = ctx.createChannelMerger(2); inp.connect(m, 2 * i, 0); inp.connect(m, 2 * i + 1, 1); mergers[id] = m; });
+    l.lv = { inp: inp, mergers: mergers, desk: null, out: null, sig: null, lfo: {}, sends: { echo: {}, gate: {} } };
+    buildLive(l);
+    return inp;
+  }
+  // the engine's desk for a live layer, in context c, feeding out
+  function makeLiveDesk(c, l, room, out) {
+    var strips = layerStrips(l), st = effStyle(l, room), info = l.lvInfo || { prints: {} };
+    var saved = U.DESK_ROLES, D;
+    U.DESK_ROLES = saved.filter(function (r) { return strips.indexOf(r.id) > -1; });
+    try { D = U.createDesk(c, out, { busTrimDb: room.bus.db }); } finally { U.DESK_ROLES = saved; }
+    D.applyLaneMix(l.ln || G.lane || "synthPop");
+    var sends = { echo: {}, gate: {} }, so = D.sendTo;
+    D.sendTo = function (fx, id, a) { var g = so.call(D, fx, id, a); (fx === D.echo ? sends.echo : sends.gate)[id] = g; return g; };
+    // saturation first, the engine's insert at any drive (desk.saturate); the
+    // chorus then lands after it, as applyProduction orders them
+    strips.forEach(function (id) {
+      var e = stripEff(l, id, room);
+      if (e.sat && e.sat.on) D.saturate(id, qd(e.sat.d), U.SAT_STAGE.bias, e.sat.lp, satMakeup(id, e.sat.d, info), 1);
+    });
+    var lfo = {}, order = [], mk = U.makeChorusBlock, C = U.CHORUS, tmp = [], ci = 0;
+    if (st.chorusP) { st.chorus = {}; Object.keys(st.chorusP).forEach(function (id) { var k = "jx_" + id; C.modes[k] = st.chorusP[id]; st.chorus[id] = k; tmp.push(k); order.push(id); }); }
+    U.makeChorusBlock = function () { var b = mk.apply(this, arguments); lfo[order[ci++]] = b.lfo; return b; };
+    var bpm = (curEpoch() || { g: G }).g.bpm || G.bpm;
+    try {
+      U.applyProduction(D, st, { bpm: bpm, productionDetail: pxDetail(), satPeaks: null, satProbe: false, bassVoice: info.bassVoice, voices: info.voices || {}, sampler: null, vocoder: null });
+    } finally { U.makeChorusBlock = mk; tmp.forEach(function (k) { delete C.modes[k]; }); }
+    // glue and limiter in or out
+    if (!room.bus.glue || !room.bus.lim) {
+      D.busTrim.disconnect(); if (D.glue) D.glue.disconnect(); if (D.limiter) D.limiter.disconnect();
+      var chain = [D.busTrim]; if (room.bus.glue) chain.push(D.glue); if (room.bus.lim) chain.push(D.limiter); chain.push(D.masterTrim);
+      for (var i = 0; i + 1 < chain.length; i++) chain[i].connect(chain[i + 1]);
+    }
+    return { D: D, lfo: lfo, sends: sends };
+  }
+  function buildLive(l) {
+    var lv = l.lv, strips = layerStrips(l), room = roomEff(), out = ctx.createGain();
+    out.gain.value = 0;
+    var mdk = makeLiveDesk(ctx, l, room, out), D = mdk.D, lfo = mdk.lfo, sends = mdk.sends;
+    var old = lv.out, now = ctx.currentTime;
+    strips.forEach(function (id) { try { lv.mergers[id].disconnect(); } catch (e) {} lv.mergers[id].connect(D.strips[id].insert); });
+    out.connect(l.out || master);
+    out.gain.setValueAtTime(0, now); out.gain.linearRampToValueAtTime(1, now + 0.02);
+    if (old) { old.gain.cancelScheduledValues(now); old.gain.setValueAtTime(old.gain.value, now); old.gain.linearRampToValueAtTime(0, now + 0.03); setTimeout(function () { try { old.disconnect(); } catch (e) {} }, 400); }
+    lv.desk = D; lv.out = out; lv.lfo = lfo; lv.sends = sends; lv.sig = pxSig(l, room);
+    pxParams(l, room);
+    (l.srcs || []).forEach(function (o) { if (o.dry) scheduleGate(l, o); });
+  }
+  function setP(p, v) { if (!p || !isFinite(v)) return; p.cancelScheduledValues(ctx.currentTime); p.setTargetAtTime(v, ctx.currentTime, 0.015); }
+  function pxParams(l, room) {
+    var lv = l.lv, D = lv && lv.desk; if (!D) return;
+    room = room || roomEff();
+    var b = baseStyle(l), rApp = roomApplies(l), info = l.lvInfo || {};
+    var scale = rApp ? (room.pl.on ? room.pl.send : 0) : b.send;
+    layerStrips(l).forEach(function (id) {
+      var s = D.strips[id], e = stripEff(l, id, room);
+      var lean = e.pl ? (e.pl.on ? e.pl.lean : 0) : ((b.sendByRole || {})[id] || 1);
+      setP(s.send.gain, s.houseSend * scale * lean);
+      if (s.sat && e.sat) {
+        var dq = qd(e.sat.d);
+        if (s.sat.drive !== dq) { try { s.sat.sh.curve = U.saturationCurve(dq, U.SAT_STAGE.bias); s.sat.drive = dq; } catch (err) { lv.sig = null; } }
+        setP(s.sat.lp.frequency, e.sat.lp);
+        setP(s.sat.post.gain, U.SAT_SPAN * Math.pow(10, satMakeup(id, e.sat.d, info) / 20));
+      }
+      if (lv.lfo[id] && e.ch) setP(lv.lfo[id].frequency, e.ch.rate);
+      if (lv.sends.echo[id] && e.ec) setP(lv.sends.echo[id].gain, e.ec.send);
+      if (lv.sends.gate[id] && e.gt) setP(lv.sends.gate[id].gain, e.gt.send);
+    });
+    setP(D.plate.wet.gain, rApp ? (room.pl.on ? room.pl.wet : 0) : b.wet);
+    D.plate.damps.forEach(function (f) { setP(f.frequency, rApp ? room.pl.damp : b.damp); });
+    if (D.echo && rApp) {
+      var bpm = (curEpoch() || { g: G }).g.bpm || G.bpm, sec = U.echoSeconds(room.ec.time, bpm);
+      setP(D.echo.delay.delayTime, sec); setP(D.echo.wowDepth.gain, U.ECHO_WOW * sec);
+      setP(D.echo.fb.gain, room.ec.fb); setP(D.echo.lp.frequency, room.ec.lp);
+    }
+    if (D.gated && rApp) {
+      setP(D.gated.wet.gain, room.gt.wet);
+      D.gated.hold = room.gt.close / 1000 - U.GATE_RELEASE; D.gated.release = U.GATE_RELEASE;
+      D.gated.keys = room.gt.toms ? ["snare", "tomsFills"] : ["snare"];
+    }
+    setP(D.busTrim.gain, Math.pow(10, room.bus.db / 20));
+  }
+  // the gated room opens on this loop's hits (the engine's schedule, per loop)
+  function scheduleGate(l, o) {
+    var D = l.lv && l.lv.desk; if (!D || !D.gated || !o.dry || !o.dry.hits) return;
+    var t = [], now = ctx.currentTime;
+    D.gated.keys.forEach(function (id) { (o.dry.hits[id] || []).forEach(function (x) { var rt = o.at + x - o.off; if (x >= o.off - 1e-4 && rt < o.end && rt > now) t.push(rt); }); });
+    if (t.length) D.gated.schedule(t, D.gated.hold, D.gated.release);
+  }
+  function pxUpdate(l) {
+    if (!l.lv || !l.lv.desk || !ctx) return;
+    var room = roomEff();
+    if (pxSig(l, room) !== l.lv.sig) buildLive(l); else pxParams(l, room);
+  }
+  function pxUpdateAll() { G.L.forEach(pxUpdate); }
+  function goLive(l) { if (l.live) return; l.live = true; audio(); pump(); }
+
+  // harness check (not used by the page): the layer's baked render against its
+  // dry render through the live desk at the drawn settings, both offline
+  function pxProof(li, sec, v) {
+    var l = G.L[li], g = gSnap(), opt = lOpt(l);
+    return render(g, sec, l.inst, l.pat, l.patch, v, opt).then(function (b) {
+      return render(g, sec, l.inst, l.pat, l.patch, v, Object.assign({ dry: true }, opt)).then(function (dry) {
+        var baked = b.buf, keep = l.lvInfo; l.lvInfo = dry.info;
+        var c = new OAC(2, baked.length, RATE), out = c.createGain(); out.connect(c.destination);
+        var mdk = makeLiveDesk(c, l, roomEff(), out); l.lvInfo = keep;
+        var strips = layerStrips(l), n = strips.length, src = c.createBufferSource(); src.buffer = dry.buf;
+        var sp = c.createChannelSplitter(2 * n); src.connect(sp);
+        strips.forEach(function (id, i) { var m = c.createChannelMerger(2); sp.connect(m, 2 * i, 0); sp.connect(m, 2 * i + 1, 1); m.connect(mdk.D.strips[id].insert); });
+        src.start(0);
+        return c.startRendering().then(function (live) {
+          var e = 0, el = 0, d = 0;
+          for (var ch = 0; ch < 2; ch++) { var a = baked.getChannelData(ch), z = live.getChannelData(ch); for (var i = 0; i < a.length; i++) { e += a[i] * a[i]; el += z[i] * z[i]; d += (a[i] - z[i]) * (a[i] - z[i]); } }
+          var db = function (x) { return +(10 * Math.log10(x + 1e-20)).toFixed(2); };
+          return { inst: l.inst, bakedDb: db(e), liveDb: db(el), residualVsBakedDb: +(db(d) - db(e)).toFixed(2) };
+        });
+      });
+    });
+  }
+  // ---- production modules: screen ----
+  var pxHold = false, pxPending = false;
+  function pxHoldOn() { pxHold = true; }
+  function pxHoldOff() { setTimeout(function () { pxHold = false; if (pxPending) { pxPending = false; drawLayers(); } }, 0); }
+  function f2(x) { return (+x).toFixed(2); }
+  function fHz(x) { return x >= 1000 ? (x / 1000).toFixed(x % 1000 ? 1 : 0) + " kHz" : Math.round(x) + " Hz"; }
+  function fMs(x) { return (+x).toFixed(x < 10 ? 2 : 0) + " ms"; }
+  function fDb(x) { return (x > 0 ? "+" : "") + (+x).toFixed(1) + " dB"; }
+  function pxSlider(box, label, r, val, step, fmt, onset) {
+    if (!r || !(r[1] > r[0])) { var fx = el("div", "pxfix"); fx.appendChild(el("span", null, label)); fx.appendChild(el("b", null, fmt(val) + " (fixed in the engine)")); box.appendChild(fx); return; }
+    var row = el("div", "pxs"), top = el("div", "pxl");
+    top.appendChild(el("span", null, label)); var vv = el("b", null, fmt(val)); top.appendChild(vv); row.appendChild(top);
+    var inp = el("input"); inp.type = "range"; inp.min = r[0]; inp.max = r[1]; inp.step = step; inp.value = val;
+    inp.oninput = function () { vv.textContent = fmt(+inp.value); onset(+inp.value); };
+    inp.onchange = function () { pxUpdateAll(); save(); };
+    row.appendChild(inp);
+    var mm = el("div", "pxm"); mm.appendChild(el("span", null, fmt(r[0]))); mm.appendChild(el("span", null, fmt(r[1]))); row.appendChild(mm);
+    box.appendChild(row);
+  }
+  // one effect: name, on/off, reset to drawn, then its sliders
+  function pxBlock(box, name, on, onToggle, onReset, note) {
+    var b = el("div", "pxfx" + (on ? "" : " off")), hd = el("div", "pxh");
+    hd.appendChild(el("span", "pxn", name));
+    var t = el("button", "pxon" + (on ? " on" : ""), on ? "On" : "Off"); t.onclick = onToggle;
+    var r = el("button", "pxrs", "Reset"); r.title = "reset to the drawn value"; r.onclick = onReset;
+    hd.appendChild(t); hd.appendChild(r); b.appendChild(hd);
+    if (note) b.appendChild(el("div", "pxnote", note));
+    box.appendChild(b);
+    return b;
+  }
+  function pxSet(l, id, g, k, v) {   // a strip override
+    l.px = l.px || {}; var X = l.px[id] = l.px[id] || {}; X[g] = X[g] || {}; X[g][k] = v; if (!(g === "ch" && k === "depth")) pxUpdate(l);
+  }
+  function pxReset(l, id, g) { if (l.px && l.px[id]) { delete l.px[id][g]; if (!Object.keys(l.px[id]).length) delete l.px[id]; } pxUpdate(l); save(); pxRedraw(l); }
+  function pxRedraw(l) { if (l.pxEl) { var p = l.pxEl.parentNode, n = pxBuild(l); if (p) p.replaceChild(n, l.pxEl); l.pxEl = n; } }
+  function pxBuild(l) {
+    var box = el("div", "pxmod"), room = roomEff(), b = baseStyle(l), d = INST_BY[l.inst];
+    box.addEventListener("touchstart", pxHoldOn, { passive: true }); box.addEventListener("touchend", pxHoldOff); box.addEventListener("touchcancel", pxHoldOff);
+    box.addEventListener("mousedown", pxHoldOn); box.addEventListener("mouseup", pxHoldOff);
+    var hd = el("div", "pxtitle"); hd.appendChild(el("span", null, "Production · " + d.label));
+    var cl = el("button", "pxclose", "Close"); cl.onclick = function () { l.pxOpen = false; drawLayers(); }; hd.appendChild(cl); box.appendChild(hd);
+    var dryReady = !!cache[dkey(gSnap(), G.sec, l, 0)];
+    box.appendChild(el("div", "pxnote", (dryReady ? "Live: every control plays now. " : "Preparing the live room (one render)… controls take effect when it lands. ") +
+      "Room: " + (STYLE_LABEL[b.id] || (b.id === DRY_KIT.id ? "dry kit (the jam keeps drums dry; pick a style in Room)" : b.id)) + "."));
+    if (d.id === "rgtr" || d.id === "bgtr") box.appendChild(el("div", "pxnote", "Amp and pedals: printed in the sound for now (" + (l.patchName || "drawn chain") + ")."));
+    var strips = layerStrips(l), multi = strips.length > 1;
+    strips.forEach(function (id) {
+      var e = stripEff(l, id, room), info = l.lvInfo || { prints: {} };
+      if (!e.sat && !e.ch && !e.pl && !e.ec && !e.gt) return;
+      if (multi) box.appendChild(el("div", "pxstrip", STRIP_NAME[id] || id));
+      var tog = function (g) { return function () { pxSet(l, id, g, "on", !stripEff(l, id)[g].on); save(); pxRedraw(l); }; };
+      var rs = function (g) { return function () { pxReset(l, id, g); }; };
+      var set = function (g, k) { return function (v) { pxSet(l, id, g, k, v); }; };
+      if (e.sat) {
+        var bs = pxBlock(box, "Saturation", e.sat.on, tog("sat"), rs("sat"));
+        pxSlider(bs, "Drive", PXR.drive, e.sat.d, 0.05, f2, set("sat", "d"));
+        pxSlider(bs, "High roll-off", PXR.lp, e.sat.lp, 100, fHz, set("sat", "lp"));
+      }
+      if (e.ch) {
+        var pr = info.prints[id];
+        var bc = pxBlock(box, "Chorus", e.ch.on && !pr, pr ? function () {} : tog("ch"), rs("ch"), pr ? "This patch prints its own Juno chorus, so the insert steps aside (the engine never stacks two)." : null);
+        if (!pr) {
+          pxSlider(bc, "Rate", PXR.crate, e.ch.rate, 0.01, function (x) { return (+x).toFixed(2) + " Hz"; }, set("ch", "rate"));
+          pxSlider(bc, "Depth (applies on release)", PXR.cdepth, e.ch.depth, 0.01, fMs, set("ch", "depth"));
+          var ms = el("div", "pxmodes"); ms.appendChild(el("span", null, "Juno modes"));
+          Object.keys(U.CHORUS.modes).forEach(function (k) { var m = U.CHORUS.modes[k], bb = el("button", null, CH_MODE[k] || k);
+            bb.onclick = function () { pxSet(l, id, "ch", "rate", m.rate); pxSet(l, id, "ch", "depth", m.depth * 1000); pxSet(l, id, "ch", "on", true); save(); pxRedraw(l); }; ms.appendChild(bb); });
+          bc.appendChild(ms);
+        }
+      }
+      if (e.pl) {
+        var lr = pxSpan(PXFX.lean[id] || [1]);
+        var bp = pxBlock(box, "Plate send", e.pl.on, tog("pl"), rs("pl"));
+        pxSlider(bp, "Lean (x the room's send)", lr, e.pl.lean, 0.05, function (x) { return "x" + f2(x); }, set("pl", "lean"));
+      }
+      if (e.ec) {
+        var be = pxBlock(box, "Tape echo send", e.ec.on, tog("ec"), rs("ec"), room.ec.on ? null : "The room's tape echo is off; turn it on in Room.");
+        pxSlider(be, "Send", PXR.esend, e.ec.send, 0.01, f2, set("ec", "send"));
+      }
+      if (e.gt) {
+        var bg = pxBlock(box, "Gated room send", e.gt.on, tog("gt"), rs("gt"), room.gt.on ? null : "The gated room is off; turn it on in Room.");
+        pxSlider(bg, "Send", PXR.gsend, e.gt.send, 0.01, f2, set("gt", "send"));
+      }
+    });
+    var no = el("div", "pxnote", "Not here yet: the kit-bus compressor (built, no style takes it), the amp and pedal settings, the vocoder.");
+    box.appendChild(no);
+    return box;
+  }
+  // the Room: style, the shared sends, the master
+  function roomSet(g, k, v) { var R = PX().R; R[g] = R[g] || {}; R[g][k] = v; G.L.forEach(function (l) { if (roomApplies(l)) goLive(l); }); pxUpdateAll(); }
+  function roomReset(g) { delete PX().R[g]; pxUpdateAll(); save(); roomDraw(); }
+  var roomOpen = false;
+  function roomDraw() {
+    var bar = $("roomBar"); if (!bar) return;
+    bar.innerHTML = "";
+    var bt = el("button", "roomBtn" + (roomOpen ? " on" : ""), roomOpen ? "Room ▴" : "Room ▾ (style, sends, master)");
+    bt.onclick = function () { roomOpen = !roomOpen; roomDraw(); };
+    bar.appendChild(bt);
+    if (!roomOpen) return;
+    var box = el("div", "pxmod room"), room = roomEff(), sty = PX().st;
+    box.addEventListener("touchstart", pxHoldOn, { passive: true }); box.addEventListener("touchend", pxHoldOff); box.addEventListener("touchcancel", pxHoldOff);
+    var hd = el("div", "pxtitle"); hd.appendChild(el("span", null, "Room"));
+    var cl = el("button", "pxclose", "Close"); cl.onclick = function () { roomOpen = false; roomDraw(); }; hd.appendChild(cl); box.appendChild(hd);
+    var sr = el("div", "pxstyle"), sel = el("select");
+    var dr = drawnRoom(), o0 = el("option", null, "As drawn: " + (STYLE_LABEL[dr.id] || dr.id) + (G.prl ? "" : " (jam room), drums dry")); o0.value = ""; sel.appendChild(o0);
+    PXS.forEach(function (s) { var o = el("option", null, STYLE_LABEL[s.id] || s.id); o.value = s.id; sel.appendChild(o); });
+    sel.value = sty || "";
+    // a new style re-draws the chain: every override goes, the sliders follow the style
+    sel.onchange = function () { PX().st = sel.value || null; PX().R = {}; G.L.forEach(function (l) { l.px = null; goLive(l); }); pxUpdateAll(); save(); roomDraw(); G.L.forEach(pxRedraw); };
+    sr.appendChild(el("span", null, "Style")); sr.appendChild(sel); box.appendChild(sr);
+    box.appendChild(el("div", "pxnote", "Touching the Room puts every layer live (one render each). " + (sty ? "" : "In the jam room the drums stay dry; pick a style to send them too.")));
+    var tg = function (g) { return function () { roomSet(g, "on", !room[g].on); save(); roomDraw(); G.L.forEach(pxRedraw); }; };
+    var st = function (g, k) { return function (v) { roomSet(g, k, v); }; };
+    var bp = pxBlock(box, "Plate", room.pl.on, tg("pl"), function () { roomReset("pl"); });
+    pxSlider(bp, "Send (every strip)", PXR.send, room.pl.send, 0.01, f2, st("pl", "send"));
+    pxSlider(bp, "Return", PXR.wet, room.pl.wet, 0.01, f2, st("pl", "wet"));
+    pxSlider(bp, "Damping", PXR.damp, room.pl.damp, 50, fHz, st("pl", "damp"));
+    var be = pxBlock(box, "Tape echo", room.ec.on, tg("ec"), function () { roomReset("ec"); });
+    var tr = el("div", "pxmodes"); tr.appendChild(el("span", null, "Time"));
+    [["slap", "Slap"], ["dotted8", "Dotted 8th"], ["quarter", "Quarter"]].forEach(function (t) {
+      var bb = el("button", room.ec.time === t[0] ? "on" : "", t[1]); bb.onclick = function () { roomSet("ec", "time", t[0]); save(); roomDraw(); }; tr.appendChild(bb); });
+    be.appendChild(tr);
+    pxSlider(be, "Feedback", PXR.efb, room.ec.fb, 0.01, f2, st("ec", "fb"));
+    pxSlider(be, "Loop low-pass", PXR.elp, room.ec.lp, 50, fHz, st("ec", "lp"));
+    var bg = pxBlock(box, "Gated room", room.gt.on, tg("gt"), function () { roomReset("gt"); }, "Opens on each snare hit (and the toms when they key it), then shuts.");
+    pxSlider(bg, "Return", PXR.gwet, room.gt.wet, 0.01, f2, st("gt", "wet"));
+    pxSlider(bg, "Gate close", PXR.gclose, room.gt.close, 5, fMs, st("gt", "close"));
+    var tk = el("div", "pxmodes"); tk.appendChild(el("span", null, "Toms key the gate"));
+    var tb = el("button", room.gt.toms ? "on" : "", room.gt.toms ? "On" : "Off"); tb.onclick = function () { roomSet("gt", "toms", !room.gt.toms); save(); roomDraw(); }; tk.appendChild(tb); bg.appendChild(tk);
+    var bm = pxBlock(box, "Master bus", true, function () {}, function () { roomReset("bus"); });
+    pxSlider(bm, "Bus drive (into glue and limiter)", PXR.bus, room.bus.db, 0.1, fDb, st("bus", "db"));
+    [["glue", "Glue compressor"], ["lim", "Limiter"]].forEach(function (x) {
+      var r = el("div", "pxmodes"); r.appendChild(el("span", null, x[1]));
+      var b2 = el("button", room.bus[x[0]] ? "on" : "", room.bus[x[0]] ? "On" : "Off"); b2.onclick = function () { roomSet("bus", x[0], !room.bus[x[0]]); save(); roomDraw(); }; r.appendChild(b2); bm.appendChild(r);
+    });
+    bar.appendChild(box);
+  }
+
   // ---- wire up ----
   INST.forEach(function (d) {
     var b = el("button", d.cls, d.label); b.onclick = function () { addLayer(d.id); }; $("pal").appendChild(b);
@@ -18907,14 +19372,15 @@
     else window.prompt("Copy this link", url);
   };
   var loaded = load();
-  drawAll(); save();
+  drawAll(); save(); roomDraw();
   requestAnimationFrame(frame);
   if (loaded && G.L.length) setStatus("tap PLAY to hear the saved jam");
 
   // for the walk-through (harness/jam-check.mjs)
   window.__jam = { G: G, starts: starts, renderLog: renderLog, epochs: function () { return epochs; }, cache: cache,
     cacheStats: cacheStats, ctx: function () { return ctx; }, playing: function () { return playing; }, busy: function () { return busy; },
-    LEAD: LEAD, BARS: BARS, SWING: SWING, LOCKED: LOCKED, drawA: drawA, PROG_BY: PROG_BY, newPattern: newPattern, drawTempo: drawTempo, MAXL: MAXL, RATE: RATE, render: render, buildSheet: buildSheet, renderSheet: renderSheet, masterChain: masterChain, LEVEL_DB: LEVEL_DB, pickIds: pickIds, capture: capture, captureEvents: captureEvents, variantFor: variantFor, variantsFor: variantsFor, STRIPS: function (id) { return INST_BY[id].strips.concat(INST_BY[id].fill ? [INST_BY[id].fill] : []); }, INST_IDS: INST.map(function (d) { return d.id; }) };
+    LEAD: LEAD, BARS: BARS, SWING: SWING, LOCKED: LOCKED, drawA: drawA, PROG_BY: PROG_BY, newPattern: newPattern, drawTempo: drawTempo, MAXL: MAXL, RATE: RATE, render: render, buildSheet: buildSheet, renderSheet: renderSheet, masterChain: masterChain, LEVEL_DB: LEVEL_DB, pickIds: pickIds, capture: capture, captureEvents: captureEvents, variantFor: variantFor, variantsFor: variantsFor, STRIPS: function (id) { return INST_BY[id].strips.concat(INST_BY[id].fill ? [INST_BY[id].fill] : []); }, INST_IDS: INST.map(function (d) { return d.id; }),
+    px: { PXR: PXR, PXFX: PXFX, PX: PX, roomEff: roomEff, stripEff: stripEff, effStyle: effStyle, goLive: goLive, pxUpdateAll: pxUpdateAll, roomDraw: roomDraw, layerStrips: layerStrips, renderSheetDry: renderSheetDry, pxProof: pxProof, dkey: dkey, gSnap: gSnap } };
 })();
 </script>
 </body>
