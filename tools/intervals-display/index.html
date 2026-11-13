@@ -132,10 +132,55 @@ const FIELDS = "invocation token_id live_view_url image { url } owner_address ow
 function addToken(t) {
   // Collector: the Art Blocks display name when the owner has set one, otherwise a short address.
   const addr = t.owner_address || "";
-  const who = (t.owner && t.owner.display_name && t.owner.display_name.trim()) || (addr ? addr.slice(0, 6) + "\u2026" + addr.slice(-4) : "");
+  const named = !!(t.owner && t.owner.display_name && t.owner.display_name.trim());
+  const who = named ? t.owner.display_name.trim() : (ensCache[addr] && ensCache[addr].name) || (addr ? addr.slice(0, 6) + "\u2026" + addr.slice(-4) : "");
   const rec = { n: t.invocation, id: t.token_id, live: t.live_view_url, img: t.image && t.image.url, who };
   tokens.set(rec.n, rec);
+  if (!named && addr && CFG.collector) wantEns(addr);
   return rec;
+}
+
+// ---------- ENS names for collectors with no Art Blocks display name ----------
+// Looked up once per address from two free public services (either may be down; then the
+// short address stays). Answers, including "no name", are kept for a day.
+const ENS_STORE = "mintdisplay:ens";
+const ENS_KEEP_MS = 24 * 3600 * 1000;
+let ensCache = {};
+try { ensCache = JSON.parse(localStorage.getItem(ENS_STORE) || "{}") || {}; } catch (e) {}
+const ensWaiting = [];
+let ensBusy = false;
+function wantEns(addr) {
+  const c = ensCache[addr];
+  if (c && Date.now() - c.at < ENS_KEEP_MS) return;
+  if (!ensWaiting.includes(addr)) ensWaiting.push(addr);
+  if (!ensBusy) ensNext();
+}
+async function getJson(url) {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 8000);
+  try { const r = await fetch(url, { signal: ctl.signal }); return r.ok ? await r.json() : (r.status === 404 ? {} : null); }
+  catch (e) { return null; } finally { clearTimeout(timer); }
+}
+async function ensNext() {
+  const addr = ensWaiting.shift();
+  if (!addr) { ensBusy = false; return; }
+  ensBusy = true;
+  let name = null, answered = false;
+  const a = await getJson("https://api.ensideas.com/ens/resolve/" + addr);
+  if (a) { answered = true; name = a.name || null; }
+  if (!a) { const b = await getJson("https://api.ensdata.net/" + addr); if (b) { answered = true; name = b.ens_primary || null; } }
+  if (answered) {
+    ensCache[addr] = { name, at: Date.now() };
+    try { localStorage.setItem(ENS_STORE, JSON.stringify(ensCache)); } catch (e) {}
+    if (name) {
+      const short = addr.slice(0, 6) + "\u2026" + addr.slice(-4);
+      for (const rec of tokens.values()) if (rec.who === short) rec.who = name;
+      // a caption already on screen for this collector
+      for (const el of document.querySelectorAll(".cap .who")) if (el.textContent === short) el.textContent = name;
+      mark("ens", { addr, name });
+    }
+  }
+  setTimeout(ensNext, 400);   // one at a time, gently
 }
 // Everything minted after invocation `after`, in mint order. Sorted by invocation, the
 // contract's own mint order; minted_at ties when two mints share a block.
