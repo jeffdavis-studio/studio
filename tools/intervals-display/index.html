@@ -21,6 +21,7 @@
     background: rgba(0,0,0,.34); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
     box-shadow: 0 0 1.4em rgba(0,0,0,.18); }
   .cap .note { opacity: .7; margin-left: .9em; }
+  .cap .who { margin-left: .9em; }
   body.nocap .cap { display: none; }
   /* A clear sheet over everything. It keeps clicks and keys out of the artwork frames
      (so F and double-click reach this page) and carries the hidden cursor. */
@@ -43,9 +44,10 @@
     project   full Art Blocks project id, "<core address>-<project number>"
     api       GraphQL endpoint
     new       seconds a newly minted piece stays up            (45)
-    idle      seconds a random piece stays up                  (25)
-    rush      seconds per new piece when more than 5 wait      (20; 0 turns this off)
+    idle      seconds a random piece stays up                  (30)
+    rush      seconds per new piece while other new ones wait  (30; 0 turns this off)
     caption   0 hides the caption                              (1)
+    collector 0 leaves the collector out of the caption        (1)
     mode      "live" = the running artwork, "image" = the still (live)
     start     treat this mint number as the last one seen; later ones queue (for testing)
     name      caption name, if the project's own name is not wanted
@@ -57,9 +59,10 @@ const CFG = {
   project: qs.get("project") || "0x000009bb1740eea484f7db00000a9227e578bf96-6",
   api:     qs.get("api")     || "https://artblocks-mainnet.hasura.app/v1/graphql",
   newMs:   Math.max(5, num("new", 45)) * 1000,
-  idleMs:  Math.max(5, num("idle", 25)) * 1000,
-  rushMs:  num("rush", 20) * 1000,
+  idleMs:  Math.max(5, num("idle", 30)) * 1000,
+  rushMs:  num("rush", 30) * 1000,
   caption: qs.get("caption") !== "0",
+  collector: qs.get("collector") !== "0",
   mode:    qs.get("mode") === "image" ? "image" : "live",
   start:   qs.has("start") ? num("start", NaN) : NaN,
   name:    qs.get("name") || "",
@@ -72,7 +75,7 @@ const MIN_ON_SCREEN_MS = 5000;  // a new mint never cuts a piece shorter than th
 const LIVE_TIMEOUT_MS = 20000;  // live frame not loaded by then: use the still image
 const IMAGE_TIMEOUT_MS = 20000;
 const FADE_MS = 1200;
-const RUSH_AT = 5;              // queue length above which `rush` applies
+const RUSH_AT = 0;              // waiting mints above which `rush` applies (0 = as soon as one more is waiting)
 const RELOAD_AFTER_MS = 24 * 3600 * 1000;
 const RESUME_WINDOW_MS = 10 * 60000; // a reload within this long picks the queue up where it was
 const STORE = "mintdisplay:" + CFG.api + "|" + CFG.project;
@@ -125,9 +128,12 @@ async function gql(query, variables) {
     return j.data;
   } finally { clearTimeout(timer); }
 }
-const FIELDS = "invocation token_id live_view_url image { url }";
+const FIELDS = "invocation token_id live_view_url image { url } owner_address owner { display_name }";
 function addToken(t) {
-  const rec = { n: t.invocation, id: t.token_id, live: t.live_view_url, img: t.image && t.image.url };
+  // Collector: the Art Blocks display name when the owner has set one, otherwise a short address.
+  const addr = t.owner_address || "";
+  const who = (t.owner && t.owner.display_name && t.owner.display_name.trim()) || (addr ? addr.slice(0, 6) + "\u2026" + addr.slice(-4) : "");
+  const rec = { n: t.invocation, id: t.token_id, live: t.live_view_url, img: t.image && t.image.url, who };
   tokens.set(rec.n, rec);
   return rec;
 }
@@ -311,6 +317,7 @@ async function show(tok, kind) {
   const cap = document.createElement("div");
   cap.className = "cap";
   cap.textContent = projectName + " #" + tok.n;
+  if (CFG.collector && tok.who) { const w = document.createElement("span"); w.className = "who"; w.textContent = tok.who; cap.appendChild(w); }
   if (kind === "new") { const s = document.createElement("span"); s.className = "note"; s.textContent = "just minted"; cap.appendChild(s); }
   back.appendChild(cap);
 
