@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Intervals</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  /* Two stacked layers. One is visible, the other loads the next piece unseen, then they crossfade. */
+  .layer { position: fixed; inset: 0; opacity: 0; transition: opacity var(--fade, 1200ms) ease-in-out; background: #000; }
+  .layer.on { opacity: 1; }
+  .layer iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; background: #000; }
+  .layer img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: block; }
+  /* Caption: one small line, bottom left. Soft dark backing so it reads on light and dark pieces. */
+  .cap { position: absolute; left: 1.6vw; bottom: 1.6vw; z-index: 2;
+    font: 500 clamp(11px, 1.05vw, 44px)/1 -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+    letter-spacing: .04em; color: rgba(255,255,255,.92);
+    padding: .65em 1.1em; border-radius: 99em;
+    background: rgba(0,0,0,.34); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+    box-shadow: 0 0 1.4em rgba(0,0,0,.18); }
+  .cap .note { opacity: .7; margin-left: .9em; }
+  body.nocap .cap { display: none; }
+  /* A clear sheet over everything. It keeps clicks and keys out of the artwork frames
+     (so F and double-click reach this page) and carries the hidden cursor. */
+  #shield { position: fixed; inset: 0; z-index: 10; }
+  body.idle-cursor #shield { cursor: none; }
+</style>
+</head>
+<body>
+<div class="layer" id="layerA"></div>
+<div class="layer" id="layerB"></div>
+<div id="shield"></div>
+<script>
+"use strict";
+/*
+  Intervals gallery display.
+  Shows one piece fullscreen. New mints go on a queue and show in mint order.
+  When the queue is empty it shows random pieces from the collection.
+
+  Settings, all in the link (defaults are Intervals on Ethereum mainnet):
+    project   full Art Blocks project id, "<core address>-<project number>"
+    api       GraphQL endpoint
+    new       seconds a newly minted piece stays up            (45)
+    idle      seconds a random piece stays up                  (25)
+    rush      seconds per new piece when more than 5 wait      (20; 0 turns this off)
+    caption   0 hides the caption                              (1)
+    mode      "live" = the running artwork, "image" = the still (live)
+    start     treat this mint number as the last one seen; later ones queue (for testing)
+    name      caption name, if the project's own name is not wanted
+    settle    seconds to let a loaded piece draw before fading in (1.5)
+*/
+const qs = new URLSearchParams(location.search);
+const num = (k, d) => { const v = parseFloat(qs.get(k)); return Number.isFinite(v) ? v : d; };
+const CFG = {
+  project: qs.get("project") || "0x000009bb1740eea484f7db00000a9227e578bf96-6",
+  api:     qs.get("api")     || "https://artblocks-mainnet.hasura.app/v1/graphql",
+  newMs:   Math.max(5, num("new", 45)) * 1000,
+  idleMs:  Math.max(5, num("idle", 25)) * 1000,
+  rushMs:  num("rush", 20) * 1000,
+  caption: qs.get("caption") !== "0",
+  mode:    qs.get("mode") === "image" ? "image" : "live",
+  start:   qs.has("start") ? num("start", NaN) : NaN,
+  name:    qs.get("name") || "",
+  settleMs: num("settle", 1.5) * 1000,
+};
+const POLL_MS = 10000;          // look for new mints
+const POLL_BACKOFF_MS = 60000;  // after an API failure
+const REFRESH_MS = 5 * 60000;   // re-read the whole collection
+const MIN_ON_SCREEN_MS = 5000;  // a new mint never cuts a piece shorter than this
+const LIVE_TIMEOUT_MS = 20000;  // live frame not loaded by then: use the still image
+const IMAGE_TIMEOUT_MS = 20000;
+const FADE_MS = 1200;
+const RUSH_AT = 5;              // queue length above which `rush` applies
+const RELOAD_AFTER_MS = 24 * 3600 * 1000;
+const RESUME_WINDOW_MS = 10 * 60000; // a reload within this long picks the queue up where it was
+const STORE = "mintdisplay:" + CFG.api + "|" + CFG.project;
+
+document.documentElement.style.setProperty("--fade", FADE_MS + "ms");
+if (!CFG.caption) document.body.classList.add("nocap");
+
+// ---------- state ----------
+const tokens = new Map();   // invocation -> { n, id, live, img }
+let lastSeen = -1;          // highest invocation known; anything above it is a new mint
+let queue = [];             // invocations waiting to show as new mints, in mint order
+let bag = [];               // shuffled invocations for idle showing
+let current = null;         // { n, kind: "new" | "idle", shownAt }
+let busy = false;           // a piece is loading or fading in
+let projectName = CFG.name || "Intervals";
+let apiOk = true;
+let failCount = new Map();  // invocation -> failed load attempts as a queued mint
+const bootAt = Date.now();
+const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
+// Read-only view for testing from the console or a harness.
+window.__display = { get state() { return { current, queue: queue.slice(), lastSeen, count: tokens.size, busy, apiOk, bag: bag.length,
+  frames: document.querySelectorAll("iframe").length, imgs: document.querySelectorAll(".layer img").length }; }, events: [] };
+const mark = (type, extra) => { window.__display.events.push(Object.assign({ t: Date.now(), type }, extra)); if (window.__display.events.length > 500) window.__display.events.shift(); };
+
+// ---------- storage (may be unavailable on a local file; then it is skipped) ----------
+function save() {
+  try {
+    localStorage.setItem(STORE, JSON.stringify({
+      at: Date.now(), name: projectName,
+      // the highest mint already taken off the queue, so a reload does not lose waiting mints
+      shownUpTo: queue.length ? queue[0] - 1 : lastSeen,
+      tokens: [...tokens.values()],
+    }));
+  } catch (e) {}
+}
+function load() {
+  try { return JSON.parse(localStorage.getItem(STORE) || "null"); } catch (e) { return null; }
+}
+
+// ---------- API ----------
+async function gql(query, variables) {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 15000);
+  try {
+    const r = await fetch(CFG.api, { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query, variables }), signal: ctl.signal });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const j = await r.json();
+    if (j.errors) throw new Error(j.errors[0].message);
+    return j.data;
+  } finally { clearTimeout(timer); }
+}
+const FIELDS = "invocation token_id live_view_url image { url }";
+function addToken(t) {
+  const rec = { n: t.invocation, id: t.token_id, live: t.live_view_url, img: t.image && t.image.url };
+  tokens.set(rec.n, rec);
+  return rec;
+}
+// Everything minted after invocation `after`, in mint order. Sorted by invocation, the
+// contract's own mint order; minted_at ties when two mints share a block.
+async function fetchAfter(after) {
+  const out = [];
+  for (;;) {
+    const d = await gql(`query($p:String!,$n:Int!){ tokens_metadata(where:{project_id:{_eq:$p}, invocation:{_gt:$n}},
+      order_by:{invocation:asc}, limit:500){ ${FIELDS} } }`, { p: CFG.project, n: after });
+    out.push(...d.tokens_metadata);
+    if (d.tokens_metadata.length < 500) return out;
+    after = d.tokens_metadata[d.tokens_metadata.length - 1].invocation;
+  }
+}
+async function fetchName() {
+  if (CFG.name) return;
+  const d = await gql(`query($p:String!){ projects_metadata(where:{id:{_eq:$p}}){ name } }`, { p: CFG.project });
+  if (d.projects_metadata[0] && d.projects_metadata[0].name) projectName = d.projects_metadata[0].name;
+}
+
+// Poll: anything above lastSeen is a new mint and joins the queue. Never skips one:
+// the query asks for every invocation above the last seen, not just the latest.
+async function poll() {
+  let next = POLL_MS;
+  try {
+    const fresh = await fetchAfter(lastSeen);
+    if (!apiOk) log("API back");
+    apiOk = true;
+    for (const t of fresh) {
+      addToken(t);
+      queue.push(t.invocation);
+      lastSeen = Math.max(lastSeen, t.invocation);
+      log("new mint queued #" + t.invocation);
+      mark("queued", { n: t.invocation });
+    }
+    if (fresh.length) save();
+  } catch (e) {
+    // Keep showing what is known; ask again less often.
+    if (apiOk) log("API failed, backing off:", e.message);
+    apiOk = false;
+    next = POLL_BACKOFF_MS;
+  }
+  setTimeout(poll, next);
+}
+// Every 5 minutes re-read the whole list (picks up a still image that was not ready
+// at mint time, or anything else that changed). New mints still arrive only through poll().
+async function refresh() {
+  try {
+    const all = await fetchAfter(-1);
+    for (const t of all) if (t.invocation <= lastSeen) addToken(t);
+    save();
+  } catch (e) {}
+}
+
+// ---------- choosing what shows next ----------
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+// Idle pieces come from a shuffled bag: nothing repeats until every piece has shown,
+// and a refill never starts with the piece now on screen.
+function drawIdle() {
+  if (tokens.size === 0) return null;
+  if (tokens.size === 1) return [...tokens.keys()][0];
+  if (bag.length === 0) {
+    bag = shuffle([...tokens.keys()]);
+    if (current && bag[bag.length - 1] === current.n) [bag[0], bag[bag.length - 1]] = [bag[bag.length - 1], bag[0]];
+  }
+  let n = bag.pop();
+  if (current && n === current.n) { bag.unshift(n); n = bag.pop(); }
+  return n;
+}
+function newDuration() {
+  return (CFG.rushMs > 0 && queue.length > RUSH_AT) ? Math.min(CFG.newMs, CFG.rushMs) : CFG.newMs;
+}
+
+// Runs four times a second and decides whether it is time to change the piece.
+function tick() {
+  if (busy) return;
+  const now = Date.now();
+  if (!current) return advance();
+  const age = now - current.shownAt;
+  if (current.kind === "new") { if (age >= newDuration()) advance(); return; }
+  // idle piece: a waiting new mint interrupts it, but not before 5 s on screen
+  if (queue.length && age >= MIN_ON_SCREEN_MS) return advance();
+  if (age >= CFG.idleMs) {
+    // once a day, at an idle change, reload the page itself
+    if (now - bootAt > RELOAD_AFTER_MS && !queue.length && navigator.onLine !== false) { save(); location.reload(); return; }
+    advance();
+  }
+}
+
+async function advance() {
+  let n, kind;
+  if (queue.length) { n = queue[0]; kind = "new"; }
+  else { n = drawIdle(); kind = "idle"; }
+  if (n === null || n === undefined) return;
+  if (kind === "idle" && current && current.n === n && current.kind === "idle") {
+    current.shownAt = Date.now(); return;   // only one piece exists: leave it up
+  }
+  busy = true;
+  const ok = await show(tokens.get(n), kind);
+  busy = false;
+  if (kind === "new") {
+    if (ok) { queue.shift(); failCount.delete(n); save(); }
+    else {
+      // A mint can be in the index a few seconds before its artwork can be served.
+      // Try it again (the current piece stays up); after 6 tries let it go to the idle pool.
+      const f = (failCount.get(n) || 0) + 1; failCount.set(n, f);
+      if (f >= 6) { log("giving up on queued #" + n); queue.shift(); failCount.delete(n); save(); }
+      busy = true; setTimeout(() => { busy = false; }, 5000);
+    }
+  } else if (!ok && current) {
+    current.shownAt = Date.now() - CFG.idleMs + 3000; // keep the current piece, try another in 3 s
+  }
+}
+
+// ---------- showing a piece ----------
+const layers = [document.getElementById("layerA"), document.getElementById("layerB")];
+let front = 0; // index of the visible layer
+
+// Is the live artwork reachable? The frame itself cannot tell us (a cross-site frame fires
+// "load" even for an error page), so ask the server first.
+async function liveReachable(url) {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 10000);
+  try {
+    const r = await fetch(url, { signal: ctl.signal, cache: "no-store" });
+    return r.ok;
+  } catch (e) {
+    // No CORS on this generator, or no network. A no-cors request separates the two:
+    // it succeeds (opaque) whenever the server answers at all.
+    try { await fetch(url, { mode: "no-cors", signal: ctl.signal, cache: "no-store" }); return true; }
+    catch (e2) { return false; }
+  } finally { clearTimeout(timer); }
+}
+function loadLive(layer, url) {
+  return new Promise(resolve => {
+    const f = document.createElement("iframe");
+    f.setAttribute("allow", "autoplay; accelerometer; gyroscope");
+    f.setAttribute("scrolling", "no");
+    f.tabIndex = -1;
+    const timer = setTimeout(() => { f.onload = null; resolve(false); }, LIVE_TIMEOUT_MS);
+    f.onload = () => { clearTimeout(timer); setTimeout(() => resolve(true), CFG.settleMs); };
+    f.src = url;
+    layer.appendChild(f);
+  });
+}
+function loadImage(layer, url) {
+  return new Promise(resolve => {
+    if (!url) return resolve(false);
+    const im = new Image();
+    const timer = setTimeout(() => { im.onload = im.onerror = null; resolve(false); }, IMAGE_TIMEOUT_MS);
+    im.onload = () => { clearTimeout(timer); resolve(true); };
+    im.onerror = () => { clearTimeout(timer); resolve(false); };
+    im.alt = "";
+    im.src = url;
+    layer.appendChild(im);
+  });
+}
+function clearLayer(layer) {
+  for (const f of layer.querySelectorAll("iframe")) f.src = "about:blank"; // stop the sketch before removal
+  layer.textContent = "";
+}
+// Load the piece in the hidden layer, then crossfade. Returns false (and changes nothing
+// on screen) if neither the live artwork nor the still image could be loaded.
+async function show(tok, kind) {
+  const back = layers[1 - front];
+  clearLayer(back);
+  let ok = false, how = "";
+  if (CFG.mode === "live" && tok.live && await liveReachable(tok.live)) { ok = await loadLive(back, tok.live); how = "live"; }
+  if (!ok) { clearLayer(back); ok = await loadImage(back, tok.img); how = "image"; }
+  if (!ok) { clearLayer(back); log("could not load #" + tok.n); mark("failed", { n: tok.n, kind }); return false; }
+
+  const cap = document.createElement("div");
+  cap.className = "cap";
+  cap.textContent = projectName + " #" + tok.n;
+  if (kind === "new") { const s = document.createElement("span"); s.className = "note"; s.textContent = "just minted"; cap.appendChild(s); }
+  back.appendChild(cap);
+
+  // Bring the new layer above the old and fade it in; the old one stays solid underneath,
+  // so the screen never passes through black.
+  const old = layers[front];
+  back.style.zIndex = 2; old.style.zIndex = 1;
+  back.getBoundingClientRect(); // make sure the starting opacity is applied before the change
+  back.classList.add("on");
+  front = 1 - front;
+  current = { n: tok.n, kind, shownAt: Date.now() };
+  log("showing #" + tok.n, kind, how);
+  mark("show", { n: tok.n, kind, how });
+  await new Promise(r => setTimeout(r, FADE_MS + 100));
+  old.classList.remove("on");
+  clearLayer(old);           // remove the old frame so frames never pile up
+  window.focus();            // keep keys coming to this page
+  return true;
+}
+
+// ---------- unattended running ----------
+// Hide the cursor after 3 s without movement.
+let cursorTimer = null;
+function cursorMoved() {
+  document.body.classList.remove("idle-cursor");
+  clearTimeout(cursorTimer);
+  cursorTimer = setTimeout(() => document.body.classList.add("idle-cursor"), 3000);
+}
+addEventListener("mousemove", cursorMoved);
+cursorMoved();
+
+// Keep the screen awake where the browser allows it. The lock is dropped whenever the
+// page is hidden, so ask again each time it becomes visible.
+let wakeLock = null;
+async function keepAwake() {
+  try {
+    if ("wakeLock" in navigator && document.visibilityState === "visible") {
+      wakeLock = await navigator.wakeLock.request("screen");
+    }
+  } catch (e) {}
+}
+document.addEventListener("visibilitychange", keepAwake);
+keepAwake();
+
+// F or double-click: fullscreen on and off.
+function toggleFullscreen() {
+  const d = document, el = d.documentElement;
+  const isFull = d.fullscreenElement || d.webkitFullscreenElement;
+  try {
+    if (isFull) (d.exitFullscreen || d.webkitExitFullscreen).call(d);
+    else (el.requestFullscreen || el.webkitRequestFullscreen).call(el);
+  } catch (e) {}
+}
+addEventListener("keydown", e => { if (e.key === "f" || e.key === "F") toggleFullscreen(); });
+document.getElementById("shield").addEventListener("dblclick", toggleFullscreen);
+
+// ---------- start ----------
+async function boot() {
+  const saved = load();
+  let resumeFrom = NaN;
+  if (saved && Array.isArray(saved.tokens)) {
+    for (const t of saved.tokens) tokens.set(t.n, t);
+    if (saved.name && !CFG.name) projectName = saved.name;
+    if (Date.now() - saved.at < RESUME_WINDOW_MS && Number.isFinite(saved.shownUpTo)) resumeFrom = saved.shownUpTo;
+  }
+  try {
+    const [all] = await Promise.all([fetchAfter(-1), fetchName().catch(() => {})]);
+    tokens.clear();
+    for (const t of all) addToken(t);
+  } catch (e) {
+    apiOk = false;
+    log("API not reachable at start; using the saved collection (" + tokens.size + ")");
+  }
+  lastSeen = tokens.size ? Math.max(...tokens.keys()) : -1;
+  // `start` in the link, or a reload a few minutes after the last run, puts later mints on the queue.
+  const from = Number.isFinite(CFG.start) ? CFG.start : resumeFrom;
+  if (Number.isFinite(from)) queue = [...tokens.keys()].filter(n => n > from).sort((a, b) => a - b);
+  document.title = projectName;
+  save();
+  log("ready:", tokens.size, "pieces, last seen #" + lastSeen, "queue", queue);
+  setInterval(tick, 250);
+  setTimeout(poll, apiOk ? POLL_MS : 5000);
+  setInterval(refresh, REFRESH_MS);
+}
+boot();
+</script>
+</body>
+</html>
