@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Unison — effects by ear</title>
-<!-- engine @d0c06a5 · built 2026-11-13 · analysis/build-fx-audition-page.mjs -->
+<!-- engine @ae4f6dc · built 2026-11-13 · analysis/build-fx-audition-page.mjs -->
 <style>
   :root{ --bg:#16161a; --panel:#1f1f25; --edge:#34343d; --ink:#e8e8ec; --dim:#8d8d99;
     --accent:#c9a15a; --keep:#6fae78; --cut:#c0675f; }
@@ -66,7 +66,7 @@
   </div>
 </div>
 <script>
-/* ===== src/core/prng.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/prng.js @ ae4f6dc — verbatim from jeffdavis-studio/unison-engine ===== */
 // prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
 // token hash, consumed in canonical draw order (Technical Architecture v1.2).
 //
@@ -139,7 +139,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/core/mix.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/mix.js @ ae4f6dc — verbatim from jeffdavis-studio/unison-engine ===== */
 // mix.js — the fan-in ≤2 summing rule, as a primitive.
 //
 // Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
@@ -308,7 +308,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/desk/desk.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/desk/desk.js @ ae4f6dc — verbatim from jeffdavis-studio/unison-engine ===== */
 // desk.js — the 24-track desk as a running audio graph.
 //
 // The desk is the data structure, not a metaphor (Composition Brief 2 / Tech
@@ -977,7 +977,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/production.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/production.js @ ae4f6dc — verbatim from jeffdavis-studio/unison-engine ===== */
 // production.js — the production room, v0.
 //
 // PLACEMENT DECISION (Morgan's call, ratified by Jeff 2026-08-03). Production
@@ -1329,7 +1329,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/vocoder.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/vocoder.js @ ae4f6dc — verbatim from jeffdavis-studio/unison-engine ===== */
 // vocoder.js — the production room's vocoder insert, slice 1 (2026-11-05,
 // Asana 1220085081650427; design in files/unison/vocoder-2026-11-05/RESULT.md).
 //
@@ -1665,7 +1665,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/analogpoly.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/analogpoly.js @ ae4f6dc — verbatim from jeffdavis-studio/unison-engine ===== */
 // analogpoly.js — the analog poly core: one module that builds every Juno and
 // OB-Xa voice, behind a family lock. Asana 1220084594874974, slice 1
 // (2026-11-02); the rack doc's build 3 (files/unison/rack-parts-proposal-
@@ -2291,7 +2291,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/juno.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/juno.js @ ae4f6dc — verbatim from jeffdavis-studio/unison-engine ===== */
 // juno.js — Juno-60-flavor poly voice, raw Web Audio, zero dependencies.
 // Ported from the 2026-07-21 bake-off winner (voice-raw.js), restructured to
 // live behind a desk strip: U.createJuno(ctx, strip, patchName) builds its own
@@ -2858,7 +2858,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/minimoog.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/minimoog.js @ ae4f6dc — verbatim from jeffdavis-studio/unison-engine ===== */
 // minimoog.js — Minimoog Model D-lineage mono voice, zero dependencies.
 //
 // THE MONO BASS LANE (build order 808 → Juno → Minimoog → …; it also absorbs
@@ -3645,7 +3645,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/obxa.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/obxa.js @ ae4f6dc — verbatim from jeffdavis-studio/unison-engine ===== */
 // obxa.js — Oberheim OB-Xa-lineage poly voice, zero dependencies.
 //
 // THE BRASS/PAD POLY LANE (build order 808 → Juno → Minimoog → OB-Xa → …).
@@ -4190,7 +4190,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/fm.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/fm.js @ ae4f6dc — verbatim from jeffdavis-studio/unison-engine ===== */
 // fm.js — six-operator FM keys voice (the DX7 lineage), zero dependencies.
 //
 // THE FM LANE (build order 808 → Juno → Minimoog → OB-Xa → Linn → FM).
@@ -5290,7 +5290,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/bassguitar.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/bassguitar.js @ ae4f6dc — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassguitar.js — electric bass guitar, the first session player of the human
 // rack (Rack 2), zero dependencies.
 //
@@ -6001,7 +6001,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/rhythmguitar.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/rhythmguitar.js @ ae4f6dc — verbatim from jeffdavis-studio/unison-engine ===== */
 // rhythmguitar.js — clean electric rhythm guitar, the fourth and last stop of
 // the human rack (Rack 2), zero dependencies.
 //
@@ -6777,7 +6777,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/tr808.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/tr808.js @ ae4f6dc — verbatim from jeffdavis-studio/unison-engine ===== */
 // tr808.js — THE MACHINE. A TR-808-lineage core voice: bass drum, snare,
 // closed hat, open hat, each with a front panel the token actually turns.
 //
@@ -8061,7 +8061,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/linn.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/linn.js @ ae4f6dc — verbatim from jeffdavis-studio/unison-engine ===== */
 // linn.js — THE STUDIO MACHINE. A Linn-family (LM-1 / LinnDrum lineage)
 // drum computer: the new wave / synth-pop / 80s R&B kit.
 //
@@ -8883,7 +8883,7 @@
     get EPROM_HZ() { return U.CIRCUIT_LINN.epromHz; }, get RECON_HZ() { return U.CIRCUIT_LINN.reconHz; } };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/romkits.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/romkits.js @ ae4f6dc — verbatim from jeffdavis-studio/unison-engine ===== */
 // romkits.js — THE OTHER SAMPLED MACHINE: the DMX (Oberheim lineage, 1981),
 // drum engine slice 3, 2026-11-03, Asana 1219959495948201.
 //
@@ -9239,7 +9239,7 @@
   // the lock refuses; the MCS is a kit drawn across families, which is slice 4.
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/simmons.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/simmons.js @ ae4f6dc — verbatim from jeffdavis-studio/unison-engine ===== */
 // simmons.js — THE ELECTRONIC FAMILY'S FIRST MACHINE: the Simmons toms
 // (SDS-V lineage, 1981; SDS-7, 1983), drum engine slice 3, 2026-11-03,
 // Asana 1219959495948201.
@@ -9411,7 +9411,7 @@
   U.SIMMONS_VOICES = ["tomHi", "tomMid", "tomLo"];
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drumengine.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drumengine.js @ ae4f6dc — verbatim from jeffdavis-studio/unison-engine ===== */
 // drumengine.js — ONE DRUM ENGINE, THE MACHINES AS FAMILIES (2026-11-02,
 // drum engine slice 1, Asana 1219959495948201; the rack and parts doc,
 // 10/31).
@@ -9642,7 +9642,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drumkits.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drumkits.js @ ae4f6dc — verbatim from jeffdavis-studio/unison-engine ===== */
 // drumkits.js — the drum engine, slice 4 (2026-11-06, Asana 1219959495948201):
 // THE KIT BOOKS and THE KIT AS A DRAW ACROSS FAMILIES.
 //
@@ -10000,7 +10000,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/sampler.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/sampler.js @ ae4f6dc — verbatim from jeffdavis-studio/unison-engine ===== */
 // sampler.js — THE SAMPLER KEYBOARD, the gap filler (2026-11-05, slice 1,
 // Asana 1220085081678265; build 7 of the 10/31 rack and parts doc; design in
 // files/unison/sampler-2026-11-05/RESULT.md in the morgan repo).
@@ -10598,7 +10598,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drums.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drums.js @ ae4f6dc — verbatim from jeffdavis-studio/unison-engine ===== */
 // drums.js — the drum machine: 808/LM-1-flavor voices, synthesized at runtime
 // into short AudioBuffers, played back as one-shots.
 //
@@ -10992,7 +10992,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/books.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/books.js @ ae4f6dc — verbatim from jeffdavis-studio/unison-engine ===== */
 // books.js — Pattern Books v1, as data.
 //
 // This file IS the document: "Unison — Pattern Books v1 (draft)" (Morgan,
@@ -13677,7 +13677,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/bassplayer.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/bassplayer.js @ ae4f6dc — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassplayer.js — the PERFORMANCE half of the bass guitar: a session player.
 //
 // Rack 2's rule (kb/projects/unison.md, 2026-07-11): every human instrument is
@@ -14272,7 +14272,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/gtrplayer.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/gtrplayer.js @ ae4f6dc — verbatim from jeffdavis-studio/unison-engine ===== */
 // gtrplayer.js — the PERFORMANCE half of the rhythm guitar: a session
 // guitarist on the rhythmGtr strip.
 //
@@ -14746,7 +14746,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/fmplayer.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/fmplayer.js @ ae4f6dc — verbatim from jeffdavis-studio/unison-engine ===== */
 // fmplayer.js — the PERFORMANCE half of the FM keys: a session keyboard
 // player on the FM chord strips (compA's tine EP, colour's glass and brass).
 //
@@ -14887,7 +14887,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/testPhrase.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/testPhrase.js @ ae4f6dc — verbatim from jeffdavis-studio/unison-engine ===== */
 // testPhrase.js — deterministic 8-bar test phrase, ported from the bake-off
 // (phrase.js) onto the engine's canonical PRNG (core/prng.js).
 //
@@ -14981,7 +14981,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/form.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/form.js @ ae4f6dc — verbatim from jeffdavis-studio/unison-engine ===== */
 // form.js — the song's form: the book of returns (2026-10-30, Asana
 // 1220073468300418; design files/unison/structure-design-2026-10-30 in the
 // morgan repo, DESIGN.md + draw.py, transcribed here as written).
@@ -15302,7 +15302,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/session.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/session.js @ ae4f6dc — verbatim from jeffdavis-studio/unison-engine ===== */
 // session.js — the session sheet and the arrangement realizer.
 //
 // Two tiers, in this order, each on its own stream (core/prng.js):
@@ -17157,7 +17157,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/render/renderer.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/render/renderer.js @ ae4f6dc — verbatim from jeffdavis-studio/unison-engine ===== */
 // renderer.js — song assembly + the render pipeline (Technical Architecture
 // v1.2 playback model): live-first, with (a) a cheap analysis pre-render for
 // verification/metrics and (b) an on-demand full OfflineAudioContext render
@@ -17798,6 +17798,86 @@
         tick: function (t0, from, to) { var t = hitTimes(hits, len, t0, from, to); if (t.length) room.schedule(t, hold, U.GATE_RELEASE); } };
     } });
 
+
+  // ---- stage 2: new ideas whose blocks are in desk.js ----
+
+  // 6. COMPRESSOR — the board compressor's own math (U.compGainCurve: a peak
+  // detector with its attack and release, feed-forward) run over the stem
+  // offline: the loop is fixed, so the gain curve is exact, computed over two
+  // loops and the second one kept (the detector settled), then applied to the
+  // stem sample by sample. Fast attack and release (the 1176 stand-in) on
+  // everything but the bass, which gets the slower dbx-like timing.
+  E.push({ id: "comp", name: "Compressor", group: "new",
+    line: "Evens the part out: hits are held down and the body comes up, so it sits tight and punchy in the mix.",
+    recs: ["Thompson Twins, Love on Your Side", "Thompson Twins, Love Lies Bleeding"],
+    parts: ["bass", "rhythmGtr", "snare", "kick", "lead", "percTime"],
+    offline: true,
+    set: { ratio: [2, 4, 8], belowPeakDb: [6, 8, 9.2] },
+    wet: function (stem, cfg) {
+      var n = stem.length, ch = stem.numberOfChannels, x = [];
+      for (var k = 0; k < ch; k++) x.push(stem.getChannelData(k));
+      var m = new Float32Array(2 * n);
+      for (var i = 0; i < n; i++) { var v = 0; for (k = 0; k < ch; k++) v = Math.max(v, Math.abs(x[k][i])); m[i] = m[i + n] = v; }
+      var pk = cfg.info.peak, slow = cfg.part === "bass";
+      var p = { thr: pk * Math.pow(10, -lerp3(this.set.belowPeakDb, cfg.s) / 20), ratio: lerp3(this.set.ratio, cfg.s),
+        atkMs: slow ? 5 : 0.8, relMs: slow ? 120 : 60, makeupDb: 0 };
+      var g = U.compGainCurve(m, stem.sampleRate, 1, p), S = U.COMP_STEP, out = [];
+      for (k = 0; k < ch; k++) {
+        var y = new Float32Array(n);
+        for (i = 0; i < n; i++) { var j = i + n, a = Math.floor(j / S), f = (j - a * S) / S, gg = g[a] + ((a + 1 < g.length ? g[a + 1] : g[a]) - g[a]) * f; y[i] = x[k][i] * gg; }
+        out.push(y);
+      }
+      return out;
+    } });
+
+  // 7. FLANGER — the board's flanger (U.makeFlanger): one swept delay with
+  // feedback, dry and wet mixed.
+  var FLANGE = { rate: [0.12, 0.25, 0.45], delayMs: [1.5, 2.5, 3.5], depthMs: [1.0, 2.0, 3.0], fb: [0.3, 0.5, 0.7], mix: [0.35, 0.5, 0.6] };
+  function flanger(c, cfg) {
+    var s = cfg.s, b = U.makeFlanger(c, { rate: lerp3(FLANGE.rate, s), delayMs: lerp3(FLANGE.delayMs, s), depthMs: lerp3(FLANGE.depthMs, s), fb: lerp3(FLANGE.fb, s), mix: lerp3(FLANGE.mix, s) });
+    return { input: b.input, output: b.output, osc: [b.lfo] };
+  }
+  E.push({ id: "flanger", name: "Flanger", group: "new",
+    line: "A sweeping, hollow jet-plane whoosh that rises and falls through the part.",
+    recs: ["Tubeway Army, Are 'Friends' Electric?", "Throbbing Gristle, Hot On Heels of Love"],
+    parts: ["pad", "rhythmGtr", "compB", "color"],
+    set: FLANGE, build: flanger });
+
+  // 8. PHASER — the board's phaser (U.makePhaser): four allpass stages swept
+  // by one LFO, mixed with the dry part. The block has no feedback path.
+  E.push({ id: "phaser", name: "Phaser", group: "new",
+    line: "A softer, watery swirl than the flanger, like the part is turning slowly in place.",
+    recs: ["League Unlimited Orchestra, Hard Times", "Throbbing Gristle, AB/7A"],
+    parts: ["compB", "rhythmGtr", "pad", "arp", "counter"],
+    set: { rate: [0.25, 0.6, 1.2], mix: [0.4, 0.55, 0.7], depthHz: [150, 220, 270] },
+    build: function (c, cfg) {
+      var b = U.makePhaser(c, { rate: lerp3(this.set.rate, cfg.s), baseHz: 300, depthHz: lerp3(this.set.depthHz, cfg.s), q: 0.6, mix: lerp3(this.set.mix, cfg.s) });
+      return { input: b.input, output: b.output, osc: [b.lfo] };
+    } });
+
+  // 9. FUZZ OR OVERDRIVE — the board's overdrive (U.makeOverdrive: the band
+  // above hpHz driven through the engine's curve and toned down, the low end
+  // clean), pushed past the console saturation into fuzz at Heavy.
+  E.push({ id: "fuzz", name: "Fuzz or overdrive", group: "new",
+    line: "Hard clipping that turns the part buzzy and aggressive, well past console warmth.",
+    recs: ["Madonna, Lucky Star", "Eurythmics, Sweet Dreams (Are Made of This)"],
+    parts: ["rhythmGtr", "lead", "percAccent"],
+    set: { drive: [3, 6, 12], toneHz: [5000, 4000, 3200], hpHz: [250, 200, 150] },
+    build: function (c, cfg) {
+      var b = U.makeOverdrive(c, { drive: lerp3(this.set.drive, cfg.s), hpHz: lerp3(this.set.hpHz, cfg.s), toneHz: lerp3(this.set.toneHz, cfg.s), refPeak: cfg.info.peak || 0.5 });
+      return { input: b.input, output: b.output };
+    } });
+
+  // 10. FLANGER ON THE KIT — entry 7's flanger on the hats, or on every kit
+  // strip at once ("Whole kit": one flanger per kit strip, all built at the
+  // same moment at the same settings, so their sweeps run in step; the
+  // flanger is linear, so that is the flanger on the kit's sum).
+  E.push({ id: "kitflange", name: "Flanger on the kit", group: "new",
+    line: "The jet-plane sweep across the hats or the whole drum kit.",
+    recs: [],
+    parts: ["hats", "kit"],
+    set: FLANGE, build: flanger });
+
   g.FX_ENTRIES = E;
   g.FX_HELP = { shellDesk: shellDesk, mixBlock: mixBlock, hitTimes: hitTimes };
 })(typeof window !== "undefined" ? window : globalThis);
@@ -17820,7 +17900,7 @@
    harness/curate-decode.mjs reads it. */
 (function(){
   "use strict";
-  var SHA = "d0c06a5", SONGS = [{"hash":"1d8209c51fb10ad9df5bca30cf892159b2296d9a398df0d3844e711517afac69","label":"Funk, guitar and synth bass","trim":1.2,"mp":null},{"hash":"c5929dc31f85e83e3780f150ae87b5bebfa301667297cdd344daef4165ca477e","label":"Synth pop, guitar and bass guitar, lead and counter line","trim":-2.5,"mp":{"samplerMakeupDb":{"lead":2.85}}},{"hash":"be7896b944aea0ae27a86b076a93e865a1a28e0dffb2b95e52bd90f61a58d6a8","label":"Synth pop, electronic drums, pad and color","trim":-3.6,"mp":{"samplerMakeupDb":{"compA":-0.22}}},{"hash":"99d4e4d5d280b8a102e689d38fbf4bb7301bef46784a9ef5e47c07908d4d62bf","label":"Early hip hop, drum machine and percussion","trim":-5.6,"mp":null},{"hash":"b020d0632850d1368c6673f1890cae427c467f6bd994e4128154140bdb126802","label":"New wave, bass guitar and pad","trim":-0.8,"mp":null},{"hash":"d60efc190ffeefcc11fee8c0214d90ca97123373de8c2c79e8f499a2d5a85b2b","label":"Synth R&B, guitar, bass guitar and color","trim":-1.6,"mp":{"samplerMakeupDb":{"color":-3.53}}}], TABLE = {"0":{"sat":{"parts":["bass","snare","rhythmGtr","lead","compA"],"mk":{"bass":{"1.0":0.46,"2.0":0.72,"3.0":0.99},"snare":{"1.0":1.27,"2.0":1.86,"3.0":2.41},"rhythmGtr":{"1.0":0.04,"2.0":0.06,"3.0":0.08},"lead":{"1.0":0.06,"2.0":0.1,"3.0":0.14},"compA":{"1.0":0.28,"2.0":0.45,"3.0":0.62}},"act":{"bass":-16.5,"snare":-9.8,"rhythmGtr":-23.8,"lead":-22.5,"compA":-17.8}},"chorus":{"parts":["compA","rhythmGtr","bass","lead"],"mk":{"compA":{"1.0":-0.29,"2.0":-0.85,"3.0":-1.79,"1.1":-0.34,"2.1":-0.93,"3.1":-1.89,"1.2":-0.6,"2.2":-1.3,"3.2":-2.33},"rhythmGtr":{"1.0":-0.28,"2.0":-0.83,"3.0":-1.77,"1.1":-0.32,"2.1":-0.89,"3.1":-1.84,"1.2":-0.5,"2.2":-1.16,"3.2":-2.16},"bass":{"1.0":-0.07,"2.0":-0.13,"3.0":-0.22,"1.1":-0.07,"2.1":-0.13,"3.1":-0.22,"1.2":-0.08,"2.2":-0.15,"3.2":-0.25},"lead":{"1.0":-0.3,"2.0":-0.87,"3.0":-1.81,"1.1":-0.51,"2.1":-1.17,"3.1":-2.18,"1.2":-0.27,"2.2":-0.81,"3.2":-1.75}},"act":{"compA":-3.8,"rhythmGtr":-3.8,"bass":-21.7,"lead":-3.8}},"echo":{"parts":["lead","color","rhythmGtr","snare","compA","arp"],"mk":{"lead":{"1.0":-0.61,"2.0":-0.84,"3.0":-1.09,"1.1":-0.34,"2.1":-0.52,"3.1":-0.77,"1.2":-0.16,"2.2":-0.29,"3.2":-0.48,"1.3":-0.16,"2.3":-0.3,"3.3":-0.52},"color":{"1.0":-0.22,"2.0":-0.41,"3.0":-0.7,"1.1":-0.18,"2.1":-0.33,"3.1":-0.58,"1.2":-0.17,"2.2":-0.33,"3.2":-0.57,"1.3":-0.17,"2.3":-0.33,"3.3":-0.57},"rhythmGtr":{"1.0":0.16,"2.0":0.09,"3.0":-0.07,"1.1":-0.31,"2.1":-0.49,"3.1":-0.76,"1.2":-0.16,"2.2":-0.31,"3.2":-0.56,"1.3":-0.14,"2.3":-0.28,"3.3":-0.52},"snare":{"1.0":-0.13,"2.0":-0.25,"3.0":-0.42,"1.1":-0.14,"2.1":-0.24,"3.1":-0.38,"1.2":-0.14,"2.2":-0.26,"3.2":-0.43,"1.3":-0.22,"2.3":-0.42,"3.3":-0.67},"compA":{"1.0":0.31,"2.0":0.33,"3.0":0.24,"1.1":-0.13,"2.1":-0.25,"3.1":-0.46,"1.2":-0.1,"2.2":-0.22,"3.2":-0.4,"1.3":-0.11,"2.3":-0.24,"3.3":-0.45},"arp":{"1.0":-0.12,"2.0":-0.2,"3.0":-0.32,"1.1":-0.25,"2.1":-0.4,"3.1":-0.59,"1.2":-0.13,"2.2":-0.26,"3.2":-0.46,"1.3":0.02,"2.3":-0.07,"3.3":-0.27}},"act":{"lead":-9.2,"color":-8.7,"rhythmGtr":-8.8,"snare":-9.4,"compA":-8.2,"arp":-9.3}},"plate":{"parts":["snare","lead","color","compA","rhythmGtr","arp","hats"],"mk":{"snare":{"1.0":-0.23,"2.0":-2.45,"3.0":-7.23},"lead":{"1.0":-0.42,"2.0":-0.18,"3.0":-2.79},"color":{"1.0":-0.56,"2.0":-1.79,"3.0":-5.75},"compA":{"1.0":-0.47,"2.0":-0.99,"3.0":-3.89},"rhythmGtr":{"1.0":-0.37,"2.0":-1.08,"3.0":-4.26},"arp":{"1.0":-0.16,"2.0":-1.15,"3.0":-3.91},"hats":{"1.0":-0.25,"2.0":-3.17,"3.0":-9.21}},"act":{"snare":-0.6,"lead":-4.9,"color":-0.7,"compA":-1,"rhythmGtr":-2.3,"arp":-2,"hats":1}},"gate":{"parts":["snare"],"mk":{"snare":{"1.0":-1.54,"2.0":-3.61,"3.0":-6.34}},"act":{"snare":-0.3}}},"1":{"sat":{"parts":["bass","snare","rhythmGtr","lead","compA"],"mk":{"bass":{"1.0":1.02,"2.0":1.62,"3.0":2.22},"snare":{"1.0":1.39,"2.0":2,"3.0":2.54},"rhythmGtr":{"1.0":0.07,"2.0":0.12,"3.0":0.16},"lead":{"1.0":0.03,"2.0":0.05,"3.0":0.06},"compA":{"1.0":0.15,"2.0":0.25,"3.0":0.35}},"act":{"bass":-14,"snare":-9.4,"rhythmGtr":-21.4,"lead":-22,"compA":-19.8}},"chorus":{"parts":["compA","rhythmGtr","counter","bass","lead"],"mk":{"compA":{"1.0":-0.36,"2.0":-0.94,"3.0":-1.9,"1.1":-0.35,"2.1":-0.93,"3.1":-1.89,"1.2":-0.52,"2.2":-1.18,"3.2":-2.19},"rhythmGtr":{"1.0":-0.38,"2.0":-0.98,"3.0":-1.95,"1.1":-0.36,"2.1":-0.95,"3.1":-1.92,"1.2":-0.51,"2.2":-1.17,"3.2":-2.17},"counter":{"1.0":-0.09,"2.0":-0.55,"3.0":-1.42,"1.1":-0.01,"2.1":-0.42,"3.1":-1.28,"1.2":-0.04,"2.2":-0.48,"3.2":-1.35},"bass":{"1.0":-0.19,"2.0":-0.49,"3.0":-1.01,"1.1":-0.19,"2.1":-0.48,"3.1":-0.99,"1.2":0.2,"2.2":0.14,"3.2":-0.15},"lead":{"1.0":-0.4,"2.0":-1.01,"3.0":-1.98,"1.1":-0.44,"2.1":-1.06,"3.1":-2.04,"1.2":-0.35,"2.2":-0.94,"3.2":-1.9}},"act":{"compA":-3.9,"rhythmGtr":-4,"counter":-3.3,"bass":-6.5,"lead":-3.9}},"echo":{"parts":["lead","counter","rhythmGtr","snare","compA","arp"],"mk":{"lead":{"1.0":-0.39,"2.0":-0.58,"3.0":-0.82,"1.1":-0.19,"2.1":-0.34,"3.1":-0.58,"1.2":-0.17,"2.2":-0.33,"3.2":-0.57,"1.3":-0.18,"2.3":-0.34,"3.3":-0.58},"counter":{"1.0":-0.16,"2.0":-0.29,"3.0":-0.5,"1.1":-0.18,"2.1":-0.33,"3.1":-0.56,"1.2":-0.17,"2.2":-0.31,"3.2":-0.54,"1.3":-0.17,"2.3":-0.32,"3.3":-0.56},"rhythmGtr":{"1.0":-0.1,"2.0":-0.21,"3.0":-0.39,"1.1":-0.18,"2.1":-0.33,"3.1":-0.55,"1.2":-0.17,"2.2":-0.32,"3.2":-0.55,"1.3":-0.13,"2.3":-0.27,"3.3":-0.51},"snare":{"1.0":-0.16,"2.0":-0.28,"3.0":-0.47,"1.1":-0.16,"2.1":-0.29,"3.1":-0.48,"1.2":-0.16,"2.2":-0.29,"3.2":-0.47,"1.3":-0.16,"2.3":-0.3,"3.3":-0.5},"compA":{"1.0":-0.08,"2.0":-0.16,"3.0":-0.31,"1.1":-0.16,"2.1":-0.31,"3.1":-0.54,"1.2":-0.16,"2.2":-0.3,"3.2":-0.54,"1.3":-0.18,"2.3":-0.33,"3.3":-0.58},"arp":{"1.0":-0.18,"2.0":-0.34,"3.0":-0.59,"1.1":-0.15,"2.1":-0.3,"3.1":-0.55,"1.2":-0.16,"2.2":-0.32,"3.2":-0.56,"1.3":-0.19,"2.3":-0.35,"3.3":-0.59}},"act":{"lead":-9.1,"counter":-9,"rhythmGtr":-9,"snare":-9.4,"compA":-8.8,"arp":-8.8}},"plate":{"parts":["snare","lead","compA","counter","rhythmGtr","arp","hats"],"mk":{"snare":{"1.0":-1.25,"2.0":-4.2,"3.0":-8.96},"lead":{"1.0":-0.48,"2.0":-2.48,"3.0":-6.25},"compA":{"1.0":-0.4,"2.0":-2.31,"3.0":-6},"counter":{"1.0":-0.27,"2.0":-1.06,"3.0":-3.41},"rhythmGtr":{"1.0":-0.81,"2.0":-1.73,"3.0":-6.15},"arp":{"1.0":-0.62,"2.0":-2.24,"3.0":-5.98},"hats":{"1.0":-0.35,"2.0":-2.22,"3.0":-6.76}},"act":{"snare":0.8,"lead":-1.5,"compA":-1.4,"counter":-1,"rhythmGtr":-0.8,"arp":-0.5,"hats":0.8}},"gate":{"parts":["snare"],"mk":{"snare":{"1.0":-2.64,"2.0":-5.64,"3.0":-8.92}},"act":{"snare":0.9}}},"2":{"sat":{"parts":["bass","snare","lead","compA"],"mk":{"bass":{"1.0":0.15,"2.0":0.24,"3.0":0.34},"snare":{"1.0":1.07,"2.0":1.57,"3.0":2.01},"lead":{"1.0":0.01,"2.0":0.01,"3.0":0.01},"compA":{"1.0":0.17,"2.0":0.28,"3.0":0.4}},"act":{"bass":-22,"snare":-10.2,"lead":-20.7,"compA":-19.6}},"chorus":{"parts":["compA","bass"],"mk":{"compA":{"1.0":-0.41,"2.0":-1.02,"3.0":-1.99,"1.1":-0.38,"2.1":-0.98,"3.1":-1.95,"1.2":-0.38,"2.2":-0.97,"3.2":-1.94},"bass":{"1.0":-0.19,"2.0":-0.55,"3.0":-1.18,"1.1":-0.17,"2.1":-0.52,"3.1":-1.14,"1.2":-0.26,"2.2":-0.65,"3.2":-1.31}},"act":{"compA":-4,"bass":-6.3}},"echo":{"parts":["lead","color","snare","compA"],"mk":{"lead":{"1.0":-0.15,"2.0":-0.29,"3.0":-0.54,"1.1":-0.22,"2.1":-0.39,"3.1":-0.64,"1.2":-0.19,"2.2":-0.35,"3.2":-0.59,"1.3":-0.17,"2.3":-0.33,"3.3":-0.56},"color":{"1.0":-0.22,"2.0":-0.4,"3.0":-0.66,"1.1":-0.15,"2.1":-0.3,"3.1":-0.55,"1.2":-0.17,"2.2":-0.31,"3.2":-0.54,"1.3":-0.19,"2.3":-0.33,"3.3":-0.55},"snare":{"1.0":-0.15,"2.0":-0.28,"3.0":-0.46,"1.1":-0.15,"2.1":-0.28,"3.1":-0.45,"1.2":-0.15,"2.2":-0.28,"3.2":-0.46,"1.3":-0.16,"2.3":-0.29,"3.3":-0.48},"compA":{"1.0":-0.2,"2.0":-0.35,"3.0":-0.56,"1.1":-0.16,"2.1":-0.31,"3.1":-0.55,"1.2":-0.24,"2.2":-0.39,"3.2":-0.62,"1.3":0.02,"2.3":-0.04,"3.3":-0.16}},"act":{"lead":-8.8,"color":-8.9,"snare":-9.5,"compA":-8.9}},"plate":{"parts":["snare","lead","pad","color","compA","hats"],"mk":{"snare":{"1.0":-1.08,"2.0":-4.24,"3.0":-8.76},"lead":{"1.0":-0.9,"2.0":-3.8,"3.0":-8.83},"pad":{"1.0":-0.11,"2.0":-3.35,"3.0":-7.19},"color":{"1.0":-0.22,"2.0":-3.3,"3.0":-7.94},"compA":{"1.0":-0.3,"2.0":-2.87,"3.0":-6.79},"hats":{"1.0":-0.13,"2.0":-2.76,"3.0":-11.41}},"act":{"snare":0.8,"lead":0.6,"pad":-0.1,"color":-0.3,"compA":-0.8,"hats":1.5}},"gate":{"parts":["snare","ePerc"],"mk":{"snare":{"1.0":-2.97,"2.0":-5.89,"3.0":-9.24},"ePerc":{"1.0":-0.72,"2.0":-1.75,"3.0":-3.31}},"act":{"snare":1,"ePerc":-2.5}}},"3":{"sat":{"parts":["bass","snare","lead","compA"],"mk":{"bass":{"1.0":0.51,"2.0":0.81,"3.0":1.11},"snare":{"1.0":0.89,"2.0":1.31,"3.0":1.69},"lead":{"1.0":0.01,"2.0":0.01,"3.0":0.01},"compA":{"1.0":0.22,"2.0":0.36,"3.0":0.51}},"act":{"bass":-15.9,"snare":-9.9,"lead":-23,"compA":-18.9}},"chorus":{"parts":["compA","bass"],"mk":{"compA":{"1.0":-0.33,"2.0":-0.91,"3.0":-1.87,"1.1":-0.34,"2.1":-0.91,"3.1":-1.87,"1.2":-0.5,"2.2":-1.14,"3.2":-2.15},"bass":{"1.0":-0.17,"2.0":-0.41,"3.0":-0.8,"1.1":-0.17,"2.1":-0.41,"3.1":-0.8,"1.2":-0.18,"2.2":-0.41,"3.2":-0.8}},"act":{"compA":-3.9,"bass":-10.9}},"echo":{"parts":["lead","snare","compA","arp"],"mk":{"lead":{"1.0":-0.31,"2.0":-0.51,"3.0":-0.78,"1.1":-0.17,"2.1":-0.32,"3.1":-0.57,"1.2":-0.19,"2.2":-0.36,"3.2":-0.63,"1.3":-0.16,"2.3":-0.31,"3.3":-0.55},"snare":{"1.0":-0.15,"2.0":-0.28,"3.0":-0.46,"1.1":-0.15,"2.1":-0.28,"3.1":-0.46,"1.2":-0.15,"2.2":-0.28,"3.2":-0.46,"1.3":-0.15,"2.3":-0.28,"3.3":-0.46},"compA":{"1.0":-0.44,"2.0":-0.67,"3.0":-0.98,"1.1":-0.16,"2.1":-0.3,"3.1":-0.55,"1.2":-0.19,"2.2":-0.34,"3.2":-0.58,"1.3":-0.16,"2.3":-0.31,"3.3":-0.54},"arp":{"1.0":-0.19,"2.0":-0.36,"3.0":-0.61,"1.1":-0.15,"2.1":-0.3,"3.1":-0.53,"1.2":-0.18,"2.2":-0.33,"3.2":-0.57,"1.3":-0.17,"2.3":-0.32,"3.3":-0.54}},"act":{"lead":-9.1,"snare":-9.5,"compA":-8.8,"arp":-8.9}},"plate":{"parts":["snare","lead","pad","compA","percAccent","arp","hats"],"mk":{"snare":{"1.0":-2.25,"2.0":-4.9,"3.0":-9.67},"lead":{"1.0":-0.89,"2.0":-2.92,"3.0":-7.16},"pad":{"1.0":-0.37,"2.0":-1.51,"3.0":-2.83},"compA":{"1.0":-2.12,"2.0":-5.64,"3.0":-10.95},"percAccent":{"1.0":-0.76,"2.0":-2.85,"3.0":-7.44},"arp":{"1.0":-1.31,"2.0":-4.06,"3.0":-9.26},"hats":{"1.0":-0.01,"2.0":-0.26,"3.0":-2.93}},"act":{"snare":1.1,"lead":-0.1,"pad":-1.6,"compA":1,"percAccent":0.6,"arp":1,"hats":-2.4}},"gate":{"parts":["snare"],"mk":{"snare":{"1.0":-3.56,"2.0":-6.77,"3.0":-9.93}},"act":{"snare":1.3}}},"4":{"sat":{"parts":["bass","snare","lead","compA"],"mk":{"bass":{"1.0":0.88,"2.0":1.4,"3.0":1.92},"snare":{"1.0":1.28,"2.0":1.89,"3.0":2.43},"lead":{"1.0":0.04,"2.0":0.07,"3.0":0.09},"compA":{"1.0":0.23,"2.0":0.36,"3.0":0.51}},"act":{"bass":-14.3,"snare":-9.8,"lead":-21.3,"compA":-18.8}},"chorus":{"parts":["compA","bass"],"mk":{"compA":{"1.0":-0.26,"2.0":-0.8,"3.0":-1.74,"1.1":-0.26,"2.1":-0.8,"3.1":-1.73,"1.2":-0.51,"2.2":-1.16,"3.2":-2.17},"bass":{"1.0":-0.31,"2.0":-0.79,"3.0":-1.57,"1.1":-0.27,"2.1":-0.72,"3.1":-1.49,"1.2":-0.18,"2.2":-0.59,"3.2":-1.33}},"act":{"compA":-3.7,"bass":-5}},"echo":{"parts":["lead","snare","compA"],"mk":{"lead":{"1.0":-0.07,"2.0":-0.16,"3.0":-0.34,"1.1":-0.23,"2.1":-0.43,"3.1":-0.74,"1.2":-0.12,"2.2":-0.26,"3.2":-0.5,"1.3":-0.23,"2.3":-0.42,"3.3":-0.71},"snare":{"1.0":-0.14,"2.0":-0.26,"3.0":-0.43,"1.1":-0.14,"2.1":-0.25,"3.1":-0.39,"1.2":-0.14,"2.2":-0.26,"3.2":-0.43,"1.3":-0.21,"2.3":-0.38,"3.3":-0.6},"compA":{"1.0":-0.15,"2.0":-0.4,"3.0":-0.79,"1.1":-0.06,"2.1":-0.19,"3.1":-0.45,"1.2":-0.1,"2.2":-0.25,"3.2":-0.51,"1.3":-0.29,"2.3":-0.48,"3.3":-0.75}},"act":{"lead":-8.6,"snare":-9.2,"compA":-8}},"plate":{"parts":["snare","lead","pad","compA","hats"],"mk":{"snare":{"1.0":-0.32,"2.0":-2.69,"3.0":-7.03},"lead":{"1.0":-0.63,"2.0":-1.97,"3.0":-4.9},"pad":{"1.0":-0.01,"2.0":-1,"3.0":-5.43},"compA":{"1.0":0.01,"2.0":-1.34,"3.0":-2.99},"hats":{"1.0":-0.27,"2.0":-2.3,"3.0":-6.84}},"act":{"snare":-0.5,"lead":-1.5,"pad":0.6,"compA":-1.4,"hats":0.7}},"gate":{"parts":["snare"],"mk":{"snare":{"1.0":-1.45,"2.0":-3.55,"3.0":-6.44}},"act":{"snare":-0.4}}},"5":{"sat":{"parts":["bass","snare","rhythmGtr","lead","compA"],"mk":{"bass":{"1.0":0.32,"2.0":0.53,"3.0":0.74},"snare":{"1.0":1.36,"2.0":1.97,"3.0":2.51},"rhythmGtr":{"1.0":0.13,"2.0":0.2,"3.0":0.28},"lead":{"1.0":0.04,"2.0":0.07,"3.0":0.09},"compA":{"1.0":0.24,"2.0":0.38,"3.0":0.54}},"act":{"bass":-18.2,"snare":-9.6,"rhythmGtr":-19.7,"lead":-22.6,"compA":-18.7}},"chorus":{"parts":["compA","rhythmGtr"],"mk":{"compA":{"1.0":-0.37,"2.0":-0.96,"3.0":-1.92,"1.1":-0.36,"2.1":-0.94,"3.1":-1.91,"1.2":-0.48,"2.2":-1.12,"3.2":-2.12},"rhythmGtr":{"1.0":-0.35,"2.0":-0.93,"3.0":-1.89,"1.1":-0.29,"2.1":-0.85,"3.1":-1.79,"1.2":-0.49,"2.2":-1.13,"3.2":-2.13}},"act":{"compA":-3.9,"rhythmGtr":-3.8}},"echo":{"parts":["lead","counter","color","rhythmGtr","snare","compA"],"mk":{"lead":{"1.0":-0.35,"2.0":-0.52,"3.0":-0.75,"1.1":-0.16,"2.1":-0.32,"3.1":-0.55,"1.2":-0.1,"2.2":-0.23,"3.2":-0.44,"1.3":-0.15,"2.3":-0.28,"3.3":-0.49},"counter":{"1.0":0.06,"2.0":0.01,"3.0":-0.11,"1.1":-0.18,"2.1":-0.34,"3.1":-0.59,"1.2":-0.17,"2.2":-0.33,"3.2":-0.57,"1.3":-0.17,"2.3":-0.32,"3.3":-0.57},"color":{"1.0":-0.16,"2.0":-0.27,"3.0":-0.44,"1.1":-0.12,"2.1":-0.26,"3.1":-0.5,"1.2":-0.17,"2.2":-0.32,"3.2":-0.57,"1.3":-0.18,"2.3":-0.34,"3.3":-0.59},"rhythmGtr":{"1.0":-0.17,"2.0":-0.32,"3.0":-0.55,"1.1":-0.17,"2.1":-0.32,"3.1":-0.56,"1.2":-0.17,"2.2":-0.33,"3.2":-0.57,"1.3":-0.12,"2.3":-0.26,"3.3":-0.48},"snare":{"1.0":-0.18,"2.0":-0.32,"3.0":-0.55,"1.1":-0.17,"2.1":-0.32,"3.1":-0.56,"1.2":-0.11,"2.2":-0.25,"3.2":-0.47,"1.3":-0.21,"2.3":-0.39,"3.3":-0.64},"compA":{"1.0":-0.22,"2.0":-0.4,"3.0":-0.66,"1.1":-0.15,"2.1":-0.28,"3.1":-0.48,"1.2":-0.13,"2.2":-0.27,"3.2":-0.5,"1.3":-0.16,"2.3":-0.31,"3.3":-0.56}},"act":{"lead":-9.1,"counter":-9,"color":-8.8,"rhythmGtr":-9.1,"snare":-8.4,"compA":-9}},"plate":{"parts":["snare","lead","pad","color","compA","counter","rhythmGtr","hats"],"mk":{"snare":{"1.0":-0.17,"2.0":-1.87,"3.0":-5.54},"lead":{"1.0":-0.67,"2.0":-1.96,"3.0":-5.31},"pad":{"1.0":-0.61,"2.0":-4.12,"3.0":-8.42},"color":{"1.0":-0.42,"2.0":-3.48,"3.0":-7.3},"compA":{"1.0":-1.08,"2.0":-3.74,"3.0":-8.45},"counter":{"1.0":-0.23,"2.0":-3.63,"3.0":-7.97},"rhythmGtr":{"1.0":-1.14,"2.0":-3.63,"3.0":-8},"hats":{"1.0":-0.42,"2.0":-3.55,"3.0":-9.59}},"act":{"snare":-2.2,"lead":-1.1,"pad":1.5,"color":-0.7,"compA":-0.3,"counter":-1.2,"rhythmGtr":1,"hats":1.1}},"gate":{"parts":["snare"],"mk":{"snare":{"1.0":-0.95,"2.0":-2.45,"3.0":-4.75}},"act":{"snare":-2}}}}, MONITOR_DB = -3;
+  var SHA = "ae4f6dc", SONGS = [{"hash":"1d8209c51fb10ad9df5bca30cf892159b2296d9a398df0d3844e711517afac69","label":"Funk, guitar and synth bass","trim":1.2,"mp":null},{"hash":"c5929dc31f85e83e3780f150ae87b5bebfa301667297cdd344daef4165ca477e","label":"Synth pop, guitar and bass guitar, lead and counter line","trim":-2.5,"mp":{"samplerMakeupDb":{"lead":2.85}}},{"hash":"be7896b944aea0ae27a86b076a93e865a1a28e0dffb2b95e52bd90f61a58d6a8","label":"Synth pop, electronic drums, pad and color","trim":-3.6,"mp":{"samplerMakeupDb":{"compA":-0.22}}},{"hash":"99d4e4d5d280b8a102e689d38fbf4bb7301bef46784a9ef5e47c07908d4d62bf","label":"Early hip hop, drum machine and percussion","trim":-5.6,"mp":null},{"hash":"b020d0632850d1368c6673f1890cae427c467f6bd994e4128154140bdb126802","label":"New wave, bass guitar and pad","trim":-0.8,"mp":null},{"hash":"d60efc190ffeefcc11fee8c0214d90ca97123373de8c2c79e8f499a2d5a85b2b","label":"Synth R&B, guitar, bass guitar and color","trim":-1.6,"mp":{"samplerMakeupDb":{"color":-3.53}}}], TABLE = {"0":{"sat":{"parts":["bass","snare","rhythmGtr","lead","compA"],"mk":{"bass":{"1.0":0.46,"2.0":0.72,"3.0":0.99},"snare":{"1.0":1.27,"2.0":1.86,"3.0":2.41},"rhythmGtr":{"1.0":0.04,"2.0":0.06,"3.0":0.08},"lead":{"1.0":0.06,"2.0":0.1,"3.0":0.14},"compA":{"1.0":0.28,"2.0":0.45,"3.0":0.62}},"act":{"bass":-16.5,"snare":-9.8,"rhythmGtr":-23.8,"lead":-22.5,"compA":-17.8}},"chorus":{"parts":["compA","rhythmGtr","bass","lead"],"mk":{"compA":{"1.0":-0.29,"2.0":-0.85,"3.0":-1.79,"1.1":-0.34,"2.1":-0.93,"3.1":-1.89,"1.2":-0.6,"2.2":-1.3,"3.2":-2.33},"rhythmGtr":{"1.0":-0.28,"2.0":-0.83,"3.0":-1.77,"1.1":-0.32,"2.1":-0.89,"3.1":-1.84,"1.2":-0.5,"2.2":-1.16,"3.2":-2.16},"bass":{"1.0":-0.07,"2.0":-0.13,"3.0":-0.22,"1.1":-0.07,"2.1":-0.13,"3.1":-0.22,"1.2":-0.08,"2.2":-0.15,"3.2":-0.25},"lead":{"1.0":-0.3,"2.0":-0.87,"3.0":-1.81,"1.1":-0.51,"2.1":-1.17,"3.1":-2.18,"1.2":-0.27,"2.2":-0.81,"3.2":-1.75}},"act":{"compA":-3.8,"rhythmGtr":-3.8,"bass":-21.7,"lead":-3.8}},"echo":{"parts":["lead","color","rhythmGtr","snare","compA","arp"],"mk":{"lead":{"1.0":-0.61,"2.0":-0.84,"3.0":-1.09,"1.1":-0.34,"2.1":-0.52,"3.1":-0.77,"1.2":-0.16,"2.2":-0.29,"3.2":-0.48,"1.3":-0.16,"2.3":-0.3,"3.3":-0.52},"color":{"1.0":-0.22,"2.0":-0.41,"3.0":-0.7,"1.1":-0.18,"2.1":-0.33,"3.1":-0.58,"1.2":-0.17,"2.2":-0.33,"3.2":-0.57,"1.3":-0.17,"2.3":-0.33,"3.3":-0.57},"rhythmGtr":{"1.0":0.16,"2.0":0.09,"3.0":-0.07,"1.1":-0.31,"2.1":-0.49,"3.1":-0.76,"1.2":-0.16,"2.2":-0.31,"3.2":-0.56,"1.3":-0.14,"2.3":-0.28,"3.3":-0.52},"snare":{"1.0":-0.13,"2.0":-0.25,"3.0":-0.42,"1.1":-0.14,"2.1":-0.24,"3.1":-0.38,"1.2":-0.14,"2.2":-0.26,"3.2":-0.43,"1.3":-0.22,"2.3":-0.42,"3.3":-0.67},"compA":{"1.0":0.31,"2.0":0.33,"3.0":0.24,"1.1":-0.13,"2.1":-0.25,"3.1":-0.46,"1.2":-0.1,"2.2":-0.22,"3.2":-0.4,"1.3":-0.11,"2.3":-0.24,"3.3":-0.45},"arp":{"1.0":-0.12,"2.0":-0.2,"3.0":-0.32,"1.1":-0.25,"2.1":-0.4,"3.1":-0.59,"1.2":-0.13,"2.2":-0.26,"3.2":-0.46,"1.3":0.02,"2.3":-0.07,"3.3":-0.27}},"act":{"lead":-9.2,"color":-8.7,"rhythmGtr":-8.8,"snare":-9.4,"compA":-8.2,"arp":-9.3}},"plate":{"parts":["snare","lead","color","compA","rhythmGtr","arp","hats"],"mk":{"snare":{"1.0":-0.23,"2.0":-2.45,"3.0":-7.23},"lead":{"1.0":-0.42,"2.0":-0.18,"3.0":-2.79},"color":{"1.0":-0.56,"2.0":-1.79,"3.0":-5.75},"compA":{"1.0":-0.47,"2.0":-0.99,"3.0":-3.89},"rhythmGtr":{"1.0":-0.37,"2.0":-1.08,"3.0":-4.26},"arp":{"1.0":-0.16,"2.0":-1.15,"3.0":-3.91},"hats":{"1.0":-0.25,"2.0":-3.17,"3.0":-9.21}},"act":{"snare":-0.6,"lead":-4.9,"color":-0.7,"compA":-1,"rhythmGtr":-2.3,"arp":-2,"hats":1}},"gate":{"parts":["snare"],"mk":{"snare":{"1.0":-1.54,"2.0":-3.61,"3.0":-6.34}},"act":{"snare":-0.3}},"comp":{"parts":["bass","rhythmGtr","snare","kick","lead"],"mk":{"bass":{"1.0":0.31,"2.0":1.48,"3.0":2.56},"rhythmGtr":{"1.0":0.08,"2.0":0.66,"3.0":1.35},"snare":{"1.0":0.54,"2.0":1.91,"3.0":3.02},"kick":{"1.0":1.43,"2.0":3.39,"3.0":4.81},"lead":{"1.0":0.97,"2.0":2.81,"3.0":4.27}},"act":{"bass":-15.6,"rhythmGtr":-16.6,"snare":-14.7,"kick":-13.4,"lead":-17}},"flanger":{"parts":["rhythmGtr","color"],"mk":{"rhythmGtr":{"1.0":1.53,"2.0":1.02,"3.0":-0.63},"color":{"1.0":1.4,"2.0":-0.08,"3.0":-1.29}},"act":{"rhythmGtr":-1.7,"color":-0.5}},"phaser":{"parts":["rhythmGtr","arp"],"mk":{"rhythmGtr":{"1.0":1.09,"2.0":1.08,"3.0":0.82},"arp":{"1.0":1.7,"2.0":1.57,"3.0":1.15}},"act":{"rhythmGtr":-1.4,"arp":-1.1}},"fuzz":{"parts":["rhythmGtr","lead"],"mk":{"rhythmGtr":{"1.0":4.02,"2.0":4,"3.0":-2.52},"lead":{"1.0":6.05,"2.0":6.32,"3.0":0.43}},"act":{"rhythmGtr":1,"lead":-0.9}},"kitflange":{"parts":["hats","kit"],"mk":{"hats":{"1.0":1.06,"2.0":0.83,"3.0":-0.06},"kit":{"1.0":0.03,"2.0":1.12,"3.0":0.73}},"act":{"hats":-1.9,"kit":-1.9}}},"1":{"sat":{"parts":["bass","snare","rhythmGtr","lead","compA"],"mk":{"bass":{"1.0":1.02,"2.0":1.62,"3.0":2.22},"snare":{"1.0":1.39,"2.0":2,"3.0":2.54},"rhythmGtr":{"1.0":0.07,"2.0":0.12,"3.0":0.16},"lead":{"1.0":0.03,"2.0":0.05,"3.0":0.06},"compA":{"1.0":0.15,"2.0":0.25,"3.0":0.35}},"act":{"bass":-14,"snare":-9.4,"rhythmGtr":-21.4,"lead":-22,"compA":-19.8}},"chorus":{"parts":["compA","rhythmGtr","counter","bass","lead"],"mk":{"compA":{"1.0":-0.36,"2.0":-0.94,"3.0":-1.9,"1.1":-0.35,"2.1":-0.93,"3.1":-1.89,"1.2":-0.52,"2.2":-1.18,"3.2":-2.19},"rhythmGtr":{"1.0":-0.38,"2.0":-0.98,"3.0":-1.95,"1.1":-0.36,"2.1":-0.95,"3.1":-1.92,"1.2":-0.51,"2.2":-1.17,"3.2":-2.17},"counter":{"1.0":-0.09,"2.0":-0.55,"3.0":-1.42,"1.1":-0.01,"2.1":-0.42,"3.1":-1.28,"1.2":-0.04,"2.2":-0.48,"3.2":-1.35},"bass":{"1.0":-0.19,"2.0":-0.49,"3.0":-1.01,"1.1":-0.19,"2.1":-0.48,"3.1":-0.99,"1.2":0.2,"2.2":0.14,"3.2":-0.15},"lead":{"1.0":-0.4,"2.0":-1.01,"3.0":-1.98,"1.1":-0.44,"2.1":-1.06,"3.1":-2.04,"1.2":-0.35,"2.2":-0.94,"3.2":-1.9}},"act":{"compA":-3.9,"rhythmGtr":-4,"counter":-3.3,"bass":-6.5,"lead":-3.9}},"echo":{"parts":["lead","counter","rhythmGtr","snare","compA","arp"],"mk":{"lead":{"1.0":-0.39,"2.0":-0.58,"3.0":-0.82,"1.1":-0.19,"2.1":-0.34,"3.1":-0.58,"1.2":-0.17,"2.2":-0.33,"3.2":-0.57,"1.3":-0.18,"2.3":-0.34,"3.3":-0.58},"counter":{"1.0":-0.16,"2.0":-0.29,"3.0":-0.5,"1.1":-0.18,"2.1":-0.33,"3.1":-0.56,"1.2":-0.17,"2.2":-0.31,"3.2":-0.54,"1.3":-0.17,"2.3":-0.32,"3.3":-0.56},"rhythmGtr":{"1.0":-0.1,"2.0":-0.21,"3.0":-0.39,"1.1":-0.18,"2.1":-0.33,"3.1":-0.55,"1.2":-0.17,"2.2":-0.32,"3.2":-0.55,"1.3":-0.13,"2.3":-0.27,"3.3":-0.51},"snare":{"1.0":-0.16,"2.0":-0.28,"3.0":-0.47,"1.1":-0.16,"2.1":-0.29,"3.1":-0.48,"1.2":-0.16,"2.2":-0.29,"3.2":-0.47,"1.3":-0.16,"2.3":-0.3,"3.3":-0.5},"compA":{"1.0":-0.08,"2.0":-0.16,"3.0":-0.31,"1.1":-0.16,"2.1":-0.31,"3.1":-0.54,"1.2":-0.16,"2.2":-0.3,"3.2":-0.54,"1.3":-0.18,"2.3":-0.33,"3.3":-0.58},"arp":{"1.0":-0.18,"2.0":-0.34,"3.0":-0.59,"1.1":-0.15,"2.1":-0.3,"3.1":-0.55,"1.2":-0.16,"2.2":-0.32,"3.2":-0.56,"1.3":-0.19,"2.3":-0.35,"3.3":-0.59}},"act":{"lead":-9.1,"counter":-9,"rhythmGtr":-9,"snare":-9.4,"compA":-8.8,"arp":-8.8}},"plate":{"parts":["snare","lead","compA","counter","rhythmGtr","arp","hats"],"mk":{"snare":{"1.0":-1.25,"2.0":-4.2,"3.0":-8.96},"lead":{"1.0":-0.48,"2.0":-2.48,"3.0":-6.25},"compA":{"1.0":-0.4,"2.0":-2.31,"3.0":-6},"counter":{"1.0":-0.27,"2.0":-1.06,"3.0":-3.41},"rhythmGtr":{"1.0":-0.81,"2.0":-1.73,"3.0":-6.15},"arp":{"1.0":-0.62,"2.0":-2.24,"3.0":-5.98},"hats":{"1.0":-0.35,"2.0":-2.22,"3.0":-6.76}},"act":{"snare":0.8,"lead":-1.5,"compA":-1.4,"counter":-1,"rhythmGtr":-0.8,"arp":-0.5,"hats":0.8}},"gate":{"parts":["snare"],"mk":{"snare":{"1.0":-2.64,"2.0":-5.64,"3.0":-8.92}},"act":{"snare":0.9}},"comp":{"parts":["bass","rhythmGtr","snare","kick","lead"],"mk":{"bass":{"1.0":1.86,"2.0":4.23,"3.0":5.97},"rhythmGtr":{"1.0":0.1,"2.0":0.99,"3.0":2.02},"snare":{"1.0":0.73,"2.0":2.13,"3.0":3.25},"kick":{"1.0":1.58,"2.0":3.64,"3.0":5.09},"lead":{"1.0":0.16,"2.0":1.03,"3.0":1.98}},"act":{"bass":-18.3,"rhythmGtr":-17.6,"snare":-13.1,"kick":-13.6,"lead":-16.2}},"flanger":{"parts":["rhythmGtr"],"mk":{"rhythmGtr":{"1.0":1.38,"2.0":0.44,"3.0":-0.61}},"act":{"rhythmGtr":-1.3}},"phaser":{"parts":["rhythmGtr","arp","counter"],"mk":{"rhythmGtr":{"1.0":1.04,"2.0":0.87,"3.0":0.6},"arp":{"1.0":1.13,"2.0":1.24,"3.0":0.72},"counter":{"1.0":1.51,"2.0":0.9,"3.0":0.88}},"act":{"rhythmGtr":-1.7,"arp":-1.5,"counter":-1.4}},"fuzz":{"parts":["rhythmGtr","lead"],"mk":{"rhythmGtr":{"1.0":2.9,"2.0":2.52,"3.0":-3.55},"lead":{"1.0":2.72,"2.0":2.34,"3.0":-3.46}},"act":{"rhythmGtr":-1.6,"lead":-0.9}},"kitflange":{"parts":["hats","kit"],"mk":{"hats":{"1.0":1.02,"2.0":0.83,"3.0":-0.09},"kit":{"1.0":0.11,"2.0":0.84,"3.0":0.83}},"act":{"hats":-1.9,"kit":-3.1}}},"2":{"sat":{"parts":["bass","snare","lead","compA"],"mk":{"bass":{"1.0":0.15,"2.0":0.24,"3.0":0.34},"snare":{"1.0":1.07,"2.0":1.57,"3.0":2.01},"lead":{"1.0":0.01,"2.0":0.01,"3.0":0.01},"compA":{"1.0":0.17,"2.0":0.28,"3.0":0.4}},"act":{"bass":-22,"snare":-10.2,"lead":-20.7,"compA":-19.6}},"chorus":{"parts":["compA","bass"],"mk":{"compA":{"1.0":-0.41,"2.0":-1.02,"3.0":-1.99,"1.1":-0.38,"2.1":-0.98,"3.1":-1.95,"1.2":-0.38,"2.2":-0.97,"3.2":-1.94},"bass":{"1.0":-0.19,"2.0":-0.55,"3.0":-1.18,"1.1":-0.17,"2.1":-0.52,"3.1":-1.14,"1.2":-0.26,"2.2":-0.65,"3.2":-1.31}},"act":{"compA":-4,"bass":-6.3}},"echo":{"parts":["lead","color","snare","compA"],"mk":{"lead":{"1.0":-0.15,"2.0":-0.29,"3.0":-0.54,"1.1":-0.22,"2.1":-0.39,"3.1":-0.64,"1.2":-0.19,"2.2":-0.35,"3.2":-0.59,"1.3":-0.17,"2.3":-0.33,"3.3":-0.56},"color":{"1.0":-0.22,"2.0":-0.4,"3.0":-0.66,"1.1":-0.15,"2.1":-0.3,"3.1":-0.55,"1.2":-0.17,"2.2":-0.31,"3.2":-0.54,"1.3":-0.19,"2.3":-0.33,"3.3":-0.55},"snare":{"1.0":-0.15,"2.0":-0.28,"3.0":-0.46,"1.1":-0.15,"2.1":-0.28,"3.1":-0.45,"1.2":-0.15,"2.2":-0.28,"3.2":-0.46,"1.3":-0.16,"2.3":-0.29,"3.3":-0.48},"compA":{"1.0":-0.2,"2.0":-0.35,"3.0":-0.56,"1.1":-0.16,"2.1":-0.31,"3.1":-0.55,"1.2":-0.24,"2.2":-0.39,"3.2":-0.62,"1.3":0.02,"2.3":-0.04,"3.3":-0.16}},"act":{"lead":-8.8,"color":-8.9,"snare":-9.5,"compA":-8.9}},"plate":{"parts":["snare","lead","pad","color","compA","hats"],"mk":{"snare":{"1.0":-1.08,"2.0":-4.24,"3.0":-8.76},"lead":{"1.0":-0.9,"2.0":-3.8,"3.0":-8.83},"pad":{"1.0":-0.11,"2.0":-3.35,"3.0":-7.19},"color":{"1.0":-0.22,"2.0":-3.3,"3.0":-7.94},"compA":{"1.0":-0.3,"2.0":-2.87,"3.0":-6.79},"hats":{"1.0":-0.13,"2.0":-2.76,"3.0":-11.41}},"act":{"snare":0.8,"lead":0.6,"pad":-0.1,"color":-0.3,"compA":-0.8,"hats":1.5}},"gate":{"parts":["snare","ePerc"],"mk":{"snare":{"1.0":-2.97,"2.0":-5.89,"3.0":-9.24},"ePerc":{"1.0":-0.72,"2.0":-1.75,"3.0":-3.31}},"act":{"snare":1,"ePerc":-2.5}},"comp":{"parts":["bass","snare","kick","lead"],"mk":{"bass":{"1.0":0,"2.0":0.31,"3.0":1.02},"snare":{"1.0":0.32,"2.0":1.38,"3.0":2.29},"kick":{"1.0":1.36,"2.0":3.3,"3.0":4.7},"lead":{"1.0":0.27,"2.0":1.24,"3.0":2.21}},"act":{"bass":-20.4,"snare":-14.4,"kick":-13.6,"lead":-15}},"flanger":{"parts":["pad","color"],"mk":{"pad":{"1.0":1.93,"2.0":0.74,"3.0":-0.6},"color":{"1.0":1.71,"2.0":0.73,"3.0":-0.73}},"act":{"pad":-1.3,"color":-1}},"phaser":{"parts":["pad"],"mk":{"pad":{"1.0":0.76,"2.0":0.69,"3.0":0.29}},"act":{"pad":-2.1}},"fuzz":{"parts":["lead"],"mk":{"lead":{"1.0":1.44,"2.0":1.26,"3.0":-4.18}},"act":{"lead":-0.9}},"kitflange":{"parts":["hats","kit"],"mk":{"hats":{"1.0":1.04,"2.0":0.83,"3.0":-0.09},"kit":{"1.0":0.04,"2.0":0.88,"3.0":1.38}},"act":{"hats":-1.9,"kit":-2.4}}},"3":{"sat":{"parts":["bass","snare","lead","compA"],"mk":{"bass":{"1.0":0.51,"2.0":0.81,"3.0":1.11},"snare":{"1.0":0.89,"2.0":1.31,"3.0":1.69},"lead":{"1.0":0.01,"2.0":0.01,"3.0":0.01},"compA":{"1.0":0.22,"2.0":0.36,"3.0":0.51}},"act":{"bass":-15.9,"snare":-9.9,"lead":-23,"compA":-18.9}},"chorus":{"parts":["compA","bass"],"mk":{"compA":{"1.0":-0.33,"2.0":-0.91,"3.0":-1.87,"1.1":-0.34,"2.1":-0.91,"3.1":-1.87,"1.2":-0.5,"2.2":-1.14,"3.2":-2.15},"bass":{"1.0":-0.17,"2.0":-0.41,"3.0":-0.8,"1.1":-0.17,"2.1":-0.41,"3.1":-0.8,"1.2":-0.18,"2.2":-0.41,"3.2":-0.8}},"act":{"compA":-3.9,"bass":-10.9}},"echo":{"parts":["lead","snare","compA","arp"],"mk":{"lead":{"1.0":-0.31,"2.0":-0.51,"3.0":-0.78,"1.1":-0.17,"2.1":-0.32,"3.1":-0.57,"1.2":-0.19,"2.2":-0.36,"3.2":-0.63,"1.3":-0.16,"2.3":-0.31,"3.3":-0.55},"snare":{"1.0":-0.15,"2.0":-0.28,"3.0":-0.46,"1.1":-0.15,"2.1":-0.28,"3.1":-0.46,"1.2":-0.15,"2.2":-0.28,"3.2":-0.46,"1.3":-0.15,"2.3":-0.28,"3.3":-0.46},"compA":{"1.0":-0.44,"2.0":-0.67,"3.0":-0.98,"1.1":-0.16,"2.1":-0.3,"3.1":-0.55,"1.2":-0.19,"2.2":-0.34,"3.2":-0.58,"1.3":-0.16,"2.3":-0.31,"3.3":-0.54},"arp":{"1.0":-0.19,"2.0":-0.36,"3.0":-0.61,"1.1":-0.15,"2.1":-0.3,"3.1":-0.53,"1.2":-0.18,"2.2":-0.33,"3.2":-0.57,"1.3":-0.17,"2.3":-0.32,"3.3":-0.54}},"act":{"lead":-9.1,"snare":-9.5,"compA":-8.8,"arp":-8.9}},"plate":{"parts":["snare","lead","pad","compA","percAccent","arp","hats"],"mk":{"snare":{"1.0":-2.25,"2.0":-4.9,"3.0":-9.67},"lead":{"1.0":-0.89,"2.0":-2.92,"3.0":-7.16},"pad":{"1.0":-0.37,"2.0":-1.51,"3.0":-2.83},"compA":{"1.0":-2.12,"2.0":-5.64,"3.0":-10.95},"percAccent":{"1.0":-0.76,"2.0":-2.85,"3.0":-7.44},"arp":{"1.0":-1.31,"2.0":-4.06,"3.0":-9.26},"hats":{"1.0":-0.01,"2.0":-0.26,"3.0":-2.93}},"act":{"snare":1.1,"lead":-0.1,"pad":-1.6,"compA":1,"percAccent":0.6,"arp":1,"hats":-2.4}},"gate":{"parts":["snare"],"mk":{"snare":{"1.0":-3.56,"2.0":-6.77,"3.0":-9.93}},"act":{"snare":1.3}},"comp":{"parts":["bass","snare","kick","lead"],"mk":{"bass":{"1.0":0.53,"2.0":1.46,"3.0":2.28},"snare":{"1.0":0.05,"2.0":0.6,"3.0":1.43},"kick":{"1.0":1.27,"2.0":2.93,"3.0":4.14},"lead":{"1.0":0.3,"2.0":1.29,"3.0":2.36},"percTime":{"1.0":0,"2.0":0,"3.0":0}},"act":{"bass":-12.2,"snare":-18.1,"kick":-10.6,"lead":-15.2,"percTime":-52.6}},"flanger":{"parts":["pad"],"mk":{"pad":{"1.0":1.43,"2.0":0.76,"3.0":-0.56}},"act":{"pad":-1.1}},"phaser":{"parts":["pad","arp"],"mk":{"pad":{"1.0":1.22,"2.0":0.9,"3.0":0.6},"arp":{"1.0":1.19,"2.0":1.12,"3.0":0.58}},"act":{"pad":-1.7,"arp":-1.7}},"fuzz":{"parts":["lead","percAccent"],"mk":{"lead":{"1.0":2.76,"2.0":2.47,"3.0":-3.41},"percAccent":{"1.0":10.62,"2.0":7.98,"3.0":-0.06}},"act":{"lead":-1,"percAccent":0.7}},"kitflange":{"parts":["hats","kit"],"mk":{"hats":{"1.0":1.08,"2.0":0.93,"3.0":0.33},"kit":{"1.0":-0.69,"2.0":0.08,"3.0":1.21}},"act":{"hats":-2.6,"kit":-4.8}}},"4":{"sat":{"parts":["bass","snare","lead","compA"],"mk":{"bass":{"1.0":0.88,"2.0":1.4,"3.0":1.92},"snare":{"1.0":1.28,"2.0":1.89,"3.0":2.43},"lead":{"1.0":0.04,"2.0":0.07,"3.0":0.09},"compA":{"1.0":0.23,"2.0":0.36,"3.0":0.51}},"act":{"bass":-14.3,"snare":-9.8,"lead":-21.3,"compA":-18.8}},"chorus":{"parts":["compA","bass"],"mk":{"compA":{"1.0":-0.26,"2.0":-0.8,"3.0":-1.74,"1.1":-0.26,"2.1":-0.8,"3.1":-1.73,"1.2":-0.51,"2.2":-1.16,"3.2":-2.17},"bass":{"1.0":-0.31,"2.0":-0.79,"3.0":-1.57,"1.1":-0.27,"2.1":-0.72,"3.1":-1.49,"1.2":-0.18,"2.2":-0.59,"3.2":-1.33}},"act":{"compA":-3.7,"bass":-5}},"echo":{"parts":["lead","snare","compA"],"mk":{"lead":{"1.0":-0.07,"2.0":-0.16,"3.0":-0.34,"1.1":-0.23,"2.1":-0.43,"3.1":-0.74,"1.2":-0.12,"2.2":-0.26,"3.2":-0.5,"1.3":-0.23,"2.3":-0.42,"3.3":-0.71},"snare":{"1.0":-0.14,"2.0":-0.26,"3.0":-0.43,"1.1":-0.14,"2.1":-0.25,"3.1":-0.39,"1.2":-0.14,"2.2":-0.26,"3.2":-0.43,"1.3":-0.21,"2.3":-0.38,"3.3":-0.6},"compA":{"1.0":-0.15,"2.0":-0.4,"3.0":-0.79,"1.1":-0.06,"2.1":-0.19,"3.1":-0.45,"1.2":-0.1,"2.2":-0.25,"3.2":-0.51,"1.3":-0.29,"2.3":-0.48,"3.3":-0.75}},"act":{"lead":-8.6,"snare":-9.2,"compA":-8}},"plate":{"parts":["snare","lead","pad","compA","hats"],"mk":{"snare":{"1.0":-0.32,"2.0":-2.69,"3.0":-7.03},"lead":{"1.0":-0.63,"2.0":-1.97,"3.0":-4.9},"pad":{"1.0":-0.01,"2.0":-1,"3.0":-5.43},"compA":{"1.0":0.01,"2.0":-1.34,"3.0":-2.99},"hats":{"1.0":-0.27,"2.0":-2.3,"3.0":-6.84}},"act":{"snare":-0.5,"lead":-1.5,"pad":0.6,"compA":-1.4,"hats":0.7}},"gate":{"parts":["snare"],"mk":{"snare":{"1.0":-1.45,"2.0":-3.55,"3.0":-6.44}},"act":{"snare":-0.4}},"comp":{"parts":["bass","snare","kick","lead"],"mk":{"bass":{"1.0":0.7,"2.0":2.3,"3.0":3.59},"snare":{"1.0":0.56,"2.0":1.94,"3.0":3.05},"kick":{"1.0":1.68,"2.0":3.78,"3.0":5.26},"lead":{"1.0":0.17,"2.0":0.77,"3.0":1.38}},"act":{"bass":-15.8,"snare":-14.7,"kick":-13.3,"lead":-14.7}},"flanger":{"parts":["pad"],"mk":{"pad":{"1.0":1.27,"2.0":0.63,"3.0":-0.63}},"act":{"pad":-1.4}},"phaser":{"parts":["pad"],"mk":{"pad":{"1.0":0.85,"2.0":0.7,"3.0":0.49}},"act":{"pad":-1.8}},"fuzz":{"parts":["lead"],"mk":{"lead":{"1.0":1.3,"2.0":0.92,"3.0":-4.79}},"act":{"lead":-1.1}},"kitflange":{"parts":["hats","kit"],"mk":{"hats":{"1.0":1.03,"2.0":0.82,"3.0":-0.08},"kit":{"1.0":0.06,"2.0":1.27,"3.0":0.62}},"act":{"hats":-1.9,"kit":-2.2}}},"5":{"sat":{"parts":["bass","snare","rhythmGtr","lead","compA"],"mk":{"bass":{"1.0":0.32,"2.0":0.53,"3.0":0.74},"snare":{"1.0":1.36,"2.0":1.97,"3.0":2.51},"rhythmGtr":{"1.0":0.13,"2.0":0.2,"3.0":0.28},"lead":{"1.0":0.04,"2.0":0.07,"3.0":0.09},"compA":{"1.0":0.24,"2.0":0.38,"3.0":0.54}},"act":{"bass":-18.2,"snare":-9.6,"rhythmGtr":-19.7,"lead":-22.6,"compA":-18.7}},"chorus":{"parts":["compA","rhythmGtr"],"mk":{"compA":{"1.0":-0.37,"2.0":-0.96,"3.0":-1.92,"1.1":-0.36,"2.1":-0.94,"3.1":-1.91,"1.2":-0.48,"2.2":-1.12,"3.2":-2.12},"rhythmGtr":{"1.0":-0.35,"2.0":-0.93,"3.0":-1.89,"1.1":-0.29,"2.1":-0.85,"3.1":-1.79,"1.2":-0.49,"2.2":-1.13,"3.2":-2.13}},"act":{"compA":-3.9,"rhythmGtr":-3.8}},"echo":{"parts":["lead","counter","color","rhythmGtr","snare","compA"],"mk":{"lead":{"1.0":-0.35,"2.0":-0.52,"3.0":-0.75,"1.1":-0.16,"2.1":-0.32,"3.1":-0.55,"1.2":-0.1,"2.2":-0.23,"3.2":-0.44,"1.3":-0.15,"2.3":-0.28,"3.3":-0.49},"counter":{"1.0":0.06,"2.0":0.01,"3.0":-0.11,"1.1":-0.18,"2.1":-0.34,"3.1":-0.59,"1.2":-0.17,"2.2":-0.33,"3.2":-0.57,"1.3":-0.17,"2.3":-0.32,"3.3":-0.57},"color":{"1.0":-0.16,"2.0":-0.27,"3.0":-0.44,"1.1":-0.12,"2.1":-0.26,"3.1":-0.5,"1.2":-0.17,"2.2":-0.32,"3.2":-0.57,"1.3":-0.18,"2.3":-0.34,"3.3":-0.59},"rhythmGtr":{"1.0":-0.17,"2.0":-0.32,"3.0":-0.55,"1.1":-0.17,"2.1":-0.32,"3.1":-0.56,"1.2":-0.17,"2.2":-0.33,"3.2":-0.57,"1.3":-0.12,"2.3":-0.26,"3.3":-0.48},"snare":{"1.0":-0.18,"2.0":-0.32,"3.0":-0.55,"1.1":-0.17,"2.1":-0.32,"3.1":-0.56,"1.2":-0.11,"2.2":-0.25,"3.2":-0.47,"1.3":-0.21,"2.3":-0.39,"3.3":-0.64},"compA":{"1.0":-0.22,"2.0":-0.4,"3.0":-0.66,"1.1":-0.15,"2.1":-0.28,"3.1":-0.48,"1.2":-0.13,"2.2":-0.27,"3.2":-0.5,"1.3":-0.16,"2.3":-0.31,"3.3":-0.56}},"act":{"lead":-9.1,"counter":-9,"color":-8.8,"rhythmGtr":-9.1,"snare":-8.4,"compA":-9}},"plate":{"parts":["snare","lead","pad","color","compA","counter","rhythmGtr","hats"],"mk":{"snare":{"1.0":-0.17,"2.0":-1.87,"3.0":-5.54},"lead":{"1.0":-0.67,"2.0":-1.96,"3.0":-5.31},"pad":{"1.0":-0.61,"2.0":-4.12,"3.0":-8.42},"color":{"1.0":-0.42,"2.0":-3.48,"3.0":-7.3},"compA":{"1.0":-1.08,"2.0":-3.74,"3.0":-8.45},"counter":{"1.0":-0.23,"2.0":-3.63,"3.0":-7.97},"rhythmGtr":{"1.0":-1.14,"2.0":-3.63,"3.0":-8},"hats":{"1.0":-0.42,"2.0":-3.55,"3.0":-9.59}},"act":{"snare":-2.2,"lead":-1.1,"pad":1.5,"color":-0.7,"compA":-0.3,"counter":-1.2,"rhythmGtr":1,"hats":1.1}},"gate":{"parts":["snare"],"mk":{"snare":{"1.0":-0.95,"2.0":-2.45,"3.0":-4.75}},"act":{"snare":-2}},"comp":{"parts":["bass","rhythmGtr","snare","kick","lead"],"mk":{"bass":{"1.0":0,"2.0":0.42,"3.0":1.17},"rhythmGtr":{"1.0":0.05,"2.0":0.5,"3.0":1.18},"snare":{"1.0":0.57,"2.0":1.9,"3.0":2.97},"kick":{"1.0":0.76,"2.0":2.32,"3.0":3.6},"lead":{"1.0":0.43,"2.0":1.59,"3.0":2.68}},"act":{"bass":-19.6,"rhythmGtr":-17.7,"snare":-14,"kick":-13.3,"lead":-14.4}},"flanger":{"parts":["pad","rhythmGtr","color"],"mk":{"pad":{"1.0":1.21,"2.0":0.81,"3.0":-0.71},"rhythmGtr":{"1.0":1.1,"2.0":0.38,"3.0":-0.62},"color":{"1.0":2.67,"2.0":0.49,"3.0":0.26}},"act":{"pad":-1.3,"rhythmGtr":-1.5,"color":0.7}},"phaser":{"parts":["rhythmGtr","pad","counter"],"mk":{"rhythmGtr":{"1.0":1.01,"2.0":0.94,"3.0":0.44},"pad":{"1.0":0.83,"2.0":0.79,"3.0":0.54},"counter":{"1.0":0.78,"2.0":0.96,"3.0":0.48}},"act":{"rhythmGtr":-1.9,"pad":-1.8,"counter":-1.8}},"fuzz":{"parts":["rhythmGtr","lead"],"mk":{"rhythmGtr":{"1.0":2.23,"2.0":1.86,"3.0":-4.19},"lead":{"1.0":3.48,"2.0":3.35,"3.0":-2.49}},"act":{"rhythmGtr":-1.6,"lead":-0.7}},"kitflange":{"parts":["hats","kit"],"mk":{"hats":{"1.0":0.94,"2.0":0.71,"3.0":-0.27},"kit":{"1.0":-0.96,"2.0":-0.54,"3.0":0.16}},"act":{"hats":-1.8,"kit":-4.4}}}}, MONITOR_DB = -3;
   var RATE = 44100, LEAD = 0.05, EXCERPT_BARS = 8, X = 0.03;
   var ENTRIES = window.FX_ENTRIES;
   if (navigator.audioSession) try { navigator.audioSession.type = "playback"; } catch (e) {}
@@ -17831,7 +17911,7 @@
   U.drawProduction = function (R, lane) { drawProd(R, lane); return OFF; };
   var PART = { kick: "Kick", snare: "Snare", hats: "Hats", tomsFills: "Toms", ePerc: "Electronic drums", percTime: "Percussion",
     percAccent: "Accent percussion", bass: "Bass", compA: "Chords", compB: "Second chords", rhythmGtr: "Rhythm guitar",
-    pad: "Pad", arp: "Arpeggio", lead: "Lead", counter: "Counter line", color: "Color" };
+    pad: "Pad", arp: "Arpeggio", lead: "Lead", counter: "Counter line", color: "Color", kit: "Whole kit" };
   var STR = ["Off", "Light", "Medium", "Heavy"];
 
   // ---- the song plan and the dry stems ------------------------------------
@@ -17926,17 +18006,38 @@
     for (var id in P.sheet.mutes) D.setMute(id, P.sheet.mutes[id]);
     return D;
   }
-  function cfgFor(e, part, s, kind, song) {
+  // a part is one strip, or "kit": every kit strip in the excerpt at once
+  // (one instance per strip, all built at the same moment at the same
+  // settings; the effects offered on the kit are linear, so that is the
+  // effect on the kit's sum)
+  var KIT = ["kick", "snare", "hats", "tomsFills", "ePerc", "percTime", "percAccent"];
+  function stripsOf(song, part) { return part === "kit" ? KIT.filter(function (id) { return song.stems[id]; }) : [part]; }
+  function cfgFor(e, strip, s, kind, song) {
     var P = plan(song.i);
-    return { s: s, kind: kind || 0, part: part, info: song.info[part], bpm: P.bpm, loop: { len: P.n / RATE } };
+    return { s: s, kind: kind || 0, part: strip, info: song.info[strip], bpm: P.bpm, loop: { len: P.n / RATE } };
   }
   function makeup(song, e, part, s, kind) {
     var t = (((TABLE[song.i] || {})[e.id] || {}).mk || {})[part];
     var v = t && t[s + "." + (kind || 0)];
     return typeof v === "number" ? v : null;
   }
+  // an instance of entry e on one strip, in context c, for a loop that
+  // started at t0, switched in at `when`. An offline entry (e.wet: the stem
+  // processed as a whole) is its own looping source, started in step with
+  // the dry stem; it takes no input.
+  function instFor(c, e, cfg, song, t0, when) {
+    if (!e.offline) return e.build(c, cfg);
+    var key = e.id + "|" + cfg.part + "|" + cfg.s + "|" + cfg.kind, wc = song.wet || (song.wet = {}), buf = wc[key];
+    if (!buf) {
+      var keys = Object.keys(wc); if (keys.length > 12) delete wc[keys[0]];
+      buf = wc[key] = mkBuf(e.wet(song.stems[cfg.part], cfg), song.stems[cfg.part].length);
+    }
+    var len = buf.length / RATE, off = ((when - t0) % len + len) % len;
+    var src = c.createBufferSource(); src.buffer = buf; src.loop = true; src.start(when, off);
+    return { input: null, output: src, osc: [src] };
+  }
   // the player: the stems looping from t0 into the desk; one slot carries
-  // the effect on one part, its instance in parallel with the dry part
+  // the effect on one part, its instances in parallel with the dry part
   function Player(c, dest, song, t0) {
     var P = plan(song.i), D = deskFor(c, dest, song.i), srcs = {};
     Object.keys(song.stems).forEach(function (id) {
@@ -17944,90 +18045,123 @@
       s.connect(D.strips[id].insert); s.start(t0); srcs[id] = s;
     });
     this.c = c; this.D = D; this.srcs = srcs; this.t0 = t0; this.song = song; this.len = P.n / RATE;
-    this.part = null; this.dry = null; this.inst = null; this.alone = false; this.sched = 0;
+    this.part = null; this.strips = []; this.dry = {}; this.inst = null; this.alone = false; this.sched = 0;
   }
   Player.prototype.setPart = function (id, at) {
     if (this.part === id) return;
-    var D = this.D, c = this.c;
+    var D = this.D, c = this.c, self = this;
     if (this.part) {
-      this.setFx(null, null, null, at);
-      var s0 = D.strips[this.part], dry = this.dry;
-      s0.insert.disconnect(); s0.insert.connect(s0.fader); dry.disconnect();
+      this.setFx(null, 0, 0, null, at);
+      this.strips.forEach(function (sid) { var s0 = D.strips[sid]; s0.insert.disconnect(); s0.insert.connect(s0.fader); self.dry[sid].disconnect(); });
     }
-    this.part = id;
-    if (!id) { this.dry = null; return; }
-    var s = D.strips[id];
-    this.dry = c.createGain(); this.dry.gain.value = 1;
-    s.insert.disconnect(); s.insert.connect(this.dry); this.dry.connect(s.fader);
-    this.setAlone(this.alone, at);
+    this.part = id; this.dry = {}; this.strips = id ? stripsOf(this.song, id) : [];
+    this.strips.forEach(function (sid) {
+      var s = D.strips[sid], g = c.createGain(); g.gain.value = 1;
+      s.insert.disconnect(); s.insert.connect(g); g.connect(s.fader); self.dry[sid] = g;
+    });
+    if (id) this.setAlone(this.alone, at);
   };
-  // inst = an entry's built instance or null (dry); makeup in dB
-  Player.prototype.setFx = function (e, cfg, mkDb, at) {
-    var c = this.c, now = Math.max(at || 0, c.currentTime), s = this.D.strips[this.part], old = this.inst;
-    var nu = null;
+  // e = an entry (null = dry) at strength s and kind; makeup in dB
+  Player.prototype.setFx = function (e, s, kind, mkDb, at) {
+    var c = this.c, D = this.D, self = this, old = this.inst, nu = null;
+    var now = Math.max(at || 0, c.currentTime);
+    if (e && e.offline) now = Math.ceil((now + 0.02) * RATE) / RATE;   // a source starts in step: a moment ahead
     if (e) {
-      var inst = e.build(c, cfg), mk = c.createGain(), w = c.createGain();
-      mk.gain.value = Math.pow(10, (mkDb || 0) / 20); w.gain.value = 0;
-      s.insert.connect(inst.input); inst.output.connect(mk); mk.connect(w); w.connect(s.fader);
-      w.gain.setValueAtTime(0, now); w.gain.linearRampToValueAtTime(1, now + X);
-      nu = { e: e, inst: inst, w: w, mk: mk };
-      if (inst.tick) { inst.tick(this.t0, now, now + 0.6); this.sched = now + 0.6; }
+      nu = { e: e, list: [] };
+      this.strips.forEach(function (sid) {
+        var st = D.strips[sid], inst = instFor(c, e, cfgFor(e, sid, s, kind, self.song), self.song, self.t0, now), mk = c.createGain(), w = c.createGain();
+        mk.gain.value = Math.pow(10, (mkDb || 0) / 20); w.gain.value = 0;
+        if (inst.input) st.insert.connect(inst.input);
+        inst.output.connect(mk); mk.connect(w); w.connect(st.fader);
+        w.gain.setValueAtTime(0, now); w.gain.linearRampToValueAtTime(1, now + X);
+        if (inst.tick) inst.tick(self.t0, now, now + 0.6);
+        nu.list.push({ sid: sid, inst: inst, w: w, mk: mk });
+      });
+      this.sched = now + 0.6;
     }
-    var dg = this.dry.gain;
-    dg.cancelScheduledValues(now); dg.setValueAtTime(dg.value, now); dg.linearRampToValueAtTime(nu ? 0 : 1, now + X);
+    this.strips.forEach(function (sid) { var dg = self.dry[sid].gain; dg.cancelScheduledValues(now); dg.setValueAtTime(dg.value, now); dg.linearRampToValueAtTime(nu ? 0 : 1, now + X); });
     if (old) {
-      var og = old.w.gain; og.cancelScheduledValues(now); og.setValueAtTime(og.value, now); og.linearRampToValueAtTime(0, now + X);
-      var ins = s.insert, dead = old;
-      var kill = function () { try { ins.disconnect(dead.inst.input); } catch (er) {} try { dead.w.disconnect(); dead.inst.output.disconnect(); } catch (er) {} (dead.inst.osc || []).forEach(function (o) { try { o.stop(); } catch (er) {} }); };
-      if (c instanceof OfflineAudioContext) this.later = (this.later || []).concat([[now + X + 0.01, kill]]); else setTimeout(kill, (X + 0.15) * 1000);
+      old.list.forEach(function (o) { var og = o.w.gain; og.cancelScheduledValues(now); og.setValueAtTime(og.value, now); og.linearRampToValueAtTime(0, now + X); });
+      var kill = function () {
+        old.list.forEach(function (o) {
+          if (o.inst.input) try { D.strips[o.sid].insert.disconnect(o.inst.input); } catch (er) {}
+          try { o.w.disconnect(); o.inst.output.disconnect(); } catch (er) {}
+          (o.inst.osc || []).forEach(function (x) { try { x.stop(); } catch (er) {} });
+        });
+      };
+      if (!(c instanceof OfflineAudioContext)) setTimeout(kill, (X + 0.15) * 1000);
     }
     this.inst = nu;
   };
   Player.prototype.tick = function () {
-    if (!this.inst || !this.inst.inst.tick) return;
-    var now = this.c.currentTime, to = now + 0.6;
+    if (!this.inst) return;
+    var now = this.c.currentTime, to = now + 0.6, t0 = this.t0, from = Math.max(now, this.sched);
     if (to - this.sched < 0.2) return;
-    this.inst.inst.tick(this.t0, Math.max(now, this.sched), to); this.sched = to;
+    this.inst.list.forEach(function (o) { if (o.inst.tick) o.inst.tick(t0, from, to); });
+    this.sched = to;
   };
   Player.prototype.setAlone = function (on, at) {
     this.alone = on;
-    var c = this.c, now = Math.max(at || 0, c.currentTime), D = this.D, part = this.part;
+    var c = this.c, now = Math.max(at || 0, c.currentTime), D = this.D, strips = this.strips;
     Object.keys(this.srcs).forEach(function (id) {
-      var st = D.strips[id], v = st.muted ? 0 : (on && id !== part ? 0 : st.houseFader), g = st.fader.gain;
+      var st = D.strips[id], v = st.muted ? 0 : (on && strips.indexOf(id) < 0 ? 0 : st.houseFader), g = st.fader.gain;
       g.cancelScheduledValues(now); g.setValueAtTime(g.value, now); g.linearRampToValueAtTime(v, now + X);
     });
   };
   Player.prototype.close = function () {
     var self = this;
     Object.keys(this.srcs).forEach(function (id) { try { self.srcs[id].stop(); self.srcs[id].disconnect(); } catch (e) {} });
-    if (this.inst) (this.inst.inst.osc || []).forEach(function (o) { try { o.stop(); } catch (e) {} });
+    if (this.inst) this.inst.list.forEach(function (o) { (o.inst.osc || []).forEach(function (x) { try { x.stop(); } catch (e) {} }); });
     try { this.D.masterTrim.disconnect(); } catch (e) {}
   };
 
   // ---- measurement: the part through an effect, offline -------------------
   // 1.25 loops (the last quarter of the loop first, so tails are warm), the
-  // last full loop read: K-weighted mean against the dry stem's
+  // last full loop read: K-weighted mean against the dry part's. A part of
+  // several strips is summed at the song's faders.
+  function faders(song) {
+    if (song.fw) return song.fw;
+    var c = new OfflineAudioContext(1, 128, RATE), D = deskFor(c, c.destination, song.i), fw = {};
+    for (var id in D.strips) fw[id] = D.strips[id].muted ? 0 : D.strips[id].houseFader;
+    return (song.fw = fw);
+  }
+  function renderPart(song, e, part, s, kind, mkDb) {
+    var strips = stripsOf(song, part), n = song.stems[strips[0]].length, pre = Math.round(n * 0.25), c = new OfflineAudioContext(2, pre + n, RATE);
+    var fw = strips.length > 1 ? faders(song) : null, g = c.createGain();
+    g.gain.value = Math.pow(10, (mkDb || 0) / 20); g.connect(c.destination);
+    strips.forEach(function (sid) {
+      var src = c.createBufferSource(); src.buffer = song.stems[sid]; src.loop = true; src.start(0, (n - pre) / RATE);
+      var f = c.createGain(); f.gain.value = fw ? fw[sid] : 1; f.connect(g);
+      if (!e) { src.connect(f); return; }
+      var inst = instFor(c, e, cfgFor(e, sid, s, kind, song), song, pre / RATE, 0);
+      if (inst.input) src.connect(inst.input);
+      inst.output.connect(f);
+      if (inst.tick) inst.tick(pre / RATE, 0, (pre + n) / RATE + 1);
+    });
+    return c.startRendering().then(function (b) { return [b.getChannelData(0).slice(pre), b.getChannelData(1).slice(pre)]; });
+  }
+  function dryOf(song, part) {
+    var dc = song.dry || (song.dry = {});
+    if (!dc[part]) dc[part] = renderPart(song, null, part);
+    return dc[part];
+  }
   function measure(song, e, part, s, kind, mkDb) {
-    var stem = song.stems[part], n = stem.length, pre = Math.round(n * 0.25), c = new OfflineAudioContext(2, pre + n, RATE);
-    var src = c.createBufferSource(); src.buffer = stem; src.loop = true; src.start(0, (n - pre) / RATE);
-    var inst = e.build(c, cfgFor(e, part, s, kind, song)), g = c.createGain();
-    g.gain.value = Math.pow(10, (mkDb || 0) / 20);
-    src.connect(inst.input); inst.output.connect(g); g.connect(c.destination);
-    if (inst.tick) inst.tick(pre / RATE, 0, (pre + n) / RATE + 1);
-    return c.startRendering().then(function (b) {
-      var W = [b.getChannelData(0).slice(pre), b.getChannelData(1).slice(pre)];
-      var Dr = [stem.getChannelData(0), stem.getChannelData(stem.numberOfChannels > 1 ? 1 : 0)];
-      var wet = U.kWeightedMeanDb(W, RATE), dry = U.kWeightedMeanDb(Dr, RATE);
-      var mk = Math.pow(10, (dry - wet) / 20), r = 0, d = 0;
-      for (var ch = 0; ch < 2; ch++) for (var j = 0; j < n; j++) { var q = W[ch][j] * mk - Dr[ch][j]; r += q * q; d += Dr[ch][j] * Dr[ch][j]; }
-      var pk = 0; for (ch = 0; ch < 2; ch++) for (j = 0; j < n; j++) pk = Math.max(pk, Math.abs(W[ch][j]));
-      return { dryDb: dry, wetDb: wet, makeupDb: dry - wet, residualDb: 10 * Math.log10(r / d + 1e-30), peak: pk };
+    return dryOf(song, part).then(function (Dr) {
+      return renderPart(song, e, part, s, kind, mkDb).then(function (W) {
+        var n = W[0].length, wet = U.kWeightedMeanDb(W, RATE), dry = U.kWeightedMeanDb(Dr, RATE);
+        var mk = Math.pow(10, (dry - wet) / 20), r = 0, d = 0, pk = 0;
+        for (var ch = 0; ch < 2; ch++) for (var j = 0; j < n; j++) { var q = W[ch][j] * mk - Dr[ch][j]; r += q * q; d += Dr[ch][j] * Dr[ch][j]; pk = Math.max(pk, Math.abs(W[ch][j])); }
+        return { dryDb: dry, wetDb: wet, makeupDb: dry - wet, residualDb: 10 * Math.log10(r / d + 1e-30), peak: pk };
+      });
     });
   }
   // which parts an entry is offered on in a song (named for it, in the song,
   // not skipped, and audibly changed at Heavy), and every makeup
   function candidates(song, e) {
-    return e.parts.filter(function (p) { return song.stems[p] && !(e.skip && e.skip(song.info[p])) && (!e.hits || song.info[p].hits.length >= 2); });
+    return e.parts.filter(function (p) {
+      if (p === "kit") return stripsOf(song, p).length >= 2;
+      return song.stems[p] && !(e.skip && e.skip(song.info[p])) && (!e.hits || song.info[p].hits.length >= 2);
+    });
   }
   function measureEntry(song, e) {
     var out = { parts: [], mk: {}, act: {} }, kinds = e.kinds ? e.kinds.length : 1;
@@ -18090,11 +18224,11 @@
   function applyFx() {
     if (!player) return;
     var at = ctx.currentTime;
-    if (active < 0) { if (player.part) player.setFx(null, null, null, at); return; }
+    if (active < 0) { if (player.part) player.setFx(null, 0, 0, null, at); return; }
     var e = ENTRIES[active], st = ST[active];
     if (player.part !== st.part) { player.setPart(st.part, at); }
     var mk = makeup(song, e, st.part, st.s, st.kind);
-    var go = function (m) { if (ENTRIES[active] !== e || ST[active] !== st) return; player.setFx(e, cfgFor(e, st.part, st.s, st.kind, song), m, ctx.currentTime); };
+    var go = function (m) { if (ENTRIES[active] !== e || ST[active] !== st) return; player.setFx(e, st.s, st.kind, m, ctx.currentTime); };
     if (mk !== null) go(mk);
     else measure(song, e, st.part, st.s, st.kind, 0).then(function (m) { setMk(song, e, st.part, st.s, st.kind, m.makeupDb); go(m.makeupDb); });
   }
@@ -18265,15 +18399,15 @@
       if (!p) return { skip: true };
       // Heavy goes on over the part's busiest stretch of the loop (so there
       // is something for it to act on), Off before and after it
-      var x0 = sg.stems[p].getChannelData(0), best = 0, bestE = -1, hop = RATE / 4;
+      var x0 = sg.stems[stripsOf(sg, p)[0]].getChannelData(0), best = 0, bestE = -1, hop = RATE / 4;
       for (var a0 = RATE; a0 + sec * RATE <= x0.length; a0 += hop) { var en = 0; for (var j0 = a0; j0 < a0 + sec * RATE; j0 += 4) en += x0[j0] * x0[j0]; if (en > bestE) { bestE = en; best = a0; } }
       var h0 = best / RATE, h1 = h0 + sec, len = Math.round((h1 + sec) * RATE);
       var run = function (doSwitch) {
         var c = new OfflineAudioContext(2, len, RATE), pl = new Player(c, c.destination, sg, 0);
         pl.setPart(p, 0);
         if (doSwitch) {
-          c.suspend(Math.ceil(h0 * RATE / 128) * 128 / RATE).then(function () { var t = c.currentTime; pl.setFx(e, cfgFor(e, p, 3, 0, sg), makeup(sg, e, p, 3, 0) || 0, t); if (pl.inst.inst.tick) pl.inst.inst.tick(0, t, h1 + sec); c.resume(); });
-          c.suspend(Math.ceil(h1 * RATE / 128) * 128 / RATE).then(function () { pl.setFx(null, null, null, c.currentTime); c.resume(); });
+          c.suspend(Math.ceil(h0 * RATE / 128) * 128 / RATE).then(function () { var t = c.currentTime; pl.setFx(e, 3, 0, makeup(sg, e, p, 3, 0) || 0, t); pl.inst.list.forEach(function (o) { if (o.inst.tick) o.inst.tick(0, t, h1 + sec); }); c.resume(); });
+          c.suspend(Math.ceil(h1 * RATE / 128) * 128 / RATE).then(function () { pl.setFx(null, 0, 0, null, c.currentTime); c.resume(); });
         }
         return c.startRendering();
       };
