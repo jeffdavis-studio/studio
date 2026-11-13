@@ -261,10 +261,10 @@
 <div id="roomBar"></div>
 <div id="layers"></div>
 <div id="add" class="row"><div class="lbl">Add a layer<button id="palRnd" title="add a random instrument (one you don't have yet, while any are left)">Random</button></div><div id="pal"></div></div>
-<footer title="engine @d92da06 · built 2026-11-08">Unison jam &middot; every sound is synthesized in this page by the engine at d92da06</footer>
+<footer title="engine @2fe5c23 · built 2026-11-13">Unison jam &middot; every sound is synthesized in this page by the engine at 2fe5c23</footer>
 
 <script>
-/* ===== src/core/prng.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/prng.js @ 2fe5c23 — verbatim from jeffdavis-studio/unison-engine ===== */
 // prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
 // token hash, consumed in canonical draw order (Technical Architecture v1.2).
 //
@@ -337,7 +337,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/core/mix.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/mix.js @ 2fe5c23 — verbatim from jeffdavis-studio/unison-engine ===== */
 // mix.js — the fan-in ≤2 summing rule, as a primitive.
 //
 // Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
@@ -506,7 +506,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/desk/desk.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/desk/desk.js @ 2fe5c23 — verbatim from jeffdavis-studio/unison-engine ===== */
 // desk.js — the 24-track desk as a running audio graph.
 //
 // The desk is the data structure, not a metaphor (Composition Brief 2 / Tech
@@ -1175,7 +1175,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/production.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/production.js @ 2fe5c23 — verbatim from jeffdavis-studio/unison-engine ===== */
 // production.js — the production room, v0.
 //
 // PLACEMENT DECISION (Morgan's call, ratified by Jeff 2026-08-03). Production
@@ -1527,7 +1527,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/vocoder.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/vocoder.js @ 2fe5c23 — verbatim from jeffdavis-studio/unison-engine ===== */
 // vocoder.js — the production room's vocoder insert, slice 1 (2026-11-05,
 // Asana 1220085081650427; design in files/unison/vocoder-2026-11-05/RESULT.md).
 //
@@ -1863,7 +1863,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/analogpoly.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/analogpoly.js @ 2fe5c23 — verbatim from jeffdavis-studio/unison-engine ===== */
 // analogpoly.js — the analog poly core: one module that builds every Juno and
 // OB-Xa voice, behind a family lock. Asana 1220084594874974, slice 1
 // (2026-11-02); the rack doc's build 3 (files/unison/rack-parts-proposal-
@@ -2489,7 +2489,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/juno.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/juno.js @ 2fe5c23 — verbatim from jeffdavis-studio/unison-engine ===== */
 // juno.js — Juno-60-flavor poly voice, raw Web Audio, zero dependencies.
 // Ported from the 2026-07-21 bake-off winner (voice-raw.js), restructured to
 // live behind a desk strip: U.createJuno(ctx, strip, patchName) builds its own
@@ -3056,7 +3056,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/minimoog.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/minimoog.js @ 2fe5c23 — verbatim from jeffdavis-studio/unison-engine ===== */
 // minimoog.js — Minimoog Model D-lineage mono voice, zero dependencies.
 //
 // THE MONO BASS LANE (build order 808 → Juno → Minimoog → …; it also absorbs
@@ -3843,7 +3843,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/obxa.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/obxa.js @ 2fe5c23 — verbatim from jeffdavis-studio/unison-engine ===== */
 // obxa.js — Oberheim OB-Xa-lineage poly voice, zero dependencies.
 //
 // THE BRASS/PAD POLY LANE (build order 808 → Juno → Minimoog → OB-Xa → …).
@@ -4388,7 +4388,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/fm.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/fm.js @ 2fe5c23 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fm.js — six-operator FM keys voice (the DX7 lineage), zero dependencies.
 //
 // THE FM LANE (build order 808 → Juno → Minimoog → OB-Xa → Linn → FM).
@@ -5488,7 +5488,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/bassguitar.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/bassguitar.js @ 2fe5c23 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassguitar.js — electric bass guitar, the first session player of the human
 // rack (Rack 2), zero dependencies.
 //
@@ -6199,7 +6199,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/rhythmguitar.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/rhythmguitar.js @ 2fe5c23 — verbatim from jeffdavis-studio/unison-engine ===== */
 // rhythmguitar.js — clean electric rhythm guitar, the fourth and last stop of
 // the human rack (Rack 2), zero dependencies.
 //
@@ -6975,7 +6975,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/tr808.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/tr808.js @ 2fe5c23 — verbatim from jeffdavis-studio/unison-engine ===== */
 // tr808.js — THE MACHINE. A TR-808-lineage core voice: bass drum, snare,
 // closed hat, open hat, each with a front panel the token actually turns.
 //
@@ -8259,7 +8259,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/linn.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/linn.js @ 2fe5c23 — verbatim from jeffdavis-studio/unison-engine ===== */
 // linn.js — THE STUDIO MACHINE. A Linn-family (LM-1 / LinnDrum lineage)
 // drum computer: the new wave / synth-pop / 80s R&B kit.
 //
@@ -9081,7 +9081,7 @@
     get EPROM_HZ() { return U.CIRCUIT_LINN.epromHz; }, get RECON_HZ() { return U.CIRCUIT_LINN.reconHz; } };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/romkits.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/romkits.js @ 2fe5c23 — verbatim from jeffdavis-studio/unison-engine ===== */
 // romkits.js — THE OTHER SAMPLED MACHINE: the DMX (Oberheim lineage, 1981),
 // drum engine slice 3, 2026-11-03, Asana 1219959495948201.
 //
@@ -9437,7 +9437,7 @@
   // the lock refuses; the MCS is a kit drawn across families, which is slice 4.
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/simmons.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/simmons.js @ 2fe5c23 — verbatim from jeffdavis-studio/unison-engine ===== */
 // simmons.js — THE ELECTRONIC FAMILY'S FIRST MACHINE: the Simmons toms
 // (SDS-V lineage, 1981; SDS-7, 1983), drum engine slice 3, 2026-11-03,
 // Asana 1219959495948201.
@@ -9609,7 +9609,7 @@
   U.SIMMONS_VOICES = ["tomHi", "tomMid", "tomLo"];
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drumengine.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drumengine.js @ 2fe5c23 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drumengine.js — ONE DRUM ENGINE, THE MACHINES AS FAMILIES (2026-11-02,
 // drum engine slice 1, Asana 1219959495948201; the rack and parts doc,
 // 10/31).
@@ -9840,7 +9840,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drumkits.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drumkits.js @ 2fe5c23 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drumkits.js — the drum engine, slice 4 (2026-11-06, Asana 1219959495948201):
 // THE KIT BOOKS and THE KIT AS A DRAW ACROSS FAMILIES.
 //
@@ -10198,7 +10198,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/sampler.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/sampler.js @ 2fe5c23 — verbatim from jeffdavis-studio/unison-engine ===== */
 // sampler.js — THE SAMPLER KEYBOARD, the gap filler (2026-11-05, slice 1,
 // Asana 1220085081678265; build 7 of the 10/31 rack and parts doc; design in
 // files/unison/sampler-2026-11-05/RESULT.md in the morgan repo).
@@ -10796,7 +10796,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drums.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drums.js @ 2fe5c23 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drums.js — the drum machine: 808/LM-1-flavor voices, synthesized at runtime
 // into short AudioBuffers, played back as one-shots.
 //
@@ -11190,7 +11190,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/books.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/books.js @ 2fe5c23 — verbatim from jeffdavis-studio/unison-engine ===== */
 // books.js — Pattern Books v1, as data.
 //
 // This file IS the document: "Unison — Pattern Books v1 (draft)" (Morgan,
@@ -12086,14 +12086,37 @@
   // Notes above U.ARP_MODEL.TOP (96, the Juno-60's top C) leave the range,
   // so a three-octave figure on a high chord plays the octaves that fit.
   U.ARP_MODEL.TOP = 96;
-  U.arpSequence = function (a, rootMidi, type) {
+  U.arpSequence = function (a, rootMidi, type, opts) {
     const iv = U.CHORD_INTERVALS[type] || U.CHORD_INTERVALS.m;
     let base = a.tones === "rootFifth" ? [iv[0], iv[2]] : a.tones === "withSeventh" && iv.length >= 4 ? iv.slice(0, 4) : iv.slice(0, 3);
     // as played: the spread left hand, root, fifth, then the third and the
     // seventh an octave up
     if (a.direction === "asPlayed") base = base.length === 2 ? base : [base[0], base[2], base[1] + 12].concat(base.length > 3 ? [base[3] + 12] : []);
-    const pool = [];
+    let pool = [];
     for (let o = 0; o < a.octaves; o++) for (const x of base) { const m = rootMidi + x + 12 * o; if (m <= U.ARP_MODEL.TOP) pool.push(m); }
+    // around the root (2026-11-13): opts.span "around" on 2 or 3 octaves:
+    // two = the octave below the root and up to the octave above (root - 12
+    // .. root + 12), three = below, root, above (root - 12 .. root + 24): the
+    // pool keeps today's span and centers it lower. Clip, do not fold: a note
+    // under U.ARP_AROUND_FLOOR (48), over TOP, or at or under the bar's bass
+    // root (opts.bassRoot; Jeff's call 3) is dropped; if that leaves fewer
+    // notes than the "up" pool, notes are added on top (the pattern carried
+    // upward) until the count matches, so the span is never narrower.
+    if (opts && opts.span === "around" && a.octaves > 1) {
+      const nUp = pool.length, lo = Math.max(U.ARP_AROUND_FLOOR, opts.bassRoot != null ? opts.bassRoot + 1 : -1e9);
+      const ok = (m) => m >= lo && m <= U.ARP_MODEL.TOP;
+      const cand = [];
+      for (let o = -1; o < a.octaves + 3; o++) for (const x of base) cand.push(rootMidi + x + 12 * o);
+      const core = a.octaves * base.length + 1;   // octaves -1 .. octaves-2, capped by the root's top octave (two: root + 12, three: root + 24)
+      const p2 = [], seen = new Set();
+      for (let i = 0; i < cand.length; i++) {
+        const m = cand[i];
+        if (i >= core && p2.length >= nUp) break;
+        if (!ok(m) || seen.has(m)) continue;
+        seen.add(m); p2.push(m);
+      }
+      pool = p2;
+    }
     if (a.direction === "asPlayed") return pool;
     const asc = pool.slice().sort((x, y) => x - y);
     if (a.direction === "down") return asc.reverse();
@@ -13738,6 +13761,37 @@
     }
     return { strips, events: legacy ? [] : events };
   };
+  // ---------------------------------------------------------------------------
+  // PATTERNS AROUND THE ROOT (slice 1, 2026-11-13, Asana 1220328812605949;
+  // Jeff 11/08 and his go 11/12): a part's figure moves on both sides of its
+  // root, the octave below as well as above, instead of climbing from it.
+  // Slice 1 is the synth bass and the arpeggiator. Per song, on its own fork
+  // U.forkPrng(hash, "around"), a FIXED block of U.AROUND_BLOCK (16) uniforms
+  // read in order for every song: [0] the bass space, [1] the arp span,
+  // [2] the bass approach side; [3..15] reserved for slices 2 and 3 (lead and
+  // counter; root motion and voicing), so they add draws without re-dealing
+  // these. "up" is today's behavior exactly (Jeff's call 4: rising stays a
+  // drawn option). globalThis.UE_AROUND_UP forces up / up / sameSide (the
+  // identity proof). Shares: see RESULT.md (hundred evidence or labeled guess).
+  U.AROUND_BLOCK = 16;
+  U.AROUND = {
+    bass: [{ id: "around", w: 75 }, { id: "up", w: 25 }],
+    arp: [{ id: "around", w: 75 }, { id: "up", w: 25 }],
+    // on an "around" bass, the walk's approach: sameSide = today's (from the
+    // side the line is on), enclosure = from the other side (a higher root
+    // from a step above, a lower root from a step below)
+    approach: [{ id: "enclosure", w: 30 }, { id: "sameSide", w: 70 }],
+  };
+  U.drawAround = function (hash) {
+    const G = U.forkPrng(hash, "around"), u = [];
+    for (let i = 0; i < U.AROUND_BLOCK; i++) u.push(G.r());
+    const pick = (k, x) => U.pickWeighted({ r: () => x }, U.AROUND[k]).id;
+    const d = { bass: pick("bass", u[0]), arp: pick("arp", u[1]), approach: pick("approach", u[2]) };
+    if (globalThis.UE_AROUND_UP) return { bass: "up", arp: "up", approach: "sameSide", drawn: d };
+    return { bass: d.bass, arp: d.arp, approach: d.approach, drawn: d };
+  };
+  // the arpeggiator's floor in "around" (the arp pocket's floor)
+  U.ARP_AROUND_FLOOR = 48;
   // the window a strip's roots fold into on a bar, in the strip's own base
   // coordinates (lead and pad: before their +12). Today's window when the
   // strip's offset is 0, its spread 12 and no event covers the bar.
@@ -13783,7 +13837,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/bassplayer.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/bassplayer.js @ 2fe5c23 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassplayer.js — the PERFORMANCE half of the bass guitar: a session player.
 //
 // Rack 2's rule (kb/projects/unison.md, 2026-07-11): every human instrument is
@@ -14378,7 +14432,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/gtrplayer.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/gtrplayer.js @ 2fe5c23 — verbatim from jeffdavis-studio/unison-engine ===== */
 // gtrplayer.js — the PERFORMANCE half of the rhythm guitar: a session
 // guitarist on the rhythmGtr strip.
 //
@@ -14852,7 +14906,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/fmplayer.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/fmplayer.js @ 2fe5c23 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fmplayer.js — the PERFORMANCE half of the FM keys: a session keyboard
 // player on the FM chord strips (compA's tine EP, colour's glass and brass).
 //
@@ -14993,7 +15047,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/testPhrase.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/testPhrase.js @ 2fe5c23 — verbatim from jeffdavis-studio/unison-engine ===== */
 // testPhrase.js — deterministic 8-bar test phrase, ported from the bake-off
 // (phrase.js) onto the engine's canonical PRNG (core/prng.js).
 //
@@ -15087,7 +15141,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/form.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/form.js @ 2fe5c23 — verbatim from jeffdavis-studio/unison-engine ===== */
 // form.js — the song's form: the book of returns (2026-10-30, Asana
 // 1220073468300418; design files/unison/structure-design-2026-10-30 in the
 // morgan repo, DESIGN.md + draw.py, transcribed here as written).
@@ -15408,7 +15462,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/session.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/session.js @ 2fe5c23 — verbatim from jeffdavis-studio/unison-engine ===== */
 // session.js — the session sheet and the arrangement realizer.
 //
 // Two tiers, in this order, each on its own stream (core/prng.js):
@@ -15986,6 +16040,11 @@
     // moves as section events, from forks "register." + strip and
     // "register.events" (U.drawRegister, books.js), read for EVERY song.
     const register = U.drawRegister(R.hash, lane, form);
+    // AROUND THE ROOT (slice 1, 2026-11-13, Asana 1220328812605949): the
+    // synth bass's space, the arpeggiator's span and the walk's approach
+    // side, from their own fork "around" (U.drawAround, books.js; a fixed
+    // block of 16 values, read for EVERY song). "up" is today's figure.
+    const around = U.drawAround(R.hash);
     // the rhythmGtr strip's voicing for its pattern (heard only when the strip is up)
     const gtrVoicing = U.GTR_FOR_PATTERN(picks.rhythmGtr.id, lane);
     // bar map. A looped section (ride, repeat-out, coda vamp) keeps its name
@@ -16028,6 +16087,8 @@
       melody,
       // the register (2026-11-07): sheet.register = { strips: { strip: { drawn, off, spread } }, events: [{ kind, strip, shift, live }] }
       register,
+      // around the root (2026-11-13): sheet.around = { bass, arp, approach, drawn }
+      around,
       masks: { bass: bassMask, comp: compMask, lead: leadPhrase, counter: counterPhrase, gtr: gtrMask },
       bars, totalBars: bars.length, barSec, lengthSec: bars.length * barSec,
       kit: U.LANE_FEEL[lane].kit,
@@ -16909,27 +16970,50 @@
         const put = bgVoicing
           ? (i, midi, vel, durSteps) => barEv.push({ i, midi, vel, dur: durSteps })
           : (i, midi, vel, durSteps) => note("bass", stepT(bar, i), midi, vel, durSteps * s16);
+        // AROUND THE ROOT (slice 1): on a synth-bass song that drew "around",
+        // the octave figures take the octave BELOW the root when it clears the
+        // floor (bRoot - 12 >= U.BASS_FLOOR; the low note on the downbeat, the
+        // root on the offbeat), seq16 and synco16 take the fifth a fourth
+        // below and the octave below when they clear it, and the walk's
+        // approach is read against the floor (and drawn from the other side on
+        // an "enclosure" song). The bass guitar plays today's figures.
+        const AR = !bgVoicing && sheet.around && sheet.around.bass === "around";
+        const lowOk = AR && bRoot - 12 >= U.BASS_FLOOR && bRoot - 12 >= U.REGISTER_POCKETS.bass[0];
+        const t3 = bTones[3] === bRoot + 12 ? bRoot - 12 : bTones[3] - 12;   // the octave below, or a seventh's tone an octave down
+        const bT = !AR ? bTones : [bTones[0], bTones[1], bTones[2] - 12 >= U.BASS_FLOOR ? bTones[2] - 12 : bTones[2], t3 >= U.BASS_FLOOR ? t3 : bTones[3]];
+        const oLo = lowOk ? bRoot - 12 : bRoot, oHi = lowOk ? bRoot : bRoot + 12;
         if (k === "rootEighths") {
           for (let i = 0; i < 16; i += 2) put(i, bRoot, i === 0 ? 0.95 : 0.8, 1.7);
         } else if (k === "rootQuarters") {
           for (let i = 0; i < 16; i += 4) put(i, bRoot, 0.9, 3.6);
         } else if (k === "octaveAlt") {
-          for (let i = 0; i < 16; i += 2) put(i, (i / 2) % 2 ? bRoot + 12 : bRoot, i % 4 === 0 ? 0.95 : 0.78, 1.6);
+          for (let i = 0; i < 16; i += 2) put(i, (i / 2) % 2 ? oHi : oLo, i % 4 === 0 ? 0.95 : 0.78, 1.6);
         } else if (k === "octavePush") {
-          for (let i = 0; i < 16; i += 2) put(i, (i / 2) % 2 ? bRoot + 12 : bRoot, 0.9, 1.4);
-          if (v < 0.5) put(15, bRoot + 12, 0.8, 1.0);
+          for (let i = 0; i < 16; i += 2) put(i, (i / 2) % 2 ? oHi : oLo, 0.9, 1.4);
+          if (v < 0.5) put(15, oHi, 0.8, 1.0);
         } else if (k === "seq16") {
-          for (let i = 0; i < 16; i++) put(i, bTones[i % 4] - (i % 8 < 4 ? 0 : 0), 0.72 + (i % 4 === 0 ? 0.2 : 0), 0.9);
+          for (let i = 0; i < 16; i++) put(i, bT[i % 4] - (i % 8 < 4 ? 0 : 0), 0.72 + (i % 4 === 0 ? 0.2 : 0), 0.9);
         } else if (k === "walk") {
           put(0, bRoot, 0.95, 3.6); put(4, bRoot, 0.85, 3.6); put(8, bRoot, 0.85, 3.6);
           const target = rroot("bass", nch.deg, bar);
-          put(12, bRoot + (target > bRoot ? 2 : -2), 0.8, 1.7);
-          put(14, target - (target > bRoot ? 1 : -1), 0.8, 1.7);
+          if (!AR) {
+            put(12, bRoot + (target > bRoot ? 2 : -2), 0.8, 1.7);
+            put(14, target - (target > bRoot ? 1 : -1), 0.8, 1.7);
+          } else {
+            // the side the line is on (today) or, on an enclosure song, the
+            // other side; a note that would sound under the floor takes the
+            // other side instead of folding up an octave
+            const side = (target > bRoot ? -1 : 1) * (sheet.around.approach === "enclosure" ? -1 : 1);
+            let pass = bRoot + (target > bRoot ? 2 : -2); if (pass < U.BASS_FLOOR) pass = bRoot + 2;
+            let appr = target + side; if (appr < U.BASS_FLOOR) appr = target + 1;
+            put(12, pass, 0.8, 1.7);
+            put(14, appr, 0.8, 1.7);
+          }
         } else if (k === "synco16") {
           const mask = SYNCO16[sheet.masks.bass % SYNCO16.length];
-          for (let i = 0; i < 16; i++) if (mask[i] !== ".") put(i, i % 8 === 0 ? bRoot : bTones[(i * 3) % 4], i === 0 ? 0.95 : 0.8, 1.1);
+          for (let i = 0; i < 16; i++) if (mask[i] !== ".") put(i, i % 8 === 0 ? bRoot : bT[(i * 3) % 4], i === 0 ? 0.95 : 0.8, 1.1);
         } else if (k === "octaveSlide") {
-          for (let i = 0; i < 16; i += 4) { put(i, bRoot, 0.9, 1.8); put(i + 3, bRoot + 12, 0.7, 0.9); }
+          for (let i = 0; i < 16; i += 4) { put(i, oLo, 0.9, 1.8); put(i + 3, oHi, 0.7, 0.9); }
         } else if (k === "pedal") {
           put(0, bRoot, 0.9, 15.5);
         } else if (k === "sub808") {
@@ -17062,9 +17146,12 @@
       } else if (on("arp", bar)) {
         const A = P.arp.motor;
         const aRoot = sR("arp");
-        const key = P.arp.id + "|" + aRoot + ch.type;
+        // around the root (2026-11-13): an "around" song's pool spans both
+        // sides of the root, clipped at the arp floor and over the bar's bass root
+        const aOpt = sheet.around && sheet.around.arp === "around" ? { span: "around", bassRoot: bRoot } : null;
+        const key = P.arp.id + "|" + aRoot + ch.type + (aOpt ? "|" + bRoot : "");
         if (key !== arpLatch || arpLast !== bar - 1) { arpLatch = key; arpK = 0; }
-        const fig = U.arpBar(A, U.arpSequence(A, aRoot, ch.type), arpK);
+        const fig = U.arpBar(A, U.arpSequence(A, aRoot, ch.type, aOpt), arpK);
         arpK = fig.next; arpLast = bar;
         for (const st of fig.steps) {
           if (!st.play || st.midi == null || arpYield(bar)) continue;
@@ -17168,7 +17255,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/render/renderer.js @ d92da06 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/render/renderer.js @ 2fe5c23 — verbatim from jeffdavis-studio/unison-engine ===== */
 // renderer.js — song assembly + the render pipeline (Technical Architecture
 // v1.2 playback model): live-first, with (a) a cheap analysis pre-render for
 // verification/metrics and (b) an on-demand full OfflineAudioContext render
@@ -17808,8 +17895,12 @@
   function swingFor(lane) { var T = U.SONG_TEMPO; return +(T.swing[0] + (T.swing[1] - T.swing[0]) * Math.min(0.6, U.LANE_FEEL[lane].swingBias)).toFixed(3); }
   function gKey(g) { return [g.bpm, g.key, g.mode, g.lane || "", g.A, g.B, g.C || "", g.sw == null ? "" : g.sw, g.prl || ""].join("|"); }
   function gSnap() { return { bpm: G.bpm, key: G.key, mode: G.mode, A: G.A, B: G.B, C: G.C, sw: G.sw, prl: G.prl }; }
-  function lSig(l) { return l.inst + "|" + l.pat + "|" + l.patch + "|" + (l.oct || 0) + "|" + l.ln + "|" + l.pl + "|" + (l.pn || ""); }
-  function lOpt(l) { return { oct: l.oct || 0, pn: l.pn || null, ln: l.ln, pl: l.pl }; }
+  // rt (around the root, 2026-11-13): "draw" = the layer takes the engine's
+  // around draw on its pattern seed; "up" = up from the root (today's). A
+  // link saved before this field has none and opens as "up", so Jeff's saved
+  // grooves sound as they did; its key stays the old one.
+  function lSig(l) { return l.inst + "|" + l.pat + "|" + l.patch + "|" + (l.oct || 0) + "|" + l.ln + "|" + l.pl + "|" + (l.pn || "") + (l.rt === "draw" ? "|a" : ""); }
+  function lOpt(l) { return { oct: l.oct || 0, pn: l.pn || null, ln: l.ln, pl: l.pl, rt: l.rt || "up" }; }
   function anyLane() { return U.LANES[Math.floor(Math.random() * U.LANES.length)]; }
   // v4 (Jeff 10/28: "a lock switch for bass/drum patterns"); v5.1 (Jeff 10/29:
   // "leave the bass and drums locked") makes it permanent, no switch: every bass
@@ -17996,11 +18087,11 @@
     });
     return bars.map(function (x) { return x.sort().join(" "); });
   }
-  function planKey(g, sec, inst, pat, patch, opt, vr) { return gKey(g) + "#" + sec + "#" + inst + "|" + pat + "|" + patch + "|" + ((opt && opt.pn) || "") + "|" + laneOf(g, opt) + "|" + ((opt && opt.pl) || "") + "#" + vr; }
+  function planKey(g, sec, inst, pat, patch, opt, vr) { return gKey(g) + "#" + sec + "#" + inst + "|" + pat + "|" + patch + "|" + ((opt && opt.pn) || "") + "|" + laneOf(g, opt) + "|" + ((opt && opt.pl) || "") + (opt && opt.rt === "draw" ? "|a" : "") + "#" + vr; }
   function planOrder(vr) { var uses = {}, order = []; SCHED[vr].forEach(function (v) { if (!uses[v]) { uses[v] = 0; order.push(v); } uses[v]++; }); return { uses: uses, order: order }; }
   function nCodesOf(avail) { var n = 1; avail.forEach(function (a) { n *= a; }); return n; }
   function sigOf(g, sec, inst, pat, patch, opt, v, c) {
-    return barSigs(capture(buildSheet(g, sec, inst, pat, patch, v, { pn: opt && opt.pn, ln: opt && opt.ln, pl: opt && opt.pl, forceCode: c }), pat, v, 0), INST_BY[inst].strips, g.bpm);
+    return barSigs(capture(buildSheet(g, sec, inst, pat, patch, v, { pn: opt && opt.pn, ln: opt && opt.ln, pl: opt && opt.pl, rt: opt && opt.rt, forceCode: c }), pat, v, 0), INST_BY[inst].strips, g.bpm);
   }
   function sigPlan(g, sec, inst, pat, patch, opt, vr, E, avail) {
     var key = planKey(g, sec, inst, pat, patch, opt, vr);
@@ -18015,7 +18106,7 @@
   function planAsync(g, sec, inst, pat, patch, opt, v) {
     var vr = vrOf(v), key = planKey(g, sec, inst, pat, patch, opt, vr);
     if (!v || INST_BY[inst].cls === "drums" || planCache[key] || !elems(inst, vr).length) return Promise.resolve();
-    var J = buildSheet(g, sec, inst, pat, patch, v, { pn: opt && opt.pn, ln: opt && opt.ln, pl: opt && opt.pl, forceCode: 0 }).jamPlan;
+    var J = buildSheet(g, sec, inst, pat, patch, v, { pn: opt && opt.pn, ln: opt && opt.ln, pl: opt && opt.pl, rt: opt && opt.rt, forceCode: 0 }).jamPlan;
     var po = planOrder(vr), nCodes = nCodesOf(J.avail), sig = {}, tasks = [];
     po.order.forEach(function (vv) { sig[vv] = []; for (var c = 0; c < nCodes; c++) tasks.push([vv, c]); });
     return new Promise(function (done) {
@@ -18080,6 +18171,10 @@
     // voices: the house defaults, then the instrument's own
     s.bassVoice = "juno"; s.polyVoice = "juno"; s.padVoice = "juno"; s.leadVoice = "juno"; s.arpVoice = "juno"; s.counterVoice = "juno";
     d.set(s);
+    // around the root (2026-11-13): one draw per layer, on the layer's A
+    // pattern seed, so A, B and C play the same space; "up" unless the layer
+    // carries rt "draw" (a link saved before the field opens as "up")
+    s.around = opt && opt.rt === "draw" ? U.drawAround(seedHash(pat, "pat")) : { bass: "up", arp: "up", approach: "sameSide" };
     // the engine per strip, as the engine's role draw records it (sheet.voices,
     // 2026-11-01): the layer's choice on its strip, the house Juno elsewhere
     s.voices = { bass: s.bassVoice, compA: s.polyVoice, pad: s.padVoice, color: s.polyVoice, arp: s.arpVoice, lead: s.leadVoice, counter: s.counterVoice };
@@ -18259,7 +18354,7 @@
     var P = s.picks, d = INST_BY[inst];
     if (d.cls === "drums") return [P.kick.id, P.snare.id, P.hats.id].map(function (x) { return x.split(".").pop().replace(/_/g, " "); }).join(" / ");
     var st = d.strips[0], e = st === "rhythmGtr" ? P.rhythmGtr : P[st];
-    if (st === "arp" && e && e.motor) return (e.machine === "seq" ? seqText(e.motor) : arpText(e.motor)) + (s.motor && s.motor.layer && s.motor.layer.filter ? ", filter row" : "") + (P.counter && P.counter.layer === 2 ? " + layer 2" : "");
+    if (st === "arp" && e && e.motor) return (e.machine === "seq" ? seqText(e.motor) : arpText(e.motor)) + (e.machine !== "seq" && e.motor.octaves > 1 ? aroundText(s.around && s.around.arp) : "") + (s.motor && s.motor.layer && s.motor.layer.filter ? ", filter row" : "") + (P.counter && P.counter.layer === 2 ? " + layer 2" : "");
     if (st === "counter" && e && e.layer === 2) return layerText(e.motor);
     // the lead's hook job (the melody engine, slice 1, 2026-11-03): the job
     // and the song's motif, e.g. "hook m1a2b3c" or "hook m1a2b3c (handoff)"
@@ -18270,8 +18365,13 @@
     // a line layer sings the verse manner in every section, breaths
     // included, no hook
     if (st === "lead" && e && e.kind === "vocalPhrase" && s.melody) return "line " + s.melody.motif.label;
+    if (st === "bass" && e && s.bassVoice !== "bassguitar" && AROUND_BASS[e.kind]) return e.id.split(".").pop().replace(/_/g, " ") + aroundText(s.around && s.around.bass);
     return e ? e.id.split(".").pop().replace(/_/g, " ") : "";
   }
+  // around the root (2026-11-13): the synth bass figures and the arp settings
+  // the draw changes say which space they drew, in words
+  var AROUND_BASS = { octaveAlt: 1, octavePush: 1, octaveSlide: 1, seq16: 1, synco16: 1, walk: 1 };
+  function aroundText(x) { return x === "around" ? ", around the root" : ", up from the root"; }
   // the arp strip plays the engine's arpeggiator (the motor, 2026-11-01):
   // its setting in words, e.g. "16ths up 2 oct, skips, accents"
   function arpText(a) {
@@ -18660,7 +18760,7 @@
     audio();
     var n = G.n++;
     var ln = patternLane(inst);
-    G.L.push({ id: n, inst: inst, pat: n * 7 + G.hs, patch: n * 13 + 1, vr: 1, mute: false, oct: 0, db: 0, pn: null, ln: ln, pl: anyLane() });
+    G.L.push({ id: n, inst: inst, pat: n * 7 + G.hs, patch: n * 13 + 1, vr: 1, mute: false, oct: 0, db: 0, pn: null, ln: ln, pl: anyLane(), rt: "draw" });
     if (!playing) start();
     changed();
   }
@@ -18698,7 +18798,7 @@
     for (var t = 0; t < 8 && b === G.bpm; t++) b = drawTempo(Math.random());
     setG("bpm", b);
   }
-  function newPattern(l) { l.pat += 1 + (G.n % 5); G.n++; l.ln = patternLane(l.inst); changed(); }
+  function newPattern(l) { l.pat += 1 + (G.n % 5); G.n++; l.ln = patternLane(l.inst); l.rt = "draw"; changed(); }
   function newSound(l) { l.patch += 1 + (G.n % 3); l.pn = null; G.n++; l.pl = anyLane(); changed(); }
   function setSwing(b) {
     var w = SWING[b];
@@ -18748,6 +18848,7 @@
       w: G.sw, wb: G.swb, f: G.fam ? U.LANES.indexOf(G.fam) : -1,
       L: G.L.map(function (l) { var a = [l.inst, l.pat, l.patch, l.vr, l.mute ? 1 : 0, l.oct || 0, l.db || 0, l.pn || "", U.LANES.indexOf(l.ln), U.LANES.indexOf(l.pl)];
         if (l.px && Object.keys(l.px).length) a.push(l.px);   // [10] the production module's overrides
+        if (l.rt === "draw") { if (a.length < 11) a.push(0); a.push(1); }   // [11] around the root: 1 = the layer's draw; absent = up
         return a; }) };
     if (G.prl) o.p = G.prl;
     if (G.px && (G.px.st || Object.keys(G.px.R).length)) o.x = { s: G.px.st, R: G.px.R };   // the Room
@@ -18782,7 +18883,7 @@
         // v1 links carry five fields; octave, fader and chosen patch default to 0, 0 and the seed's draw
         G.L.push({ id: G.n++, inst: a[0], pat: +a[1] || 1, patch: +a[2] || 1, vr: Math.max(0, Math.min(2, +a[3] || 0)), mute: !!a[4],
           oct: clampOct(a[0], a[5]), db: Math.max(DB_MIN, Math.min(DB_MAX, Math.round(+a[6] || 0))), pn: typeof a[7] === "string" && a[7] ? a[7] : null,
-          ln: lane(a[8]), pl: lane(a[9]) });
+          ln: lane(a[8]), pl: lane(a[9]), rt: a[11] === 1 ? "draw" : "up" });
         var px = a[10] && typeof a[10] === "object" ? a[10] : null;
         if (px) { G.L[G.L.length - 1].px = px; G.L[G.L.length - 1].live = true; }
       });
