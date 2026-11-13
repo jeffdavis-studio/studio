@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
+<link rel="icon" href="data:,">
 <title>Intervals</title>
 <style>
   html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
@@ -240,8 +241,10 @@ async function advance() {
       if (f >= 6) { log("giving up on queued #" + n); queue.shift(); failCount.delete(n); save(); }
       busy = true; setTimeout(() => { busy = false; }, 5000);
     }
-  } else if (!ok && current) {
-    current.shownAt = Date.now() - CFG.idleMs + 3000; // keep the current piece, try another in 3 s
+  } else if (!ok) {
+    bag.unshift(n);  // not shown, so it keeps its place in this round
+    if (current) current.shownAt = Date.now() - CFG.idleMs + 3000; // keep the current piece, try another in 3 s
+    else { busy = true; setTimeout(() => { busy = false; }, 3000); }  // nothing on screen yet: try again in 3 s
   }
 }
 
@@ -294,6 +297,7 @@ function clearLayer(layer) {
 }
 // Load the piece in the hidden layer, then crossfade. Returns false (and changes nothing
 // on screen) if neither the live artwork nor the still image could be loaded.
+// Returns "superseded" (also nothing changed) when a new mint arrived during an idle load.
 async function show(tok, kind) {
   const back = layers[1 - front];
   clearLayer(back);
@@ -301,6 +305,8 @@ async function show(tok, kind) {
   if (CFG.mode === "live" && tok.live && await liveReachable(tok.live)) { ok = await loadLive(back, tok.live); how = "live"; }
   if (!ok) { clearLayer(back); ok = await loadImage(back, tok.img); how = "image"; }
   if (!ok) { clearLayer(back); log("could not load #" + tok.n); mark("failed", { n: tok.n, kind }); return false; }
+  // A mint that arrived while this idle piece was loading goes first; put the idle piece back.
+  if (kind === "idle" && queue.length) { clearLayer(back); bag.push(tok.n); return "superseded"; }
 
   const cap = document.createElement("div");
   cap.className = "cap";
