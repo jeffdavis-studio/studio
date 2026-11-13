@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Unison — effects by ear</title>
-<!-- engine @f1ce2f2 · built 2026-11-13 · analysis/build-fx-audition-page.mjs -->
+<!-- engine @d0c06a5 · built 2026-11-13 · analysis/build-fx-audition-page.mjs -->
 <style>
   :root{ --bg:#16161a; --panel:#1f1f25; --edge:#34343d; --ink:#e8e8ec; --dim:#8d8d99;
     --accent:#c9a15a; --keep:#6fae78; --cut:#c0675f; }
@@ -66,7 +66,7 @@
   </div>
 </div>
 <script>
-/* ===== src/core/prng.js @ f1ce2f2 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/prng.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
 // prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
 // token hash, consumed in canonical draw order (Technical Architecture v1.2).
 //
@@ -139,7 +139,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/core/mix.js @ f1ce2f2 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/mix.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
 // mix.js — the fan-in ≤2 summing rule, as a primitive.
 //
 // Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
@@ -308,7 +308,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/desk/desk.js @ f1ce2f2 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/desk/desk.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
 // desk.js — the 24-track desk as a running audio graph.
 //
 // The desk is the data structure, not a metaphor (Composition Brief 2 / Tech
@@ -977,7 +977,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/production.js @ f1ce2f2 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/production.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
 // production.js — the production room, v0.
 //
 // PLACEMENT DECISION (Morgan's call, ratified by Jeff 2026-08-03). Production
@@ -1329,7 +1329,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/vocoder.js @ f1ce2f2 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/vocoder.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
 // vocoder.js — the production room's vocoder insert, slice 1 (2026-11-05,
 // Asana 1220085081650427; design in files/unison/vocoder-2026-11-05/RESULT.md).
 //
@@ -1665,7 +1665,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/analogpoly.js @ f1ce2f2 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/analogpoly.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
 // analogpoly.js — the analog poly core: one module that builds every Juno and
 // OB-Xa voice, behind a family lock. Asana 1220084594874974, slice 1
 // (2026-11-02); the rack doc's build 3 (files/unison/rack-parts-proposal-
@@ -2291,7 +2291,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/juno.js @ f1ce2f2 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/juno.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
 // juno.js — Juno-60-flavor poly voice, raw Web Audio, zero dependencies.
 // Ported from the 2026-07-21 bake-off winner (voice-raw.js), restructured to
 // live behind a desk strip: U.createJuno(ctx, strip, patchName) builds its own
@@ -2858,7 +2858,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/minimoog.js @ f1ce2f2 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/minimoog.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
 // minimoog.js — Minimoog Model D-lineage mono voice, zero dependencies.
 //
 // THE MONO BASS LANE (build order 808 → Juno → Minimoog → …; it also absorbs
@@ -3645,7 +3645,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/obxa.js @ f1ce2f2 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/obxa.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
 // obxa.js — Oberheim OB-Xa-lineage poly voice, zero dependencies.
 //
 // THE BRASS/PAD POLY LANE (build order 808 → Juno → Minimoog → OB-Xa → …).
@@ -4190,7 +4190,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/fm.js @ f1ce2f2 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/fm.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fm.js — six-operator FM keys voice (the DX7 lineage), zero dependencies.
 //
 // THE FM LANE (build order 808 → Juno → Minimoog → OB-Xa → Linn → FM).
@@ -5290,7 +5290,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/bassguitar.js @ f1ce2f2 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/bassguitar.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassguitar.js — electric bass guitar, the first session player of the human
 // rack (Rack 2), zero dependencies.
 //
@@ -6001,7 +6001,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/rhythmguitar.js @ f1ce2f2 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/rhythmguitar.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
 // rhythmguitar.js — clean electric rhythm guitar, the fourth and last stop of
 // the human rack (Rack 2), zero dependencies.
 //
@@ -6777,7 +6777,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/tr808.js @ f1ce2f2 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/tr808.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
 // tr808.js — THE MACHINE. A TR-808-lineage core voice: bass drum, snare,
 // closed hat, open hat, each with a front panel the token actually turns.
 //
@@ -8061,7 +8061,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/linn.js @ f1ce2f2 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/linn.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
 // linn.js — THE STUDIO MACHINE. A Linn-family (LM-1 / LinnDrum lineage)
 // drum computer: the new wave / synth-pop / 80s R&B kit.
 //
@@ -8883,7 +8883,7 @@
     get EPROM_HZ() { return U.CIRCUIT_LINN.epromHz; }, get RECON_HZ() { return U.CIRCUIT_LINN.reconHz; } };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/romkits.js @ f1ce2f2 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/romkits.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
 // romkits.js — THE OTHER SAMPLED MACHINE: the DMX (Oberheim lineage, 1981),
 // drum engine slice 3, 2026-11-03, Asana 1219959495948201.
 //
@@ -9239,7 +9239,7 @@
   // the lock refuses; the MCS is a kit drawn across families, which is slice 4.
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/simmons.js @ f1ce2f2 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/simmons.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
 // simmons.js — THE ELECTRONIC FAMILY'S FIRST MACHINE: the Simmons toms
 // (SDS-V lineage, 1981; SDS-7, 1983), drum engine slice 3, 2026-11-03,
 // Asana 1219959495948201.
@@ -9411,7 +9411,7 @@
   U.SIMMONS_VOICES = ["tomHi", "tomMid", "tomLo"];
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drumengine.js @ f1ce2f2 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drumengine.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drumengine.js — ONE DRUM ENGINE, THE MACHINES AS FAMILIES (2026-11-02,
 // drum engine slice 1, Asana 1219959495948201; the rack and parts doc,
 // 10/31).
@@ -9642,7 +9642,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drumkits.js @ f1ce2f2 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drumkits.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drumkits.js — the drum engine, slice 4 (2026-11-06, Asana 1219959495948201):
 // THE KIT BOOKS and THE KIT AS A DRAW ACROSS FAMILIES.
 //
@@ -10000,7 +10000,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/sampler.js @ f1ce2f2 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/sampler.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
 // sampler.js — THE SAMPLER KEYBOARD, the gap filler (2026-11-05, slice 1,
 // Asana 1220085081678265; build 7 of the 10/31 rack and parts doc; design in
 // files/unison/sampler-2026-11-05/RESULT.md in the morgan repo).
@@ -10598,7 +10598,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drums.js @ f1ce2f2 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drums.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drums.js — the drum machine: 808/LM-1-flavor voices, synthesized at runtime
 // into short AudioBuffers, played back as one-shots.
 //
@@ -10992,7 +10992,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/books.js @ f1ce2f2 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/books.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
 // books.js — Pattern Books v1, as data.
 //
 // This file IS the document: "Unison — Pattern Books v1 (draft)" (Morgan,
@@ -13677,7 +13677,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/bassplayer.js @ f1ce2f2 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/bassplayer.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassplayer.js — the PERFORMANCE half of the bass guitar: a session player.
 //
 // Rack 2's rule (kb/projects/unison.md, 2026-07-11): every human instrument is
@@ -14272,7 +14272,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/gtrplayer.js @ f1ce2f2 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/gtrplayer.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
 // gtrplayer.js — the PERFORMANCE half of the rhythm guitar: a session
 // guitarist on the rhythmGtr strip.
 //
@@ -14746,7 +14746,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/fmplayer.js @ f1ce2f2 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/fmplayer.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fmplayer.js — the PERFORMANCE half of the FM keys: a session keyboard
 // player on the FM chord strips (compA's tine EP, colour's glass and brass).
 //
@@ -14887,7 +14887,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/testPhrase.js @ f1ce2f2 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/testPhrase.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
 // testPhrase.js — deterministic 8-bar test phrase, ported from the bake-off
 // (phrase.js) onto the engine's canonical PRNG (core/prng.js).
 //
@@ -14981,7 +14981,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/form.js @ f1ce2f2 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/form.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
 // form.js — the song's form: the book of returns (2026-10-30, Asana
 // 1220073468300418; design files/unison/structure-design-2026-10-30 in the
 // morgan repo, DESIGN.md + draw.py, transcribed here as written).
@@ -15302,7 +15302,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/session.js @ f1ce2f2 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/session.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
 // session.js — the session sheet and the arrangement realizer.
 //
 // Two tiers, in this order, each on its own stream (core/prng.js):
@@ -17157,7 +17157,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/render/renderer.js @ f1ce2f2 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/render/renderer.js @ d0c06a5 — verbatim from jeffdavis-studio/unison-engine ===== */
 // renderer.js — song assembly + the render pipeline (Technical Architecture
 // v1.2 playback model): live-first, with (a) a cheap analysis pre-render for
 // verification/metrics and (b) an on-demand full OfflineAudioContext render
@@ -17820,7 +17820,7 @@
    harness/curate-decode.mjs reads it. */
 (function(){
   "use strict";
-  var SHA = "f1ce2f2", SONGS = [{"hash":"1d8209c51fb10ad9df5bca30cf892159b2296d9a398df0d3844e711517afac69","label":"Funk, guitar and synth bass","trim":1.2,"mp":null},{"hash":"c5929dc31f85e83e3780f150ae87b5bebfa301667297cdd344daef4165ca477e","label":"Synth pop, guitar and bass guitar, lead and counter line","trim":-2.5,"mp":{"samplerMakeupDb":{"lead":2.85}}},{"hash":"be7896b944aea0ae27a86b076a93e865a1a28e0dffb2b95e52bd90f61a58d6a8","label":"Synth pop, electronic drums, pad and color","trim":-3.6,"mp":{"samplerMakeupDb":{"compA":-0.22}}},{"hash":"99d4e4d5d280b8a102e689d38fbf4bb7301bef46784a9ef5e47c07908d4d62bf","label":"Early hip hop, drum machine and percussion","trim":-5.6,"mp":null},{"hash":"b020d0632850d1368c6673f1890cae427c467f6bd994e4128154140bdb126802","label":"New wave, bass guitar and pad","trim":-0.8,"mp":null},{"hash":"d60efc190ffeefcc11fee8c0214d90ca97123373de8c2c79e8f499a2d5a85b2b","label":"Synth R&B, guitar, bass guitar and color","trim":-1.6,"mp":{"samplerMakeupDb":{"color":-3.53}}}], TABLE = {"0":{"sat":{"parts":["bass","snare","rhythmGtr","lead","compA"],"mk":{"bass":{"1.0":0.46,"2.0":0.72,"3.0":0.99},"snare":{"1.0":1.27,"2.0":1.86,"3.0":2.41},"rhythmGtr":{"1.0":0.04,"2.0":0.06,"3.0":0.08},"lead":{"1.0":0.06,"2.0":0.1,"3.0":0.14},"compA":{"1.0":0.28,"2.0":0.45,"3.0":0.62}},"act":{"bass":-16.5,"snare":-9.8,"rhythmGtr":-23.8,"lead":-22.5,"compA":-17.8}},"chorus":{"parts":["compA","rhythmGtr","bass","lead"],"mk":{"compA":{"1.0":-0.29,"2.0":-0.85,"3.0":-1.79,"1.1":-0.34,"2.1":-0.93,"3.1":-1.89,"1.2":-0.6,"2.2":-1.3,"3.2":-2.33},"rhythmGtr":{"1.0":-0.28,"2.0":-0.83,"3.0":-1.77,"1.1":-0.32,"2.1":-0.89,"3.1":-1.84,"1.2":-0.5,"2.2":-1.16,"3.2":-2.16},"bass":{"1.0":-0.07,"2.0":-0.13,"3.0":-0.22,"1.1":-0.07,"2.1":-0.13,"3.1":-0.22,"1.2":-0.08,"2.2":-0.15,"3.2":-0.25},"lead":{"1.0":-0.3,"2.0":-0.87,"3.0":-1.81,"1.1":-0.51,"2.1":-1.17,"3.1":-2.18,"1.2":-0.27,"2.2":-0.81,"3.2":-1.75}},"act":{"compA":-3.8,"rhythmGtr":-3.8,"bass":-21.7,"lead":-3.8}},"echo":{"parts":["lead","color","rhythmGtr","snare","compA","arp"],"mk":{"lead":{"1.0":-0.61,"2.0":-0.84,"3.0":-1.09,"1.1":-0.34,"2.1":-0.52,"3.1":-0.77,"1.2":-0.16,"2.2":-0.29,"3.2":-0.48,"1.3":-0.16,"2.3":-0.3,"3.3":-0.52},"color":{"1.0":-0.22,"2.0":-0.41,"3.0":-0.7,"1.1":-0.18,"2.1":-0.33,"3.1":-0.58,"1.2":-0.17,"2.2":-0.33,"3.2":-0.57,"1.3":-0.17,"2.3":-0.33,"3.3":-0.57},"rhythmGtr":{"1.0":0.16,"2.0":0.09,"3.0":-0.07,"1.1":-0.31,"2.1":-0.49,"3.1":-0.76,"1.2":-0.16,"2.2":-0.31,"3.2":-0.56,"1.3":-0.14,"2.3":-0.28,"3.3":-0.52},"snare":{"1.0":-0.13,"2.0":-0.25,"3.0":-0.42,"1.1":-0.14,"2.1":-0.24,"3.1":-0.38,"1.2":-0.14,"2.2":-0.26,"3.2":-0.43,"1.3":-0.22,"2.3":-0.42,"3.3":-0.67},"compA":{"1.0":0.31,"2.0":0.33,"3.0":0.24,"1.1":-0.13,"2.1":-0.25,"3.1":-0.46,"1.2":-0.1,"2.2":-0.22,"3.2":-0.4,"1.3":-0.11,"2.3":-0.24,"3.3":-0.45},"arp":{"1.0":-0.12,"2.0":-0.2,"3.0":-0.32,"1.1":-0.25,"2.1":-0.4,"3.1":-0.59,"1.2":-0.13,"2.2":-0.26,"3.2":-0.46,"1.3":0.02,"2.3":-0.07,"3.3":-0.27}},"act":{"lead":-9.2,"color":-8.7,"rhythmGtr":-8.8,"snare":-9.4,"compA":-8.2,"arp":-9.3}},"plate":{"parts":["snare","lead","color","compA","rhythmGtr","arp","hats"],"mk":{"snare":{"1.0":-0.23,"2.0":-2.45,"3.0":-7.23},"lead":{"1.0":-0.42,"2.0":-0.18,"3.0":-2.79},"color":{"1.0":-0.56,"2.0":-1.79,"3.0":-5.75},"compA":{"1.0":-0.47,"2.0":-0.99,"3.0":-3.89},"rhythmGtr":{"1.0":-0.37,"2.0":-1.08,"3.0":-4.26},"arp":{"1.0":-0.16,"2.0":-1.15,"3.0":-3.91},"hats":{"1.0":-0.25,"2.0":-3.17,"3.0":-9.21}},"act":{"snare":-0.6,"lead":-4.9,"color":-0.7,"compA":-1,"rhythmGtr":-2.3,"arp":-2,"hats":1}},"gate":{"parts":["snare"],"mk":{"snare":{"1.0":-1.54,"2.0":-3.61,"3.0":-6.34}},"act":{"snare":-0.3}}},"1":{"sat":{"parts":["bass","snare","rhythmGtr","lead","compA"],"mk":{"bass":{"1.0":1.02,"2.0":1.62,"3.0":2.22},"snare":{"1.0":1.39,"2.0":2,"3.0":2.54},"rhythmGtr":{"1.0":0.07,"2.0":0.12,"3.0":0.16},"lead":{"1.0":0.03,"2.0":0.05,"3.0":0.06},"compA":{"1.0":0.15,"2.0":0.25,"3.0":0.35}},"act":{"bass":-14,"snare":-9.4,"rhythmGtr":-21.4,"lead":-22,"compA":-19.8}},"chorus":{"parts":["compA","rhythmGtr","counter","bass","lead"],"mk":{"compA":{"1.0":-0.36,"2.0":-0.94,"3.0":-1.9,"1.1":-0.35,"2.1":-0.93,"3.1":-1.89,"1.2":-0.52,"2.2":-1.18,"3.2":-2.19},"rhythmGtr":{"1.0":-0.38,"2.0":-0.98,"3.0":-1.95,"1.1":-0.36,"2.1":-0.95,"3.1":-1.92,"1.2":-0.51,"2.2":-1.17,"3.2":-2.17},"counter":{"1.0":-0.09,"2.0":-0.55,"3.0":-1.42,"1.1":-0.01,"2.1":-0.42,"3.1":-1.28,"1.2":-0.04,"2.2":-0.48,"3.2":-1.35},"bass":{"1.0":-0.19,"2.0":-0.49,"3.0":-1.01,"1.1":-0.19,"2.1":-0.48,"3.1":-0.99,"1.2":0.2,"2.2":0.14,"3.2":-0.15},"lead":{"1.0":-0.4,"2.0":-1.01,"3.0":-1.98,"1.1":-0.44,"2.1":-1.06,"3.1":-2.04,"1.2":-0.35,"2.2":-0.94,"3.2":-1.9}},"act":{"compA":-3.9,"rhythmGtr":-4,"counter":-3.3,"bass":-6.5,"lead":-3.9}},"echo":{"parts":["lead","counter","rhythmGtr","snare","compA","arp"],"mk":{"lead":{"1.0":-0.39,"2.0":-0.58,"3.0":-0.82,"1.1":-0.19,"2.1":-0.34,"3.1":-0.58,"1.2":-0.17,"2.2":-0.33,"3.2":-0.57,"1.3":-0.18,"2.3":-0.34,"3.3":-0.58},"counter":{"1.0":-0.16,"2.0":-0.29,"3.0":-0.5,"1.1":-0.18,"2.1":-0.33,"3.1":-0.56,"1.2":-0.17,"2.2":-0.31,"3.2":-0.54,"1.3":-0.17,"2.3":-0.32,"3.3":-0.56},"rhythmGtr":{"1.0":-0.1,"2.0":-0.21,"3.0":-0.39,"1.1":-0.18,"2.1":-0.33,"3.1":-0.55,"1.2":-0.17,"2.2":-0.32,"3.2":-0.55,"1.3":-0.13,"2.3":-0.27,"3.3":-0.51},"snare":{"1.0":-0.16,"2.0":-0.28,"3.0":-0.47,"1.1":-0.16,"2.1":-0.29,"3.1":-0.48,"1.2":-0.16,"2.2":-0.29,"3.2":-0.47,"1.3":-0.16,"2.3":-0.3,"3.3":-0.5},"compA":{"1.0":-0.08,"2.0":-0.16,"3.0":-0.31,"1.1":-0.16,"2.1":-0.31,"3.1":-0.54,"1.2":-0.16,"2.2":-0.3,"3.2":-0.54,"1.3":-0.18,"2.3":-0.33,"3.3":-0.58},"arp":{"1.0":-0.18,"2.0":-0.34,"3.0":-0.59,"1.1":-0.15,"2.1":-0.3,"3.1":-0.55,"1.2":-0.16,"2.2":-0.32,"3.2":-0.56,"1.3":-0.19,"2.3":-0.35,"3.3":-0.59}},"act":{"lead":-9.1,"counter":-9,"rhythmGtr":-9,"snare":-9.4,"compA":-8.8,"arp":-8.8}},"plate":{"parts":["snare","lead","compA","counter","rhythmGtr","arp","hats"],"mk":{"snare":{"1.0":-1.25,"2.0":-4.2,"3.0":-8.96},"lead":{"1.0":-0.48,"2.0":-2.48,"3.0":-6.25},"compA":{"1.0":-0.4,"2.0":-2.31,"3.0":-6},"counter":{"1.0":-0.27,"2.0":-1.06,"3.0":-3.41},"rhythmGtr":{"1.0":-0.81,"2.0":-1.73,"3.0":-6.15},"arp":{"1.0":-0.62,"2.0":-2.24,"3.0":-5.98},"hats":{"1.0":-0.35,"2.0":-2.22,"3.0":-6.76}},"act":{"snare":0.8,"lead":-1.5,"compA":-1.4,"counter":-1,"rhythmGtr":-0.8,"arp":-0.5,"hats":0.8}},"gate":{"parts":["snare"],"mk":{"snare":{"1.0":-2.64,"2.0":-5.64,"3.0":-8.92}},"act":{"snare":0.9}}},"2":{"sat":{"parts":["bass","snare","lead","compA"],"mk":{"bass":{"1.0":0.15,"2.0":0.24,"3.0":0.34},"snare":{"1.0":1.07,"2.0":1.57,"3.0":2.01},"lead":{"1.0":0.01,"2.0":0.01,"3.0":0.01},"compA":{"1.0":0.17,"2.0":0.28,"3.0":0.4}},"act":{"bass":-22,"snare":-10.2,"lead":-20.7,"compA":-19.6}},"chorus":{"parts":["compA","bass"],"mk":{"compA":{"1.0":-0.41,"2.0":-1.02,"3.0":-1.99,"1.1":-0.38,"2.1":-0.98,"3.1":-1.95,"1.2":-0.38,"2.2":-0.97,"3.2":-1.94},"bass":{"1.0":-0.19,"2.0":-0.55,"3.0":-1.18,"1.1":-0.17,"2.1":-0.52,"3.1":-1.14,"1.2":-0.26,"2.2":-0.65,"3.2":-1.31}},"act":{"compA":-4,"bass":-6.3}},"echo":{"parts":["lead","color","snare","compA"],"mk":{"lead":{"1.0":-0.15,"2.0":-0.29,"3.0":-0.54,"1.1":-0.22,"2.1":-0.39,"3.1":-0.64,"1.2":-0.19,"2.2":-0.35,"3.2":-0.59,"1.3":-0.17,"2.3":-0.33,"3.3":-0.56},"color":{"1.0":-0.22,"2.0":-0.4,"3.0":-0.66,"1.1":-0.15,"2.1":-0.3,"3.1":-0.55,"1.2":-0.17,"2.2":-0.31,"3.2":-0.54,"1.3":-0.19,"2.3":-0.33,"3.3":-0.55},"snare":{"1.0":-0.15,"2.0":-0.28,"3.0":-0.46,"1.1":-0.15,"2.1":-0.28,"3.1":-0.45,"1.2":-0.15,"2.2":-0.28,"3.2":-0.46,"1.3":-0.16,"2.3":-0.29,"3.3":-0.48},"compA":{"1.0":-0.2,"2.0":-0.35,"3.0":-0.56,"1.1":-0.16,"2.1":-0.31,"3.1":-0.55,"1.2":-0.24,"2.2":-0.39,"3.2":-0.62,"1.3":0.02,"2.3":-0.04,"3.3":-0.16}},"act":{"lead":-8.8,"color":-8.9,"snare":-9.5,"compA":-8.9}},"plate":{"parts":["snare","lead","pad","color","compA","hats"],"mk":{"snare":{"1.0":-1.08,"2.0":-4.24,"3.0":-8.76},"lead":{"1.0":-0.9,"2.0":-3.8,"3.0":-8.83},"pad":{"1.0":-0.11,"2.0":-3.35,"3.0":-7.19},"color":{"1.0":-0.22,"2.0":-3.3,"3.0":-7.94},"compA":{"1.0":-0.3,"2.0":-2.87,"3.0":-6.79},"hats":{"1.0":-0.13,"2.0":-2.76,"3.0":-11.41}},"act":{"snare":0.8,"lead":0.6,"pad":-0.1,"color":-0.3,"compA":-0.8,"hats":1.5}},"gate":{"parts":["snare","ePerc"],"mk":{"snare":{"1.0":-2.97,"2.0":-5.89,"3.0":-9.24},"ePerc":{"1.0":-0.72,"2.0":-1.75,"3.0":-3.31}},"act":{"snare":1,"ePerc":-2.5}}},"3":{"sat":{"parts":["bass","snare","lead","compA"],"mk":{"bass":{"1.0":0.51,"2.0":0.81,"3.0":1.11},"snare":{"1.0":0.89,"2.0":1.31,"3.0":1.69},"lead":{"1.0":0.01,"2.0":0.01,"3.0":0.01},"compA":{"1.0":0.22,"2.0":0.36,"3.0":0.51}},"act":{"bass":-15.9,"snare":-9.9,"lead":-23,"compA":-18.9}},"chorus":{"parts":["compA","bass"],"mk":{"compA":{"1.0":-0.33,"2.0":-0.91,"3.0":-1.87,"1.1":-0.34,"2.1":-0.91,"3.1":-1.87,"1.2":-0.5,"2.2":-1.14,"3.2":-2.15},"bass":{"1.0":-0.17,"2.0":-0.41,"3.0":-0.8,"1.1":-0.17,"2.1":-0.41,"3.1":-0.8,"1.2":-0.18,"2.2":-0.41,"3.2":-0.8}},"act":{"compA":-3.9,"bass":-10.9}},"echo":{"parts":["lead","snare","compA","arp"],"mk":{"lead":{"1.0":-0.31,"2.0":-0.51,"3.0":-0.78,"1.1":-0.17,"2.1":-0.32,"3.1":-0.57,"1.2":-0.19,"2.2":-0.36,"3.2":-0.63,"1.3":-0.16,"2.3":-0.31,"3.3":-0.55},"snare":{"1.0":-0.15,"2.0":-0.28,"3.0":-0.46,"1.1":-0.15,"2.1":-0.28,"3.1":-0.46,"1.2":-0.15,"2.2":-0.28,"3.2":-0.46,"1.3":-0.15,"2.3":-0.28,"3.3":-0.46},"compA":{"1.0":-0.44,"2.0":-0.67,"3.0":-0.98,"1.1":-0.16,"2.1":-0.3,"3.1":-0.55,"1.2":-0.19,"2.2":-0.34,"3.2":-0.58,"1.3":-0.16,"2.3":-0.31,"3.3":-0.54},"arp":{"1.0":-0.19,"2.0":-0.36,"3.0":-0.61,"1.1":-0.15,"2.1":-0.3,"3.1":-0.53,"1.2":-0.18,"2.2":-0.33,"3.2":-0.57,"1.3":-0.17,"2.3":-0.32,"3.3":-0.54}},"act":{"lead":-9.1,"snare":-9.5,"compA":-8.8,"arp":-8.9}},"plate":{"parts":["snare","lead","pad","compA","percAccent","arp","hats"],"mk":{"snare":{"1.0":-2.25,"2.0":-4.9,"3.0":-9.67},"lead":{"1.0":-0.89,"2.0":-2.92,"3.0":-7.16},"pad":{"1.0":-0.37,"2.0":-1.51,"3.0":-2.83},"compA":{"1.0":-2.12,"2.0":-5.64,"3.0":-10.95},"percAccent":{"1.0":-0.76,"2.0":-2.85,"3.0":-7.44},"arp":{"1.0":-1.31,"2.0":-4.06,"3.0":-9.26},"hats":{"1.0":-0.01,"2.0":-0.26,"3.0":-2.93}},"act":{"snare":1.1,"lead":-0.1,"pad":-1.6,"compA":1,"percAccent":0.6,"arp":1,"hats":-2.4}},"gate":{"parts":["snare"],"mk":{"snare":{"1.0":-3.56,"2.0":-6.77,"3.0":-9.93}},"act":{"snare":1.3}}},"4":{"sat":{"parts":["bass","snare","lead","compA"],"mk":{"bass":{"1.0":0.88,"2.0":1.4,"3.0":1.92},"snare":{"1.0":1.28,"2.0":1.89,"3.0":2.43},"lead":{"1.0":0.04,"2.0":0.07,"3.0":0.09},"compA":{"1.0":0.23,"2.0":0.36,"3.0":0.51}},"act":{"bass":-14.3,"snare":-9.8,"lead":-21.3,"compA":-18.8}},"chorus":{"parts":["compA","bass"],"mk":{"compA":{"1.0":-0.26,"2.0":-0.8,"3.0":-1.74,"1.1":-0.26,"2.1":-0.8,"3.1":-1.73,"1.2":-0.51,"2.2":-1.16,"3.2":-2.17},"bass":{"1.0":-0.31,"2.0":-0.79,"3.0":-1.57,"1.1":-0.27,"2.1":-0.72,"3.1":-1.49,"1.2":-0.18,"2.2":-0.59,"3.2":-1.33}},"act":{"compA":-3.7,"bass":-5}},"echo":{"parts":["lead","snare","compA"],"mk":{"lead":{"1.0":-0.07,"2.0":-0.16,"3.0":-0.34,"1.1":-0.23,"2.1":-0.43,"3.1":-0.74,"1.2":-0.12,"2.2":-0.26,"3.2":-0.5,"1.3":-0.23,"2.3":-0.42,"3.3":-0.71},"snare":{"1.0":-0.14,"2.0":-0.26,"3.0":-0.43,"1.1":-0.14,"2.1":-0.25,"3.1":-0.39,"1.2":-0.14,"2.2":-0.26,"3.2":-0.43,"1.3":-0.21,"2.3":-0.38,"3.3":-0.6},"compA":{"1.0":-0.15,"2.0":-0.4,"3.0":-0.79,"1.1":-0.06,"2.1":-0.19,"3.1":-0.45,"1.2":-0.1,"2.2":-0.25,"3.2":-0.51,"1.3":-0.29,"2.3":-0.48,"3.3":-0.75}},"act":{"lead":-8.6,"snare":-9.2,"compA":-8}},"plate":{"parts":["snare","lead","pad","compA","hats"],"mk":{"snare":{"1.0":-0.32,"2.0":-2.69,"3.0":-7.03},"lead":{"1.0":-0.63,"2.0":-1.97,"3.0":-4.9},"pad":{"1.0":-0.01,"2.0":-1,"3.0":-5.43},"compA":{"1.0":0.01,"2.0":-1.34,"3.0":-2.99},"hats":{"1.0":-0.27,"2.0":-2.3,"3.0":-6.84}},"act":{"snare":-0.5,"lead":-1.5,"pad":0.6,"compA":-1.4,"hats":0.7}},"gate":{"parts":["snare"],"mk":{"snare":{"1.0":-1.45,"2.0":-3.55,"3.0":-6.44}},"act":{"snare":-0.4}}},"5":{"sat":{"parts":["bass","snare","rhythmGtr","lead","compA"],"mk":{"bass":{"1.0":0.32,"2.0":0.53,"3.0":0.74},"snare":{"1.0":1.36,"2.0":1.97,"3.0":2.51},"rhythmGtr":{"1.0":0.13,"2.0":0.2,"3.0":0.28},"lead":{"1.0":0.04,"2.0":0.07,"3.0":0.09},"compA":{"1.0":0.24,"2.0":0.38,"3.0":0.54}},"act":{"bass":-18.2,"snare":-9.6,"rhythmGtr":-19.7,"lead":-22.6,"compA":-18.7}},"chorus":{"parts":["compA","rhythmGtr"],"mk":{"compA":{"1.0":-0.37,"2.0":-0.96,"3.0":-1.92,"1.1":-0.36,"2.1":-0.94,"3.1":-1.91,"1.2":-0.48,"2.2":-1.12,"3.2":-2.12},"rhythmGtr":{"1.0":-0.35,"2.0":-0.93,"3.0":-1.89,"1.1":-0.29,"2.1":-0.85,"3.1":-1.79,"1.2":-0.49,"2.2":-1.13,"3.2":-2.13}},"act":{"compA":-3.9,"rhythmGtr":-3.8}},"echo":{"parts":["lead","counter","color","rhythmGtr","snare","compA"],"mk":{"lead":{"1.0":-0.35,"2.0":-0.52,"3.0":-0.75,"1.1":-0.16,"2.1":-0.32,"3.1":-0.55,"1.2":-0.1,"2.2":-0.23,"3.2":-0.44,"1.3":-0.15,"2.3":-0.28,"3.3":-0.49},"counter":{"1.0":0.06,"2.0":0.01,"3.0":-0.11,"1.1":-0.18,"2.1":-0.34,"3.1":-0.59,"1.2":-0.17,"2.2":-0.33,"3.2":-0.57,"1.3":-0.17,"2.3":-0.32,"3.3":-0.57},"color":{"1.0":-0.16,"2.0":-0.27,"3.0":-0.44,"1.1":-0.12,"2.1":-0.26,"3.1":-0.5,"1.2":-0.17,"2.2":-0.32,"3.2":-0.57,"1.3":-0.18,"2.3":-0.34,"3.3":-0.59},"rhythmGtr":{"1.0":-0.17,"2.0":-0.32,"3.0":-0.55,"1.1":-0.17,"2.1":-0.32,"3.1":-0.56,"1.2":-0.17,"2.2":-0.33,"3.2":-0.57,"1.3":-0.12,"2.3":-0.26,"3.3":-0.48},"snare":{"1.0":-0.18,"2.0":-0.32,"3.0":-0.55,"1.1":-0.17,"2.1":-0.32,"3.1":-0.56,"1.2":-0.11,"2.2":-0.25,"3.2":-0.47,"1.3":-0.21,"2.3":-0.39,"3.3":-0.64},"compA":{"1.0":-0.22,"2.0":-0.4,"3.0":-0.66,"1.1":-0.15,"2.1":-0.28,"3.1":-0.48,"1.2":-0.13,"2.2":-0.27,"3.2":-0.5,"1.3":-0.16,"2.3":-0.31,"3.3":-0.56}},"act":{"lead":-9.1,"counter":-9,"color":-8.8,"rhythmGtr":-9.1,"snare":-8.4,"compA":-9}},"plate":{"parts":["snare","lead","pad","color","compA","counter","rhythmGtr","hats"],"mk":{"snare":{"1.0":-0.17,"2.0":-1.87,"3.0":-5.54},"lead":{"1.0":-0.67,"2.0":-1.96,"3.0":-5.31},"pad":{"1.0":-0.61,"2.0":-4.12,"3.0":-8.42},"color":{"1.0":-0.42,"2.0":-3.48,"3.0":-7.3},"compA":{"1.0":-1.08,"2.0":-3.74,"3.0":-8.45},"counter":{"1.0":-0.23,"2.0":-3.63,"3.0":-7.97},"rhythmGtr":{"1.0":-1.14,"2.0":-3.63,"3.0":-8},"hats":{"1.0":-0.42,"2.0":-3.55,"3.0":-9.59}},"act":{"snare":-2.2,"lead":-1.1,"pad":1.5,"color":-0.7,"compA":-0.3,"counter":-1.2,"rhythmGtr":1,"hats":1.1}},"gate":{"parts":["snare"],"mk":{"snare":{"1.0":-0.95,"2.0":-2.45,"3.0":-4.75}},"act":{"snare":-2}}}}, MONITOR_DB = -3;
+  var SHA = "d0c06a5", SONGS = [{"hash":"1d8209c51fb10ad9df5bca30cf892159b2296d9a398df0d3844e711517afac69","label":"Funk, guitar and synth bass","trim":1.2,"mp":null},{"hash":"c5929dc31f85e83e3780f150ae87b5bebfa301667297cdd344daef4165ca477e","label":"Synth pop, guitar and bass guitar, lead and counter line","trim":-2.5,"mp":{"samplerMakeupDb":{"lead":2.85}}},{"hash":"be7896b944aea0ae27a86b076a93e865a1a28e0dffb2b95e52bd90f61a58d6a8","label":"Synth pop, electronic drums, pad and color","trim":-3.6,"mp":{"samplerMakeupDb":{"compA":-0.22}}},{"hash":"99d4e4d5d280b8a102e689d38fbf4bb7301bef46784a9ef5e47c07908d4d62bf","label":"Early hip hop, drum machine and percussion","trim":-5.6,"mp":null},{"hash":"b020d0632850d1368c6673f1890cae427c467f6bd994e4128154140bdb126802","label":"New wave, bass guitar and pad","trim":-0.8,"mp":null},{"hash":"d60efc190ffeefcc11fee8c0214d90ca97123373de8c2c79e8f499a2d5a85b2b","label":"Synth R&B, guitar, bass guitar and color","trim":-1.6,"mp":{"samplerMakeupDb":{"color":-3.53}}}], TABLE = {"0":{"sat":{"parts":["bass","snare","rhythmGtr","lead","compA"],"mk":{"bass":{"1.0":0.46,"2.0":0.72,"3.0":0.99},"snare":{"1.0":1.27,"2.0":1.86,"3.0":2.41},"rhythmGtr":{"1.0":0.04,"2.0":0.06,"3.0":0.08},"lead":{"1.0":0.06,"2.0":0.1,"3.0":0.14},"compA":{"1.0":0.28,"2.0":0.45,"3.0":0.62}},"act":{"bass":-16.5,"snare":-9.8,"rhythmGtr":-23.8,"lead":-22.5,"compA":-17.8}},"chorus":{"parts":["compA","rhythmGtr","bass","lead"],"mk":{"compA":{"1.0":-0.29,"2.0":-0.85,"3.0":-1.79,"1.1":-0.34,"2.1":-0.93,"3.1":-1.89,"1.2":-0.6,"2.2":-1.3,"3.2":-2.33},"rhythmGtr":{"1.0":-0.28,"2.0":-0.83,"3.0":-1.77,"1.1":-0.32,"2.1":-0.89,"3.1":-1.84,"1.2":-0.5,"2.2":-1.16,"3.2":-2.16},"bass":{"1.0":-0.07,"2.0":-0.13,"3.0":-0.22,"1.1":-0.07,"2.1":-0.13,"3.1":-0.22,"1.2":-0.08,"2.2":-0.15,"3.2":-0.25},"lead":{"1.0":-0.3,"2.0":-0.87,"3.0":-1.81,"1.1":-0.51,"2.1":-1.17,"3.1":-2.18,"1.2":-0.27,"2.2":-0.81,"3.2":-1.75}},"act":{"compA":-3.8,"rhythmGtr":-3.8,"bass":-21.7,"lead":-3.8}},"echo":{"parts":["lead","color","rhythmGtr","snare","compA","arp"],"mk":{"lead":{"1.0":-0.61,"2.0":-0.84,"3.0":-1.09,"1.1":-0.34,"2.1":-0.52,"3.1":-0.77,"1.2":-0.16,"2.2":-0.29,"3.2":-0.48,"1.3":-0.16,"2.3":-0.3,"3.3":-0.52},"color":{"1.0":-0.22,"2.0":-0.41,"3.0":-0.7,"1.1":-0.18,"2.1":-0.33,"3.1":-0.58,"1.2":-0.17,"2.2":-0.33,"3.2":-0.57,"1.3":-0.17,"2.3":-0.33,"3.3":-0.57},"rhythmGtr":{"1.0":0.16,"2.0":0.09,"3.0":-0.07,"1.1":-0.31,"2.1":-0.49,"3.1":-0.76,"1.2":-0.16,"2.2":-0.31,"3.2":-0.56,"1.3":-0.14,"2.3":-0.28,"3.3":-0.52},"snare":{"1.0":-0.13,"2.0":-0.25,"3.0":-0.42,"1.1":-0.14,"2.1":-0.24,"3.1":-0.38,"1.2":-0.14,"2.2":-0.26,"3.2":-0.43,"1.3":-0.22,"2.3":-0.42,"3.3":-0.67},"compA":{"1.0":0.31,"2.0":0.33,"3.0":0.24,"1.1":-0.13,"2.1":-0.25,"3.1":-0.46,"1.2":-0.1,"2.2":-0.22,"3.2":-0.4,"1.3":-0.11,"2.3":-0.24,"3.3":-0.45},"arp":{"1.0":-0.12,"2.0":-0.2,"3.0":-0.32,"1.1":-0.25,"2.1":-0.4,"3.1":-0.59,"1.2":-0.13,"2.2":-0.26,"3.2":-0.46,"1.3":0.02,"2.3":-0.07,"3.3":-0.27}},"act":{"lead":-9.2,"color":-8.7,"rhythmGtr":-8.8,"snare":-9.4,"compA":-8.2,"arp":-9.3}},"plate":{"parts":["snare","lead","color","compA","rhythmGtr","arp","hats"],"mk":{"snare":{"1.0":-0.23,"2.0":-2.45,"3.0":-7.23},"lead":{"1.0":-0.42,"2.0":-0.18,"3.0":-2.79},"color":{"1.0":-0.56,"2.0":-1.79,"3.0":-5.75},"compA":{"1.0":-0.47,"2.0":-0.99,"3.0":-3.89},"rhythmGtr":{"1.0":-0.37,"2.0":-1.08,"3.0":-4.26},"arp":{"1.0":-0.16,"2.0":-1.15,"3.0":-3.91},"hats":{"1.0":-0.25,"2.0":-3.17,"3.0":-9.21}},"act":{"snare":-0.6,"lead":-4.9,"color":-0.7,"compA":-1,"rhythmGtr":-2.3,"arp":-2,"hats":1}},"gate":{"parts":["snare"],"mk":{"snare":{"1.0":-1.54,"2.0":-3.61,"3.0":-6.34}},"act":{"snare":-0.3}}},"1":{"sat":{"parts":["bass","snare","rhythmGtr","lead","compA"],"mk":{"bass":{"1.0":1.02,"2.0":1.62,"3.0":2.22},"snare":{"1.0":1.39,"2.0":2,"3.0":2.54},"rhythmGtr":{"1.0":0.07,"2.0":0.12,"3.0":0.16},"lead":{"1.0":0.03,"2.0":0.05,"3.0":0.06},"compA":{"1.0":0.15,"2.0":0.25,"3.0":0.35}},"act":{"bass":-14,"snare":-9.4,"rhythmGtr":-21.4,"lead":-22,"compA":-19.8}},"chorus":{"parts":["compA","rhythmGtr","counter","bass","lead"],"mk":{"compA":{"1.0":-0.36,"2.0":-0.94,"3.0":-1.9,"1.1":-0.35,"2.1":-0.93,"3.1":-1.89,"1.2":-0.52,"2.2":-1.18,"3.2":-2.19},"rhythmGtr":{"1.0":-0.38,"2.0":-0.98,"3.0":-1.95,"1.1":-0.36,"2.1":-0.95,"3.1":-1.92,"1.2":-0.51,"2.2":-1.17,"3.2":-2.17},"counter":{"1.0":-0.09,"2.0":-0.55,"3.0":-1.42,"1.1":-0.01,"2.1":-0.42,"3.1":-1.28,"1.2":-0.04,"2.2":-0.48,"3.2":-1.35},"bass":{"1.0":-0.19,"2.0":-0.49,"3.0":-1.01,"1.1":-0.19,"2.1":-0.48,"3.1":-0.99,"1.2":0.2,"2.2":0.14,"3.2":-0.15},"lead":{"1.0":-0.4,"2.0":-1.01,"3.0":-1.98,"1.1":-0.44,"2.1":-1.06,"3.1":-2.04,"1.2":-0.35,"2.2":-0.94,"3.2":-1.9}},"act":{"compA":-3.9,"rhythmGtr":-4,"counter":-3.3,"bass":-6.5,"lead":-3.9}},"echo":{"parts":["lead","counter","rhythmGtr","snare","compA","arp"],"mk":{"lead":{"1.0":-0.39,"2.0":-0.58,"3.0":-0.82,"1.1":-0.19,"2.1":-0.34,"3.1":-0.58,"1.2":-0.17,"2.2":-0.33,"3.2":-0.57,"1.3":-0.18,"2.3":-0.34,"3.3":-0.58},"counter":{"1.0":-0.16,"2.0":-0.29,"3.0":-0.5,"1.1":-0.18,"2.1":-0.33,"3.1":-0.56,"1.2":-0.17,"2.2":-0.31,"3.2":-0.54,"1.3":-0.17,"2.3":-0.32,"3.3":-0.56},"rhythmGtr":{"1.0":-0.1,"2.0":-0.21,"3.0":-0.39,"1.1":-0.18,"2.1":-0.33,"3.1":-0.55,"1.2":-0.17,"2.2":-0.32,"3.2":-0.55,"1.3":-0.13,"2.3":-0.27,"3.3":-0.51},"snare":{"1.0":-0.16,"2.0":-0.28,"3.0":-0.47,"1.1":-0.16,"2.1":-0.29,"3.1":-0.48,"1.2":-0.16,"2.2":-0.29,"3.2":-0.47,"1.3":-0.16,"2.3":-0.3,"3.3":-0.5},"compA":{"1.0":-0.08,"2.0":-0.16,"3.0":-0.31,"1.1":-0.16,"2.1":-0.31,"3.1":-0.54,"1.2":-0.16,"2.2":-0.3,"3.2":-0.54,"1.3":-0.18,"2.3":-0.33,"3.3":-0.58},"arp":{"1.0":-0.18,"2.0":-0.34,"3.0":-0.59,"1.1":-0.15,"2.1":-0.3,"3.1":-0.55,"1.2":-0.16,"2.2":-0.32,"3.2":-0.56,"1.3":-0.19,"2.3":-0.35,"3.3":-0.59}},"act":{"lead":-9.1,"counter":-9,"rhythmGtr":-9,"snare":-9.4,"compA":-8.8,"arp":-8.8}},"plate":{"parts":["snare","lead","compA","counter","rhythmGtr","arp","hats"],"mk":{"snare":{"1.0":-1.25,"2.0":-4.2,"3.0":-8.96},"lead":{"1.0":-0.48,"2.0":-2.48,"3.0":-6.25},"compA":{"1.0":-0.4,"2.0":-2.31,"3.0":-6},"counter":{"1.0":-0.27,"2.0":-1.06,"3.0":-3.41},"rhythmGtr":{"1.0":-0.81,"2.0":-1.73,"3.0":-6.15},"arp":{"1.0":-0.62,"2.0":-2.24,"3.0":-5.98},"hats":{"1.0":-0.35,"2.0":-2.22,"3.0":-6.76}},"act":{"snare":0.8,"lead":-1.5,"compA":-1.4,"counter":-1,"rhythmGtr":-0.8,"arp":-0.5,"hats":0.8}},"gate":{"parts":["snare"],"mk":{"snare":{"1.0":-2.64,"2.0":-5.64,"3.0":-8.92}},"act":{"snare":0.9}}},"2":{"sat":{"parts":["bass","snare","lead","compA"],"mk":{"bass":{"1.0":0.15,"2.0":0.24,"3.0":0.34},"snare":{"1.0":1.07,"2.0":1.57,"3.0":2.01},"lead":{"1.0":0.01,"2.0":0.01,"3.0":0.01},"compA":{"1.0":0.17,"2.0":0.28,"3.0":0.4}},"act":{"bass":-22,"snare":-10.2,"lead":-20.7,"compA":-19.6}},"chorus":{"parts":["compA","bass"],"mk":{"compA":{"1.0":-0.41,"2.0":-1.02,"3.0":-1.99,"1.1":-0.38,"2.1":-0.98,"3.1":-1.95,"1.2":-0.38,"2.2":-0.97,"3.2":-1.94},"bass":{"1.0":-0.19,"2.0":-0.55,"3.0":-1.18,"1.1":-0.17,"2.1":-0.52,"3.1":-1.14,"1.2":-0.26,"2.2":-0.65,"3.2":-1.31}},"act":{"compA":-4,"bass":-6.3}},"echo":{"parts":["lead","color","snare","compA"],"mk":{"lead":{"1.0":-0.15,"2.0":-0.29,"3.0":-0.54,"1.1":-0.22,"2.1":-0.39,"3.1":-0.64,"1.2":-0.19,"2.2":-0.35,"3.2":-0.59,"1.3":-0.17,"2.3":-0.33,"3.3":-0.56},"color":{"1.0":-0.22,"2.0":-0.4,"3.0":-0.66,"1.1":-0.15,"2.1":-0.3,"3.1":-0.55,"1.2":-0.17,"2.2":-0.31,"3.2":-0.54,"1.3":-0.19,"2.3":-0.33,"3.3":-0.55},"snare":{"1.0":-0.15,"2.0":-0.28,"3.0":-0.46,"1.1":-0.15,"2.1":-0.28,"3.1":-0.45,"1.2":-0.15,"2.2":-0.28,"3.2":-0.46,"1.3":-0.16,"2.3":-0.29,"3.3":-0.48},"compA":{"1.0":-0.2,"2.0":-0.35,"3.0":-0.56,"1.1":-0.16,"2.1":-0.31,"3.1":-0.55,"1.2":-0.24,"2.2":-0.39,"3.2":-0.62,"1.3":0.02,"2.3":-0.04,"3.3":-0.16}},"act":{"lead":-8.8,"color":-8.9,"snare":-9.5,"compA":-8.9}},"plate":{"parts":["snare","lead","pad","color","compA","hats"],"mk":{"snare":{"1.0":-1.08,"2.0":-4.24,"3.0":-8.76},"lead":{"1.0":-0.9,"2.0":-3.8,"3.0":-8.83},"pad":{"1.0":-0.11,"2.0":-3.35,"3.0":-7.19},"color":{"1.0":-0.22,"2.0":-3.3,"3.0":-7.94},"compA":{"1.0":-0.3,"2.0":-2.87,"3.0":-6.79},"hats":{"1.0":-0.13,"2.0":-2.76,"3.0":-11.41}},"act":{"snare":0.8,"lead":0.6,"pad":-0.1,"color":-0.3,"compA":-0.8,"hats":1.5}},"gate":{"parts":["snare","ePerc"],"mk":{"snare":{"1.0":-2.97,"2.0":-5.89,"3.0":-9.24},"ePerc":{"1.0":-0.72,"2.0":-1.75,"3.0":-3.31}},"act":{"snare":1,"ePerc":-2.5}}},"3":{"sat":{"parts":["bass","snare","lead","compA"],"mk":{"bass":{"1.0":0.51,"2.0":0.81,"3.0":1.11},"snare":{"1.0":0.89,"2.0":1.31,"3.0":1.69},"lead":{"1.0":0.01,"2.0":0.01,"3.0":0.01},"compA":{"1.0":0.22,"2.0":0.36,"3.0":0.51}},"act":{"bass":-15.9,"snare":-9.9,"lead":-23,"compA":-18.9}},"chorus":{"parts":["compA","bass"],"mk":{"compA":{"1.0":-0.33,"2.0":-0.91,"3.0":-1.87,"1.1":-0.34,"2.1":-0.91,"3.1":-1.87,"1.2":-0.5,"2.2":-1.14,"3.2":-2.15},"bass":{"1.0":-0.17,"2.0":-0.41,"3.0":-0.8,"1.1":-0.17,"2.1":-0.41,"3.1":-0.8,"1.2":-0.18,"2.2":-0.41,"3.2":-0.8}},"act":{"compA":-3.9,"bass":-10.9}},"echo":{"parts":["lead","snare","compA","arp"],"mk":{"lead":{"1.0":-0.31,"2.0":-0.51,"3.0":-0.78,"1.1":-0.17,"2.1":-0.32,"3.1":-0.57,"1.2":-0.19,"2.2":-0.36,"3.2":-0.63,"1.3":-0.16,"2.3":-0.31,"3.3":-0.55},"snare":{"1.0":-0.15,"2.0":-0.28,"3.0":-0.46,"1.1":-0.15,"2.1":-0.28,"3.1":-0.46,"1.2":-0.15,"2.2":-0.28,"3.2":-0.46,"1.3":-0.15,"2.3":-0.28,"3.3":-0.46},"compA":{"1.0":-0.44,"2.0":-0.67,"3.0":-0.98,"1.1":-0.16,"2.1":-0.3,"3.1":-0.55,"1.2":-0.19,"2.2":-0.34,"3.2":-0.58,"1.3":-0.16,"2.3":-0.31,"3.3":-0.54},"arp":{"1.0":-0.19,"2.0":-0.36,"3.0":-0.61,"1.1":-0.15,"2.1":-0.3,"3.1":-0.53,"1.2":-0.18,"2.2":-0.33,"3.2":-0.57,"1.3":-0.17,"2.3":-0.32,"3.3":-0.54}},"act":{"lead":-9.1,"snare":-9.5,"compA":-8.8,"arp":-8.9}},"plate":{"parts":["snare","lead","pad","compA","percAccent","arp","hats"],"mk":{"snare":{"1.0":-2.25,"2.0":-4.9,"3.0":-9.67},"lead":{"1.0":-0.89,"2.0":-2.92,"3.0":-7.16},"pad":{"1.0":-0.37,"2.0":-1.51,"3.0":-2.83},"compA":{"1.0":-2.12,"2.0":-5.64,"3.0":-10.95},"percAccent":{"1.0":-0.76,"2.0":-2.85,"3.0":-7.44},"arp":{"1.0":-1.31,"2.0":-4.06,"3.0":-9.26},"hats":{"1.0":-0.01,"2.0":-0.26,"3.0":-2.93}},"act":{"snare":1.1,"lead":-0.1,"pad":-1.6,"compA":1,"percAccent":0.6,"arp":1,"hats":-2.4}},"gate":{"parts":["snare"],"mk":{"snare":{"1.0":-3.56,"2.0":-6.77,"3.0":-9.93}},"act":{"snare":1.3}}},"4":{"sat":{"parts":["bass","snare","lead","compA"],"mk":{"bass":{"1.0":0.88,"2.0":1.4,"3.0":1.92},"snare":{"1.0":1.28,"2.0":1.89,"3.0":2.43},"lead":{"1.0":0.04,"2.0":0.07,"3.0":0.09},"compA":{"1.0":0.23,"2.0":0.36,"3.0":0.51}},"act":{"bass":-14.3,"snare":-9.8,"lead":-21.3,"compA":-18.8}},"chorus":{"parts":["compA","bass"],"mk":{"compA":{"1.0":-0.26,"2.0":-0.8,"3.0":-1.74,"1.1":-0.26,"2.1":-0.8,"3.1":-1.73,"1.2":-0.51,"2.2":-1.16,"3.2":-2.17},"bass":{"1.0":-0.31,"2.0":-0.79,"3.0":-1.57,"1.1":-0.27,"2.1":-0.72,"3.1":-1.49,"1.2":-0.18,"2.2":-0.59,"3.2":-1.33}},"act":{"compA":-3.7,"bass":-5}},"echo":{"parts":["lead","snare","compA"],"mk":{"lead":{"1.0":-0.07,"2.0":-0.16,"3.0":-0.34,"1.1":-0.23,"2.1":-0.43,"3.1":-0.74,"1.2":-0.12,"2.2":-0.26,"3.2":-0.5,"1.3":-0.23,"2.3":-0.42,"3.3":-0.71},"snare":{"1.0":-0.14,"2.0":-0.26,"3.0":-0.43,"1.1":-0.14,"2.1":-0.25,"3.1":-0.39,"1.2":-0.14,"2.2":-0.26,"3.2":-0.43,"1.3":-0.21,"2.3":-0.38,"3.3":-0.6},"compA":{"1.0":-0.15,"2.0":-0.4,"3.0":-0.79,"1.1":-0.06,"2.1":-0.19,"3.1":-0.45,"1.2":-0.1,"2.2":-0.25,"3.2":-0.51,"1.3":-0.29,"2.3":-0.48,"3.3":-0.75}},"act":{"lead":-8.6,"snare":-9.2,"compA":-8}},"plate":{"parts":["snare","lead","pad","compA","hats"],"mk":{"snare":{"1.0":-0.32,"2.0":-2.69,"3.0":-7.03},"lead":{"1.0":-0.63,"2.0":-1.97,"3.0":-4.9},"pad":{"1.0":-0.01,"2.0":-1,"3.0":-5.43},"compA":{"1.0":0.01,"2.0":-1.34,"3.0":-2.99},"hats":{"1.0":-0.27,"2.0":-2.3,"3.0":-6.84}},"act":{"snare":-0.5,"lead":-1.5,"pad":0.6,"compA":-1.4,"hats":0.7}},"gate":{"parts":["snare"],"mk":{"snare":{"1.0":-1.45,"2.0":-3.55,"3.0":-6.44}},"act":{"snare":-0.4}}},"5":{"sat":{"parts":["bass","snare","rhythmGtr","lead","compA"],"mk":{"bass":{"1.0":0.32,"2.0":0.53,"3.0":0.74},"snare":{"1.0":1.36,"2.0":1.97,"3.0":2.51},"rhythmGtr":{"1.0":0.13,"2.0":0.2,"3.0":0.28},"lead":{"1.0":0.04,"2.0":0.07,"3.0":0.09},"compA":{"1.0":0.24,"2.0":0.38,"3.0":0.54}},"act":{"bass":-18.2,"snare":-9.6,"rhythmGtr":-19.7,"lead":-22.6,"compA":-18.7}},"chorus":{"parts":["compA","rhythmGtr"],"mk":{"compA":{"1.0":-0.37,"2.0":-0.96,"3.0":-1.92,"1.1":-0.36,"2.1":-0.94,"3.1":-1.91,"1.2":-0.48,"2.2":-1.12,"3.2":-2.12},"rhythmGtr":{"1.0":-0.35,"2.0":-0.93,"3.0":-1.89,"1.1":-0.29,"2.1":-0.85,"3.1":-1.79,"1.2":-0.49,"2.2":-1.13,"3.2":-2.13}},"act":{"compA":-3.9,"rhythmGtr":-3.8}},"echo":{"parts":["lead","counter","color","rhythmGtr","snare","compA"],"mk":{"lead":{"1.0":-0.35,"2.0":-0.52,"3.0":-0.75,"1.1":-0.16,"2.1":-0.32,"3.1":-0.55,"1.2":-0.1,"2.2":-0.23,"3.2":-0.44,"1.3":-0.15,"2.3":-0.28,"3.3":-0.49},"counter":{"1.0":0.06,"2.0":0.01,"3.0":-0.11,"1.1":-0.18,"2.1":-0.34,"3.1":-0.59,"1.2":-0.17,"2.2":-0.33,"3.2":-0.57,"1.3":-0.17,"2.3":-0.32,"3.3":-0.57},"color":{"1.0":-0.16,"2.0":-0.27,"3.0":-0.44,"1.1":-0.12,"2.1":-0.26,"3.1":-0.5,"1.2":-0.17,"2.2":-0.32,"3.2":-0.57,"1.3":-0.18,"2.3":-0.34,"3.3":-0.59},"rhythmGtr":{"1.0":-0.17,"2.0":-0.32,"3.0":-0.55,"1.1":-0.17,"2.1":-0.32,"3.1":-0.56,"1.2":-0.17,"2.2":-0.33,"3.2":-0.57,"1.3":-0.12,"2.3":-0.26,"3.3":-0.48},"snare":{"1.0":-0.18,"2.0":-0.32,"3.0":-0.55,"1.1":-0.17,"2.1":-0.32,"3.1":-0.56,"1.2":-0.11,"2.2":-0.25,"3.2":-0.47,"1.3":-0.21,"2.3":-0.39,"3.3":-0.64},"compA":{"1.0":-0.22,"2.0":-0.4,"3.0":-0.66,"1.1":-0.15,"2.1":-0.28,"3.1":-0.48,"1.2":-0.13,"2.2":-0.27,"3.2":-0.5,"1.3":-0.16,"2.3":-0.31,"3.3":-0.56}},"act":{"lead":-9.1,"counter":-9,"color":-8.8,"rhythmGtr":-9.1,"snare":-8.4,"compA":-9}},"plate":{"parts":["snare","lead","pad","color","compA","counter","rhythmGtr","hats"],"mk":{"snare":{"1.0":-0.17,"2.0":-1.87,"3.0":-5.54},"lead":{"1.0":-0.67,"2.0":-1.96,"3.0":-5.31},"pad":{"1.0":-0.61,"2.0":-4.12,"3.0":-8.42},"color":{"1.0":-0.42,"2.0":-3.48,"3.0":-7.3},"compA":{"1.0":-1.08,"2.0":-3.74,"3.0":-8.45},"counter":{"1.0":-0.23,"2.0":-3.63,"3.0":-7.97},"rhythmGtr":{"1.0":-1.14,"2.0":-3.63,"3.0":-8},"hats":{"1.0":-0.42,"2.0":-3.55,"3.0":-9.59}},"act":{"snare":-2.2,"lead":-1.1,"pad":1.5,"color":-0.7,"compA":-0.3,"counter":-1.2,"rhythmGtr":1,"hats":1.1}},"gate":{"parts":["snare"],"mk":{"snare":{"1.0":-0.95,"2.0":-2.45,"3.0":-4.75}},"act":{"snare":-2}}}}, MONITOR_DB = -3;
   var RATE = 44100, LEAD = 0.05, EXCERPT_BARS = 8, X = 0.03;
   var ENTRIES = window.FX_ENTRIES;
   if (navigator.audioSession) try { navigator.audioSession.type = "playback"; } catch (e) {}
@@ -18263,21 +18263,25 @@
     return prepare(i).then(function (sg) {
       var e = ENTRIES[ei], parts = (TABLE[i] && TABLE[i][e.id]) ? TABLE[i][e.id].parts : candidates(sg, e), p = parts[0];
       if (!p) return { skip: true };
-      var len = Math.round(3 * sec * RATE);
+      // Heavy goes on over the part's busiest stretch of the loop (so there
+      // is something for it to act on), Off before and after it
+      var x0 = sg.stems[p].getChannelData(0), best = 0, bestE = -1, hop = RATE / 4;
+      for (var a0 = RATE; a0 + sec * RATE <= x0.length; a0 += hop) { var en = 0; for (var j0 = a0; j0 < a0 + sec * RATE; j0 += 4) en += x0[j0] * x0[j0]; if (en > bestE) { bestE = en; best = a0; } }
+      var h0 = best / RATE, h1 = h0 + sec, len = Math.round((h1 + sec) * RATE);
       var run = function (doSwitch) {
         var c = new OfflineAudioContext(2, len, RATE), pl = new Player(c, c.destination, sg, 0);
         pl.setPart(p, 0);
         if (doSwitch) {
-          c.suspend(sec).then(function () { pl.setFx(e, cfgFor(e, p, 3, 0, sg), makeup(sg, e, p, 3, 0) || 0, sec); if (pl.inst.inst.tick) pl.inst.inst.tick(0, sec, 3 * sec); c.resume(); });
-          c.suspend(2 * sec).then(function () { pl.setFx(null, null, null, 2 * sec); c.resume(); });
+          c.suspend(Math.ceil(h0 * RATE / 128) * 128 / RATE).then(function () { var t = c.currentTime; pl.setFx(e, cfgFor(e, p, 3, 0, sg), makeup(sg, e, p, 3, 0) || 0, t); if (pl.inst.inst.tick) pl.inst.inst.tick(0, t, h1 + sec); c.resume(); });
+          c.suspend(Math.ceil(h1 * RATE / 128) * 128 / RATE).then(function () { pl.setFx(null, null, null, c.currentTime); c.resume(); });
         }
         return c.startRendering();
       };
       return run(true).then(function (a) { return run(false).then(function (b) {
-        var pk = 0, r = 0, d = 0, wr = 0, from = Math.round((2 * sec + 0.1) * RATE);
+        var pk = 0, r = 0, d = 0, wr = 0, wd = 0, from = Math.round((h1 + 0.1) * RATE), hs = Math.round((h0 + 0.05) * RATE), he = Math.round(h1 * RATE);
         for (var ch = 0; ch < 2; ch++) { var x = a.getChannelData(ch), y = b.getChannelData(ch);
-          for (var j = 0; j < len; j++) { pk = Math.max(pk, Math.abs(x[j])); if (j >= from) { var q = x[j] - y[j]; r += q * q; d += y[j] * y[j]; } else if (j > sec * RATE && j < 2 * sec * RATE) { var w = x[j] - y[j]; wr += w * w; } } }
-        return { part: p, peak: pk, afterOffResidualDb: 10 * Math.log10(r / d + 1e-30), heavyDiffDb: 10 * Math.log10(wr / d + 1e-30) };
+          for (var j = 0; j < len; j++) { pk = Math.max(pk, Math.abs(x[j])); if (j >= from) { var q = x[j] - y[j]; r += q * q; d += y[j] * y[j]; } else if (j > hs && j < he) { var w = x[j] - y[j]; wr += w * w; wd += y[j] * y[j]; } } }
+        return { part: p, peak: pk, heavyAt: h0, afterOffResidualDb: 10 * Math.log10(r / d + 1e-30), heavyDiffDb: 10 * Math.log10(wr / wd + 1e-30) };
       }); });
     });
   }
