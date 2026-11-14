@@ -52,6 +52,12 @@
     start     treat this mint number as the last one seen; later ones queue (for testing)
     name      caption name, if the project's own name is not wanted
     settle    seconds to let a loaded piece draw before fading in (1.5)
+    refresh   hours of running after which the page refreshes itself (3; 0 turns this off).
+              Counted from when the page loaded. It happens only at an idle change, never
+              while a new mint is up or waiting, and only when the server can be reached.
+              The piece fades to black, the page reloads, a piece is back in about 3 s.
+              Some browsers (Safari) keep memory from every piece shown until the page
+              reloads; this gives it back. The once-a-day reload below stays as well.
 */
 const qs = new URLSearchParams(location.search);
 const num = (k, d) => { const v = parseFloat(qs.get(k)); return Number.isFinite(v) ? v : d; };
@@ -67,6 +73,7 @@ const CFG = {
   start:   qs.has("start") ? num("start", NaN) : NaN,
   name:    qs.get("name") || "",
   settleMs: num("settle", 1.5) * 1000,
+  refreshMs: Math.max(0, num("refresh", 3)) * 3600 * 1000,
 };
 const POLL_MS = 10000;          // look for new mints
 const POLL_BACKOFF_MS = 60000;  // after an API failure
@@ -101,15 +108,18 @@ window.__display = { get state() { return { current, queue: queue.slice(), lastS
 const mark = (type, extra) => { window.__display.events.push(Object.assign({ t: Date.now(), type }, extra)); if (window.__display.events.length > 500) window.__display.events.shift(); };
 
 // ---------- storage (may be unavailable on a local file; then it is skipped) ----------
-function save() {
+// Returns true when the state was stored and reads back (a self refresh relies on it).
+function save(selfReload) {
   try {
+    const at = Date.now();
     localStorage.setItem(STORE, JSON.stringify({
-      at: Date.now(), name: projectName,
+      at, name: projectName, selfReload: !!selfReload,
       // the highest mint already taken off the queue, so a reload does not lose waiting mints
       shownUpTo: queue.length ? queue[0] - 1 : lastSeen,
       tokens: [...tokens.values()],
     }));
-  } catch (e) {}
+    return JSON.parse(localStorage.getItem(STORE)).at === at;
+  } catch (e) { return false; }
 }
 function load() {
   try { return JSON.parse(localStorage.getItem(STORE) || "null"); } catch (e) { return null; }
@@ -265,15 +275,42 @@ function tick() {
   if (current.kind === "new") { if (age >= newDuration()) advance(); return; }
   // idle piece: a waiting new mint interrupts it, but not before 5 s on screen
   if (queue.length && age >= MIN_ON_SCREEN_MS) return advance();
-  // once a day, at an idle change, reload the page itself, but only right after the page
-  // was fetched from the server: a reload while the internet is down leaves the browser's
-  // own error page on the screen, and nothing on that page ever retries
-  const reloadDue = now - bootAt > RELOAD_AFTER_MS && !queue.length && navigator.onLine !== false;
+  // Reload the page itself (after `refresh` hours, and once a day regardless) at an idle
+  // change, but only right after the page was fetched from the server: a reload while the
+  // internet is down leaves the browser's own error page on the screen, and nothing on that
+  // page ever retries
+  const upMs = now - bootAt;
+  const reloadDue = (upMs > RELOAD_AFTER_MS || (CFG.refreshMs > 0 && upMs > CFG.refreshMs)) && !queue.length && navigator.onLine !== false;
   if (reloadDue && age >= CFG.idleMs - 15000) checkPage();
   if (age >= CFG.idleMs) {
-    if (reloadDue && apiOk && now - pageOkAt < 30000) { save(); location.reload(); return; }
+    // save() also proves storage works; without it a waiting mint could be lost, so no reload
+    if (reloadDue && apiOk && now - pageOkAt < 30000 && save()) return selfReload();
     advance();
   }
+}
+
+// Fade the piece on screen to black, then reload. A mint that turns up during the fade
+// cancels it: the piece fades back in and the mint goes next. Waiting mints are never
+// lost across the reload: save() records the last mint already shown, and the reloaded
+// page queues everything after it (see boot).
+async function selfReload() {
+  busy = true;
+  const layer = layers[front];
+  layer.classList.remove("on");
+  mark("refresh-fade");
+  await new Promise(r => setTimeout(r, FADE_MS + 100));
+  if (queue.length || !save(true)) {
+    log(queue.length ? "refresh put off: a new mint is waiting" : "refresh put off: storage unavailable");
+    mark("refresh-cancel");
+    layer.classList.add("on");
+    await new Promise(r => setTimeout(r, FADE_MS + 100));
+    if (current) current.shownAt = Date.now() - CFG.idleMs;  // change piece now
+    busy = false;
+    return;
+  }
+  log("refreshing the page after " + Math.round((Date.now() - bootAt) / 60000) + " min");
+  mark("refresh");
+  location.reload();
 }
 
 let pageOkAt = 0, pageCheckAt = 0;
@@ -438,11 +475,12 @@ document.getElementById("shield").addEventListener("dblclick", toggleFullscreen)
 // ---------- start ----------
 async function boot() {
   const saved = load();
-  let resumeFrom = NaN;
+  let resumeFrom = NaN, selfReloaded = false;
   if (saved && Array.isArray(saved.tokens)) {
     for (const t of saved.tokens) tokens.set(t.n, t);
     if (saved.name && !CFG.name) projectName = saved.name;
     if (Date.now() - saved.at < RESUME_WINDOW_MS && Number.isFinite(saved.shownUpTo)) resumeFrom = saved.shownUpTo;
+    if (saved.selfReload && Date.now() - saved.at < 60000) selfReloaded = true;
   }
   try {
     const [all] = await Promise.all([fetchAfter(-1), fetchName().catch(() => {})]);
@@ -454,7 +492,8 @@ async function boot() {
   }
   lastSeen = tokens.size ? Math.max(...tokens.keys()) : -1;
   // `start` in the link, or a reload a few minutes after the last run, puts later mints on the queue.
-  const from = Number.isFinite(CFG.start) ? CFG.start : resumeFrom;
+  // After the page's own refresh, `start` is not applied again (it would show mints twice).
+  const from = Number.isFinite(CFG.start) && !(selfReloaded && Number.isFinite(resumeFrom)) ? CFG.start : resumeFrom;
   if (Number.isFinite(from)) queue = [...tokens.keys()].filter(n => n > from).sort((a, b) => a - b);
   document.title = projectName;
   save();
