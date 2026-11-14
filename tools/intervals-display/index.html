@@ -265,11 +265,27 @@ function tick() {
   if (current.kind === "new") { if (age >= newDuration()) advance(); return; }
   // idle piece: a waiting new mint interrupts it, but not before 5 s on screen
   if (queue.length && age >= MIN_ON_SCREEN_MS) return advance();
+  // once a day, at an idle change, reload the page itself, but only right after the page
+  // was fetched from the server: a reload while the internet is down leaves the browser's
+  // own error page on the screen, and nothing on that page ever retries
+  const reloadDue = now - bootAt > RELOAD_AFTER_MS && !queue.length && navigator.onLine !== false;
+  if (reloadDue && age >= CFG.idleMs - 15000) checkPage();
   if (age >= CFG.idleMs) {
-    // once a day, at an idle change, reload the page itself
-    if (now - bootAt > RELOAD_AFTER_MS && !queue.length && navigator.onLine !== false) { save(); location.reload(); return; }
+    if (reloadDue && apiOk && now - pageOkAt < 30000) { save(); location.reload(); return; }
     advance();
   }
+}
+
+let pageOkAt = 0, pageCheckAt = 0;
+async function checkPage() {
+  const now = Date.now();
+  if (now - pageCheckAt < 10000 || now - pageOkAt < 30000) return;
+  pageCheckAt = now;
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 8000);
+  try { const r = await fetch(location.href, { cache: "no-store", signal: ctl.signal }); if (r.ok) pageOkAt = Date.now(); }
+  catch (e) {}
+  finally { clearTimeout(timer); }
 }
 
 async function advance() {
