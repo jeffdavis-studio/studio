@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Intervals Contest — Blind Gallery</title>
+<style>
+  :root {
+    --bg: #0e0e10;
+    --ink: #f3f0ea;
+    --muted: #9a958c;
+    --line: #2a292e;
+    --accent: #e8d5a3;
+    --tile: #18181c;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { max-width: 1400px; margin: 0 auto; padding: 36px 20px 18px; }
+  h1 { font-weight: 600; letter-spacing: -0.03em; font-size: 28px; margin: 0 0 6px; }
+  .lede { color: var(--muted); font-size: 14px; max-width: 62ch; line-height: 1.5; margin: 0; }
+  .grid {
+    max-width: 1400px; margin: 0 auto; padding: 8px 16px 80px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 8px;
+  }
+  @media (min-width: 900px) { .grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; } }
+  .tile {
+    position: relative; aspect-ratio: 1; background: var(--tile);
+    border: 0; padding: 0; cursor: pointer; overflow: hidden; border-radius: 2px;
+    color: inherit; font: inherit;
+  }
+  .tile:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .tile img, .tile video {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+    background: #111;
+  }
+  .tile .num {
+    position: absolute; left: 6px; bottom: 5px;
+    font-size: 11px; font-weight: 600; letter-spacing: .02em;
+    color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.85); pointer-events: none;
+  }
+  .tile.text {
+    display: flex; flex-direction: column; justify-content: flex-end;
+    align-items: flex-start; text-align: left; padding: 14px 12px 28px;
+    background: #1c1b20; cursor: pointer;
+  }
+  .tile.text .t { font-size: 14px; font-weight: 600; line-height: 1.3; margin: 0 0 8px; }
+  .tile.text .h { font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 10px; color: var(--accent); word-break: break-all; line-height: 1.4; }
+  /* lightbox */
+  .lb {
+    position: fixed; inset: 0; z-index: 40;
+    background: rgba(6,6,8,.94);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 24px 16px 32px;
+  }
+  .lb[hidden] { display: none; }
+  .lb .stage {
+    flex: 1 1 auto; min-height: 0; width: 100%; max-width: 1400px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .lb .stage img, .lb .stage video {
+    max-width: 100%; max-height: calc(100vh - 160px);
+    object-fit: contain; background: #000; box-shadow: 0 8px 40px rgba(0,0,0,.4);
+  }
+  .lb .meta {
+    flex: 0 0 auto; max-width: 900px; width: 100%;
+    padding: 16px 8px 0; text-align: center;
+  }
+  .lb .who { font-size: 13px; color: var(--muted); margin: 0 0 4px; letter-spacing: .04em; }
+  .lb .title { font-size: 20px; font-weight: 600; margin: 0 0 8px; letter-spacing: -0.02em; }
+  .lb .hash {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px; color: var(--accent); word-break: break-all;
+    line-height: 1.5; margin: 0; white-space: pre-wrap;
+  }
+  .lb .x, .lb .nav {
+    position: fixed; background: transparent; border: 0; color: var(--ink);
+    cursor: pointer; font-size: 28px; line-height: 1; padding: 12px;
+    opacity: .75;
+  }
+  .lb .x:hover, .lb .nav:hover { opacity: 1; }
+  .lb .x { top: 8px; right: 8px; font-size: 32px; }
+  .lb .prev { left: 4px; top: 50%; transform: translateY(-50%); }
+  .lb .next { right: 4px; top: 50%; transform: translateY(-50%); }
+  @media (max-width: 640px) {
+    .lb .nav { display: none; }
+    .lb .stage img, .lb .stage video { max-height: calc(100vh - 200px); }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Intervals Contest — Blind Gallery</h1>
+  <p class="lede">Anonymous submissions in shuffled order. Click a tile to open it. Esc or a click on the backdrop closes; left and right arrows step through.</p>
+</header>
+<div class="grid" id="grid"></div>
+<div class="lb" id="lb" hidden role="dialog" aria-modal="true" aria-label="Entry viewer">
+  <button class="x" type="button" id="btnClose" aria-label="Close">&times;</button>
+  <button class="nav prev" type="button" id="btnPrev" aria-label="Previous">&#8249;</button>
+  <button class="nav next" type="button" id="btnNext" aria-label="Next">&#8250;</button>
+  <div class="stage" id="stage"></div>
+  <div class="meta">
+    <p class="who" id="who"></p>
+    <p class="title" id="title"></p>
+    <p class="hash" id="hash"></p>
+  </div>
+</div>
+<script>
+const TILES = [{"e": "01", "i": 1, "n": 3, "k": "img", "title": "Math Textbook (blue); Internet IPO Bubble (reddish)", "hash": "no hash", "file": "e01_1.png", "poster_file": ""}, {"e": "01", "i": 2, "n": 3, "k": "img", "title": "Math Textbook (blue); Internet IPO Bubble (reddish)", "hash": "no hash", "file": "e01_2.jpg", "poster_file": ""}, {"e": "01", "i": 3, "n": 3, "k": "img", "title": "Math Textbook (blue); Internet IPO Bubble (reddish)", "hash": "no hash", "file": "e01_3.png", "poster_file": ""}, {"e": "02", "i": 1, "n": 1, "k": "img", "title": "Woven Frequencies", "hash": "0xa27c93f2fbe5f7fbaf8fc1fa2cf0c28c503a30561e00ff8dabb04f050b536e85", "file": "e02_1.jpg", "poster_file": ""}, {"e": "03", "i": 1, "n": 1, "k": "img", "title": "From Dusk 'Til Dawn", "hash": "no hash", "file": "e03_1.png", "poster_file": ""}, {"e": "04", "i": 1, "n": 2, "k": "img", "title": "Breach", "hash": "0x05fb9b181891fbc15625a1fe3f444ddb5c49a47cd42b3c65c8bf16386412ebf5", "file": "e04_1.png", "poster_file": ""}, {"e": "04", "i": 2, "n": 2, "k": "img", "title": "Breach", "hash": "0x05fb9b181891fbc15625a1fe3f444ddb5c49a47cd42b3c65c8bf16386412ebf5", "file": "e04_2.jpg", "poster_file": ""}, {"e": "05", "i": 1, "n": 1, "k": "img", "title": "The Exponential Plains of the High Desert within a Parallel Universe", "hash": "0x5411906685996f6103b4ab8b6ef2edf939e1d7eab36617f928ae1d657034c1a6", "file": "e05_1.jpg", "poster_file": ""}, {"e": "06", "i": 1, "n": 2, "k": "img", "title": "The Perseverance of Pastel", "hash": "0xccf008f1cc4233165389f4ec61dad53c91afe74531847788d9a4f70f65d50139", "file": "e06_1.jpg", "poster_file": ""}, {"e": "06", "i": 2, "n": 2, "k": "img", "title": "The Perseverance of Pastel", "hash": "0xccf008f1cc4233165389f4ec61dad53c91afe74531847788d9a4f70f65d50139", "file": "e06_2.jpg", "poster_file": ""}, {"e": "07", "i": 1, "n": 2, "k": "img", "title": "Candyapplekeylimespearmint La Croix", "hash": "0xf515acb8b6cb21e88628f9aab81d741c291d0ae62307f8cfd4aef0a697ebee5a", "file": "e07_1.jpg", "poster_file": ""}, {"e": "07", "i": 2, "n": 2, "k": "img", "title": "Candyapplekeylimespearmint La Croix", "hash": "0xf515acb8b6cb21e88628f9aab81d741c291d0ae62307f8cfd4aef0a697ebee5a", "file": "e07_2.jpg", "poster_file": ""}, {"e": "08", "i": 1, "n": 2, "k": "img", "title": "Fermata", "hash": "0xf758e8eb68e936ce2b648009374dbab4a453ac22e47b7bd9d8ae1089d30967ee", "file": "e08_1.png", "poster_file": ""}, {"e": "08", "i": 2, "n": 2, "k": "video", "title": "Fermata", "hash": "0xf758e8eb68e936ce2b648009374dbab4a453ac22e47b7bd9d8ae1089d30967ee", "file": "e08_2.mp4", "poster_file": "e08_2_poster.jpg"}, {"e": "09", "i": 1, "n": 1, "k": "img", "title": "Sunlit Loom", "hash": "0x29481100b44a10c2be06cdd58d1025ccb9ca7484a0409cc3db75c4390953c9bb", "file": "e09_1.jpg", "poster_file": ""}, {"e": "10", "i": 1, "n": 1, "k": "text", "title": "Morning Blinds", "hash": "0xb81d554508624690534363dcdebabaa835fa61402cd0e31c8b6fb0c4f38cf388", "file": "", "poster_file": ""}, {"e": "11", "i": 1, "n": 2, "k": "img", "title": "Six Minutes to Midnight", "hash": "0x1f7b894c8ab02b6e87344a677e5a74e360fbf0ddaf6b1aca89034fdeccaad40b", "file": "e11_1.png", "poster_file": ""}, {"e": "11", "i": 2, "n": 2, "k": "img", "title": "Six Minutes to Midnight", "hash": "0x1f7b894c8ab02b6e87344a677e5a74e360fbf0ddaf6b1aca89034fdeccaad40b", "file": "e11_2.jpg", "poster_file": ""}, {"e": "12", "i": 1, "n": 3, "k": "img", "title": "Egypt", "hash": "no hash", "file": "e12_1.png", "poster_file": ""}, {"e": "12", "i": 2, "n": 3, "k": "img", "title": "No Signal", "hash": "no hash", "file": "e12_2.png", "poster_file": ""}, {"e": "12", "i": 3, "n": 3, "k": "img", "title": "Mariana", "hash": "no hash", "file": "e12_3.png", "poster_file": ""}, {"e": "13", "i": 1, "n": 2, "k": "img", "title": "Final Boss Aura", "hash": "0x7d12e73d2d03ea30c3a6979ef74e9396f9c09ad72dfcf01645396f91bb1fad22", "file": "e13_1.png", "poster_file": ""}, {"e": "13", "i": 2, "n": 2, "k": "img", "title": "Final Boss Aura", "hash": "0x7d12e73d2d03ea30c3a6979ef74e9396f9c09ad72dfcf01645396f91bb1fad22", "file": "e13_2.jpg", "poster_file": ""}, {"e": "14", "i": 1, "n": 3, "k": "img", "title": "80s Vamp", "hash": "0xca53ae737ac12cbe9b552dee45d1fc55ad87ce92855d4f091d39f056757ad80c", "file": "e14_1.png", "poster_file": ""}, {"e": "14", "i": 2, "n": 3, "k": "img", "title": "80s Vamp", "hash": "0xca53ae737ac12cbe9b552dee45d1fc55ad87ce92855d4f091d39f056757ad80c", "file": "e14_2.png", "poster_file": ""}, {"e": "14", "i": 3, "n": 3, "k": "img", "title": "80s Vamp", "hash": "0xca53ae737ac12cbe9b552dee45d1fc55ad87ce92855d4f091d39f056757ad80c", "file": "e14_3.jpg", "poster_file": ""}, {"e": "15", "i": 1, "n": 2, "k": "img", "title": "Miami PI", "hash": "0x3f561ca51dc23910a7ebf8f831b707a7d7eac802fc13a6d8aef83a34c614db7b", "file": "e15_1.png", "poster_file": ""}, {"e": "15", "i": 2, "n": 2, "k": "img", "title": "Miami PI", "hash": "0x3f561ca51dc23910a7ebf8f831b707a7d7eac802fc13a6d8aef83a34c614db7b", "file": "e15_2.jpg", "poster_file": ""}, {"e": "16", "i": 1, "n": 1, "k": "img", "title": "Don't Fence Me In", "hash": "no hash", "file": "e16_1.png", "poster_file": ""}, {"e": "17", "i": 1, "n": 1, "k": "img", "title": "The Deep End", "hash": "no hash", "file": "e17_1.png", "poster_file": ""}, {"e": "18", "i": 1, "n": 2, "k": "img", "title": "Summer in the Midwest", "hash": "0x148d81fe1426d03e31f1509073d1a799b1f79a42c700b2b35406af5f04c2978d", "file": "e18_1.png", "poster_file": ""}, {"e": "18", "i": 2, "n": 2, "k": "img", "title": "Summer in the Midwest", "hash": "0x148d81fe1426d03e31f1509073d1a799b1f79a42c700b2b35406af5f04c2978d", "file": "e18_2.jpg", "poster_file": ""}, {"e": "19", "i": 1, "n": 3, "k": "img", "title": "Lambo Brake Lights (Collins Ave)", "hash": "0x2266a16ca3d1c075df8578756e7acf9770cd5c78a7365fab367bc6c4602abacf", "file": "e19_1.jpg", "poster_file": ""}, {"e": "19", "i": 2, "n": 3, "k": "img", "title": "Lambo Brake Lights (Collins Ave)", "hash": "0x2266a16ca3d1c075df8578756e7acf9770cd5c78a7365fab367bc6c4602abacf", "file": "e19_2.jpg", "poster_file": ""}, {"e": "19", "i": 3, "n": 3, "k": "video", "title": "Lambo Brake Lights (Collins Ave)", "hash": "0x2266a16ca3d1c075df8578756e7acf9770cd5c78a7365fab367bc6c4602abacf", "file": "e19_3.mp4", "poster_file": "e19_3_poster.jpg"}, {"e": "20", "i": 1, "n": 3, "k": "img", "title": "The White House", "hash": "0x8918…6d9d", "file": "e20_1.jpg", "poster_file": ""}, {"e": "20", "i": 2, "n": 3, "k": "img", "title": "my favorite plot", "hash": "0xb2ee…997b", "file": "e20_2.jpg", "poster_file": ""}, {"e": "20", "i": 3, "n": 3, "k": "img", "title": "my favorite output", "hash": "0x2919…2566", "file": "e20_3.jpg", "poster_file": ""}, {"e": "21", "i": 1, "n": 2, "k": "img", "title": "Avro", "hash": "0xe68bb99fbe08a527d46725c8e5bd031be04b2d382b68a1880486658df5521394", "file": "e21_1.png", "poster_file": ""}, {"e": "21", "i": 2, "n": 2, "k": "img", "title": "Avro", "hash": "0xe68bb99fbe08a527d46725c8e5bd031be04b2d382b68a1880486658df5521394", "file": "e21_2.png", "poster_file": ""}, {"e": "22", "i": 1, "n": 1, "k": "text", "title": "", "hash": "0x7731a1b93de8c7dc01fac02d0205512fbcc02961", "file": "", "poster_file": ""}, {"e": "23", "i": 1, "n": 2, "k": "img", "title": "Dream Feed", "hash": "0xbe2cae162fd0b69d30d542c5652dca460e6b33d8dca1ea41713fe3174f071c35", "file": "e23_1.jpg", "poster_file": ""}, {"e": "23", "i": 2, "n": 2, "k": "img", "title": "Dream Feed", "hash": "0xbe2cae162fd0b69d30d542c5652dca460e6b33d8dca1ea41713fe3174f071c35", "file": "e23_2.jpg", "poster_file": ""}, {"e": "24", "i": 1, "n": 2, "k": "img", "title": "Fortress of Solitude", "hash": "0x08a96d1a0d25bbddf9d7fcceee1b7567f226f13109497fb8e8808980efb00cf7", "file": "e24_1.jpg", "poster_file": ""}, {"e": "24", "i": 2, "n": 2, "k": "img", "title": "Fortress of Solitude", "hash": "0x08a96d1a0d25bbddf9d7fcceee1b7567f226f13109497fb8e8808980efb00cf7", "file": "e24_2.jpg", "poster_file": ""}, {"e": "25", "i": 1, "n": 1, "k": "img", "title": "Raspberry Beret", "hash": "0xe86da53b29405849d717d808e91ee098840c62b3c802863d939b9bb806996f5e", "file": "e25_1.png", "poster_file": ""}, {"e": "26", "i": 1, "n": 2, "k": "img", "title": "Trapper Keeper", "hash": "0x8f414f68b1286f294eb8fe40b74eca2d8ae64f8110ac9387da69a8dcc58fdb52", "file": "e26_1.png", "poster_file": ""}, {"e": "26", "i": 2, "n": 2, "k": "img", "title": "Trapper Keeper", "hash": "0x8f414f68b1286f294eb8fe40b74eca2d8ae64f8110ac9387da69a8dcc58fdb52", "file": "e26_2.jpg", "poster_file": ""}, {"e": "27", "i": 1, "n": 1, "k": "img", "title": "Unison", "hash": "0xf3272f16d61ef001a19ba58896be525aed9b252872e3684502e1200541cf60c0", "file": "e27_1.jpg", "poster_file": ""}, {"e": "28", "i": 1, "n": 2, "k": "img", "title": "", "hash": "0x1f0ae1a2e357de98dc9ec1b1a822d2c05934681efa60154ae284e5a3edb8373e", "file": "e28_1.png", "poster_file": ""}, {"e": "28", "i": 2, "n": 2, "k": "img", "title": "", "hash": "0x1f0ae1a2e357de98dc9ec1b1a822d2c05934681efa60154ae284e5a3edb8373e", "file": "e28_2.jpg", "poster_file": ""}, {"e": "29", "i": 1, "n": 1, "k": "img", "title": "Time of the season", "hash": "0x9103b7aa812729a4d46c2028798f9650b33db3cdb0ff615d65198a984a1bed0d", "file": "e29_1.jpg", "poster_file": ""}, {"e": "30", "i": 1, "n": 2, "k": "img", "title": "Dive Bars", "hash": "0x2bf54d078480ec13f1aa0ca15460f77e1b9c6146f6b77c3af20b2a3f7b7582ff", "file": "e30_1.jpg", "poster_file": ""}, {"e": "30", "i": 2, "n": 2, "k": "img", "title": "Dive Bars", "hash": "0x2bf54d078480ec13f1aa0ca15460f77e1b9c6146f6b77c3af20b2a3f7b7582ff", "file": "e30_2.jpg", "poster_file": ""}, {"e": "31", "i": 1, "n": 1, "k": "img", "title": "Moire Intervals", "hash": "0xbc8f4e65bbd7ac138791e668475d844a64c1da377c8923091385bb4ef808cdc1", "file": "e31_1.png", "poster_file": ""}, {"e": "32", "i": 1, "n": 2, "k": "img", "title": "Trebuchets", "hash": "0xdc33366a8412194d4b0c759f43a8e21cca21c66890478ad0b99c00de3c9f4f11", "file": "e32_1.png", "poster_file": ""}, {"e": "32", "i": 2, "n": 2, "k": "img", "title": "Trebuchets", "hash": "0xdc33366a8412194d4b0c759f43a8e21cca21c66890478ad0b99c00de3c9f4f11", "file": "e32_2.jpg", "poster_file": ""}, {"e": "33", "i": 1, "n": 2, "k": "img", "title": "Cuban Cruise", "hash": "0xa789eaf395fdee633cf38389e0c1e61624c54558ac174f447ec34f5ddbd98969", "file": "e33_1.png", "poster_file": ""}, {"e": "33", "i": 2, "n": 2, "k": "img", "title": "Cuban Cruise", "hash": "0xa789eaf395fdee633cf38389e0c1e61624c54558ac174f447ec34f5ddbd98969", "file": "e33_2.jpg", "poster_file": ""}, {"e": "34", "i": 1, "n": 2, "k": "img", "title": "Paradigm Shift", "hash": "no hash", "file": "e34_1.png", "poster_file": ""}, {"e": "34", "i": 2, "n": 2, "k": "img", "title": "Paradigm Shift", "hash": "no hash", "file": "e34_2.jpg", "poster_file": ""}, {"e": "35", "i": 1, "n": 2, "k": "img", "title": "Sorbet Sunrise", "hash": "0x54d3dd78497addd1f20cdde292be2f159fa2fa384a15b1013d336b8169aaf54b", "file": "e35_1.jpg", "poster_file": ""}, {"e": "35", "i": 2, "n": 2, "k": "img", "title": "Sorbet Sunrise", "hash": "0x54d3dd78497addd1f20cdde292be2f159fa2fa384a15b1013d336b8169aaf54b", "file": "e35_2.jpg", "poster_file": ""}, {"e": "36", "i": 1, "n": 1, "k": "img", "title": "Husk", "hash": "0x3b48a5cba9551ce7d5d5008ebecbc52e536ae116d38058f94d62e3a319d825ad", "file": "e36_1.jpg", "poster_file": ""}, {"e": "37", "i": 1, "n": 1, "k": "img", "title": "50 Shades of Grey", "hash": "0x3ef12cd7cc589e9abcacca27ce7cce1c73dadaefbad0f88e770637ae91c1c396", "file": "e37_1.jpg", "poster_file": ""}, {"e": "38", "i": 1, "n": 4, "k": "img", "title": "15 bars · Horizontal · Grayscale", "hash": "0xe49c9392f9edf82fa93b96aa3027d5276b43cc6c344a87f51b9891de1d821653", "file": "e38_1.png", "poster_file": ""}, {"e": "38", "i": 2, "n": 4, "k": "img", "title": "72 bars · Horizontal · Grayscale", "hash": "0xe49c9392f9edf82fa93b96aa3027d52725c94b8b6fc48d3216595df6c6431209", "file": "e38_2.png", "poster_file": ""}, {"e": "38", "i": 3, "n": 4, "k": "img", "title": "15 bars · Vertical · Grayscale", "hash": "0x0b546d0a449e4eee7c6eeb0470221bc98b84c6eb0fb4cfab8f9eb738d25ee93c", "file": "e38_3.png", "poster_file": ""}, {"e": "38", "i": 4, "n": 4, "k": "img", "title": "72 bars · Vertical · Grayscale", "hash": "0x0b546d0a449e4eee7c6eeb0470221bc9e9a47ebcf5ec4f0d85916c4077deff9b", "file": "e38_4.png", "poster_file": ""}, {"e": "39", "i": 1, "n": 1, "k": "img", "title": "Sunlit Ripples", "hash": "0xe8ed24fc3298e3b9b51ee8a091f096a6f4ebeb03350ac472d99b5ec586c45b53", "file": "e39_1.jpg", "poster_file": ""}, {"e": "40", "i": 1, "n": 12, "k": "img", "title": "", "hash": "no hash", "file": "e40_1.png", "poster_file": ""}, {"e": "40", "i": 2, "n": 12, "k": "img", "title": "", "hash": "no hash", "file": "e40_2.png", "poster_file": ""}, {"e": "40", "i": 3, "n": 12, "k": "img", "title": "", "hash": "no hash", "file": "e40_3.png", "poster_file": ""}, {"e": "40", "i": 4, "n": 12, "k": "img", "title": "", "hash": "no hash", "file": "e40_4.png", "poster_file": ""}, {"e": "40", "i": 5, "n": 12, "k": "img", "title": "", "hash": "no hash", "file": "e40_5.png", "poster_file": ""}, {"e": "40", "i": 6, "n": 12, "k": "img", "title": "", "hash": "no hash", "file": "e40_6.png", "poster_file": ""}, {"e": "40", "i": 7, "n": 12, "k": "img", "title": "", "hash": "no hash", "file": "e40_7.png", "poster_file": ""}, {"e": "40", "i": 8, "n": 12, "k": "img", "title": "", "hash": "no hash", "file": "e40_8.png", "poster_file": ""}, {"e": "40", "i": 9, "n": 12, "k": "img", "title": "", "hash": "no hash", "file": "e40_9.png", "poster_file": ""}, {"e": "40", "i": 10, "n": 12, "k": "img", "title": "", "hash": "no hash", "file": "e40_10.png", "poster_file": ""}, {"e": "40", "i": 11, "n": 12, "k": "img", "title": "", "hash": "no hash", "file": "e40_11.png", "poster_file": ""}, {"e": "40", "i": 12, "n": 12, "k": "img", "title": "", "hash": "no hash", "file": "e40_12.png", "poster_file": ""}, {"e": "41", "i": 1, "n": 2, "k": "img", "title": "Sungrass", "hash": "0xf3100010f5b4e18b636aa3d954aca5e43ee94b14f36bf2d2f6dd7e2bb2098530", "file": "e41_1.jpg", "poster_file": ""}, {"e": "41", "i": 2, "n": 2, "k": "img", "title": "Sungrass", "hash": "0xf3100010f5b4e18b636aa3d954aca5e43ee94b14f36bf2d2f6dd7e2bb2098530", "file": "e41_2.jpg", "poster_file": ""}, {"e": "42", "i": 1, "n": 1, "k": "img", "title": "Cantaloupe", "hash": "no hash", "file": "e42_1.png", "poster_file": ""}, {"e": "43", "i": 1, "n": 5, "k": "img", "title": "", "hash": "no hash", "file": "e43_1.png", "poster_file": ""}, {"e": "43", "i": 2, "n": 5, "k": "img", "title": "", "hash": "no hash", "file": "e43_2.png", "poster_file": ""}, {"e": "43", "i": 3, "n": 5, "k": "img", "title": "", "hash": "no hash", "file": "e43_3.png", "poster_file": ""}, {"e": "43", "i": 4, "n": 5, "k": "img", "title": "", "hash": "no hash", "file": "e43_4.jpg", "poster_file": ""}, {"e": "43", "i": 5, "n": 5, "k": "img", "title": "", "hash": "no hash", "file": "e43_5.png", "poster_file": ""}, {"e": "44", "i": 1, "n": 2, "k": "img", "title": "Tre Quintetti in Grigio", "hash": "0x6359fc77aab9a93d21efca68c5ed1bdb1c52bb222bb389cdedfe87e73e58e97c", "file": "e44_1.png", "poster_file": ""}, {"e": "44", "i": 2, "n": 2, "k": "img", "title": "Tre Quintetti in Grigio", "hash": "0x6359fc77aab9a93d21efca68c5ed1bdb1c52bb222bb389cdedfe87e73e58e97c", "file": "e44_2.png", "poster_file": ""}, {"e": "45", "i": 1, "n": 2, "k": "img", "title": "Safari Vegetation", "hash": "0x42fef8dde62bcc35b7aa89ff9a392ced14755e1844906b5d57b1b782c7263714", "file": "e45_1.png", "poster_file": ""}, {"e": "45", "i": 2, "n": 2, "k": "img", "title": "Safari Vegetation", "hash": "0x42fef8dde62bcc35b7aa89ff9a392ced14755e1844906b5d57b1b782c7263714", "file": "e45_2.jpg", "poster_file": ""}, {"e": "46", "i": 1, "n": 2, "k": "img", "title": "Watermelon Sugar", "hash": "0x8b4a96ae0e77d6fc136448cb87cfa13838c7cb896fd25a37eeb098a5ececb409", "file": "e46_1.jpg", "poster_file": ""}, {"e": "46", "i": 2, "n": 2, "k": "img", "title": "Watermelon Sugar", "hash": "0x8b4a96ae0e77d6fc136448cb87cfa13838c7cb896fd25a37eeb098a5ececb409", "file": "e46_2.jpg", "poster_file": ""}, {"e": "47", "i": 1, "n": 2, "k": "img", "title": "Blue Collar Blood Orange", "hash": "no hash", "file": "e47_1.png", "poster_file": ""}, {"e": "47", "i": 2, "n": 2, "k": "img", "title": "Blue Collar Blood Orange", "hash": "no hash", "file": "e47_2.jpg", "poster_file": ""}, {"e": "48", "i": 1, "n": 4, "k": "img", "title": "I'm Faded", "hash": "0xfadedfadedfadedfadedfadedfadedfadedfadedfadedfadedfade", "file": "e48_1.png", "poster_file": ""}, {"e": "48", "i": 2, "n": 4, "k": "img", "title": "Food for Algorithms", "hash": "0xf00df00df00df00df00df00df00df00df00df00df00df00df00df00df00df00d", "file": "e48_2.jpg", "poster_file": ""}, {"e": "48", "i": 3, "n": 4, "k": "img", "title": "Morning Cuppa", "hash": "0xc0ffeec0ffeec0ffeec0ffeec0ffeec0ffeec0ffeec0ffeec0ffeec0ffeec0ff", "file": "e48_3.jpg", "poster_file": ""}, {"e": "48", "i": 4, "n": 4, "k": "img", "title": "Deadbeef", "hash": "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef", "file": "e48_4.jpg", "poster_file": ""}, {"e": "49", "i": 1, "n": 2, "k": "img", "title": "Mint Intervals", "hash": "0xfed39be8bced9210be914e929460c994d32cc286edff8a2b02b8836bcd22e495", "file": "e49_1.png", "poster_file": ""}, {"e": "49", "i": 2, "n": 2, "k": "img", "title": "Mint Intervals", "hash": "0xfed39be8bced9210be914e929460c994d32cc286edff8a2b02b8836bcd22e495", "file": "e49_2.jpg", "poster_file": ""}, {"e": "50", "i": 1, "n": 1, "k": "img", "title": "Equilibrium of the Outliers", "hash": "0x9730c9ad1d7d14c66311070982f463db9dbcef8c4e00c0b906b62e9b67536d19", "file": "e50_1.jpg", "poster_file": ""}, {"e": "51", "i": 1, "n": 1, "k": "img", "title": "Venetian Sunset", "hash": "0xfb378cab4e9aeb7147dc68ead57e3a4733c01a4a4cecef0434f0ff18623c164b", "file": "e51_1.jpg", "poster_file": ""}, {"e": "52", "i": 1, "n": 2, "k": "img", "title": "Rare Silk", "hash": "0x918b27e11a7010bf85e05beb35e6b80925c5d8621469c224ed3e18282dca1b33", "file": "e52_1.jpg", "poster_file": ""}, {"e": "52", "i": 2, "n": 2, "k": "img", "title": "Rare Silk", "hash": "0x918b27e11a7010bf85e05beb35e6b80925c5d8621469c224ed3e18282dca1b33", "file": "e52_2.png", "poster_file": ""}, {"e": "53", "i": 1, "n": 1, "k": "img", "title": "", "hash": "0xf1e86942cae0d8cb0e25c07ef7ff9f9aeb407735596a05d4e7cb282a820c8d11", "file": "e53_1.png", "poster_file": ""}, {"e": "54", "i": 1, "n": 1, "k": "img", "title": "Concrete Rhythm", "hash": "0x304e26fd03d3400acfb812187f62885b639842530e8f8d37c1f8c2ee0c71022c", "file": "e54_1.png", "poster_file": ""}, {"e": "55", "i": 1, "n": 1, "k": "img", "title": "Concrete Rhythm 2", "hash": "0x0a35f4086c555abc48c46233fe8117c410a1ce4cb8f8cd0ecf20df923c904756", "file": "e55_1.png", "poster_file": ""}];
+const grid = document.getElementById("grid");
+const lb = document.getElementById("lb");
+const stage = document.getElementById("stage");
+const who = document.getElementById("who");
+const titleEl = document.getElementById("title");
+const hashEl = document.getElementById("hash");
+let idx = 0;
+
+function label(t) {
+  if (t.n > 1) return "Entry " + t.e + " · " + t.i + "/" + t.n;
+  return "Entry " + t.e;
+}
+
+function mediaSrc(t) {
+  if (t.k === "video") return "media/" + t.file;
+  if (t.k === "img") return "media/" + t.file;
+  return "";
+}
+function posterSrc(t) {
+  return t.poster_file ? "media/" + t.poster_file : "";
+}
+
+TILES.forEach((t, i) => {
+  const b = document.createElement("button");
+  b.className = "tile" + (t.k === "text" ? " text" : "");
+  b.type = "button";
+  b.setAttribute("aria-label", label(t) + (t.title ? " — " + t.title : ""));
+  if (t.k === "img") {
+    const img = document.createElement("img");
+    img.src = mediaSrc(t);
+    img.alt = label(t);
+    img.loading = "lazy";
+    b.appendChild(img);
+  } else if (t.k === "video") {
+    const v = document.createElement("video");
+    v.src = mediaSrc(t);
+    if (posterSrc(t)) v.poster = posterSrc(t);
+    v.muted = true;
+    v.loop = true;
+    v.playsInline = true;
+    v.autoplay = true;
+    v.setAttribute("muted", "");
+    v.setAttribute("playsinline", "");
+    b.appendChild(v);
+    const play = () => v.play().catch(() => {});
+    v.addEventListener("canplay", play, { once: true });
+    play();
+  } else {
+    if (t.title) {
+      const p = document.createElement("div");
+      p.className = "t";
+      p.textContent = t.title;
+      b.appendChild(p);
+    }
+    const h = document.createElement("div");
+    h.className = "h";
+    h.textContent = t.hash || "no hash";
+    b.appendChild(h);
+  }
+  const num = document.createElement("span");
+  num.className = "num";
+  num.textContent = t.n > 1 ? t.e + " · " + t.i + "/" + t.n : t.e;
+  b.appendChild(num);
+  b.addEventListener("click", () => openAt(i));
+  grid.appendChild(b);
+});
+
+function openAt(i) {
+  idx = (i + TILES.length) % TILES.length;
+  const t = TILES[idx];
+  stage.innerHTML = "";
+  if (t.k === "img") {
+    const img = document.createElement("img");
+    img.src = mediaSrc(t);
+    img.alt = t.title || label(t);
+    stage.appendChild(img);
+  } else if (t.k === "video") {
+    const v = document.createElement("video");
+    v.src = mediaSrc(t);
+    if (posterSrc(t)) v.poster = posterSrc(t);
+    v.controls = true;
+    v.autoplay = true;
+    v.loop = true;
+    v.playsInline = true;
+    stage.appendChild(v);
+    v.play().catch(() => {});
+  } else {
+    const imgish = document.createElement("div");
+    imgish.style.cssText = "color:#f3f0ea;max-width:36rem;padding:24px;text-align:center";
+    imgish.innerHTML = "";
+    if (t.title) {
+      const h = document.createElement("div");
+      h.style.cssText = "font-size:28px;font-weight:600;margin-bottom:16px";
+      h.textContent = t.title;
+      imgish.appendChild(h);
+    }
+    const p = document.createElement("div");
+    p.style.cssText = "font-family:ui-monospace,Menlo,monospace;color:#e8d5a3;word-break:break-all;white-space:pre-wrap";
+    p.textContent = t.hash || "no hash";
+    imgish.appendChild(p);
+    stage.appendChild(imgish);
+  }
+  who.textContent = label(t);
+  titleEl.textContent = t.title || "";
+  titleEl.style.display = t.title ? "" : "none";
+  hashEl.textContent = t.hash || "no hash";
+  lb.hidden = false;
+  document.body.style.overflow = "hidden";
+  document.getElementById("btnClose").focus();
+}
+
+function closeLb() {
+  lb.hidden = true;
+  stage.innerHTML = "";
+  document.body.style.overflow = "";
+}
+
+function prev() { openAt(idx - 1); }
+function next() { openAt(idx + 1); }
+
+document.getElementById("btnClose").addEventListener("click", (ev) => { ev.stopPropagation(); closeLb(); });
+document.getElementById("btnPrev").addEventListener("click", (ev) => { ev.stopPropagation(); prev(); });
+document.getElementById("btnNext").addEventListener("click", (ev) => { ev.stopPropagation(); next(); });
+lb.addEventListener("click", (ev) => {
+  if (ev.target === lb || ev.target === stage || ev.target === who || ev.target.id === "title" || ev.target.id === "hash" || ev.target.classList.contains("meta")) {
+    closeLb();
+  }
+});
+stage.addEventListener("click", (ev) => {
+  // click on empty stage (not the media) closes; click media does not
+  if (ev.target === stage) closeLb();
+});
+
+document.addEventListener("keydown", (ev) => {
+  if (lb.hidden) return;
+  if (ev.key === "Escape") { ev.preventDefault(); closeLb(); }
+  else if (ev.key === "ArrowLeft") { ev.preventDefault(); prev(); }
+  else if (ev.key === "ArrowRight") { ev.preventDefault(); next(); }
+});
+</script>
+</body>
+</html>
