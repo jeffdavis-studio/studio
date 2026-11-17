@@ -261,10 +261,10 @@
 <div id="roomBar"></div>
 <div id="layers"></div>
 <div id="add" class="row"><div class="lbl">Add a layer<button id="palRnd" title="add a random instrument (one you don't have yet, while any are left)">Random</button></div><div id="pal"></div></div>
-<footer title="engine @a479545 · built 2026-11-15">Unison jam &middot; every sound is synthesized in this page by the engine at a479545</footer>
+<footer title="engine @7422849 · built 2026-11-17">Unison jam &middot; every sound is synthesized in this page by the engine at 7422849</footer>
 
 <script>
-/* ===== src/core/prng.js @ a479545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/prng.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
 // prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
 // token hash, consumed in canonical draw order (Technical Architecture v1.2).
 //
@@ -337,7 +337,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/core/mix.js @ a479545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/mix.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
 // mix.js — the fan-in ≤2 summing rule, as a primitive.
 //
 // Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
@@ -506,7 +506,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/desk/desk.js @ a479545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/desk/desk.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
 // desk.js — the 24-track desk as a running audio graph.
 //
 // The desk is the data structure, not a metaphor (Composition Brief 2 / Tech
@@ -1175,7 +1175,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/production.js @ a479545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/production.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
 // production.js — the production room, v0.
 //
 // PLACEMENT DECISION (Morgan's call, ratified by Jeff 2026-08-03). Production
@@ -1527,7 +1527,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/vocoder.js @ a479545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/vocoder.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
 // vocoder.js — the production room's vocoder insert, slice 1 (2026-11-05,
 // Asana 1220085081650427; design in files/unison/vocoder-2026-11-05/RESULT.md).
 //
@@ -1863,7 +1863,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/analogpoly.js @ a479545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/analogpoly.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
 // analogpoly.js — the analog poly core: one module that builds every Juno and
 // OB-Xa voice, behind a family lock. Asana 1220084594874974, slice 1
 // (2026-11-02); the rack doc's build 3 (files/unison/rack-parts-proposal-
@@ -2489,7 +2489,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/juno.js @ a479545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/juno.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
 // juno.js — Juno-60-flavor poly voice, raw Web Audio, zero dependencies.
 // Ported from the 2026-07-21 bake-off winner (voice-raw.js), restructured to
 // live behind a desk strip: U.createJuno(ctx, strip, patchName) builds its own
@@ -2723,6 +2723,75 @@
     ],
   };
   for (const role in U.JUNO_BOOK) for (const a of U.JUNO_BOOK[role]) a.role = role;
+
+  // JEFF'S MARKS (2026-11-17, Asana 1220632965049918): the curation page's two
+  // rows per patch, 1 kept, 0 cut or no row. U.roleCandidates admits a patch
+  // to a single-note role (bass, lead, arpeggio) only on single: 1 and to a
+  // chord role (chords, comp, pad, color) only on chord: 1 (U.ROLE_ROW,
+  // books.js); 0 on both and it never draws. Juno: every stab out (the stab
+  // has no single row), the eight pads chords only, chords from the reed
+  // organ, those pads and the soft bell arp. Source: the page link decoded by
+  // harness/curate-decode.mjs at 1a19371
+  // (files/unison/patch-allowed-lists-2026-11-17/ in the studio KB).
+  U.JUNO_KEEP = {
+    "Juno comp":                    { single: 1, chord: 0 },
+    "chorus I pluck comp":          { single: 1, chord: 0 },
+    "square comp":                  { single: 1, chord: 0 },
+    "PWM comp, chorus II":          { single: 1, chord: 0 },
+    "clav-style comp, HPF up":      { single: 1, chord: 0 },
+    "resonant funk comp":           { single: 1, chord: 0 },
+    "soft keys comp":               { single: 0, chord: 0 },
+    "pulse keys, chorus off":       { single: 0, chord: 0 },
+    "mellow piano":                 { single: 0, chord: 0 },
+    "Jupiter-4 poly comp":          { single: 1, chord: 0 },
+    "chorus II organ":              { single: 1, chord: 0 },
+    "chorus I+II organ":            { single: 1, chord: 0 },
+    "percussive organ, chorus I":   { single: 0, chord: 0 },
+    "reed organ, HPF up":           { single: 1, chord: 1 },
+    "Juno pad":                     { single: 0, chord: 1 },
+    "Juno strings":                 { single: 0, chord: 1 },
+    "PWM strings":                  { single: 0, chord: 1 },
+    "slow sweep pad":               { single: 0, chord: 1 },
+    "airy pad, chorus I+II":        { single: 0, chord: 1 },
+    "choir pad":                    { single: 0, chord: 1 },
+    "string ensemble, chorus I+II": { single: 1, chord: 0 },
+    "Vox Humana stand-in":          { single: 0, chord: 1 },
+    "Jupiter-4 pad, RES up":        { single: 0, chord: 1 },
+    "Juno brass":                   { single: 1, chord: 0 },
+    "bright brass stab":            { single: 1, chord: 0 },
+    "soft horn section, chorus II": { single: 1, chord: 0 },
+    "sub brass":                    { single: 1, chord: 0 },
+    "Phase Brass":                  { single: 1, chord: 0 },
+    "Juno stab":                    { single: 0, chord: 0 },
+    "resonant zap stab":            { single: 0, chord: 0 },
+    "square stab, HPF up":          { single: 0, chord: 0 },
+    "dark thud stab":               { single: 0, chord: 0 },
+    "Jupiter-4 poly stab":          { single: 0, chord: 0 },
+    "Juno bass":                    { single: 1, chord: 0 },
+    "square bass":                  { single: 1, chord: 0 },
+    "resonant pluck bass":          { single: 0, chord: 0 },
+    "round bass":                   { single: 1, chord: 0 },
+    "funk pluck bass, KYBD up":     { single: 1, chord: 0 },
+    "Jupiter-6 bass":               { single: 1, chord: 0 },
+    "Juno sub":                     { single: 1, chord: 0 },
+    "square sub":                   { single: 1, chord: 0 },
+    "long sub":                     { single: 0, chord: 0 },
+    "punchy sub":                   { single: 1, chord: 0 },
+    "Juno arp":                     { single: 1, chord: 0 },
+    "chorus II blip arp":           { single: 1, chord: 0 },
+    "square arp":                   { single: 1, chord: 0 },
+    "resonant arp":                 { single: 1, chord: 0 },
+    "soft bell arp, KYBD up":       { single: 0, chord: 1 },
+    "celesta":                      { single: 1, chord: 0 },
+    "synth harp strum":             { single: 0, chord: 0 },
+    "Juno lead":                    { single: 1, chord: 0 },
+    "resonant sweep lead":          { single: 1, chord: 0 },
+    "square lead, delayed vibrato": { single: 1, chord: 0 },
+    "PWM lead":                     { single: 1, chord: 0 },
+    "bright saw lead, vibrato":     { single: 1, chord: 0 },
+    "flute lead":                   { single: 1, chord: 0 },
+    "mellow lead, chorus I+II":     { single: 1, chord: 0 },
+  };
 
   // THE TWO COLUMNS (2026-10-31, Asana 1220084766500650; the rack doc's "The
   // patch books"). Neither moves a draw or a sample: the draw still reads w,
@@ -3056,7 +3125,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/minimoog.js @ a479545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/minimoog.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
 // minimoog.js — Minimoog Model D-lineage mono voice, zero dependencies.
 //
 // THE MONO BASS LANE (build order 808 → Juno → Minimoog → …; it also absorbs
@@ -3366,6 +3435,57 @@
     ],
   };
   for (const role in U.MINIMOOG_BOOK) for (const a of U.MINIMOOG_BOOK[role]) a.role = role;
+
+  // JEFF'S MARKS (2026-11-17, Asana 1220632965049918): the curation page's two
+  // rows per patch, 1 kept, 0 cut or no row. U.roleCandidates admits a patch
+  // to a single-note role (bass, lead, arpeggio) only on single: 1 and to a
+  // chord role (chords, comp, pad, color) only on chord: 1 (U.ROLE_ROW,
+  // books.js); 0 on both and it never draws. Minimoog: mono, no chord row;
+  // percussion, effects, five leads (Model D lead among them), round sub,
+  // triangle sub and short gated pluck out. Source: the page link decoded by
+  // harness/curate-decode.mjs at 1a19371
+  // (files/unison/patch-allowed-lists-2026-11-17/ in the studio KB).
+  U.MINIMOOG_KEEP = {
+    "round sub bass":             { single: 0, chord: 0 },
+    "round bass, decay off":      { single: 1, chord: 0 },
+    "triangle sub, filter shut":  { single: 0, chord: 0 },
+    "warm thumb bass":            { single: 1, chord: 0 },
+    "funk pluck bass":            { single: 1, chord: 0 },
+    "decay-on ringing funk bass": { single: 1, chord: 0 },
+    "short gated pluck":          { single: 0, chord: 0 },
+    "rubber pluck, decay on":     { single: 1, chord: 0 },
+    "resonant squelch bass":      { single: 1, chord: 0 },
+    "acid squelch, decay on":     { single: 1, chord: 0 },
+    "wah sweep bass":             { single: 1, chord: 0 },
+    "fat unison bass":            { single: 1, chord: 0 },
+    "fat bass, decay off":        { single: 1, chord: 0 },
+    "growl bass, osc 3 up":       { single: 1, chord: 0 },
+    "Model D lead":               { single: 0, chord: 0 },
+    "glide lead, decay off":      { single: 0, chord: 0 },
+    "osc 3 vibrato lead":         { single: 0, chord: 0 },
+    "square flute lead":          { single: 1, chord: 0 },
+    "screaming resonant lead":    { single: 0, chord: 0 },
+    "oboe lead":                  { single: 1, chord: 0 },
+    "clarinet lead":              { single: 1, chord: 0 },
+    "bassoon lead":               { single: 0, chord: 0 },
+    "brass solo lead":            { single: 1, chord: 0 },
+    "whistle lead":               { single: 1, chord: 0 },
+    "hook riff":                  { single: 1, chord: 0 },
+    "hook riff, decay on":        { single: 1, chord: 0 },
+    "brassy synth-funk riff":     { single: 1, chord: 0 },
+    "staccato square riff":       { single: 1, chord: 0 },
+    "riff arp":                   { single: 1, chord: 0 },
+    "dry staccato arp":           { single: 1, chord: 0 },
+    "ringing arp, decay on":      { single: 1, chord: 0 },
+    "narrow pulse arp":           { single: 1, chord: 0 },
+    "filter blip arp":            { single: 1, chord: 0 },
+    "filter kick":                { single: 0, chord: 0 },
+    "synth tom":                  { single: 0, chord: 0 },
+    "noise snare":                { single: 0, chord: 0 },
+    "wind":                       { single: 0, chord: 0 },
+    "surf":                       { single: 0, chord: 0 },
+    "zap":                        { single: 0, chord: 0 },
+  };
 
   // THE TWO COLUMNS (slice 3, 2026-11-01, Asana 1220084766500650; juno.js has
   // the definitions above U.JUNO_BOOK_ROLES). Neither moves a draw or a
@@ -3843,7 +3963,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/obxa.js @ a479545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/obxa.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
 // obxa.js — Oberheim OB-Xa-lineage poly voice, zero dependencies.
 //
 // THE BRASS/PAD POLY LANE (build order 808 → Juno → Minimoog → OB-Xa → …).
@@ -4087,6 +4207,48 @@
     ],
   };
   for (const role in U.OBXA_BOOK) for (const a of U.OBXA_BOOK[role]) a.role = role;
+
+  // JEFF'S MARKS (2026-11-17, Asana 1220632965049918): the curation page's two
+  // rows per patch, 1 kept, 0 cut or no row. U.roleCandidates admits a patch
+  // to a single-note role (bass, lead, arpeggio) only on single: 1 and to a
+  // chord role (chords, comp, pad, color) only on chord: 1 (U.ROLE_ROW,
+  // books.js); 0 on both and it never draws. OB-Xa: chords only from the seven
+  // pads; brass, comps, stabs, basses and leads single notes only; 2-pole
+  // pluck bass out. Source: the page link decoded by harness/curate-decode.mjs
+  // at 1a19371 (files/unison/patch-allowed-lists-2026-11-17/ in the studio
+  // KB).
+  U.OBXA_KEEP = {
+    "OB brass":                  { single: 1, chord: 0 },
+    "open 2-pole brass":         { single: 1, chord: 0 },
+    "4-pole round brass":        { single: 1, chord: 0 },
+    "4-pole slow swell brass":   { single: 1, chord: 0 },
+    "saw + pulse horn section":  { single: 1, chord: 0 },
+    "Prophet-5 poly brass":      { single: 1, chord: 0 },
+    "OB pad":                    { single: 1, chord: 1 },
+    "4-pole round pad":          { single: 1, chord: 1 },
+    "detuned string pad":        { single: 1, chord: 1 },
+    "4-pole PWM pad":            { single: 1, chord: 1 },
+    "4-pole resonant sweep pad": { single: 1, chord: 1 },
+    "Jupiter-8 wide pad":        { single: 1, chord: 1 },
+    "Low Strings":               { single: 1, chord: 1 },
+    "OB comp":                   { single: 1, chord: 0 },
+    "4-pole round comp":         { single: 1, chord: 0 },
+    "pulse comp":                { single: 1, chord: 0 },
+    "2-pole funk quack comp":    { single: 1, chord: 0 },
+    "4-pole dark keys":          { single: 1, chord: 0 },
+    "Prophet-5 poly comp":       { single: 1, chord: 0 },
+    "OB stab":                   { single: 1, chord: 0 },
+    "open 2-pole stab":          { single: 1, chord: 0 },
+    "4-pole thud stab":          { single: 1, chord: 0 },
+    "sync stab":                 { single: 1, chord: 0 },
+    "4-pole resonant zap stab":  { single: 1, chord: 0 },
+    "OB-Xa bass":                { single: 1, chord: 0 },
+    "Prophet-5 round bass":      { single: 1, chord: 0 },
+    "2-pole pluck bass":         { single: 0, chord: 0 },
+    "Prophet-5 poly lead":       { single: 1, chord: 0 },
+    "mono sync lead":            { single: 1, chord: 0 },
+    "Rock Unison":               { single: 1, chord: 0 },
+  };
 
   // THE TWO COLUMNS (slice 2, 2026-11-01, Asana 1220084766500650; juno.js has
   // the definitions above U.JUNO_BOOK_ROLES). Neither moves a draw or a
@@ -4388,7 +4550,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/fm.js @ a479545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/fm.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fm.js — six-operator FM keys voice (the DX7 lineage), zero dependencies.
 //
 // THE FM LANE (build order 808 → Juno → Minimoog → OB-Xa → Linn → FM).
@@ -4965,6 +5127,62 @@
   };
   for (const role in U.FM_BOOK) for (const a of U.FM_BOOK[role]) a.role = role;
 
+  // JEFF'S MARKS (2026-11-17, Asana 1220632965049918): the curation page's two
+  // rows per patch, 1 kept, 0 cut or no row. U.roleCandidates admits a patch
+  // to a single-note role (bass, lead, arpeggio) only on single: 1 and to a
+  // chord role (chords, comp, pad, color) only on chord: 1 (U.ROLE_ROW,
+  // books.js); 0 on both and it never draws. FM: chords only from slow
+  // strings, flute, breathy voice and choir; the brass, three of the four
+  // basses, bright strings, oboe, punchy tine EP, FM clav, the saxes and the
+  // acoustic piano are out. The three pianos and two saxes are w 0 (sampler
+  // only): the sampler's acoustic band reads its source patch's marks here.
+  // Source: the page link decoded by harness/curate-decode.mjs at 1a19371
+  // (files/unison/patch-allowed-lists-2026-11-17/ in the studio KB).
+  U.FM_KEEP = {
+    "tine EP":                     { single: 1, chord: 0 },
+    "bright tine EP":              { single: 1, chord: 0 },
+    "mellow EP, low tine":         { single: 1, chord: 0 },
+    "bell-tone EP":                { single: 1, chord: 0 },
+    "reedy FM piano":              { single: 1, chord: 0 },
+    "punchy tine EP":              { single: 0, chord: 0 },
+    "FM clav":                     { single: 0, chord: 0 },
+    "hard FM piano":               { single: 1, chord: 0 },
+    "glass keys":                  { single: 1, chord: 0 },
+    "tubular bell":                { single: 1, chord: 0 },
+    "marimba":                     { single: 1, chord: 0 },
+    "vibes":                       { single: 1, chord: 0 },
+    "celesta":                     { single: 1, chord: 0 },
+    "crystal bell":                { single: 1, chord: 0 },
+    "steel drum":                  { single: 1, chord: 0 },
+    "harpsichord":                 { single: 1, chord: 0 },
+    "FM brass section":            { single: 0, chord: 0 },
+    "synth brass stab":            { single: 0, chord: 0 },
+    "soft horn swell":             { single: 0, chord: 0 },
+    "bright brass, more feedback": { single: 0, chord: 0 },
+    "muted horn":                  { single: 0, chord: 0 },
+    "solid FM bass":               { single: 0, chord: 0 },
+    "slap FM bass":                { single: 0, chord: 0 },
+    "wood bass":                   { single: 0, chord: 0 },
+    "growl FM bass":               { single: 0, chord: 0 },
+    "round sub FM bass":           { single: 1, chord: 0 },
+    "bright FM strings":           { single: 0, chord: 0 },
+    "slow FM strings":             { single: 0, chord: 1 },
+    "three-stack organ":           { single: 1, chord: 0 },
+    "drawbar organ":               { single: 1, chord: 0 },
+    "FM flute":                    { single: 1, chord: 1 },
+    "FM oboe":                     { single: 0, chord: 0 },
+    "tenor sax":                   { single: 0, chord: 0 },
+    "alto sax":                    { single: 0, chord: 0 },
+    "koto":                        { single: 1, chord: 0 },
+    "FM harp":                     { single: 1, chord: 0 },
+    "plucked FM guitar":           { single: 1, chord: 0 },
+    "breathy FM voice":            { single: 0, chord: 1 },
+    "FM choir":                    { single: 0, chord: 1 },
+    "acoustic piano":              { single: 0, chord: 0 },
+    "bright piano":                { single: 1, chord: 0 },
+    "mellow piano":                { single: 1, chord: 0 },
+  };
+
   // THE TWO COLUMNS (slice 4, 2026-11-01, Asana 1220084766500650; juno.js has
   // the definitions above U.JUNO_BOOK_ROLES). Neither moves a draw or a
   // sample: the draw still reads w, range and role above.
@@ -5488,7 +5706,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/bassguitar.js @ a479545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/bassguitar.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassguitar.js — electric bass guitar, the first session player of the human
 // rack (Rack 2), zero dependencies.
 //
@@ -6199,7 +6417,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/rhythmguitar.js @ a479545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/rhythmguitar.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
 // rhythmguitar.js — clean electric rhythm guitar, the fourth and last stop of
 // the human rack (Rack 2), zero dependencies.
 //
@@ -6975,7 +7193,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/tr808.js @ a479545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/tr808.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
 // tr808.js — THE MACHINE. A TR-808-lineage core voice: bass drum, snare,
 // closed hat, open hat, each with a front panel the token actually turns.
 //
@@ -8259,7 +8477,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/linn.js @ a479545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/linn.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
 // linn.js — THE STUDIO MACHINE. A Linn-family (LM-1 / LinnDrum lineage)
 // drum computer: the new wave / synth-pop / 80s R&B kit.
 //
@@ -9081,7 +9299,7 @@
     get EPROM_HZ() { return U.CIRCUIT_LINN.epromHz; }, get RECON_HZ() { return U.CIRCUIT_LINN.reconHz; } };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/romkits.js @ a479545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/romkits.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
 // romkits.js — THE OTHER SAMPLED MACHINE: the DMX (Oberheim lineage, 1981),
 // drum engine slice 3, 2026-11-03, Asana 1219959495948201.
 //
@@ -9437,7 +9655,7 @@
   // the lock refuses; the MCS is a kit drawn across families, which is slice 4.
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/simmons.js @ a479545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/simmons.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
 // simmons.js — THE ELECTRONIC FAMILY'S FIRST MACHINE: the Simmons toms
 // (SDS-V lineage, 1981; SDS-7, 1983), drum engine slice 3, 2026-11-03,
 // Asana 1219959495948201.
@@ -9609,7 +9827,7 @@
   U.SIMMONS_VOICES = ["tomHi", "tomMid", "tomLo"];
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drumengine.js @ a479545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drumengine.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drumengine.js — ONE DRUM ENGINE, THE MACHINES AS FAMILIES (2026-11-02,
 // drum engine slice 1, Asana 1219959495948201; the rack and parts doc,
 // 10/31).
@@ -9840,7 +10058,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drumkits.js @ a479545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drumkits.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drumkits.js — the drum engine, slice 4 (2026-11-06, Asana 1219959495948201):
 // THE KIT BOOKS and THE KIT AS A DRAW ACROSS FAMILIES.
 //
@@ -10198,7 +10416,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/sampler.js @ a479545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/sampler.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
 // sampler.js — THE SAMPLER KEYBOARD, the gap filler (2026-11-05, slice 1,
 // Asana 1220085081678265; build 7 of the 10/31 rack and parts doc; design in
 // files/unison/sampler-2026-11-05/RESULT.md in the morgan repo).
@@ -10707,6 +10925,10 @@
     const gate = U.ROLE_GATE[role], list = [];
     for (const e of U.SAMPLER_DISK) {
       if (!e.acoustic) continue;
+      // Jeff's marks on the FM page's stand-ins (2026-11-17): an acoustic
+      // entry draws a role only where he kept its source patch's row
+      const mark = U.FM_KEEP[e.source.parts[0].patch];
+      if (!mark || !mark[U.ROLE_ROW[role]]) continue;
       const f = (e.roles && e.roles[role]) || 0, w = (e.w || 0) * f;
       if (f >= gate && w > 0) list.push({ e, w });
     }
@@ -10796,7 +11018,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drums.js @ a479545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drums.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drums.js — the drum machine: 808/LM-1-flavor voices, synthesized at runtime
 // into short AudioBuffers, played back as one-shots.
 //
@@ -11190,7 +11412,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/books.js @ a479545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/books.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
 // books.js — Pattern Books v1, as data.
 //
 // This file IS the document: "Unison — Pattern Books v1 (draft)" (Morgan,
@@ -11787,6 +12009,11 @@
   // above this. 0.5 on the bass (the pocket is the hard constraint), 0.25
   // everywhere else.
   U.ROLE_GATE = { bass: 0.5, chords: 0.25, comp: 0.25, pad: 0.25, arpeggio: 0.25, lead: 0.25, color: 0.25 };
+  // Which of Jeff's two curation rows a role reads (2026-11-17, Asana
+  // 1220632965049918; the tables are U.<BOOK>_KEEP next to each book): the
+  // page's single-note row stood for the lead, arpeggio and bass lines, its
+  // chord row for comps, pads and section hits.
+  U.ROLE_ROW = { bass: "single", lead: "single", arpeggio: "single", chords: "chord", comp: "chord", pad: "chord", color: "chord" };
 
   // Engine role fitness, 0 to 1. Two HARD GATES, not weights: the Minimoog is
   // mono and scores 0 on chords, pad and comp (Jeff 10/04: never comps or
@@ -11871,6 +12098,9 @@
     for (const e of U.ENGINES) {
       if (e === "bassguitar" && U.BASSGUITAR_NEVER[picks.bass.kind]) continue;
       const w = U.ENGINE_ROLE_FIT[e][role] * (pull[e] || 0) * (lean[e] || 1);
+      // an engine Jeff's marks left with no patch for the role leaves the
+      // role, and the others share its weight (2026-11-17)
+      if (w > 0 && U.ROLE_BOOKS[e] && !U.roleCandidates(e, role, lane).some((c) => c.w > 0)) continue;
       if (w > 0) out.push({ id: e, w });
     }
     return out;
@@ -14029,7 +14259,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/bassplayer.js @ a479545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/bassplayer.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassplayer.js — the PERFORMANCE half of the bass guitar: a session player.
 //
 // Rack 2's rule (kb/projects/unison.md, 2026-07-11): every human instrument is
@@ -14624,7 +14854,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/gtrplayer.js @ a479545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/gtrplayer.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
 // gtrplayer.js — the PERFORMANCE half of the rhythm guitar: a session
 // guitarist on the rhythmGtr strip.
 //
@@ -15098,7 +15328,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/fmplayer.js @ a479545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/fmplayer.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fmplayer.js — the PERFORMANCE half of the FM keys: a session keyboard
 // player on the FM chord strips (compA's tine EP, colour's glass and brass).
 //
@@ -15239,7 +15469,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/testPhrase.js @ a479545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/testPhrase.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
 // testPhrase.js — deterministic 8-bar test phrase, ported from the bake-off
 // (phrase.js) onto the engine's canonical PRNG (core/prng.js).
 //
@@ -15333,7 +15563,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/form.js @ a479545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/form.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
 // form.js — the song's form: the book of returns (2026-10-30, Asana
 // 1220073468300418; design files/unison/structure-design-2026-10-30 in the
 // morgan repo, DESIGN.md + draw.py, transcribed here as written).
@@ -15654,7 +15884,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/session.js @ a479545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/session.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
 // session.js — the session sheet and the arrangement realizer.
 //
 // Two tiers, in this order, each on its own stream (core/prng.js):
@@ -16590,22 +16820,42 @@
   // may draw. The strip reads its engine's own fork, U.forkPrng(hash,
   // "<engine>Book." + strip), exactly as the per-engine draws did: the
   // archetype, then each ranged knob in the range's key order. A muted strip
-  // and the bass guitar (its own book, U.drawBassBook) get no record.
+  // and the bass guitar (its own book, U.drawBassBook) get no record. Since
+  // 2026-11-17 a patch also needs Jeff's mark on the role's row
+  // (U.<BOOK>_KEEP next to each book, U.ROLE_ROW in books.js).
   // Record: { engine, name, role: the book key, part: the strip's role, params }.
   U.ROLE_BOOKS = {
-    juno: { book: "JUNO_BOOK", bias: "JUNO_LANE_BIAS", fork: "junoBook.", resolve: "resolveJunoArchetype" },
-    obxa: { book: "OBXA_BOOK", bias: "OBXA_LANE_BIAS", fork: "obxaBook.", resolve: "resolveObxaArchetype", lean: "OBXA_ROLE_LEAN" },
-    minimoog: { book: "MINIMOOG_BOOK", bias: "MINIMOOG_LANE_BIAS", fork: "minimoogBook.", resolve: "resolveMinimoogArchetype" },
-    fm: { book: "FM_BOOK", bias: "FM_LANE_BIAS", fork: "fmBook.", resolve: "resolveFmArchetype" },
+    juno: { book: "JUNO_BOOK", keep: "JUNO_KEEP", bias: "JUNO_LANE_BIAS", fork: "junoBook.", resolve: "resolveJunoArchetype" },
+    obxa: { book: "OBXA_BOOK", keep: "OBXA_KEEP", bias: "OBXA_LANE_BIAS", fork: "obxaBook.", resolve: "resolveObxaArchetype", lean: "OBXA_ROLE_LEAN" },
+    minimoog: { book: "MINIMOOG_BOOK", keep: "MINIMOOG_KEEP", bias: "MINIMOOG_LANE_BIAS", fork: "minimoogBook.", resolve: "resolveMinimoogArchetype" },
+    fm: { book: "FM_BOOK", keep: "FM_KEEP", bias: "FM_LANE_BIAS", fork: "fmBook.", resolve: "resolveFmArchetype" },
   };
   U.roleCandidates = function (engine, role, lane) {
     const RB = U.ROLE_BOOKS[engine], B = U[RB.book], bias = (U[RB.bias] || {})[lane] || {}, lean = RB.lean ? U[RB.lean] : {};
-    const gate = U.ROLE_GATE[role], list = [];
+    const gate = U.ROLE_GATE[role], keep = U[RB.keep], row = U.ROLE_ROW[role], list = [];
     for (const key in B) for (const a of B[key]) {
       const f = (a.roles && a.roles[role]) || 0;
-      if (f >= gate) list.push({ a, key, w: a.w * f * (bias[a.name] || 1) * (lean[a.name] || 1) });
+      if (!keep[a.name]) throw new Error("roleCandidates: no curation mark for " + engine + " / " + a.name + " (U." + RB.keep + ")");
+      if (f >= gate && keep[a.name][row]) list.push({ a, key, w: a.w * f * (bias[a.name] || 1) * (lean[a.name] || 1) });
     }
     return list;
+  };
+  // The list a strip draws from. A song never reaches the fallback: an
+  // engine with no kept patch for a role leaves the role (U.roleEngineList).
+  // The jam's layers force an engine onto a strip (an OB-Xa chords layer on
+  // a comping figure), so there the strip plays the nearest kept sound: the
+  // patches Jeff kept on that role's row with any fitness for the role, gate
+  // off, weighted as the draw weighs them (2026-11-17). Never a cut row.
+  U.rolePatchList = function (engine, role, lane) {
+    const list = U.roleCandidates(engine, role, lane);
+    if (list.some((c) => c.w > 0)) return list;
+    const RB = U.ROLE_BOOKS[engine], B = U[RB.book], keep = U[RB.keep], row = U.ROLE_ROW[role], bias = (U[RB.bias] || {})[lane] || {}, lean = RB.lean ? U[RB.lean] : {}, out = [];
+    for (const key in B) for (const a of B[key]) {
+      const f = (a.roles && a.roles[role]) || 0, w = a.w * f * (bias[a.name] || 1) * (lean[a.name] || 1);
+      if (keep[a.name][row] && w > 0) out.push({ a, key, w });
+    }
+    if (!out.length) throw new Error("rolePatchList: " + engine + " has no kept patch on the " + row + " row for " + role);
+    return out;
   };
   U.drawRolePatches = function (hash, sheet) {
     const out = {};
@@ -16614,7 +16864,7 @@
       if (sheet.mutes[strip] || !U.ROLE_BOOKS[engine]) continue;
       const RB = U.ROLE_BOOKS[engine], role = U.stripRole(strip, sheet.picks);
       const G = U.forkPrng(hash, RB.fork + strip);
-      const pick = U.pickWeighted(G, U.roleCandidates(engine, role, sheet.lane));
+      const pick = U.pickWeighted(G, U.rolePatchList(engine, role, sheet.lane));
       const u = {};
       for (const k in pick.a.range) u[k] = G.r();
       out[strip] = { engine, name: pick.a.name, role: pick.key, part: role, params: U[RB.resolve](pick.a, u) };
@@ -17545,7 +17795,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/render/renderer.js @ a479545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/render/renderer.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
 // renderer.js — song assembly + the render pipeline (Technical Architecture
 // v1.2 playback model): live-first, with (a) a cheap analysis pre-render for
 // verification/metrics and (b) an on-demand full OfflineAudioContext render
@@ -18540,7 +18790,9 @@
   // ---- v2: selectable patches (Jeff 10/28), from each instrument's own book ----
   // Synth strips list what the engine's role draw can put there (2026-11-01,
   // the lock out): every archetype of the layer's engine whose roles vector
-  // clears the strip role's gate (U.roleCandidates; compA's role follows its
+  // clears the strip role's gate (U.rolePatchList: U.roleCandidates, or on a
+  // role Jeff's marks left the engine nothing for, the patches he kept on that
+  // row, 2026-11-17; compA's role follows its
   // pattern, chords or comp), the house first (the candidate the draw weighs
   // most), then by fitness for the role, then by weight.
   // Bass guitar: model x the styles that fit the line (U.BASSGUITAR_MODELS,
@@ -18557,7 +18809,7 @@
   function synthOf(inst, s) {
     var st = INST_BY[inst].strips[0], e = s.voices && s.voices[st];
     if (!SYN[e] || s.mutes[st]) return null;
-    var role = U.stripRole(st, s.picks), list = U.roleCandidates(e, role, s.lane).slice();
+    var role = U.stripRole(st, s.picks), list = U.rolePatchList(e, role, s.lane).slice();
     var top = list.reduce(function (m, c) { return !m || c.w > m.w ? c : m; }, null);
     list.sort(function (x, y) { return x === top ? -1 : y === top ? 1 : (y.a.roles[role] - x.a.roles[role]) || (y.w - x.w); });
     return { syn: e, strip: st, role: role, cands: list };
