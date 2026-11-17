@@ -124,6 +124,18 @@
   #layers.four .layer .lvl .dbv{flex:0 0 54px;width:54px;font-size:16px}
   /* production controls (11/07): Room bar, the per-layer button; the modules open as a drawer on the wide layout */
   #roomBar{flex:0 0 auto;margin-top:6px}
+  /* effects slice 1 (11/17): the Master card above the layers, the pan row on each layer */
+  #masterCard{flex:0 0 auto;margin-top:6px;display:-webkit-box;display:flex;-webkit-box-align:center;align-items:center;gap:10px;flex-wrap:wrap;
+    background:#2a2a2a;border:1px solid var(--edge);border-radius:10px;padding:6px 10px;font-size:14px;text-align:left}
+  #masterCard .mt{font-weight:700;font-size:15px}
+  #masterCard .mc{display:-webkit-box;display:flex;-webkit-box-align:center;align-items:center;gap:6px}
+  #masterCard input[type=range]{width:140px}
+  #masterCard button{height:28px;font-size:13px;padding:0 10px}
+  #masterCard button.on{border-color:var(--or)}
+  .layer .panrow{flex:0 0 auto;display:-webkit-box;display:flex;-webkit-box-align:center;align-items:center;gap:6px;margin-top:6px;font-size:13px}
+  .layer .panrow .pc{display:-webkit-box;display:flex;-webkit-box-align:center;align-items:center;gap:4px;flex:1 1 0;min-width:0}
+  .layer .panrow input[type=range]{flex:1 1 auto;min-width:40px;width:60px}
+  .layer .panrow .pv{flex:0 0 34px;width:34px;text-align:right}
   .roomBtn{height:30px;font-size:14px;padding:0 12px}
   .roomBtn.on,.pxbtn.on{border-color:var(--or)}
   .layer .pxrow{flex:0 0 30px;height:30px;margin-top:6px}
@@ -259,12 +271,13 @@
 </div>
 <div id="bars" class="row"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><div id="status"></div></div>
 <div id="roomBar"></div>
+<div id="masterCard"></div>
 <div id="layers"></div>
 <div id="add" class="row"><div class="lbl">Add a layer<button id="palRnd" title="add a random instrument (one you don't have yet, while any are left)">Random</button></div><div id="pal"></div></div>
-<footer title="engine @7422849 · built 2026-11-17">Unison jam &middot; every sound is synthesized in this page by the engine at 7422849</footer>
+<footer title="engine @04d1545 · built 2026-11-17">Unison jam &middot; every sound is synthesized in this page by the engine at 04d1545</footer>
 
 <script>
-/* ===== src/core/prng.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/prng.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
 // prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
 // token hash, consumed in canonical draw order (Technical Architecture v1.2).
 //
@@ -337,7 +350,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/core/mix.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/mix.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
 // mix.js — the fan-in ≤2 summing rule, as a primitive.
 //
 // Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
@@ -506,7 +519,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/desk/desk.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/desk/desk.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
 // desk.js — the 24-track desk as a running audio graph.
 //
 // The desk is the data structure, not a metaphor (Composition Brief 2 / Tech
@@ -929,6 +942,66 @@
     return { input, output: out, echo: e, kind: "echo" };
   };
 
+  // ---- STEREO PLACEMENT (effects slice 1, 2026-11-17, Asana 1220328751228343;
+  // spec: files/unison/effects-menu-2026-11-08/PROPOSAL.md §3, Jeff 11/08:
+  // "Balance = levels + pan per strip"). p in [-1, 1], -1 hard left.
+  U.panGains = function (p) {
+    const th = (Math.max(-1, Math.min(1, p)) + 1) * Math.PI / 4;
+    return [Math.SQRT2 * Math.cos(th), Math.SQRT2 * Math.sin(th)];
+  };
+  // The draw, on its own fork U.forkPrng(hash, "pan"): a fixed block read on
+  // every song in this order, so no other draw in the song moves. One draw of
+  // perspective (drummer's: hats left, high tom left, floor tom right;
+  // audience's: the mirror), then each strip from the period conventions with
+  // its own spread. Two pitched strips on one engine take opposite sides
+  // (compA / compB / counter by rule; color, arp, rhythm guitar flip if they
+  // would share a side with an earlier strip on their engine). No lane or
+  // style bias. The arp's auto-pan is the tremolo/auto-pan effect (slice 3).
+  U.PAN_RULES = {
+    centre: 0.05,              // kick, snare, bass, lead: within 5%
+    hats: [0.20, 0.40], toms: [0.40, 0.75], perc: [0.30, 0.60],
+    compA: [0.15, 0.35], counter: [0.20, 0.40], color: [0.20, 0.40],
+    arp: [0.25, 0.50], rhythmGtr: [0.40, 0.70],
+  };
+  U.drawPan = function (hash, sheet) {
+    const R = U.forkPrng(hash, "pan"), PR = U.PAN_RULES;
+    const r = () => R.r();
+    const span = (a, x) => a[0] + (a[1] - a[0]) * x;
+    const side = () => (r() < 0.5 ? -1 : 1);
+    const perspective = r() < 0.5 ? "drummer" : "audience";
+    const hs = perspective === "drummer" ? -1 : 1;   // the hats' side
+    const st = {};
+    for (const id of ["kick", "snare", "bass", "lead"]) st[id] = (2 * r() - 1) * PR.centre;
+    st.hats = hs * span(PR.hats, r());
+    const tw = span(PR.toms, r());
+    st.tomsFills = 0;
+    const toms = { tomHi: hs * tw, tomMid: hs * tw * 0.2, tomLo: -hs * tw };
+    // timekeeper opposite the hats, accent opposite the timekeeper; the
+    // electronic percussion its own side
+    st.percTime = -hs * span(PR.perc, r());
+    st.percAccent = hs * span(PR.perc, r());
+    st.ePerc = side() * span(PR.perc, r());
+    const sA = side();
+    st.compA = sA * span(PR.compA, r());
+    st.compB = -st.compA;
+    st.counter = -sA * span(PR.counter, r());
+    st.pad = 0;
+    const flips = [];
+    const eng = (id) => (sheet && sheet.voices && sheet.voices[id]) || null;
+    const placed = ["compA", "counter"];
+    for (const id of ["color", "arp", "rhythmGtr"]) {
+      let s = side();
+      const mag = span(PR[id], r());
+      const e = id === "rhythmGtr" ? "gtr" : eng(id);
+      if (e && placed.some((o) => (o === "rhythmGtr" ? "gtr" : eng(o)) === e && Math.sign(st[o]) === s && !(sheet.mutes && sheet.mutes[o]))) { s = -s; flips.push(id); }
+      st[id] = s * mag;
+      placed.push(id);
+    }
+    for (const k in st) st[k] = Math.round(st[k] * 1000) / 1000;
+    for (const k in toms) toms[k] = Math.round(toms[k] * 1000) / 1000;
+    return { perspective, strips: st, toms, flips };
+  };
+
   U.createDesk = function (ctx, destination, opts) {
     opts = opts || {};
     // master bus: strip sum → bus trim → glue compressor → limiter → master
@@ -992,13 +1065,28 @@
       const insert = ctx.createGain(); insert.gain.value = 1.0;
       head.connect(insert);
       insert.connect(fader);
-      busMix.add(fader);
+      // THE PAN (effects slice 1, 2026-11-17, Asana 1220328751228343): one
+      // equal-power pan after the fader, into the stereo master sum. fader →
+      // up (2 ch, speakers: a mono strip becomes L = R) → splitter → gL, gR →
+      // merger → master sum. gL = √2·cos θ, gR = √2·sin θ, θ = (p + 1)·π/4:
+      // equal power, and unity at centre, so a centred strip sums exactly as
+      // the mono strip summed before. On a stereo strip (a chorus) it is the
+      // same law as a balance. Every node fan-in 1. The sends stay post-fader
+      // and pre-pan (the returns are untouched in this slice).
+      const up = ctx.createGain(); up.channelCount = 2; up.channelCountMode = "explicit"; up.channelInterpretation = "speakers";
+      const split = ctx.createChannelSplitter(2), merge = ctx.createChannelMerger(2);
+      const gL = ctx.createGain(), gR = ctx.createGain();
+      fader.connect(up); up.connect(split);
+      split.connect(gL, 0); split.connect(gR, 1);
+      gL.connect(merge, 0, 0); gR.connect(merge, 0, 1);
+      busMix.add(merge);
       const send = ctx.createGain(); send.gain.value = role.send;
       fader.connect(send);
       plateMix.add(send);
       return {
         role: role.id, input: U.chainMixer(ctx, trim), trim, head, insert, fader, send,
         houseFader: role.fader, houseSend: role.send, muted: false,
+        panL: gL, panR: gR, pan: 0,
       };
     }
 
@@ -1028,6 +1116,24 @@
           s.houseFader *= f[id];
           if (!s.muted) s.fader.gain.value = s.houseFader;
         }
+      },
+      // The strip's place left to right, p in [-1, 1] (U.panGains). `at`
+      // (s): a live move from the jam, a short ramp so it never clicks.
+      setPan(roleId, p, at) {
+        const s = strips[roleId];
+        if (!s) throw new Error("desk: unknown role " + roleId);
+        s.pan = p;
+        const [l, r] = U.panGains(p);
+        if (typeof at === "number") {
+          for (const [g, v] of [[s.panL, l], [s.panR, r]]) { g.gain.cancelScheduledValues(at); g.gain.setTargetAtTime(v, at, 0.015); }
+        } else { s.panL.gain.value = l; s.panR.gain.value = r; }
+      },
+      // The song's drawn placement (U.drawPan): every strip's position, and
+      // on the toms strip the per-voice positions the kit reads per hit.
+      applyPan(pan) {
+        for (const id in pan.strips) if (strips[id]) this.setPan(id, pan.strips[id]);
+        if (pan.toms && strips.tomsFills) strips.tomsFills.voicePan = pan.toms;
+        this.panDraw = pan;
       },
       // Spare strip: same role books/house settings, different instrument,
       // own independent path. 24-channel ceiling enforced.
@@ -1093,6 +1199,10 @@
         const s = strips[roleId];
         if (!s) throw new Error("desk: unknown role " + roleId);
         const tail = s.sat ? s.sat.lp : s.insert;
+        // a strip right of centre takes the chorus mirrored (its two swept
+        // delays swap sides, the LFO's polarity with them), so a mirror pair
+        // widens as a mirror image (effects slice 1)
+        if (s.pan > 0) { depth = -depth; centers = [centers[1], centers[0]]; }
         const b = U.makeChorusBlock(ctx, rate, depth, centers, wetLevel, wetHpHz, makeupDb, (cin) => { tail.disconnect(s.fader); tail.connect(cin); });
         b.output.connect(s.fader);
         s.chorus = { rate, depth, makeupDb, bypassed: false, out: b.output,
@@ -1149,7 +1259,8 @@
       // a chain's level where it has no amp (bass books slice 1, 2026-11-05)
       boardLevel(roleId, db) { const g = ctx.createGain(); g.gain.value = Math.pow(10, db / 20); return this.board(roleId, { input: g, output: g, kind: "level" }); },
       boardChorus(roleId, params) {
-        const b = U.makeChorusBlock(ctx, params.rate, params.depth, params.centers, params.wet, params.wetHpHz || 0, params.makeupDb || 0, null);
+        const m = strips[roleId] && strips[roleId].pan > 0;   // mirrored right of centre, as chorus()
+        const b = U.makeChorusBlock(ctx, params.rate, m ? -params.depth : params.depth, m ? [params.centers[1], params.centers[0]] : params.centers, params.wet, params.wetHpHz || 0, params.makeupDb || 0, null);
         return this.board(roleId, b);
       },
       // Kit-bus compression (pass 3, production.js U.kitCompCurve): one gain
@@ -1175,7 +1286,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/production.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/production.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
 // production.js — the production room, v0.
 //
 // PLACEMENT DECISION (Morgan's call, ratified by Jeff 2026-08-03). Production
@@ -1527,7 +1638,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/vocoder.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/vocoder.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
 // vocoder.js — the production room's vocoder insert, slice 1 (2026-11-05,
 // Asana 1220085081650427; design in files/unison/vocoder-2026-11-05/RESULT.md).
 //
@@ -1863,7 +1974,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/analogpoly.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/analogpoly.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
 // analogpoly.js — the analog poly core: one module that builds every Juno and
 // OB-Xa voice, behind a family lock. Asana 1220084594874974, slice 1
 // (2026-11-02); the rack doc's build 3 (files/unison/rack-parts-proposal-
@@ -2489,7 +2600,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/juno.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/juno.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
 // juno.js — Juno-60-flavor poly voice, raw Web Audio, zero dependencies.
 // Ported from the 2026-07-21 bake-off winner (voice-raw.js), restructured to
 // live behind a desk strip: U.createJuno(ctx, strip, patchName) builds its own
@@ -3125,7 +3236,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/minimoog.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/minimoog.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
 // minimoog.js — Minimoog Model D-lineage mono voice, zero dependencies.
 //
 // THE MONO BASS LANE (build order 808 → Juno → Minimoog → …; it also absorbs
@@ -3963,7 +4074,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/obxa.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/obxa.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
 // obxa.js — Oberheim OB-Xa-lineage poly voice, zero dependencies.
 //
 // THE BRASS/PAD POLY LANE (build order 808 → Juno → Minimoog → OB-Xa → …).
@@ -4550,7 +4661,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/fm.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/fm.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fm.js — six-operator FM keys voice (the DX7 lineage), zero dependencies.
 //
 // THE FM LANE (build order 808 → Juno → Minimoog → OB-Xa → Linn → FM).
@@ -5706,7 +5817,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/bassguitar.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/bassguitar.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassguitar.js — electric bass guitar, the first session player of the human
 // rack (Rack 2), zero dependencies.
 //
@@ -6417,7 +6528,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/rhythmguitar.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/rhythmguitar.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
 // rhythmguitar.js — clean electric rhythm guitar, the fourth and last stop of
 // the human rack (Rack 2), zero dependencies.
 //
@@ -7193,7 +7304,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/tr808.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/tr808.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
 // tr808.js — THE MACHINE. A TR-808-lineage core voice: bass drum, snare,
 // closed hat, open hat, each with a front panel the token actually turns.
 //
@@ -8477,7 +8588,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/linn.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/linn.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
 // linn.js — THE STUDIO MACHINE. A Linn-family (LM-1 / LinnDrum lineage)
 // drum computer: the new wave / synth-pop / 80s R&B kit.
 //
@@ -9299,7 +9410,7 @@
     get EPROM_HZ() { return U.CIRCUIT_LINN.epromHz; }, get RECON_HZ() { return U.CIRCUIT_LINN.reconHz; } };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/romkits.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/romkits.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
 // romkits.js — THE OTHER SAMPLED MACHINE: the DMX (Oberheim lineage, 1981),
 // drum engine slice 3, 2026-11-03, Asana 1219959495948201.
 //
@@ -9655,7 +9766,7 @@
   // the lock refuses; the MCS is a kit drawn across families, which is slice 4.
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/simmons.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/simmons.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
 // simmons.js — THE ELECTRONIC FAMILY'S FIRST MACHINE: the Simmons toms
 // (SDS-V lineage, 1981; SDS-7, 1983), drum engine slice 3, 2026-11-03,
 // Asana 1219959495948201.
@@ -9827,7 +9938,7 @@
   U.SIMMONS_VOICES = ["tomHi", "tomMid", "tomLo"];
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drumengine.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drumengine.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drumengine.js — ONE DRUM ENGINE, THE MACHINES AS FAMILIES (2026-11-02,
 // drum engine slice 1, Asana 1219959495948201; the rack and parts doc,
 // 10/31).
@@ -10058,7 +10169,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drumkits.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drumkits.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drumkits.js — the drum engine, slice 4 (2026-11-06, Asana 1219959495948201):
 // THE KIT BOOKS and THE KIT AS A DRAW ACROSS FAMILIES.
 //
@@ -10416,7 +10527,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/sampler.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/sampler.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
 // sampler.js — THE SAMPLER KEYBOARD, the gap filler (2026-11-05, slice 1,
 // Asana 1220085081678265; build 7 of the 10/31 rack and parts doc; design in
 // files/unison/sampler-2026-11-05/RESULT.md in the morgan repo).
@@ -11018,7 +11129,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drums.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drums.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drums.js — the drum machine: 808/LM-1-flavor voices, synthesized at runtime
 // into short AudioBuffers, played back as one-shots.
 //
@@ -11293,7 +11404,25 @@
   // take over: the analog family PANEL_VOICES, the sampled family all of its
   // own. A panel without the engine loaded is an error, never a quiet
   // generic kit.
+  // THE TOMS ACROSS THE FIELD (effects slice 1, 2026-11-17): on a strip the
+  // desk gave per-voice positions (desk.applyPan, strips.tomsFills.voicePan),
+  // each hit of a placed voice goes through its own equal-power pan
+  // (StereoPanner, mono in, with √2 on the hit so a centred hit sums as
+  // before: U.panGains' law), so a fill walks across. Any other hit is
+  // returned as it was.
+  function hitPanner(ctx, strips) {
+    return function (stripId, voice, g) {
+      const vp = strips[stripId] && strips[stripId].voicePan;
+      if (!vp || typeof vp[voice] !== "number") return g;
+      const p = ctx.createStereoPanner(); p.pan.value = vp[voice];
+      g.gain.value *= Math.SQRT2;
+      g.connect(p);
+      return p;
+    };
+  }
+
   U.createDrumKit = function (ctx, strips, flavor, panel) {
+    const panHit = hitPanner(ctx, strips);
     const raw = buildBuffers(flavor);
     if (panel && !U.buildDrumVoices) throw new Error("drums.js: a machine panel needs instruments/drumengine.js loaded");
     const machine = panel ? U.drumMachineOf(panel) : null;
@@ -11346,9 +11475,10 @@
         }
       }
       src.connect(g);
-      bus.mix.add(g, t, t + src.buffer.duration);   // its window: the hit to the buffer's end (mix.js, the JIT chain)
+      const out = panHit(stripId, bufName, g);
+      bus.mix.add(out, t, t + src.buffer.duration);   // its window: the hit to the buffer's end (mix.js, the JIT chain)
       src.start(t);
-      held.push(src, g);
+      held.push(src, g, out);
     }
 
     return { fire, buffers: bufs, held, panel: panel || null };
@@ -11363,6 +11493,7 @@
   // strip as createDrumKit's. createDrumKit itself is not touched: an untaken
   // song never comes here.
   U.createMixedDrumKit = function (ctx, strips, flavor, panels) {
+    const panHit = hitPanner(ctx, strips);
     const byPanel = new Map(), bufsOf = {}, accOf = {};
     for (const id in strips) {
       const panel = panels[id];
@@ -11404,15 +11535,16 @@
         if (bufName === "hatOpen") openHat[stripId] = { g, gain: level, t, end: t + bufs.hatOpen.duration };
       }
       src.connect(g);
-      bus.mix.add(g, t, t + src.buffer.duration);
+      const out = panHit(stripId, bufName, g);
+      bus.mix.add(out, t, t + src.buffer.duration);
       src.start(t);
-      held.push(src, g);
+      held.push(src, g, out);
     }
     return { fire, buffers: bufsOf, held, panels, mixed: true };
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/books.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/books.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
 // books.js — Pattern Books v1, as data.
 //
 // This file IS the document: "Unison — Pattern Books v1 (draft)" (Morgan,
@@ -14259,7 +14391,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/bassplayer.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/bassplayer.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassplayer.js — the PERFORMANCE half of the bass guitar: a session player.
 //
 // Rack 2's rule (kb/projects/unison.md, 2026-07-11): every human instrument is
@@ -14854,7 +14986,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/gtrplayer.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/gtrplayer.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
 // gtrplayer.js — the PERFORMANCE half of the rhythm guitar: a session
 // guitarist on the rhythmGtr strip.
 //
@@ -15328,7 +15460,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/fmplayer.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/fmplayer.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fmplayer.js — the PERFORMANCE half of the FM keys: a session keyboard
 // player on the FM chord strips (compA's tine EP, colour's glass and brass).
 //
@@ -15469,7 +15601,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/testPhrase.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/testPhrase.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
 // testPhrase.js — deterministic 8-bar test phrase, ported from the bake-off
 // (phrase.js) onto the engine's canonical PRNG (core/prng.js).
 //
@@ -15563,7 +15695,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/form.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/form.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
 // form.js — the song's form: the book of returns (2026-10-30, Asana
 // 1220073468300418; design files/unison/structure-design-2026-10-30 in the
 // morgan repo, DESIGN.md + draw.py, transcribed here as written).
@@ -15884,7 +16016,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/session.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/session.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
 // session.js — the session sheet and the arrangement realizer.
 //
 // Two tiers, in this order, each on its own stream (core/prng.js):
@@ -16947,6 +17079,9 @@
     // production style sets the room, then the mutes decide what is up. Nothing
     // here adds or removes a node, so the fan-in ≤2 contract is untouched.
     desk.applyLaneMix(sheet.lane);
+    // the song's stereo placement (effects slice 1, desk.js U.drawPan), before
+    // the room so a chorus knows which side its strip sits on
+    if (sheet.pan && desk.applyPan) desk.applyPan(sheet.pan);
     U.applyProduction(desk, sheet.production, sheet);
     for (const id in sheet.mutes) desk.setMute(id, sheet.mutes[id]);
     // A muted strip's fader is at zero, so skipping its scheduling below is an
@@ -17795,7 +17930,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/render/renderer.js @ 7422849 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/render/renderer.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
 // renderer.js — song assembly + the render pipeline (Technical Architecture
 // v1.2 playback model): live-first, with (a) a cheap analysis pre-render for
 // verification/metrics and (b) an on-demand full OfflineAudioContext render
@@ -17875,6 +18010,10 @@
     // across the families from the machines' kit books. Reads the lane and
     // draw 68's machine, changes neither; sheet.drumKit is the only field.
     if (U.drawDrumKit) sheet.drumKit = U.resolveDrumKit(sheet, U.drawDrumKit(hash));
+    // Stereo placement (effects slice 1, 2026-11-17, desk.js U.drawPan): its
+    // own fork "pan", a fixed block read on every song; reads the engines and
+    // mutes, changes nothing else. sheet.pan is the only field.
+    if (U.drawPan) sheet.pan = U.drawPan(hash, sheet);
 
     // Tier 2's per-bar draws come from their own fork of the hash, never from
     // R: tier 1 owns the song stream, tier 2 owns "bars" (2026-10-03).
@@ -19043,6 +19182,7 @@
   }
   function realize(ctx, s, pat, v, oct) {
     var desk = U.createDesk(ctx, ctx.destination, { busTrimDb: 0 });
+    if (!s.pan && U.drawPan) s.pan = jamPan();   // every baked render at the drawn place
     var R = splice(s, U.forkPrng(seedHash(pat, "bars" + v), "bars"));
     var stats = withOctave(oct || 0, function () { return U.realizeSession(ctx, desk, s, R, LEAD, {}); });
     return { desk: desk, stats: stats };
@@ -19412,6 +19552,9 @@
         if (l.rt === "draw" || l.rt === "draw3") { if (a.length < 11) a.push(0); a.push(l.rt === "draw3" ? 2 : 1); }   // [11] around the root: 1 = the layer's draw (slices 1-2), 2 = with slice 3's roots and voicing; absent = up
         return a; }) };
     if (G.prl) o.p = G.prl;
+    // effects slice 1: moved pans, per layer index (absent = every strip as drawn)
+    var q = G.L.map(function (l) { return l.pan && Object.keys(l.pan).length ? l.pan : 0; });
+    if (q.some(Boolean)) o.q = q;
     if (G.px && (G.px.st || Object.keys(G.px.R).length)) o.x = { s: G.px.st, R: G.px.R };   // the Room
     var s = btoa(JSON.stringify(o)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
     try { history.replaceState(null, "", "#j=" + s); } catch (e) { location.hash = "j=" + s; }
@@ -19447,6 +19590,11 @@
           ln: lane(a[8]), pl: lane(a[9]), rt: a[11] === 2 ? "draw3" : a[11] === 1 ? "draw" : "up" });
         var px = a[10] && typeof a[10] === "object" ? a[10] : null;
         if (px) { G.L[G.L.length - 1].px = px; G.L[G.L.length - 1].live = true; }
+      });
+      if (Array.isArray(o.q)) o.q.forEach(function (pn, i) {
+        var l = G.L[i]; if (!l || !pn || typeof pn !== "object") return;
+        var ok = {}; for (var k in pn) if (typeof pn[k] === "number" && isFinite(pn[k])) ok[k] = Math.max(-1, Math.min(1, pn[k]));
+        if (Object.keys(ok).length) { l.pan = ok; l.live = true; }
       });
       if (o.x && typeof o.x === "object") {
         G.px = { st: styleById(o.x.s) ? o.x.s : null, R: o.x.R && typeof o.x.R === "object" ? o.x.R : {} };
@@ -19510,6 +19658,22 @@
       fd.oninput = function () { l.db = +fd.value; dbv.textContent = (l.db > 0 ? "+" : "") + l.db + " dB"; applyGain(l); };
       fd.onchange = function () { setDb(l, fd.value); };
       r3.appendChild(el("label", null, "Level")); r3.appendChild(fd); r3.appendChild(dbv); c.appendChild(r3);
+      // pan (effects slice 1): each strip's drawn place, moved live (the
+      // kit's kick and snare sit centred by rule and are not on the card)
+      var r5 = el("div", "row panrow"), pst = layerStrips(l).filter(function (id) { return d.cls !== "drums" || (id !== "kick" && id !== "snare"); });
+      r5.appendChild(el("label", null, "Pan"));
+      pst.forEach(function (id) {
+        var pc = el("div", "pc"), sl = el("input", "pan"), pv = el("span", "pv", panTxt(panOf(l, id)));
+        sl.type = "range"; sl.min = -100; sl.max = 100; sl.step = 1; sl.value = Math.round(panOf(l, id) * 100);
+        sl.setAttribute("data-strip", id);
+        sl.title = (STRIP_NAME[id] || id) + " pan, drawn " + panTxt(drawnPanOf(l, id)) + " (double-click: back to drawn)";
+        if (pst.length > 1) pc.appendChild(el("span", null, (STRIP_NAME[id] || id).split(" ")[0]));
+        sl.oninput = function () { l.pan = l.pan || {}; l.pan[id] = +sl.value / 100; pv.textContent = panTxt(l.pan[id]); goLive(l); pxUpdate(l); };
+        sl.onchange = function () { save(); };
+        sl.ondblclick = function () { if (l.pan) delete l.pan[id]; sl.value = Math.round(drawnPanOf(l, id) * 100); pv.textContent = panTxt(drawnPanOf(l, id)); pxUpdate(l); save(); };
+        pc.appendChild(sl); pc.appendChild(pv); r5.appendChild(pc);
+      });
+      c.appendChild(r5);
       // the production module (11/07): the layer's inserts and sends, live
       var r4 = el("div", "row pxrow"), bpx = el("button", "pxbtn" + (l.pxOpen ? " on" : ""), l.pxOpen ? "Production \u25b4" : "Production \u25be");
       bpx.onclick = function () {
@@ -19552,7 +19716,7 @@
       ch.className = "row chords" + (cells.length > 4 ? " many" : "");
     });
   }
-  function drawAll() { drawTop(); drawSecs(); drawLayers(); }
+  function drawAll() { drawTop(); drawSecs(); drawLayers(); masterDraw(); }
 
   function frame() {
     requestAnimationFrame(frame);
@@ -19626,6 +19790,16 @@
   function pxAny(f) { for (var i = 0; i < PXS.length; i++) { var x = f(PXS[i]); if (x != null) return x; } return null; }
   function layerStrips(l) { var d = INST_BY[l.inst]; return d.strips.concat(d.fill ? [d.fill] : []); }
   function styleById(id) { return PXS.filter(function (s) { return s.id === id; })[0] || null; }
+  // ---- stereo placement (effects slice 1, 2026-11-17): the jam's one pan
+  // draw (desk.js U.drawPan, its own seed), each layer's strips at their drawn
+  // place (the same place for two layers on one strip: a baked render is
+  // shared by identical layers). l.pan[id] is a moved strip: the layer goes
+  // live and the move plays on the engine's own pan nodes (desk.setPan).
+  function jamPan() { return G.panDraw || (G.panDraw = U.drawPan(seedHash(1, "pan"), null)); }
+  function drawnPanOf(l, id) { return jamPan().strips[id] || 0; }
+  function panOf(l, id) { return l.pan && typeof l.pan[id] === "number" ? l.pan[id] : drawnPanOf(l, id); }
+  function layerPan(l) { var o = { strips: {}, toms: jamPan().toms }; layerStrips(l).forEach(function (id) { o.strips[id] = panOf(l, id); }); return o; }
+  function panTxt(p) { var v = Math.round(Math.abs(p) * 100); return v === 0 ? "C" : (p < 0 ? "L" : "R") + v; }
   function drawnRoom() { return G.prl ? U.drawProduction(U.makePrng(seedHash(1, "prod")), G.prl) : PLATE; }
   function drawnStyle(l) { return INST_BY[l.inst].cls === "drums" ? DRY_KIT : drawnRoom(); }
   function baseStyle(l) { return (PX().st && styleById(PX().st)) || drawnStyle(l); }
@@ -19681,7 +19855,7 @@
     var st = effStyle(l, room), sat = [];
     layerStrips(l).forEach(function (id) { var e = stripEff(l, id, room); if (e.sat && e.sat.on) sat.push(id); });
     return JSON.stringify([sat, st.chorusP ? Object.keys(st.chorusP).map(function (k) { return k + st.chorusP[k].depth; }) : 0,
-      st.echo ? Object.keys(st.echo.send) : 0, st.gate ? Object.keys(st.gate.send) : 0, room.bus.glue, room.bus.lim, l.lvInfoKey || ""]);
+      st.echo ? Object.keys(st.echo.send) : 0, st.gate ? Object.keys(st.gate.send) : 0, room.bus.glue, room.bus.lim, l.lvInfoKey || "", layerStrips(l).map(function (id) { return panOf(l, id) > 0 ? 1 : 0; })]);
   }
   function isLive(l) { return !!l.live; }
   function dkey(g, sec, l, v) { return bkey(g, sec, l, v) + "#dry"; }
@@ -19730,6 +19904,7 @@
     U.DESK_ROLES = saved.filter(function (r) { return strips.indexOf(r.id) > -1; });
     try { D = U.createDesk(c, out, { busTrimDb: room.bus.db }); } finally { U.DESK_ROLES = saved; }
     D.applyLaneMix(l.ln || G.lane || "synthPop");
+    D.applyPan(layerPan(l));   // before the room: a chorus mirrors right of centre
     var sends = { echo: {}, gate: {} }, so = D.sendTo;
     D.sendTo = function (fx, id, a) { var g = so.call(D, fx, id, a); (fx === D.echo ? sends.echo : sends.gate)[id] = g; return g; };
     // saturation first, the engine's insert at any drive (desk.saturate); the
@@ -19799,6 +19974,7 @@
       D.gated.keys = room.gt.toms ? ["snare", "tomsFills"] : ["snare"];
     }
     setP(D.busTrim.gain, Math.pow(10, room.bus.db / 20));
+    layerStrips(l).forEach(function (id) { if (D.strips[id]) D.setPan(id, panOf(l, id), ctx.currentTime); });
   }
   // the gated room opens on this loop's hits (the engine's schedule, per loop)
   function scheduleGate(l, o) {
@@ -19932,7 +20108,7 @@
   function roomDraw() {
     var bar = $("roomBar"); if (!bar) return;
     bar.innerHTML = "";
-    var bt = el("button", "roomBtn" + (roomOpen ? " on" : ""), roomOpen ? "Room ▴" : "Room ▾ (style, sends, master)");
+    var bt = el("button", "roomBtn" + (roomOpen ? " on" : ""), roomOpen ? "Room ▴" : "Room ▾ (style, sends)");
     bt.onclick = function () { roomOpen = !roomOpen; roomDraw(); };
     bar.appendChild(bt);
     if (!roomOpen) return;
@@ -19966,13 +20142,35 @@
     pxSlider(bg, "Gate close", PXR.gclose, room.gt.close, 5, fMs, st("gt", "close"));
     var tk = el("div", "pxmodes"); tk.appendChild(el("span", null, "Toms key the gate"));
     var tb = el("button", room.gt.toms ? "on" : "", room.gt.toms ? "On" : "Off"); tb.onclick = function () { roomSet("gt", "toms", !room.gt.toms); save(); roomDraw(); }; tk.appendChild(tb); bg.appendChild(tk);
-    var bm = pxBlock(box, "Master bus", true, function () {}, function () { roomReset("bus"); });
-    pxSlider(bm, "Bus drive (into glue and limiter)", PXR.bus, room.bus.db, 0.1, fDb, st("bus", "db"));
-    [["glue", "Glue compressor"], ["lim", "Limiter"]].forEach(function (x) {
-      var r = el("div", "pxmodes"); r.appendChild(el("span", null, x[1]));
-      var b2 = el("button", room.bus[x[0]] ? "on" : "", room.bus[x[0]] ? "On" : "Off"); b2.onclick = function () { roomSet("bus", x[0], !room.bus[x[0]]); save(); roomDraw(); }; r.appendChild(b2); bm.appendChild(r);
-    });
+    box.appendChild(el("div", "pxnote", "Glue, limiter and loudness moved to the Master card above the layers."));
     bar.appendChild(box);
+  }
+  // THE MASTER CARD (effects slice 1, 2026-11-17, Asana 1220328751228343):
+  // above the layers, what stays above the strips once the room is gone
+  // (Jeff 11/08): glue, limiter and loudness. The same controls the Room
+  // had (room.bus): loudness is the bus drive into the glue and the limiter
+  // (each layer desk's own busTrim), glue and limiter in or out (its own
+  // DynamicsCompressors). Touching it puts every layer live, drums included.
+  function masterSet(k, v) { var R = PX().R; R.bus = R.bus || {}; R.bus[k] = v; G.L.forEach(goLive); pxUpdateAll(); }
+  function masterDraw() {
+    var box = $("masterCard"); if (!box) return;
+    box.innerHTML = "";
+    var bus = roomEff().bus;
+    box.appendChild(el("span", "mt", "Master"));
+    var c1 = el("label", "mc"); c1.appendChild(el("span", null, "Loudness"));
+    var sl = el("input"); sl.type = "range"; sl.min = PXR.bus[0]; sl.max = PXR.bus[1]; sl.step = 0.1; sl.value = bus.db; sl.className = "mdrive"; sl.title = "bus drive into the glue and the limiter, dB";
+    var sv = el("span", "mdv", fDb(bus.db));
+    sl.oninput = function () { sv.textContent = fDb(+sl.value); masterSet("db", +sl.value); };
+    sl.onchange = function () { save(); };
+    c1.appendChild(sl); c1.appendChild(sv); box.appendChild(c1);
+    [["glue", "Glue"], ["lim", "Limiter"]].forEach(function (x) {
+      var b2 = el("button", "m" + x[0] + (bus[x[0]] ? " on" : ""), x[1] + (bus[x[0]] ? " on" : " off"));
+      b2.onclick = function () { masterSet(x[0], !roomEff().bus[x[0]]); save(); masterDraw(); };
+      box.appendChild(b2);
+    });
+    var rs = el("button", "mreset", "Reset"); rs.title = "glue and limiter in, loudness 0 dB";
+    rs.onclick = function () { delete PX().R.bus; G.L.forEach(goLive); pxUpdateAll(); save(); masterDraw(); };
+    box.appendChild(rs);
   }
 
   // ---- wire up ----
@@ -20042,7 +20240,8 @@
   window.__jam = { G: G, starts: starts, renderLog: renderLog, epochs: function () { return epochs; }, cache: cache,
     cacheStats: cacheStats, ctx: function () { return ctx; }, playing: function () { return playing; }, busy: function () { return busy; },
     LEAD: LEAD, BARS: BARS, SWING: SWING, LOCKED: LOCKED, drawA: drawA, PROG_BY: PROG_BY, newPattern: newPattern, drawTempo: drawTempo, MAXL: MAXL, RATE: RATE, render: render, buildSheet: buildSheet, renderSheet: renderSheet, masterChain: masterChain, LEVEL_DB: LEVEL_DB, pickIds: pickIds, capture: capture, captureEvents: captureEvents, variantFor: variantFor, variantsFor: variantsFor, STRIPS: function (id) { return INST_BY[id].strips.concat(INST_BY[id].fill ? [INST_BY[id].fill] : []); }, INST_IDS: INST.map(function (d) { return d.id; }),
-    px: { PXR: PXR, PXFX: PXFX, PX: PX, roomEff: roomEff, stripEff: stripEff, effStyle: effStyle, goLive: goLive, pxUpdateAll: pxUpdateAll, roomDraw: roomDraw, layerStrips: layerStrips, renderSheetDry: renderSheetDry, pxProof: pxProof, dkey: dkey, gSnap: gSnap } };
+    px: { PXR: PXR, PXFX: PXFX, PX: PX, roomEff: roomEff, stripEff: stripEff, effStyle: effStyle, goLive: goLive, pxUpdateAll: pxUpdateAll, roomDraw: roomDraw, layerStrips: layerStrips, renderSheetDry: renderSheetDry, pxProof: pxProof, dkey: dkey, gSnap: gSnap },
+    pan: { jamPan: jamPan, panOf: panOf, drawnPanOf: drawnPanOf, masterDraw: masterDraw } };
 })();
 </script>
 </body>
