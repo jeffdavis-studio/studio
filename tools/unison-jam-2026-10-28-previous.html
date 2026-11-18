@@ -270,14 +270,14 @@
   <div class="sec" data-s="C"><div class="row head"><button class="go">C bridge</button><select></select><button class="roll">New chords</button></div><div class="row chords"></div></div>
 </div>
 <div id="bars" class="row"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><div id="status"></div></div>
-<div id="roomBar"></div>
+
 <div id="masterCard"></div>
 <div id="layers"></div>
 <div id="add" class="row"><div class="lbl">Add a layer<button id="palRnd" title="add a random instrument (one you don't have yet, while any are left)">Random</button></div><div id="pal"></div></div>
-<footer title="engine @04d1545 · built 2026-11-17">Unison jam &middot; every sound is synthesized in this page by the engine at 04d1545</footer>
+<footer title="engine @1376def · built 2026-11-18">Unison jam &middot; every sound is synthesized in this page by the engine at 1376def</footer>
 
 <script>
-/* ===== src/core/prng.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/prng.js @ 1376def — verbatim from jeffdavis-studio/unison-engine ===== */
 // prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
 // token hash, consumed in canonical draw order (Technical Architecture v1.2).
 //
@@ -350,7 +350,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/core/mix.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/mix.js @ 1376def — verbatim from jeffdavis-studio/unison-engine ===== */
 // mix.js — the fan-in ≤2 summing rule, as a primitive.
 //
 // Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
@@ -519,13 +519,14 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/desk/desk.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/desk/desk.js @ 1376def — verbatim from jeffdavis-studio/unison-engine ===== */
 // desk.js — the 24-track desk as a running audio graph.
 //
 // The desk is the data structure, not a metaphor (Composition Brief 2 / Tech
 // Architecture v1.2): 16 standing role strips + 8 spares, each strip a channel
-// with inserts and a post-fader send into the shared production room, all
-// summing (fan-in ≤2, see core/mix.js) into a master bus with glue compression.
+// with its own effects chain (production.js, effects slice 2: no shared room,
+// no sends), then a pan, all summing (fan-in ≤2, see core/mix.js) into a
+// stereo master bus with glue compression and the limiter.
 //
 // Mixdown guarantees implemented here (Brief 2 §The Mixdown):
 //   1. House mix — hand-tuned baseline fader per role (kick/bass anchored,
@@ -551,28 +552,29 @@
   const U = (g.U = g.U || {});
 
   // Desk roster per Composition Brief 2 (speculative pending Jeff's per-line
-  // pass — Asana 1216797995066591). fader = house-mix baseline, send = plate
-  // send baseline, mute = P(strip not up this song). All placeholder-tuned, by
+  // pass — Asana 1216797995066591). fader = house-mix baseline, mute = P(strip
+  // not up this song). (The plate send per strip went with the plate, effects
+  // slice 2, 2026-11-18.) All placeholder-tuned, by
   // ear later. The `← book` comments name the silence entry each mute came from.
   U.DESK_ROLES = [
     // drum family (7)
-    { id: "kick",       fader: 1.00, send: 0.00, hp: false, mute: 0.000 },
-    { id: "snare",      fader: 0.90, send: 0.20, hp: true,  mute: 0.000 },
-    { id: "hats",       fader: 0.55, send: 0.06, hp: true,  mute: 0.094 }, // ← hats.silence w10/106
-    { id: "tomsFills",  fader: 0.70, send: 0.14, hp: true,  mute: 0     }, // was 0.520 (fills.silence w52/100); 0 since 2026-10-30: the form's fill roll per window replaces it (form.js)
-    { id: "ePerc",      fader: 0.60, send: 0.10, hp: true,  mute: 0.480 }, // ← eperc.silence w48/100
-    { id: "percTime",   fader: 0.45, send: 0.06, hp: true,  mute: 0.480 }, // ← perctime.silence w48/100
-    { id: "percAccent", fader: 0.50, send: 0.10, hp: true,  mute: 0.640 }, // ← percaccent.silence w64/100
+    { id: "kick",       fader: 1.00, hp: false, mute: 0.000 },
+    { id: "snare",      fader: 0.90, hp: true,  mute: 0.000 },
+    { id: "hats",       fader: 0.55, hp: true,  mute: 0.094 }, // ← hats.silence w10/106
+    { id: "tomsFills",  fader: 0.70, hp: true,  mute: 0     }, // was 0.520 (fills.silence w52/100); 0 since 2026-10-30: the form's fill roll per window replaces it (form.js)
+    { id: "ePerc",      fader: 0.60, hp: true,  mute: 0.480 }, // ← eperc.silence w48/100
+    { id: "percTime",   fader: 0.45, hp: true,  mute: 0.480 }, // ← perctime.silence w48/100
+    { id: "percAccent", fader: 0.50, hp: true,  mute: 0.640 }, // ← percaccent.silence w64/100
     // pitched family (9)
-    { id: "bass",       fader: 1.00, send: 0.00, hp: false, mute: 0.000 }, // hh.bass.none → lane bias
-    { id: "compA",      fader: 0.70, send: 0.12, hp: true,  mute: 0.000 },
-    { id: "compB",      fader: 0.60, send: 0.12, hp: true,  mute: 0.000 },
-    { id: "rhythmGtr",  fader: 0.55, send: 0.08, hp: true,  mute: 0.000 },
-    { id: "pad",        fader: 0.45, send: 0.22, hp: true,  mute: 0.320 }, // ← pad.silence w32/100
-    { id: "arp",        fader: 0.60, send: 0.10, hp: true,  mute: 0.352 }, // ← arp.silence w38/108
-    { id: "lead",       fader: 0.90, send: 0.18, hp: true,  mute: 0.280 }, // ← lead.none w28/100
-    { id: "counter",    fader: 0.60, send: 0.12, hp: true,  mute: 0.478 }, // ← counter.silence w44/92
-    { id: "color",      fader: 0.65, send: 0.16, hp: true,  mute: 0.587 }, // ← color.silence w54/92
+    { id: "bass",       fader: 1.00, hp: false, mute: 0.000 }, // hh.bass.none → lane bias
+    { id: "compA",      fader: 0.70, hp: true,  mute: 0.000 },
+    { id: "compB",      fader: 0.60, hp: true,  mute: 0.000 },
+    { id: "rhythmGtr",  fader: 0.55, hp: true,  mute: 0.000 },
+    { id: "pad",        fader: 0.45, hp: true,  mute: 0.320 }, // ← pad.silence w32/100
+    { id: "arp",        fader: 0.60, hp: true,  mute: 0.352 }, // ← arp.silence w38/108
+    { id: "lead",       fader: 0.90, hp: true,  mute: 0.280 }, // ← lead.none w28/100
+    { id: "counter",    fader: 0.60, hp: true,  mute: 0.478 }, // ← counter.silence w44/92
+    { id: "color",      fader: 0.65, hp: true,  mute: 0.587 }, // ← color.silence w54/92
   ];
   U.SPARE_COUNT = 8;
   // Master trim after the limiter: one constant for every song, set so the
@@ -595,121 +597,13 @@
   U.VOICED_LATE = ["rhythmGtr"];
   const HP_HZ = 80;
 
-  // Plate-flavor reverb, fully algorithmic (no IRs — IRs are samples).
-  // Schroeder topology: predelay → 4 damped feedback combs (chain-mixed
-  // pairwise) → two diffusion stages. Every summing point is fan-in ≤2.
-  function makePlate(ctx, out) {
-    const input = ctx.createGain();
-    const pre = ctx.createDelay(0.1); pre.delayTime.value = 0.012;
-    input.connect(pre);
-
-    const diff1 = diffuser(ctx, 0.0050, 0.70);
-    const diff2 = diffuser(ctx, 0.0017, 0.70);
-    const combSum = U.chainMixer(ctx, diff1.input);
-    const COMBS = [
-      [0.0297, 0.79], [0.0371, 0.78], [0.0411, 0.77], [0.0437, 0.76],
-    ];
-    const damps = [], combDs = [];
-    for (const [time, fb] of COMBS) {
-      const d = ctx.createDelay(0.1); d.delayTime.value = time;
-      const damp = ctx.createBiquadFilter(); damp.type = "lowpass"; damp.frequency.value = 4200;
-      const fbG = ctx.createGain(); fbG.gain.value = fb;
-      pre.connect(d);            // delay input: pre + feedback = fan-in 2
-      d.connect(damp);
-      damp.connect(fbG);
-      fbG.connect(d);
-      combSum.add(damp);         // tap post-damping
-      damps.push(damp); combDs.push(d);
-    }
-    diff1.output.connect(diff2.input);
-    const wet = ctx.createGain(); wet.gain.value = 0.55;
-    diff2.output.connect(wet);
-    wet.connect(out);
-    // `damps` and `wet` are the production room's handles on the plate — see
-    // production/production.js. Nothing else may touch them.
-    return { input, wet, damps, _probe: { pre, combDs, diff1: diff1.output, diff2: diff2.output } };
-  }
-
-  // Allpass-style diffusion stage: feedback comb + inverted feedforward.
-  // delay input sums (input + feedback) = 2; output sums (delay + ff) = 2.
-  function diffuser(ctx, time, gAmt) {
-    const input = ctx.createGain();
-    const output = ctx.createGain();
-    const d = ctx.createDelay(0.05); d.delayTime.value = time;
-    const fb = ctx.createGain(); fb.gain.value = gAmt;
-    const ff = ctx.createGain(); ff.gain.value = -gAmt;
-    input.connect(d);
-    d.connect(fb); fb.connect(d);
-    d.connect(output);
-    input.connect(ff); ff.connect(output);
-    return { input, output };
-  }
-
-
-  // ---- the production room's effects (stage 2 pass 1, 2026-10-28, Asana
-  // 1219959496261786; design: files/unison/stage2-production-room-2026-10-28/
-  // DESIGN.md). Built on a desk only when the song's style uses them
-  // (U.applyProduction), so a style that leaves an effect out leaves the graph
-  // as it was. Native nodes only, no DynamicsCompressorNode (README, the
-  // Firefox divergence); every summing point fan-in ≤2.
-
-  // GATED REVERB: a dense, bright, short room on its own send (kit strips),
-  // whose return runs through a gain the desk opens per hit. The kit's hit
-  // times are fixed before render, so the gate is a scheduled envelope, not a
-  // level detector: open over 2 ms just before the hit, hold, linear release.
-  U.GATED_ROOM_DAMP = 11000;
-  U.GATED_ROOM_HP = 180;
-  function makeGatedRoom(ctx, out) {
-    // Pass 2 (2026-10-28): a high-pass at the room's input (series, fan-in
-    // unchanged) keeps the kick's and toms' low end out of the room, and the
-    // damping sits at 11 kHz (was 7.5): pass 1's room darkened every
-    // gated_room song against a centroid already ~1 kHz under the Reference.
-    const input = ctx.createGain();
-    const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = U.GATED_ROOM_HP; hp.Q.value = 0.5;
-    const pre = ctx.createDelay(0.05); pre.delayTime.value = 0.008;
-    input.connect(hp); hp.connect(pre);
-    const diff1 = diffuser(ctx, 0.0041, 0.72);
-    const diff2 = diffuser(ctx, 0.0013, 0.72);
-    const combSum = U.chainMixer(ctx, diff1.input);
-    for (const time of [0.0191, 0.0233, 0.0271, 0.0307]) {
-      const d = ctx.createDelay(0.05); d.delayTime.value = time;
-      // Q is in dB on a Web Audio low-pass: the default (1 dB of resonance)
-      // put this loop over unity at 0.84 and the room grew without bound
-      // (measured 2026-10-28); -3.01 dB is Butterworth, no peak.
-      const damp = ctx.createBiquadFilter(); damp.type = "lowpass"; damp.frequency.value = U.GATED_ROOM_DAMP; damp.Q.value = -3.01;
-      const fbG = ctx.createGain(); fbG.gain.value = 0.84;
-      pre.connect(d); d.connect(damp); damp.connect(fbG); fbG.connect(d);
-      combSum.add(damp);
-    }
-    diff1.output.connect(diff2.input);
-    const gate = ctx.createGain(); gate.gain.value = 0;
-    const wet = ctx.createGain(); wet.gain.value = 0.5;
-    diff2.output.connect(gate); gate.connect(wet); wet.connect(out);
-    // times: every keyed hit (s), any order. hold/release in seconds. Hits
-    // whose windows overlap merge into one open window.
-    function schedule(times, hold, release) {
-      const t = [...new Set(times)].sort((a, b) => a - b);
-      const ATK = 0.002, win = [];
-      for (const x of t) {
-        const a = Math.max(0, x - ATK), b = x + hold;
-        if (win.length && a <= win[win.length - 1][1] + release) win[win.length - 1][1] = b;
-        else win.push([a, b]);
-      }
-      const g = gate.gain;
-      for (const [a, b] of win) {
-        g.setValueAtTime(0, a);
-        g.linearRampToValueAtTime(1, a + ATK);
-        g.setValueAtTime(1, b);
-        g.linearRampToValueAtTime(0, b + release);
-      }
-      return win.length;
-    }
-    return { input, gate, wet, schedule };
-  }
+  // (Effects slice 2, 2026-11-18: the plate, the gated room and the echo send
+  // are gone, with the production styles; Jeff 11/08, "no overall production
+  // room". Each strip carries its own effects, production.js.)
 
   // TAPE ECHO: delay with feedback through the loop's low-pass and high-pass
   // (each repeat a tape generation darker and thinner), a slow deterministic
-  // wow on the delay time. Delay input = send + feedback: fan-in 2.
+  // wow on the delay time. Delay input = input + feedback: fan-in 2.
   function makeTapeEcho(ctx, out) {
     const input = ctx.createGain();
     const delay = ctx.createDelay(2.0); delay.delayTime.value = 0.3;
@@ -773,7 +667,7 @@
       merger.connect(hp); wetIn = hp;
     }
     wetIn.connect(wet).connect(out);
-    return { input: cin, output: out, lfo, wet, kind: "chorus" };
+    return { input: cin, output: out, lfo, wet, depthL, depthR, kind: "chorus" };
   };
 
   // ---- THE PLAYER'S BOARD BLOCKS (guitar books slice 1, 2026-11-04, Asana
@@ -784,7 +678,7 @@
 
   // AMP: voicing EQ (a shelf and a peak) → soft stage (U.saturationCurve at
   // the voicing's drive, the strip's reference peak brought to the curve's
-  // unit level and back, as saturate() does) → cabinet (two 2-pole
+  // unit level and back, as the old saturation insert did) → cabinet (two 2-pole
   // low-passes, Butterworth, and a high-pass) → level (outDb).
   // voicing = { shelf: [type, hz, db], peak: [hz, db, q], drive, cabHz, lowHz, refPeak }
   U.makeAmp = function (ctx, v, params) {
@@ -906,7 +800,7 @@
 
   // OVERDRIVE (light): a crossover pre-emphasis. Above hpHz the signal is
   // driven (U.saturationCurve(drive, 0.12) behind the reference-peak gain,
-  // as saturate()) and rolled off by the tone low-pass; below hpHz it stays
+  // as the old saturation insert) and rolled off by the tone low-pass; below hpHz it stays
   // clean; out sums the two (fan-in 2). params { drive, hpHz, toneHz, refPeak }.
   U.makeOverdrive = function (ctx, p) {
     const input = ctx.createGain(); input.gain.value = 1;
@@ -925,16 +819,19 @@
 
   // ECHO INSERT: the room's tape echo (makeTapeEcho) as an insert, its own
   // instance: in → dry → out, in → echo; the echo's wet → out (fan-in 2).
-  // params { sec, fb, wet, lp, wow (share of the time) }. Slapback and tape
-  // echo are this block at different settings.
+  // params { sec, fb, wet, lp, wow (share of the time) }, and optionally
+  // hpHz (the loop's high-pass, 140 by default) and makeupDb (the input's
+  // level; 0 = unity, the board's graph as before). Slapback and tape echo
+  // are this block at different settings.
   U.makeEchoInsert = function (ctx, p) {
-    const input = ctx.createGain(); input.gain.value = 1;
+    const input = ctx.createGain(); input.gain.value = Math.pow(10, (p.makeupDb || 0) / 20);
     const dry = ctx.createGain(); dry.gain.value = 1;
     const out = ctx.createGain(); out.gain.value = 1;
     const e = makeTapeEcho(ctx, out);
     e.delay.delayTime.value = p.sec;
     e.fb.gain.value = p.fb;
     e.lp.frequency.value = p.lp;
+    if (p.hpHz > 0) e.hp.frequency.value = p.hpHz;
     e.wet.gain.value = p.wet;
     e.wowDepth.gain.value = (p.wow || 0) * p.sec;
     input.connect(dry); dry.connect(out);
@@ -1009,7 +906,7 @@
     // sound like records.
     //
     // BUS TRIM (2026-10-16, Asana 1216472431066916): one gain per song between
-    // the strip sum (plate return included) and the glue comp, so every song
+    // the strip sum and the glue comp, so every song
     // drives the bus the same amount. The value is measured, not drawn: the
     // renderer's U.songBusTrimDb pre-renders the song's pre-bus signal and
     // returns U.BUS_TARGET_LUFS minus what it measured; buildSong passes it in
@@ -1039,17 +936,10 @@
     }
     const busMix = U.chainMixer(ctx, busTrim);
 
-    // production room: one shared plate send bus (tape echo, gated reverb,
-    // saturation join it in later passes). Return rides the same master sum.
-    const plateReturn = ctx.createGain(); plateReturn.gain.value = 1.0;
-    const plate = makePlate(ctx, plateReturn);
-    const plateMix = U.chainMixer(ctx, plate.input);
-    busMix.add(plateReturn);
-
     function buildStrip(role) {
       // input (fan-in ≤2 mixer) → trim (patch normalization) → [high-pass] →
-      // insert (production room slot) → fader (house mix) → master sum +
-      // post-fader plate send.
+      // insert → [the strip's effects chain, production.js] → fader (house
+      // mix) → pan → master sum.
       const trim = ctx.createGain(); trim.gain.value = 1.0;
       const fader = ctx.createGain(); fader.gain.value = role.fader;
       let head = trim;
@@ -1058,10 +948,9 @@
         hp.type = "highpass"; hp.frequency.value = HP_HZ; hp.Q.value = 0.5;
         trim.connect(hp); head = hp;
       }
-      // The insert point. Unity and empty in v1 — this is the documented place
-      // a per-strip production insert (saturation, gate, chorus) splices in when
-      // the production room is built. It is in the chain now so that adding one
-      // later is a splice, not a graph re-topology. Series node: fan-in 1.
+      // The insert point: a unity gain (the kit-bus compressor's curve lands
+      // on it), after which the strip's effects chain splices in (fxSplice),
+      // in the menu's fixed order. Series node: fan-in 1.
       const insert = ctx.createGain(); insert.gain.value = 1.0;
       head.connect(insert);
       insert.connect(fader);
@@ -1071,8 +960,7 @@
       // merger → master sum. gL = √2·cos θ, gR = √2·sin θ, θ = (p + 1)·π/4:
       // equal power, and unity at centre, so a centred strip sums exactly as
       // the mono strip summed before. On a stereo strip (a chorus) it is the
-      // same law as a balance. Every node fan-in 1. The sends stay post-fader
-      // and pre-pan (the returns are untouched in this slice).
+      // same law as a balance. Every node fan-in 1.
       const up = ctx.createGain(); up.channelCount = 2; up.channelCountMode = "explicit"; up.channelInterpretation = "speakers";
       const split = ctx.createChannelSplitter(2), merge = ctx.createChannelMerger(2);
       const gL = ctx.createGain(), gR = ctx.createGain();
@@ -1080,12 +968,9 @@
       split.connect(gL, 0); split.connect(gR, 1);
       gL.connect(merge, 0, 0); gR.connect(merge, 0, 1);
       busMix.add(merge);
-      const send = ctx.createGain(); send.gain.value = role.send;
-      fader.connect(send);
-      plateMix.add(send);
       return {
-        role: role.id, input: U.chainMixer(ctx, trim), trim, head, insert, fader, send,
-        houseFader: role.fader, houseSend: role.send, muted: false,
+        role: role.id, input: U.chainMixer(ctx, trim), trim, head, insert, fader,
+        houseFader: role.fader, muted: false,
         panL: gL, panR: gR, pan: 0,
       };
     }
@@ -1144,86 +1029,76 @@
         sparesUsed++;
         return buildStrip(role);
       },
-      // ---- production room splices (U.applyProduction) ----
-      // The gated room and the tape echo: built once, on first use, returns
-      // into the master sum. A strip's send into them is a new post-fader
-      // fan-out, its own gain.
-      gated: null,
-      echo: null,
-      ensureGated() {
-        if (this.gated) return this.gated;
-        const ret = ctx.createGain();
-        const room = makeGatedRoom(ctx, ret);
-        room.mix = U.chainMixer(ctx, room.input);
-        busMix.add(ret);
-        return (this.gated = room);
-      },
-      ensureEcho() {
-        if (this.echo) return this.echo;
-        const ret = ctx.createGain();
-        const e = makeTapeEcho(ctx, ret);
-        e.mix = U.chainMixer(ctx, e.input);
-        busMix.add(ret);
-        return (this.echo = e);
-      },
-      sendTo(fx, roleId, amount) {
+      // ---- the strip's effects chain (effects slice 2, production.js) ----
+      // fxSplice: a block { input, output } between the chain's tail (the
+      // insert, or the last block) and the fader. Series; every node fan-in
+      // ≤ 2. Blocks land in the order they are spliced: production.js splices
+      // in the menu's fixed order.
+      fxSplice(roleId, name, block) {
         const s = strips[roleId];
         if (!s) throw new Error("desk: unknown role " + roleId);
-        const g = ctx.createGain(); g.gain.value = amount;
-        s.fader.connect(g);
-        fx.mix.add(g);
-        return g;
+        const tail = s.fxTail || s.insert;
+        // the chorus's and the echo's input run at a fixed two channels: the
+        // toms strip mixes mono hits and per-hit stereo panners, so its
+        // channel count otherwise flips as hits start and end, and a delay
+        // line downstream of that flip did not render bit-identically across
+        // pages (verify.mjs, bdf0ea39, 2026-11-18). L = R on a mono strip.
+        if (name === "chorus" || name === "echo") { block.input.channelCount = 2; block.input.channelCountMode = "explicit"; block.input.channelInterpretation = "speakers"; }
+        tail.disconnect(s.fader);
+        tail.connect(block.input);
+        block.output.connect(s.fader);
+        s.fxTail = block.output;
+        (s.fx = s.fx || {})[name] = block;
+        return block;
       },
-      // Saturation in the strip's insert slot: insert → 1/A → shaper → A →
-      // HF roll-off → fader. Series, fan-in 1 at every node.
-      // `level` (pass 2): the gain that brings the strip to the curve's
-      // reference level; undone after the curve, so only the drive moves.
-      saturate(roleId, drive, bias, lpHz, makeupDb, level) {
+      // The chorus on a strip (U.makeChorusBlock, the Juno's BBD). A strip
+      // right of centre takes it mirrored: its two swept delays swap sides,
+      // the LFO's polarity with them, so a mirror pair widens as a mirror
+      // image (effects slice 1). p { rate, depth (s), wetHpHz }.
+      fxChorus(roleId, p, makeupDb) {
         const s = strips[roleId];
         if (!s) throw new Error("desk: unknown role " + roleId);
-        const lv = level > 0 ? level : 1;
-        const pre = ctx.createGain(); pre.gain.value = lv / U.SAT_SPAN;
-        const sh = ctx.createWaveShaper(); sh.curve = U.saturationCurve(drive, bias); sh.oversample = "none";
-        const post = ctx.createGain(); post.gain.value = U.SAT_SPAN / lv * Math.pow(10, (makeupDb || 0) / 20);
-        const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = lpHz; lp.Q.value = 0.5;
-        s.insert.disconnect();
-        s.insert.connect(pre); pre.connect(sh); sh.connect(post); post.connect(lp); lp.connect(s.fader);
-        s.sat = { pre, sh, post, lp, drive, bias, level: lv };
+        const C = U.CHORUS, m = s.pan > 0;
+        const b = U.makeChorusBlock(ctx, p.rate, m ? -p.depth : p.depth, m ? [C.centers[1], C.centers[0]] : C.centers, C.wet, p.wetHpHz || 0, makeupDb, null);
+        b.params = Object.assign({}, p); b.makeupDb = makeupDb; b.mirrored = m; b.on = true;
+        // live (the jam): on/off and the drawn settings, on these nodes. Off =
+        // wet 0 and makeup 0 dB: the strip exactly as without the chorus.
+        b.set = function (q, at) {
+          const t = typeof at === "number" ? at : null, put = (prm, v) => { if (t == null) prm.value = v; else { prm.cancelScheduledValues(t); prm.setTargetAtTime(v, t, 0.02); } };
+          Object.assign(this.params, q || {});
+          if (q && "on" in q) this.on = !!q.on;
+          if (q && "makeupDb" in q) this.makeupDb = q.makeupDb;
+          const d = this.mirrored ? -this.params.depth : this.params.depth;
+          put(b.lfo.frequency, this.params.rate); put(b.depthL.gain, +d); put(b.depthR.gain, -d);
+          put(b.wet.gain, this.on ? C.wet : 0); put(b.input.gain, this.on ? Math.pow(10, this.makeupDb / 20) : 1);
+        };
+        return this.fxSplice(roleId, "chorus", b);
       },
-      // Chorus in the strip's insert slot (pass 4), after the saturation if
-      // any: tail → in (makeup) → dry → out, in → two swept delays → merger →
-      // [wet high-pass] → wet → out → fader. `out` sums dry + wet (fan-in 2);
-      // the merger takes one tap per channel. bypass() splices it back out
-      // (a Juno patch that prints its own chorus).
-      chorus(roleId, rate, depth, centers, wetLevel, wetHpHz, makeupDb) {
-        const s = strips[roleId];
-        if (!s) throw new Error("desk: unknown role " + roleId);
-        const tail = s.sat ? s.sat.lp : s.insert;
-        // a strip right of centre takes the chorus mirrored (its two swept
-        // delays swap sides, the LFO's polarity with them), so a mirror pair
-        // widens as a mirror image (effects slice 1)
-        if (s.pan > 0) { depth = -depth; centers = [centers[1], centers[0]]; }
-        const b = U.makeChorusBlock(ctx, rate, depth, centers, wetLevel, wetHpHz, makeupDb, (cin) => { tail.disconnect(s.fader); tail.connect(cin); });
-        b.output.connect(s.fader);
-        s.chorus = { rate, depth, makeupDb, bypassed: false, out: b.output,
-          bypass() {
-            if (this.bypassed) return;
-            tail.disconnect(b.input); b.output.disconnect(s.fader); tail.connect(s.fader);
-            b.lfo.disconnect(); this.bypassed = true;
-          } };
+      // The tape echo as the strip's insert (U.makeEchoInsert). Before the
+      // fader and the pan, so the repeats sit where the strip sits.
+      // p { sec, fb, lp, mix, hpHz, wow, time }.
+      fxEcho(roleId, p, makeupDb) {
+        const b = U.makeEchoInsert(ctx, { sec: p.sec, fb: p.fb, lp: p.lp, wet: p.mix, wow: p.wow, hpHz: p.hpHz, makeupDb });
+        b.params = Object.assign({}, p); b.makeupDb = makeupDb; b.on = true;
+        b.set = function (q, at) {
+          const t = typeof at === "number" ? at : null, put = (prm, v) => { if (t == null) prm.value = v; else { prm.cancelScheduledValues(t); prm.setTargetAtTime(v, t, 0.02); } };
+          Object.assign(this.params, q || {});
+          if (q && "on" in q) this.on = !!q.on;
+          if (q && "makeupDb" in q) this.makeupDb = q.makeupDb;
+          const e = b.echo, P = this.params;
+          put(e.delay.delayTime, P.sec); put(e.wowDepth.gain, (P.wow || 0) * P.sec); put(e.fb.gain, P.fb); put(e.lp.frequency, P.lp);
+          put(e.wet.gain, this.on ? P.mix : 0); put(b.input.gain, this.on ? Math.pow(10, this.makeupDb / 20) : 1);
+        };
+        return this.fxSplice(roleId, "echo", b);
       },
-      // The vocoder (production room, 2026-11-05, vocoder.js): the formant
-      // bank in the strip's insert slot after the chorus (or the saturation,
-      // or the bare insert), before the fader. tail → bank → fader. The
-      // vowel automation comes later (vocoderVowel), at its times.
+      // The vocoder (2026-11-05, vocoder.js): the formant bank at the head of
+      // the lead's chain (it is the voice; the menu's effects follow it).
+      // The vowel automation comes later (vocoderVowel), at its times.
       vocoder(roleId, params) {
         const s = strips[roleId];
         if (!s) throw new Error("desk: unknown role " + roleId);
-        const tail = s.chorus && !s.chorus.bypassed ? null : (s.sat ? s.sat.lp : s.insert);
         const b = U.makeFormantBank(ctx, params);
-        if (tail) { tail.disconnect(s.fader); tail.connect(b.input); }
-        else { s.chorus.out.disconnect(s.fader); s.chorus.out.connect(b.input); }
-        b.output.connect(s.fader);
+        this.fxSplice(roleId, "vocoder", b);
         s.vocoder = b;
         return b;
       },
@@ -1259,15 +1134,14 @@
       // a chain's level where it has no amp (bass books slice 1, 2026-11-05)
       boardLevel(roleId, db) { const g = ctx.createGain(); g.gain.value = Math.pow(10, db / 20); return this.board(roleId, { input: g, output: g, kind: "level" }); },
       boardChorus(roleId, params) {
-        const m = strips[roleId] && strips[roleId].pan > 0;   // mirrored right of centre, as chorus()
+        const m = strips[roleId] && strips[roleId].pan > 0;   // mirrored right of centre, as fxChorus()
         const b = U.makeChorusBlock(ctx, params.rate, m ? -params.depth : params.depth, m ? [params.centers[1], params.centers[0]] : params.centers, params.wet, params.wetHpHz || 0, params.makeupDb || 0, null);
         return this.board(roleId, b);
       },
       // Kit-bus compression (pass 3, production.js U.kitCompCurve): one gain
       // curve, from t = 0, on every kit strip's insert gain. The insert is
-      // pre-fader and pre-send, so the sum of the kit strips is compressed as
-      // a bus would be, and the rooms hear the compressed kit, but no return
-      // passes through the curve: a tail is never ducked by it. No node added.
+      // pre-fader, so the sum of the kit strips is compressed as a bus would
+      // be. Taken by nothing since the styles retired (slice 2). No node added.
       compressKit(curve, dt) {
         const dur = (curve.length - 1) * dt;
         for (const id of U.KIT_STRIPS) {
@@ -1281,313 +1155,221 @@
       busTrim,
       glue,
       limiter,
-      plate,
     };
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/production.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
-// production.js — the production room, v0.
+/* ===== src/production/production.js @ 1376def — verbatim from jeffdavis-studio/unison-engine ===== */
+// production.js — the per-strip effects (effects slice 2, 2026-11-18, Asana
+// 1220328751228343; spec: files/unison/effects-menu-2026-11-08/PROPOSAL.md §2
+// and Jeff's 11/17 rule, "All effects should apply everywhere. All
+// instruments. All parts. All songs.").
 //
-// PLACEMENT DECISION (Morgan's call, ratified by Jeff 2026-08-03). Production
-// effects are NOT influences and NOT patterns. They live here, in the mix layer,
-// as a per-song production-style draw on the session sheet: per-strip inserts +
-// shared sends. The boundary rule, which is the thing to remember:
+// Jeff, voice 11/08: "no overall production room. Each sound comes out with
+// its own effects. What remains above the strips is levels and mastering
+// only." So the six production styles, their song-stream draw, the shared
+// plate, the gated room, the echo send and the saturation inserts are gone
+// (slice 2). What is here is the MENU: a fixed chain order on every strip,
+// one chance per effect, the same on every strip, drawn per strip on its own
+// sub-stream of the production fork.
 //
-//     changes the NOTES or the RHYTHM  → pattern book   (a gate-chop is a
-//                                                        pattern, not an effect)
-//     changes the SOUND                → production room
+// The boundary rule still holds:
+//     changes the NOTES or the RHYTHM  → pattern book
+//     changes the SOUND                → here (or the instrument's own board)
+// The guitar's and the bass's pedals (desk.board) are the instrument, drawn
+// with the patch, ahead of this chain; they are not on this menu.
 //
-// Genre trickles DOWN into production rather than owning it: a lane biases the
-// production-style weights (gated reverb is likelier on new wave) without any
-// effect moving out of this file.
-//
-// SCOPE — v1 (stage 2 pass 1, 2026-10-28, Asana 1219959496261786; design in
-// files/unison/stage2-production-room-2026-10-28/DESIGN.md). Wired: the plate
-// (send, wet, damping), the gated room on the kit (desk.js makeGatedRoom, a
-// gate scheduled per hit from the session's kit hit times), the tape echo
-// (makeTapeEcho, tempo-locked times, loop filters, wow) and saturation as the
-// first per-strip insert (desk.saturate). Pass 3: the gated room's return set
-// per song against the dry snare, the bass makeup refit, and a kit-bus
-// compressor (own math, a scheduled gain curve) built but taken by no style
-// yet. Not yet: chorus. The style is still ONE draw on the song stream (draw 47); the only
-// other randomness, the dub echo's time, is on U.forkPrng(hash, "production").
+// CHAIN ORDER, every strip (slice 2 builds it with the two kept effects that
+// existed; the empty slots fill in slice 3):
+//     [filter / EQ slot] → modulation (chorus) → echo → [reverb slot] → fader → pan
+// The vocoder (vocoder.js) is part of the lead's voice and sits ahead of the
+// chain. Nothing here reads a lane, a style, a part or a patch: no per-part
+// table, no never list, no dryness floor (Jeff 11/17).
 (function (g) {
   "use strict";
   const U = (g.U = g.U || {});
 
-  // Production styles v1. Plate: `send` scales every strip's plate send,
-  // `sendByRole` leans strips in or out, `wet` the return, `damp` the comb
-  // cutoff. `gate`: the gated room's send per kit strip (post-fader), its
-  // return level, and which strips' hits key it. `echo`: the tape echo's send
-  // per strip, its time (slap | dotted8 | quarter | "fork" = dotted8 or
-  // quarter on the production fork), feedback and loop low-pass. `sat`: drive
-  // per strip (the curve's d; bias and roll-off below). Build-time dials,
-  // first pass, set against the 20-hash measurement, tuned by ear later.
-  //
-  // Pass 2 (2026-10-28): the kick is never saturated (pass 1's SAT_MED on the
-  // whole kit took crest down 2.8 dB on ee4cd9a3, against a crest already
-  // 2.6 dB under the Reference median); the gated room's kit is unsaturated.
-  const SAT_LIGHT = 1.2, SAT_MED = 2.0;
-  // The gated room's return on gated_room (pass 2): 0.9 put it 3.35 dB OVER
-  // the dry snare on ee4cd9a3 (K-weighted mean, render-loudness gatedReturn);
-  // at 0.25 it reads -7.6 / 0.0 / -2.5 dB against the snare on ee4cd9a3 /
-  // a2a1aaf5 / f3671a69 (the ratio moves with hit density and the toms).
-  const GATE_WET = 0.25;
-  // Pass 3 (2026-10-28): the kit-bus compressor (U.KIT_COMP below) is built
-  // and measured, and no style takes it yet. A style opts in with
-  // `comp: { ratio, belowPeakDb }`. On 2e87640d (dry_board) three settings,
-  // {3:1, 12 dB, release 1 beat}, {3:1, 12 dB, 1/4 beat} and {2:1, 9 dB,
-  // 1 beat}, lifted window crest +0.4 / +0.6 / +0.2 dB only as far as they
-  // took loudness down (-0.3 / -0.4 / -0.2 LUFS: the master limiter pins the
-  // peak, so crest moves with loudness) and took dynamic complexity down
-  // (-0.21 / -0.31 / -0.06) with the limiter working harder (+0.15 to +0.8 dB
-  // GR). The pass's own bar (crest AND dynamic complexity rise, loudness
-  // holds) failed on every setting. Numbers: stage 2 RESULT-pass3.md.
-  U.PRODUCTION_STYLES = [
-    { id: "prod.dry_board",   w: 26, send: 0.55, wet: 0.45, damp: 3400,
-      sat: { snare: SAT_LIGHT, bass: SAT_LIGHT } },
-    { id: "prod.plate_wash",  w: 20, send: 1.45, wet: 0.70, damp: 4800,
-      // pass 4: chorus I on the chord strips, the counter line and the bass
-      // (a strip whose Juno already prints its own BBD skips it, analogpoly.js outputStage)
-      chorus: { compA: 1, pad: 1, counter: 1, bass: 1 } },
-    { id: "prod.gated_room",  w: 16, send: 0.85, wet: 0.60, damp: 5600,
-      // the pre-room plate sends: pass 1 halved them, which was most of its
-      // darkening (pass 2 measurement)
-      sendByRole: { snare: 2.4, tomsFills: 1.8, ePerc: 1.4 },
-      gate: { wet: GATE_WET, send: { snare: 0.55, tomsFills: 0.45, ePerc: 0.25 }, keys: ["snare", "tomsFills"] },
-      // pass 2: no saturation on this style's kit. Light snare/toms took
-      // the snare's peak NMR down (ee4cd9a3 25.25 -> 25.12, a2a1aaf5 28.24 ->
-      // 27.56) and crest 0.3-0.6 dB; unsaturated they hold both.
-      // pass 4: chorus I on the comp and the bass, the new-wave chorused bass
-      chorus: { compA: 1, bass: 1 },
-    },
-    { id: "prod.tape_slap",   w: 16, send: 0.75, wet: 0.50, damp: 3800,
-      echo: { time: "slap", fb: 0.18, lp: 3600, send: { lead: 0.30, counter: 0.25, color: 0.22, rhythmGtr: 0.18 } },
-      sat: { bass: SAT_MED, lead: SAT_MED, compA: SAT_LIGHT, rhythmGtr: SAT_MED } },
-    { id: "prod.close_dry",   w: 12, send: 0.25, wet: 0.35, damp: 3000 },
-    { id: "prod.dub_chamber", w: 10, send: 1.70, wet: 0.80, damp: 5200,
-      sendByRole: { snare: 1.8, compA: 1.6 },
-      gate: { wet: 0.6, send: { snare: 0.30 }, keys: ["snare"] },
-      echo: { time: "fork", fb: 0.42, lp: 2800, send: { snare: 0.22, compA: 0.25, counter: 0.30 } },
-      sat: { bass: SAT_LIGHT, snare: SAT_LIGHT } },
+  // The menu in chain order. A new effect appends to its slot; each strip's
+  // draw reads a fixed block per menu entry (U.FX_UNIFORMS), so adding an
+  // entry at the end of the menu moves no earlier draw on any strip.
+  U.FX_MENU = ["chorus", "echo"];
+  // One chance per effect, the same on every strip. MORGAN'S GUESS (slice 2,
+  // 2026-11-18), not measured and not Jeff's: chorus 0.30, echo 0.25. His ear
+  // sets them at slice 4.
+  U.FX_CHANCE = { chorus: 0.30, echo: 0.25 };
+  // The per-song cohesion dial (PROPOSAL.md §2): drawn per song, the same
+  // distribution on every song, so not a style bias. `scale` multiplies every
+  // chance; `cap` is the most effects one strip may carry.
+  U.FX_COHESION = [
+    { id: "high", w: 0.65, scale: 0.7, cap: 2 },
+    { id: "mid",  w: 0.25, scale: 1.0, cap: 3 },
+    { id: "low",  w: 0.10, scale: 1.6, cap: 4 },
   ];
-  // The saturation stage: bias (even-harmonic lean) and HF roll-off per
-  // drive, and the makeup per strip and drive that holds the strip's
-  // loudness within 0.5 dB K-weighted (measured: harness/production-check.mjs
-  // --sat-level; the strips sit at different levels at the insert, so one
-  // makeup per drive cannot hold them all). Absent = 0 dB.
-  //
-  // Pass 2 (2026-10-28): the drive follows the strip's level. The loss through
-  // the curve tracked the strip's PEAK at the insert, not its loudness (pass
-  // 1's reads: two Linn snares 1.7 dB apart in LUFS lost the same 2.2 dB at
-  // peaks 1.29 and 1.36; the a6e51c8c bass, quieter but peak 0.96, lost
-  // 1.4 dB where 8a48a96d's, peak 0.40, lost 0.4). So the insert scales the
-  // strip to `refPeak` before the curve and back after it (U.satPeakCache,
-  // measured on the bus trim's pre-render): every song's strip meets the
-  // curve at the same level, and one makeup per strip and drive holds.
-  // refPeak = pass 1's median peak per strip, so "light" means what it meant
-  // on a typical song.
-  U.SAT_STAGE = { bias: 0.12, lpHz: { [SAT_LIGHT]: 16000, [SAT_MED]: 13000 },
-    refPeak: { kick: 1.16, snare: 1.32, tomsFills: 1.32, bass: 0.68, compA: 0.63, lead: 0.27, rhythmGtr: 0.49, counter: 0.27 },
-    // measured 2026-10-28 on 8a48a96d + a6e51c8c (Linn songs), median, at
-    // [SAT_LIGHT, SAT_MED]: kick -1.7/-3.1, snare -1.2/-2.2, bass -0.9/-1.8
-    // (spread 0.4..1.4 / 0.9..2.8 by how hot the bass sits), compA -0.2/-0.5,
-    // lead and guitar under 0.2. A fixed makeup holds the kick within 0.3 dB;
-    // the bass and an 808 snare (-0.7 at SAT_MED) can land 1 dB off: next pass
-    // makes the drive follow the strip's level instead.
-    makeupDb: { kick: { [SAT_LIGHT]: 1.7, [SAT_MED]: 3.1 }, snare: { [SAT_LIGHT]: 1.2, [SAT_MED]: 2.2 },
-      tomsFills: { [SAT_LIGHT]: 1.2, [SAT_MED]: 2.2 },
-      // pass 3: the bass refit on its whole-song level (production-check
-      // --sat-level --whole, 9 songs): the loss at SAT_LIGHT runs -0.19 to
-      // -0.87 dB by bass voice, so the makeup sits mid-range (0.55, every song
-      // within 0.36). At SAT_MED it runs -0.45 to -1.86: 1.15 holds ±0.7, not
-      // ±0.5 (tape_slap's bass; per-voice next).
-      bass: { [SAT_LIGHT]: 0.55, [SAT_MED]: 1.15 },
-      compA: { [SAT_LIGHT]: 0.2, [SAT_MED]: 0.5 } },
-    // pass 4 (2026-10-29): at SAT_MED the bass loss runs by voice, so the
-    // makeup does too (production-check --sat-level --whole, whole-song level,
-    // 14 songs): juno -0.45 / -0.62 / -0.66 / -0.80 / -1.04 (sub), bass guitar -1.73 /
-    // -1.74 / -1.86, fm -1.25 / -1.25, minimoog -0.45 / -0.50 / -0.80.
-    // Every voice within 0.5 dB with its own number; a voice not listed keeps
-    // the one-number makeup above.
-    makeupByVoice: { bass: { [SAT_MED]: { juno: 0.75, bassguitar: 1.78, fm: 1.25, minimoog: 0.62 } } } };
-  // CHORUS (pass 4, 2026-10-29): a per-strip insert after the saturation,
-  // before the fader. The Juno's own BBD (juno.js makeChorus, CHORUS_MODES):
-  // dry + two swept delay taps 3.5 / 4.6 ms, one LFO in opposite polarity per
-  // side, wet 0.50; rate and depth per mode are the Juno's fitted values (mode
-  // 1 = CHORUS I, 0.5 Hz, ±1.9 ms; analysis/juno-chorus-depth.mjs; the rate is
-  // the service figure, chorus-rate.mjs cannot measure it from the pack). The
-  // wet path on the bass is high-passed (`wetHpHz`), as bass chorus pedals
-  // keep the low end mono and dry. A strip whose voice is a Juno patch with
-  // its own chorus skips the insert (analogpoly.js outputStage bypasses it): the BBD is
-  // already printed with the part. `makeupDb` per strip holds the strip's
-  // K-weighted loudness within 0.5 dB (harness/production-check.mjs
-  // --chorus-level, RESULT-pass4.md).
+  // Uniforms read per menu entry per strip, whatever the entry uses: the
+  // chance first, then the parameters. Spares are free to take later.
+  U.FX_UNIFORMS = 8;
+  // compB is on the desk with no instrument (session.js): nothing to act on,
+  // so it draws (the block is read) and never builds.
+  U.FX_SILENT_STRIPS = ["compB"];
+  // Bass-register strips: the chorus's and the echo's wet side is high-passed,
+  // so the low end stays the dry signal (bass chorus pedals, and the tape
+  // echo's repeats not smearing the kick or the bass).
+  U.FX_LOW_STRIPS = { kick: 1, bass: 1, tomsFills: 1 };
+  U.FX_LOW_HP_HZ = 250;
+
+  // CHORUS: the Juno's BBD (juno.js makeChorus): dry + two swept delay taps
+  // 3.5 / 4.6 ms, one LFO in opposite polarity per side, wet 0.50. The modes
+  // are the measured points (I 0.5 Hz ±1.9 ms, II 0.83 Hz ±1.9 ms, I+II 8 Hz
+  // ±0.35 ms); a strip draws a mode, then its rate and depth within ±15% of
+  // it, inside the measured spans (0.5-8 Hz, 0.35-1.9 ms). The makeup per
+  // strip holds the strip's loudness within 0.5 dB (U.FX_MAKEUP).
   U.CHORUS = {
     modes: { 1: { rate: 0.5, depth: 0.0019 }, 2: { rate: 0.83, depth: 0.0019 }, 3: { rate: 8.0, depth: 0.00035 } },
     centers: [0.0035, 0.0046], wet: 0.5,
     wetHpHz: { bass: 250 },
-    // measured (production-check --chorus-level, makeup 0, strip alone,
-    // whole song; RESULT-pass4.md, RESULT-pass5.md). Pass 5 on 669bd0f (the
-    // rebuilt books): compA (OB-Xa) +0.97 dB on 3730ff72; pad (OB-Xa) +1.02 /
-    // +1.00 on 3730ff72 / 22655575; counter (Minimoog) +1.05 on 26ba751a; bass
-    // +0.32 (Juno, patch chorus off, 3730ff72), pass 4 +0.46 (Minimoog) /
-    // +0.83 (bass guitar). Centroid moves +7 to +28 Hz (chord strips), -7
-    // (counter), +2 (bass). Mono fold costs 0.44 / 0.45 dB (compA, pad), 0.10
-    // (bass) more with the chorus in than out.
-    makeupDb: { compA: -0.95, pad: -1.0, counter: -1.05, bass: -0.65 },
-    // per voice where the measured loss differs from the strip number by more
-    // than 0.5 dB (the U.SAT_STAGE.makeupByVoice pattern): makeupByVoice[strip]
-    // [engine], the engine being sheet.voices[strip]; an unlisted voice, and a
-    // strip the sampler keyboard takes, keep the strip number (makeups slice,
-    // 2026-11-07, files/unison/makeups-2026-11-07/RESULT.md).
-    makeupByVoice: {},
   };
-  U.chorusMakeupDb = function (id, voice) {
-    const v = (U.CHORUS.makeupByVoice || {})[id];
-    return v && voice && voice in v ? v[voice] : U.CHORUS.makeupDb[id] || 0;
-  };
+  // (the pass 4/5 measurements, production-check --chorus-level: compA +0.97,
+  // pad +1.0, counter +1.05, bass +0.3 to +0.8 dB with the chorus in; they
+  // seed U.FX_MAKEUP.chorus below.)
+  U.CHORUS_SPAN = { rate: [0.5, 8.0], depth: [0.00035, 0.0019], jitter: 0.15 };
 
-  // Gated room timing, fitted to the Reference (DESIGN.md, RESULT.md): the
-  // gate closes at GATE_CLOSE_BEATS of a beat after the hit (median of the
-  // readable gated-drum previews 0.41 beat, 205 ms), inside the clamp, with a
-  // linear release of GATE_RELEASE.
-  U.GATE_CLOSE_BEATS = 0.41;
-  U.GATE_CLOSE_CLAMP = [0.11, 0.40];
-  U.GATE_RELEASE = 0.025;
-  // Pass 3 (2026-10-28): the gated room's return is set per song so its
-  // K-weighted mean sits GATE_VS_SNARE_DB against the dry snare's (both
-  // measured on the bus trim's pre-render; style.gate.wet is the probe's
-  // level). Pass 2's one wet read -7.6 to +3.0 dB by song. The target is the
-  // Reference: on the readable gated-drum previews (work/gate-ref.json) the
-  // backbeat's energy from 25 ms to the gate's close sits at -20.5 / -4.3 /
-  // -2.3 / -0.3 / +3.0 dB against its first 25 ms, median -2.3; -3 sits just
-  // under it, so the tail stays a tail.
-  U.GATE_VS_SNARE_DB = -3;
-  U.GATE_TRIM_CLAMP = [0.25, 4];
-
-  // KIT-BUS COMPRESSION (pass 3, 2026-10-28). One gain curve on every kit
-  // strip (a stereo-linked bus compressor: the same gain at each kit strip's
-  // insert is the gain on their sum), computed by the engine from the kit
-  // bus as the bus trim's pre-render hears it (renderer.js), scheduled with
-  // setValueCurveAtTime. Not a DynamicsCompressorNode: own math, a function of
-  // the schedule. Peak-hold detector (10 ms), soft-knee gain computer, attack
-  // and release smoothed on the gain reduction in dB. Attack slow enough to
-  // pass the kick and snare transients, release about a beat; threshold set
-  // `belowPeakDb` under the kit bus's own whole-song peak (the level read the
-  // way saturation reads its insert peak); makeup holds the kit bus's
-  // K-weighted loudness where it was.
-  U.KIT_STRIPS = ["kick", "snare", "hats", "tomsFills", "ePerc", "percTime", "percAccent"];
-  U.KIT_COMP = { attack: 0.030, releaseBeats: 1.0, kneeDb: 6, holdMs: 10, dt: 0.002 };
-
+  // ECHO: the tape echo (desk.js makeTapeEcho) as a strip insert: the time
+  // tempo-locked (slap 105 ms, 8th, dotted 8th, quarter), feedback 0.18-0.42
+  // through the loop's tape low-pass 2.8-3.6 kHz and its high-pass, mix
+  // 0.18-0.30, wow 0.3% of the time. The spans of the old styles' echoes
+  // (tape_slap, dub_chamber). As an insert it sits ahead of the pan, so it
+  // follows the strip into the stereo field. Ping-pong is slice 3.
   U.ECHO_SLAP = 0.105;
   U.ECHO_WOW = 0.003;   // wow depth, a share of the delay time
+  U.ECHO_TIMES = ["slap", "8th", "dotted8", "quarter"];
+  U.ECHO_SPAN = { fb: [0.18, 0.42], lp: [2800, 3600], mix: [0.18, 0.30] };
+  U.ECHO_LOOP_HP = 140;
 
-  // Lane bias — a multiplier on the style's weight for that lane. Absent = 1.
-  // This is the whole of "genre trickles down into production."
-  U.PRODUCTION_LANE_BIAS = {
-    newWave:     { "prod.gated_room": 2.4, "prod.plate_wash": 1.3, "prod.close_dry": 0.7 },
-    synthPop:    { "prod.plate_wash": 1.4, "prod.gated_room": 1.2 },
-    synthRnB:    { "prod.plate_wash": 1.3, "prod.tape_slap": 1.2 },
-    earlyHipHop: { "prod.close_dry": 2.0, "prod.dry_board": 1.5, "prod.plate_wash": 0.5,
-                   "prod.gated_room": 0.6 },
-    funk:        { "prod.dry_board": 1.6, "prod.close_dry": 1.4, "prod.plate_wash": 0.7 },
+  U.echoSeconds = function (time, bpm) {
+    const beat = 60 / bpm;
+    return time === "slap" ? U.ECHO_SLAP : time === "quarter" ? beat : time === "8th" ? 0.5 * beat : 0.75 * beat;
   };
 
-  // ONE draw, always, whatever the book size — same contract as U.pickWeighted.
-  U.drawProduction = function (R, lane) {
-    const bias = U.PRODUCTION_LANE_BIAS[lane] || {};
-    let total = 0;
-    for (const s of U.PRODUCTION_STYLES) total += s.w * (bias[s.id] || 1);
-    let x = R.r() * total;
-    for (const s of U.PRODUCTION_STYLES) {
-      x -= s.w * (bias[s.id] || 1);
-      if (x < 0) return s;
-    }
-    return U.PRODUCTION_STYLES[U.PRODUCTION_STYLES.length - 1];
+  // LEVEL MATCH: each insert's makeup in dB, so a draw changes the sound and
+  // not the balance. Measured 2026-11-18 (harness/fx-level.mjs, 4 songs, a
+  // 45 s window from the top, each up strip alone at its insert, the effect
+  // in vs out at makeup 0; files/unison/effects-slice2-plumbing-2026-11-18/
+  // fx-level.jsonl). CHORUS by strip and mode (K-weighted integrated, the
+  // median): kick +0.3, snare +0.4 / +0.6 / -0.2, hats +0.8, bass +0.55, the
+  // tonal strips +0.8 to +0.9 at the median (mode I ran +2.1 on one song's
+  // sustained chords; the spread per strip is up to 1.6 dB, so one number
+  // per strip and mode holds most songs within 0.5, not all). Unmeasured
+  // strips take their class: the kit's perc strips the snare's numbers, the
+  // toms the kick's, every pitched strip the tonal default.
+  // ECHO by its drawn energy: the repeats' power mix²/(1 − fb²) times a
+  // per-strip share `echoK`, read on UNGATED K-weighted energy (gated
+  // loudness drops when the repeats fill a sparse strip's gaps: snare -1.8 dB
+  // with the echo in). Pitched and snare ~1.1-1.2; the hats 0.2 (the tape
+  // low-pass takes most of them); kick, bass and toms ~0.1 (their wet is
+  // high-passed at 250 Hz).
+  const CH_TONAL = { 1: -0.9, 2: -0.85, 3: -0.95 }, CH_SNARE = { 1: -0.45, 2: -0.6, 3: 0.2 }, CH_KICK = { 1: -0.3, 2: -0.3, 3: -0.35 };
+  U.FX_MAKEUP = {
+    chorus: { _: CH_TONAL, kick: CH_KICK, tomsFills: CH_KICK, snare: CH_SNARE, ePerc: CH_SNARE, percTime: CH_SNARE, percAccent: CH_SNARE,
+      hats: { 1: -0.8, 2: -0.8, 3: -0.8 }, bass: { 1: -0.55, 2: -0.55, 3: -0.55 } },
+    echoK: { _: 1.1, snare: 1.2, hats: 0.2, kick: 0.05, bass: 0.1, tomsFills: 0.1 },
+  };
+  U.chorusMakeupDb = function (id, mode) {
+    const t = U.FX_MAKEUP.chorus, r = id in t ? t[id] : t._;
+    return r[mode] != null ? r[mode] : r[1];
+  };
+  U.echoMakeupDb = function (id, p) {
+    const t = U.FX_MAKEUP.echoK, k = id in t ? t[id] : t._;
+    return -10 * Math.log10(1 + k * p.mix * p.mix / (1 - p.fb * p.fb));
   };
 
-  // The production fork: draws that belong to the style's realization, never
-  // on the song stream. Read for every song (fixed count), used where the
-  // style asks.
+  // The production fork's song-level read (the vocoder's flag and block,
+  // vocoder.js). The first uniform is a spare (it was the dub echo's time),
+  // kept so the vocoder's block does not move.
   U.drawProductionDetail = function (hash) {
     const F = U.forkPrng(hash, "production");
-    const d = { echoTime: F.r() < 0.5 ? "dotted8" : "quarter" };
-    // the vocoder (2026-11-05, vocoder.js): its flag, then the fixed block,
-    // read for every song after echoTime, so echoTime is unmoved
+    const d = { spare: F.r() };
     if (U.drawVocoder) d.vocoder = U.drawVocoder(F);
     return d;
   };
 
-  U.echoSeconds = function (time, bpm) {
-    const beat = 60 / bpm;
-    return time === "slap" ? U.ECHO_SLAP : time === "quarter" ? beat : 0.75 * beat;
+  // THE DRAW. The song's cohesion on U.forkPrng(hash, "production.fx"); each
+  // desk strip on its own sub-stream U.forkPrng(hash, "production.fx." + id),
+  // kit strips included, each kit strip its own roll. Per strip, per menu
+  // entry, U.FX_UNIFORMS uniforms, always read. An effect is drawn when its
+  // chance (× the cohesion scale) beats its uniform; past the cap, the strip
+  // keeps the effects that beat their chance by the widest margin (u / p
+  // smallest). Returns { cohesion, cap, scale, strips: { id: { chorus?,
+  // echo? } }, all: { id: { chorus, echo } } } (`all`: every entry's drawn
+  // settings whether it landed or not).
+  U.drawStripFx = function (hash) {
+    const S = U.forkPrng(hash, "production.fx");
+    const cu = S.r();
+    let acc = 0, coh = U.FX_COHESION[U.FX_COHESION.length - 1];
+    for (const c of U.FX_COHESION) { acc += c.w; if (cu < acc) { coh = c; break; } }
+    const strips = {}, all = {};
+    for (const role of U.DESK_ROLES) {
+      const id = role.id, F = U.forkPrng(hash, "production.fx." + id), got = [];
+      const rec = {};
+      all[id] = {};
+      for (const fx of U.FX_MENU) {
+        const u = []; for (let k = 0; k < U.FX_UNIFORMS; k++) u.push(F.r());
+        const p = Math.min(1, U.FX_CHANCE[fx] * coh.scale);
+        const params = U.fxParams(fx, u, id);
+        all[id][fx] = params;   // every entry's settings, drawn or not (the jam's switches start here)
+        if (u[0] < p) got.push({ fx, m: u[0] / p, params });
+      }
+      const keep = got.slice().sort((a, b) => a.m - b.m).slice(0, coh.cap);
+      for (const x of got) if (keep.indexOf(x) > -1) rec[x.fx] = x.params;   // menu order
+      strips[id] = rec;
+    }
+    return { cohesion: coh.id, cap: coh.cap, scale: coh.scale, strips, all };
+  };
+  const r4 = (x) => Math.round(x * 10000) / 10000;
+  U.fxParams = function (fx, u, id) {
+    if (fx === "chorus") {
+      const C = U.CHORUS, SP = U.CHORUS_SPAN, mode = 1 + Math.min(2, Math.floor(u[1] * 3)), m = C.modes[mode];
+      const j = (x) => 1 - SP.jitter + 2 * SP.jitter * x, cl = (x, a) => Math.max(a[0], Math.min(a[1], x));
+      return { mode, rate: r4(cl(m.rate * j(u[2]), SP.rate)), depth: +cl(m.depth * j(u[3]), SP.depth).toFixed(6),
+        wetHpHz: U.FX_LOW_STRIPS[id] ? U.FX_LOW_HP_HZ : (C.wetHpHz[id] || 0) };
+    }
+    if (fx === "echo") {
+      const E = U.ECHO_SPAN, sp = (a, x) => a[0] + (a[1] - a[0]) * x;
+      return { time: U.ECHO_TIMES[Math.min(3, Math.floor(u[1] * 4))], fb: r4(sp(E.fb, u[2])), lp: Math.round(sp(E.lp, u[3])),
+        mix: r4(sp(E.mix, u[4])), hpHz: U.FX_LOW_STRIPS[id] ? U.FX_LOW_HP_HZ : U.ECHO_LOOP_HP };
+    }
+    return {};
   };
 
-  // Apply to a live desk: the plate's parameters, then the splices the style
-  // asks for (gated room, tape echo, saturation inserts), in a fixed order.
-  // `sheet` gives the tempo and the production fork (optional: a caller with
-  // no sheet gets the plate only, as v0).
-  U.applyProduction = function (desk, style, sheet) {
-    const byRole = style.sendByRole || {};
+  // Build the drawn chain on a live desk, every strip that is up, in the
+  // fixed order. `sheet.stripFx` is the draw (U.drawStripFx), `sheet.pan`
+  // already applied (the chorus mirrors right of centre). `over` (the jam):
+  // { strip: { chorus: params|null, echo: params|null } } replaces a strip's
+  // draw. Each built block is on desk.strips[id].fx[name] with its own set().
+  U.applyStripFx = function (desk, sheet, over) {
+    if (U.applyVocoder) U.applyVocoder(desk, sheet);   // the lead's voice, ahead of the chain
+    const draw = (sheet && sheet.stripFx) || { strips: {} };
     for (const id in desk.strips) {
-      const s = desk.strips[id];
-      s.send.gain.value = s.houseSend * style.send * (byRole[id] || 1);
-    }
-    desk.plate.wet.gain.value = style.wet;
-    for (const d of desk.plate.damps) d.frequency.value = style.damp;
-    if (!sheet) return;
-    if (style.gate) {
-      const room = desk.ensureGated();
-      room.wet.gain.value = style.gate.wet * (sheet.satProbe ? 1 : (sheet.gateTrim || 1));
-      if (sheet.satProbe) desk.gateTap = true;   // the level read: return vs dry snare
-      for (const id of Object.keys(style.gate.send)) desk.sendTo(room, id, style.gate.send[id]);
-      room.keys = style.gate.keys;
-      const close = Math.min(U.GATE_CLOSE_CLAMP[1], Math.max(U.GATE_CLOSE_CLAMP[0], U.GATE_CLOSE_BEATS * 60 / sheet.bpm));
-      room.hold = close - U.GATE_RELEASE;
-      room.release = U.GATE_RELEASE;
-    }
-    if (style.echo) {
-      const e = desk.ensureEcho();
-      const time = style.echo.time === "fork" ? ((sheet.productionDetail || {}).echoTime || "dotted8") : style.echo.time;
-      const sec = U.echoSeconds(time, sheet.bpm);
-      e.delay.delayTime.value = sec;
-      e.wowDepth.gain.value = U.ECHO_WOW * sec;
-      e.fb.gain.value = style.echo.fb;
-      e.lp.frequency.value = style.echo.lp;
-      e.time = time;
-      for (const id of Object.keys(style.echo.send)) desk.sendTo(e, id, style.echo.send[id]);
-    }
-    if (style.sat) {
-      const st = U.SAT_STAGE;
-      for (const id of Object.keys(style.sat)) {
-        const d = style.sat[id];
-        if (sheet.satProbe) { (desk.satTaps = desk.satTaps || []).push(id); continue; }   // the level read: bypassed, tapped
-        const pk = sheet.satPeaks && sheet.satPeaks[id];
-        const level = pk > 0 && st.refPeak[id] ? st.refPeak[id] / pk : 1;
-        const byVoice = ((st.makeupByVoice || {})[id] || {})[d];
-        const voice = id === "bass" ? sheet.bassVoice : null;
-        const mk = byVoice && voice in byVoice ? byVoice[voice] : (st.makeupDb[id] || {})[d] || 0;
-        desk.saturate(id, d, st.bias, st.lpHz[d], mk, level);
-      }
-    }
-    if (style.chorus) {
-      const C = U.CHORUS;
-      for (const id of Object.keys(style.chorus)) {
-        const m = C.modes[style.chorus[id]] || C.modes[1];
-        const voice = sheet.sampler && sheet.sampler.strips && sheet.sampler.strips[id] ? null : (sheet.voices || {})[id];
-        desk.chorus(id, m.rate, m.depth, C.centers, C.wet, C.wetHpHz[id] || 0, U.chorusMakeupDb(id, voice));
-      }
-    }
-    // the vocoder: an insert on the lead strip after the chorus (vocoder.js),
-    // where sheet.vocoder says on; bypassed on the bus trim's pre-render
-    if (U.applyVocoder) U.applyVocoder(desk, sheet);
-    if (style.comp) {
-      if (sheet.satProbe) desk.kitTap = true;   // the level read: the kit bus, uncompressed
-      else if (sheet.kitComp) desk.compressKit(sheet.kitComp.curve, sheet.kitComp.dt);
+      if (U.FX_SILENT_STRIPS.indexOf(id) > -1) continue;
+      if (sheet && sheet.mutes && sheet.mutes[id]) continue;
+      const rec = (over && over[id]) || draw.strips[id] || {};
+      U.buildStripFx(desk, id, rec, sheet);
     }
   };
+  U.buildStripFx = function (desk, id, rec, sheet) {
+    const bpm = (sheet && sheet.bpm) || 120;
+    for (const fx of U.FX_MENU) {
+      const p = rec[fx];
+      if (!p) continue;
+      if (fx === "chorus") desk.fxChorus(id, p, U.chorusMakeupDb(id, p.mode));
+      else if (fx === "echo") desk.fxEcho(id, Object.assign({ sec: U.echoSeconds(p.time, bpm), wow: U.ECHO_WOW }, p), U.echoMakeupDb(id, p));
+    }
+  };
+
+  U.KIT_STRIPS = ["kick", "snare", "hats", "tomsFills", "ePerc", "percTime", "percAccent"];
+  // KIT-BUS COMPRESSION (stage 2 pass 3, 2026-10-28): built, measured, never
+  // taken (no style opted in; the styles are gone). Kept as a tool: own math,
+  // a scheduled gain curve (desk.compressKit).
+  U.KIT_COMP = { attack: 0.030, releaseBeats: 1.0, kneeDb: 6, holdMs: 10, dt: 0.002 };
 
   // The kit-bus compressor's gain curve from the kit bus (L, R at `sr`):
   // returns { curve (linear gain incl. makeup, one point per U.KIT_COMP.dt),
@@ -1627,18 +1409,9 @@
     return { curve: g, dt: step / sr, peakDb, thresholdDb: thr, makeupDb, grMaxDb: grMax, grMeanDb: grSum / m };
   };
 
-  // After the session has scheduled every note: open the gated room on the
-  // hits of the strips that key it. `hits` is { stripId: [t, ...] }.
-  U.scheduleProductionGate = function (desk, hits) {
-    const room = desk.gated;
-    if (!room) return 0;
-    const t = [];
-    for (const id of room.keys) if (hits[id]) t.push(...hits[id]);
-    return room.schedule(t, room.hold, room.release);
-  };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/vocoder.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/vocoder.js @ 1376def — verbatim from jeffdavis-studio/unison-engine ===== */
 // vocoder.js — the production room's vocoder insert, slice 1 (2026-11-05,
 // Asana 1220085081650427; design in files/unison/vocoder-2026-11-05/RESULT.md).
 //
@@ -1760,12 +1533,11 @@
   };
 
   // ---- the room's insert ----
-  // Per production style, the share of songs that draw the vocoder (`vocoder`
-  // on the style in production.js reads from here so the room's own tables
-  // stay as they were): absent = never. The 1983 vocoder records on the
-  // hundred sit dry or on a short plate (Freak-A-Zoid, Body Work, The
-  // Man-Machine), so the dry rooms take it most, the dub chamber never.
-  U.VOCODER_STYLE_SHARE = { "prod.dry_board": 0.11, "prod.close_dry": 0.11, "prod.plate_wash": 0.10, "prod.tape_slap": 0.08, "prod.gated_room": 0.05 };
+  // The share of songs that draw the vocoder. Was per production style
+  // (dry rooms 0.11, plate 0.10, slap 0.08, gated 0.05, dub never); the
+  // styles retired 2026-11-18 (effects slice 2), so one share: the old
+  // style-weighted mean, 0.083.
+  U.VOCODER_SHARE = 0.083;
   // A per-lane weight on the share: the three reference tracks' lanes carry
   // it (synth pop for Kraftwerk, early hip-hop / electro for Body Work, funk
   // and synth R&B for Freak-A-Zoid), new wave least.
@@ -1928,8 +1700,7 @@
   // The sheet record, from the raw draw and the sheet (the style, the lane,
   // the lead's strip and patch). The draw count never depends on the outcome.
   U.resolveVocoder = function (sheet, draw) {
-    const style = sheet.production || {};
-    const share = (U.VOCODER_STYLE_SHARE[style.id] || 0) * (U.VOCODER_LANE_WEIGHT[sheet.lane] || 1);
+    const share = U.VOCODER_SHARE * (U.VOCODER_LANE_WEIGHT[sheet.lane] || 1);
     const drawn = !!draw && draw.u < share;
     const rec = { on: false, state: "off", drawn };
     if (!drawn) return rec;
@@ -1954,8 +1725,8 @@
     return rec;
   };
 
-  // The insert, from U.applyProduction after the chorus (the fixed order):
-  // the bank on the lead strip, first vowel set. Bypassed on the bus trim's
+  // The insert, from U.applyStripFx at the head of the lead's chain: the
+  // bank on the lead strip, first vowel set. Bypassed on the bus trim's
   // pre-render (sheet.satProbe), as saturation is, so the trim is measured
   // without it and a song's other strips keep their level.
   U.applyVocoder = function (desk, sheet) {
@@ -1963,8 +1734,7 @@
     if (!v || !v.on || sheet.satProbe) return;
     desk.vocoder("lead", { wet: v.wet, hpHz: U.VOCODER_HP_HZ, makeupDb: v.makeupDb, vowel: v.seq[0].v });
   };
-  // The vowel automation, after the notes are scheduled (session.js, next to
-  // the gated room's schedule): every change at its bar's start.
+  // The vowel automation, after the notes are scheduled (session.js): every change at its bar's start.
   U.scheduleVocoder = function (desk, sheet, t0) {
     const v = sheet && sheet.vocoder;
     if (!v || !v.on || sheet.satProbe) return 0;
@@ -1974,7 +1744,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/analogpoly.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/analogpoly.js @ 1376def — verbatim from jeffdavis-studio/unison-engine ===== */
 // analogpoly.js — the analog poly core: one module that builds every Juno and
 // OB-Xa voice, behind a family lock. Asana 1220084594874974, slice 1
 // (2026-11-02); the rack doc's build 3 (files/unison/rack-parts-proposal-
@@ -2191,9 +1961,8 @@
     // not a desk insert.
     let voiceTarget;
     if (p.chorus && F.chorus.indexOf(chorusOf(p)) > -1) {
-      // a desk chorus insert on this strip (production style, pass 4/5)
-      // steps aside when the patch prints its own BBD: one chorus, not two.
-      if (strip.chorus && strip.chorus.bypass) strip.chorus.bypass();
+      // (a drawn chorus insert on the strip stays in: Jeff 11/17, no
+      // double-chorus rule, effects slice 2)
       const chorusOut = ctx.createGain();
       const chorusIn = makeChorus(ctx, chorusOut, p.chorusMode);
       strip.input.add(chorusOut);
@@ -2600,7 +2369,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/juno.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/juno.js @ 1376def — verbatim from jeffdavis-studio/unison-engine ===== */
 // juno.js — Juno-60-flavor poly voice, raw Web Audio, zero dependencies.
 // Ported from the 2026-07-21 bake-off winner (voice-raw.js), restructured to
 // live behind a desk strip: U.createJuno(ctx, strip, patchName) builds its own
@@ -3236,7 +3005,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/minimoog.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/minimoog.js @ 1376def — verbatim from jeffdavis-studio/unison-engine ===== */
 // minimoog.js — Minimoog Model D-lineage mono voice, zero dependencies.
 //
 // THE MONO BASS LANE (build order 808 → Juno → Minimoog → …; it also absorbs
@@ -4074,7 +3843,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/obxa.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/obxa.js @ 1376def — verbatim from jeffdavis-studio/unison-engine ===== */
 // obxa.js — Oberheim OB-Xa-lineage poly voice, zero dependencies.
 //
 // THE BRASS/PAD POLY LANE (build order 808 → Juno → Minimoog → OB-Xa → …).
@@ -4661,7 +4430,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/fm.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/fm.js @ 1376def — verbatim from jeffdavis-studio/unison-engine ===== */
 // fm.js — six-operator FM keys voice (the DX7 lineage), zero dependencies.
 //
 // THE FM LANE (build order 808 → Juno → Minimoog → OB-Xa → Linn → FM).
@@ -5817,7 +5586,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/bassguitar.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/bassguitar.js @ 1376def — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassguitar.js — electric bass guitar, the first session player of the human
 // rack (Rack 2), zero dependencies.
 //
@@ -6528,7 +6297,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/rhythmguitar.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/rhythmguitar.js @ 1376def — verbatim from jeffdavis-studio/unison-engine ===== */
 // rhythmguitar.js — clean electric rhythm guitar, the fourth and last stop of
 // the human rack (Rack 2), zero dependencies.
 //
@@ -7304,7 +7073,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/tr808.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/tr808.js @ 1376def — verbatim from jeffdavis-studio/unison-engine ===== */
 // tr808.js — THE MACHINE. A TR-808-lineage core voice: bass drum, snare,
 // closed hat, open hat, each with a front panel the token actually turns.
 //
@@ -8588,7 +8357,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/linn.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/linn.js @ 1376def — verbatim from jeffdavis-studio/unison-engine ===== */
 // linn.js — THE STUDIO MACHINE. A Linn-family (LM-1 / LinnDrum lineage)
 // drum computer: the new wave / synth-pop / 80s R&B kit.
 //
@@ -9410,7 +9179,7 @@
     get EPROM_HZ() { return U.CIRCUIT_LINN.epromHz; }, get RECON_HZ() { return U.CIRCUIT_LINN.reconHz; } };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/romkits.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/romkits.js @ 1376def — verbatim from jeffdavis-studio/unison-engine ===== */
 // romkits.js — THE OTHER SAMPLED MACHINE: the DMX (Oberheim lineage, 1981),
 // drum engine slice 3, 2026-11-03, Asana 1219959495948201.
 //
@@ -9766,7 +9535,7 @@
   // the lock refuses; the MCS is a kit drawn across families, which is slice 4.
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/simmons.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/simmons.js @ 1376def — verbatim from jeffdavis-studio/unison-engine ===== */
 // simmons.js — THE ELECTRONIC FAMILY'S FIRST MACHINE: the Simmons toms
 // (SDS-V lineage, 1981; SDS-7, 1983), drum engine slice 3, 2026-11-03,
 // Asana 1219959495948201.
@@ -9938,7 +9707,7 @@
   U.SIMMONS_VOICES = ["tomHi", "tomMid", "tomLo"];
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drumengine.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drumengine.js @ 1376def — verbatim from jeffdavis-studio/unison-engine ===== */
 // drumengine.js — ONE DRUM ENGINE, THE MACHINES AS FAMILIES (2026-11-02,
 // drum engine slice 1, Asana 1219959495948201; the rack and parts doc,
 // 10/31).
@@ -10169,7 +9938,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drumkits.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drumkits.js @ 1376def — verbatim from jeffdavis-studio/unison-engine ===== */
 // drumkits.js — the drum engine, slice 4 (2026-11-06, Asana 1219959495948201):
 // THE KIT BOOKS and THE KIT AS A DRAW ACROSS FAMILIES.
 //
@@ -10527,7 +10296,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/sampler.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/sampler.js @ 1376def — verbatim from jeffdavis-studio/unison-engine ===== */
 // sampler.js — THE SAMPLER KEYBOARD, the gap filler (2026-11-05, slice 1,
 // Asana 1220085081678265; build 7 of the 10/31 rack and parts doc; design in
 // files/unison/sampler-2026-11-05/RESULT.md in the morgan repo).
@@ -11129,7 +10898,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drums.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drums.js @ 1376def — verbatim from jeffdavis-studio/unison-engine ===== */
 // drums.js — the drum machine: 808/LM-1-flavor voices, synthesized at runtime
 // into short AudioBuffers, played back as one-shots.
 //
@@ -11544,7 +11313,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/books.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/books.js @ 1376def — verbatim from jeffdavis-studio/unison-engine ===== */
 // books.js — Pattern Books v1, as data.
 //
 // This file IS the document: "Unison — Pattern Books v1 (draft)" (Morgan,
@@ -14391,7 +14160,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/bassplayer.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/bassplayer.js @ 1376def — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassplayer.js — the PERFORMANCE half of the bass guitar: a session player.
 //
 // Rack 2's rule (kb/projects/unison.md, 2026-07-11): every human instrument is
@@ -14986,7 +14755,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/gtrplayer.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/gtrplayer.js @ 1376def — verbatim from jeffdavis-studio/unison-engine ===== */
 // gtrplayer.js — the PERFORMANCE half of the rhythm guitar: a session
 // guitarist on the rhythmGtr strip.
 //
@@ -15460,7 +15229,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/fmplayer.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/fmplayer.js @ 1376def — verbatim from jeffdavis-studio/unison-engine ===== */
 // fmplayer.js — the PERFORMANCE half of the FM keys: a session keyboard
 // player on the FM chord strips (compA's tine EP, colour's glass and brass).
 //
@@ -15601,7 +15370,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/testPhrase.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/testPhrase.js @ 1376def — verbatim from jeffdavis-studio/unison-engine ===== */
 // testPhrase.js — deterministic 8-bar test phrase, ported from the bake-off
 // (phrase.js) onto the engine's canonical PRNG (core/prng.js).
 //
@@ -15695,7 +15464,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/form.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/form.js @ 1376def — verbatim from jeffdavis-studio/unison-engine ===== */
 // form.js — the song's form: the book of returns (2026-10-30, Asana
 // 1220073468300418; design files/unison/structure-design-2026-10-30 in the
 // morgan repo, DESIGN.md + draw.py, transcribed here as written).
@@ -16016,7 +15785,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/session.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/session.js @ 1376def — verbatim from jeffdavis-studio/unison-engine ===== */
 // session.js — the session sheet and the arrangement realizer.
 //
 // Two tiers, in this order, each on its own stream (core/prng.js):
@@ -16093,7 +15862,10 @@
 //   32–45  strip mutes — one per voiced role, in U.DESK_ROLES order:
 //          kick, snare, hats, tomsFills, ePerc, percTime, percAccent,
 //          bass, compA, pad, arp, lead, counter, color
-//   46  production style
+//   46  (retired 2026-11-18, effects slice 2: was the production style;
+//        the per-strip effects draw on their own forks, production.js; the
+//        numbers below are kept as written, and each later draw now sits
+//        one earlier on R than its number)
 //   47–67  the 808 front panel (instruments/tr808.js U.draw808Panel), twenty-
 //          one knobs in a fixed block: BD tune/decay/tone/level, SD
 //          tune/snappy/tone/level, CH decay/tone/level, OH decay/tone/level,
@@ -16405,10 +16177,6 @@
     // override now, same intent.
     if (harmony.forceColor) mutes.color = false;
 
-    // draw 46 — production style (production/production.js). Genre biases the
-    // weights; the effects themselves never leave the production room.
-    const production = U.drawProduction(R, lane);
-
     // draws 47–67 — the 808 front panel. Always drawn, whatever the kit: a
     // machine-flavour song plays it, a studio-flavour song discards it, and the
     // draw count is identical either way. That is the same "draw first, discard
@@ -16627,7 +16395,7 @@
       // its aliases for pages, harnesses and the jam: bassVoice = voices.bass,
       // polyVoice = voices.compA, padVoice = voices.pad, leadVoice,
       // counterVoice, arpVoice. The lock's own draws are sheet.legacy.
-      picks, bassVoice: voices.bass, polyVoice: voices.compA, polySeed, mutes, production, panel808, drumMachine, panelLinn, gtrVoicing,
+      picks, bassVoice: voices.bass, polyVoice: voices.compA, polySeed, mutes, panel808, drumMachine, panelLinn, gtrVoicing,
       // present on 808 songs only, so every other sheet is field-for-field what it was
       auxPerc,
       leadVoice: voices.lead, counterVoice: voices.counter, arpVoice: voices.arp, padVoice: voices.pad,
@@ -17076,13 +16844,13 @@
 
     // ---- the mixing board, set before a note is scheduled ----
     // Order matters: the lane's mix lean multiplies the house faders, the
-    // production style sets the room, then the mutes decide what is up. Nothing
-    // here adds or removes a node, so the fan-in ≤2 contract is untouched.
+    // strips' effects chains are built (production.js), then the mutes decide
+    // what is up. Every splice is series, so the fan-in ≤2 contract holds.
     desk.applyLaneMix(sheet.lane);
     // the song's stereo placement (effects slice 1, desk.js U.drawPan), before
     // the room so a chorus knows which side its strip sits on
     if (sheet.pan && desk.applyPan) desk.applyPan(sheet.pan);
-    U.applyProduction(desk, sheet.production, sheet);
+    U.applyStripFx(desk, sheet);
     for (const id in sheet.mutes) desk.setMute(id, sheet.mutes[id]);
     // A muted strip's fader is at zero, so skipping its scheduling below is an
     // optimization, not a second decision. Read the desk, not the sheet.
@@ -17919,8 +17687,6 @@
     // Juno has no flush(), so on a Juno strip this does nothing.
     for (const k of Object.keys(inst)) if (inst[k].flush) inst[k].flush();
     if (gtrInst) gtrInst.flush();
-    // the gated room's gate, from the hits just scheduled (production.js)
-    U.scheduleProductionGate(desk, kitHits);
     // the vocoder's vowel changes on the lead strip (vocoder.js)
     if (U.scheduleVocoder) U.scheduleVocoder(desk, sheet, t0);
 
@@ -17930,7 +17696,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/render/renderer.js @ 04d1545 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/render/renderer.js @ 1376def — verbatim from jeffdavis-studio/unison-engine ===== */
 // renderer.js — song assembly + the render pipeline (Technical Architecture
 // v1.2 playback model): live-first, with (a) a cheap analysis pre-render for
 // verification/metrics and (b) an on-demand full OfflineAudioContext render
@@ -17990,8 +17756,8 @@
       if (Object.keys(by.fm).length) sheet.fmPatches = by.fm;
     }
 
-    // The production room's own fork (2026-10-28, production.js): the style
-    // is draw 47 on R; its realization draws (the dub echo's time) are here.
+    // The production fork's song-level read (the vocoder's block, after one
+    // spare uniform; production.js).
     if (U.drawProductionDetail) sheet.productionDetail = U.drawProductionDetail(hash);
     // The vocoder insert (2026-11-05, vocoder.js): the production fork's
     // flag and fixed block resolved against the style, the lane and the
@@ -18014,6 +17780,11 @@
     // own fork "pan", a fixed block read on every song; reads the engines and
     // mutes, changes nothing else. sheet.pan is the only field.
     if (U.drawPan) sheet.pan = U.drawPan(hash, sheet);
+    // The strips' effects (effects slice 2, 2026-11-18, production.js
+    // U.drawStripFx): the song's cohesion on "production.fx", each strip on
+    // its own "production.fx.<strip>". Reads nothing; sheet.stripFx is the
+    // only field.
+    if (U.drawStripFx) sheet.stripFx = U.drawStripFx(hash);
 
     // Tier 2's per-bar draws come from their own fork of the hash, never from
     // R: tier 1 owns the song stream, tier 2 owns "bars" (2026-10-03).
@@ -18025,18 +17796,10 @@
     // opts.preBus: the bus trim's own measurement graph (desk.js).
     const o = opts || {};
     const busTrimDb = typeof o.busTrimDb === "number" ? o.busTrimDb : 0;
-    // The saturation inserts' level (stage 2 pass 2, production.js): each
-    // saturated strip's peak at the insert, measured on the bus trim's own
-    // pre-render (U.songBusTrimDb), so the curve sees every song's strip at
-    // the same level. The pre-render itself runs the inserts bypassed and taps
-    // them (sheet.satProbe). Absent = the curve at the strip's raw level.
+    // The reads off the bus trim's own pre-render (U.preBusLufs,
+    // U.mixProbeCache): the vocoder's and the sampler's makeups.
     const mixKey = hash + "|" + (forceLane || "");
-    sheet.satPeaks = o.satPeaks || U.satPeakCache[mixKey] || null;
-    // Pass 3 (2026-10-28): the kit-bus compressor's curve and the gated
-    // room's per-song return trim, from the same pre-render (U.mixProbeCache).
     const mp = U.mixProbeCache[mixKey] || {};
-    sheet.kitComp = o.kitComp || mp.kitComp || null;
-    sheet.gateTrim = o.gateTrim || mp.gateTrim || null;
     // the vocoder's makeup per vowel, measured on the same pre-render
     // (vocoder.js U.vocoderMakeupFromSignal); absent, the fallback table
     // the sampler's makeup per taken strip, measured on the same pre-render
@@ -18045,6 +17808,8 @@
     if (sm && sheet.sampler) for (const st in sheet.sampler.strips) if (typeof sm[st] === "number") { sheet.sampler.strips[st].makeupDb = sm[st]; sheet.sampler.strips[st].makeupFrom = "probe"; }
     const vm = o.vocoderMakeupDb || mp.vocoderMakeupDb;
     if (vm && sheet.vocoder && sheet.vocoder.on) { for (const v of sheet.vocoder.vowels) sheet.vocoder.makeupDb[v] = vm[v]; sheet.vocoder.makeupFrom = "probe"; }
+    // the bus trim's pre-render (the name is historical: it probed the
+    // saturation inserts until slice 2); the vocoder and the sampler read it
     sheet.satProbe = !!o.preBus;
     const desk = U.createDesk(ctx, ctx.destination, { busTrimDb, preBus: !!o.preBus });
     const stats = U.realizeSession(ctx, desk, sheet, Rbars, LEAD, opts);
@@ -18064,7 +17829,19 @@
       influence: sheet.influence || "none",
       influenceBlend: sheet.influence ? sheet.influenceBlend : null,
       influencePatches: sheet.influencePatches,
-      production: sheet.production.id,
+      // the strips' effects (production.js): cohesion, then each strip that
+      // drew any, "strip: chorus I+II / echo dotted8"
+      fx: (() => {
+        const f = sheet.stripFx; if (!f) return null;
+        const o = { cohesion: f.cohesion };
+        for (const id in f.strips) {
+          const r = f.strips[id], a = [];
+          if (r.chorus) a.push("chorus " + ["", "I", "II", "I+II"][r.chorus.mode]);
+          if (r.echo) a.push("echo " + r.echo.time);
+          if (a.length && !(sheet.mutes && sheet.mutes[id]) && U.FX_SILENT_STRIPS.indexOf(id) < 0) o[id] = a.join(" / ");
+        }
+        return o;
+      })(),
       // The engine and patch per pitched strip (the role draw, 2026-11-01):
       // "engine/patch", the bass guitar by voicing; a muted strip by engine.
       voices: (() => {
@@ -18198,16 +17975,12 @@
   // `rate`, stereo unless `mono` (a mono fold-down drops the wide parts, the
   // Juno chorus and the plate, by a different amount on every song). The
   // predictor behind the bus trim, exposed for the check.
-  // When the song's style saturates strips, the same render also carries each
-  // saturated strip's insert signal (both channels) on channels 2+, and their
-  // whole-song peaks land in U.satPeakCache for the song's later builds
-  // (2026-10-28, stage 2 pass 2). Channels 0-1 are the pre-bus sum either way.
-  // Pass 3 (2026-10-28): the same render also taps the kit bus (the sum of
-  // the kit strips' post-fader signals, for the kit-bus compressor's curve)
-  // and, on a gated style, the dry snare and the gated room's return (for the
-  // return's per-song trim); both land in U.mixProbeCache. A page either
-  // runs this render or plays the song without any of its reads: there is no
-  // separate bake of one of them (U.songBusTrimDb's `baked`).
+  // The same render carries the reads the song's later builds take: the
+  // vocoder's lead and the sampler's taken strips, on channels 2+ (into
+  // U.mixProbeCache). Until effects slice 2 (2026-11-18) it also tapped the
+  // saturation inserts, the kit bus and the gated room. A page either runs
+  // this render or plays the song without its reads (U.songBusTrimDb's
+  // `baked`).
   U.satPeakCache = {};
   U.mixProbeCache = {};
   U.preBusLufs = async function (hash, forceLane, seconds, rate, mono) {
@@ -18216,31 +17989,18 @@
     const probe = U.drawSession(U.makePrng(hash), forceLane);
     if (!seconds) seconds = LEAD + probe.lengthSec + TAIL;
     const nch = mono ? 1 : 2;
-    const prod = probe.production || {};
-    const satIds = Object.keys(prod.sat || {});
     // the vocoder (2026-11-05, vocoder.js): on an "on" song the lead strip's
     // own signal, for the per-song makeup per vowel (the last two channels)
     const voc = U.vocoderFor ? U.vocoderFor(hash, forceLane) : null, vocOn = !!(voc && voc.on);
     // the sampler (slice 2): each taken strip's trim output, the stand-in
     // playing, for the per-strip makeup
     const smpRec = U.samplerFor ? U.samplerFor(hash, forceLane) : null, smpIds = smpRec ? Object.keys(smpRec.strips) : [];
-    const nExtra = 2 * satIds.length + (prod.comp ? 2 : 0) + (prod.gate ? 4 : 0) + (vocOn ? 2 : 0) + 2 * smpIds.length;
+    const nExtra = (vocOn ? 2 : 0) + 2 * smpIds.length;
     const ctx = U.jitAttach(new OfflineAudioContext(nch + nExtra, Math.ceil(seconds * rate), rate));
     const song = U.buildSong(ctx, hash, forceLane, { preBus: true });
     const desk = song.desk;
-    const taps = desk.satTaps || [];
     // [name, node] pairs, two channels each, in a fixed order
-    const tapNodes = taps.map((id) => ["sat:" + id, desk.strips[id].insert]);
-    if (desk.kitTap) {
-      const kitSum = ctx.createGain();
-      const kitMix = U.chainMixer(ctx, kitSum);
-      for (const id of U.KIT_STRIPS) if (desk.strips[id]) kitMix.add(desk.strips[id].fader);
-      tapNodes.push(["kit", kitSum]);
-    }
-    if (desk.gateTap && desk.gated) {
-      tapNodes.push(["snare", desk.strips.snare.fader]);
-      tapNodes.push(["gated", desk.gated.wet]);
-    }
+    const tapNodes = [];
     if (vocOn) tapNodes.push(["voc", desk.strips.lead.fader]);
     for (const st of smpIds) tapNodes.push(["smp:" + st, desk.strips[st].trim]);
     const chOf = {};
@@ -18261,31 +18021,7 @@
     const key = hash + "|" + (forceLane || "");
     if (tapNodes.length && seconds >= LEAD + probe.lengthSec + TAIL) {   // whole song only
       const two = (name) => [buf.getChannelData(chOf[name]), buf.getChannelData(chOf[name] + 1)];
-      if (taps.length) {
-        const peaks = {};
-        taps.forEach((id) => {
-          let pk = 0;
-          for (const x of two("sat:" + id)) for (let i = 0; i < x.length; i++) { const a = Math.abs(x[i]); if (a > pk) pk = a; }
-          peaks[id] = pk;
-        });
-        U.satPeakCache[key] = peaks;
-      }
       const mp = {};
-      if (chOf.kit !== undefined) {
-        const [L, R] = two("kit");
-        mp.kitComp = U.kitCompCurve(L, R, rate, probe.bpm, prod.comp);
-      }
-      if (chOf.gated !== undefined) {
-        // mono fold-downs, as render-loudness taps them (a panned snare
-        // against a centred room would otherwise read differently)
-        const mono = ([A, B]) => A.map((v, i) => 0.5 * (v + B[i]));
-        const s = U.kWeightedMeanDb([mono(two("snare"))], rate), r = U.kWeightedMeanDb([mono(two("gated"))], rate);
-        if (isFinite(s) && isFinite(r)) {
-          const t = Math.pow(10, (U.GATE_VS_SNARE_DB - (r - s)) / 20);
-          mp.gateTrim = Math.min(U.GATE_TRIM_CLAMP[1], Math.max(U.GATE_TRIM_CLAMP[0], t));
-          mp.gateVsSnareProbeDb = r - s;
-        }
-      }
       if (chOf.voc !== undefined && song.sheet.vocoder && song.sheet.vocoder.on) {
         const [L, R] = two("voc"), m = new Float32Array(L.length);
         for (let i = 0; i < m.length; i++) m[i] = 0.5 * (L[i] + R[i]);
@@ -18317,14 +18053,13 @@
   U.busPreLufs = {};   // what the measurement read, per hash|lane (for the checks)
   //
   // `baked` (pass 3, 2026-10-28): a page's baked trim for this song. Used only
-  // when the song's style reads nothing else off the pre-render; a style that
-  // saturates, compresses the kit or gates a room needs that render's reads
-  // (U.satPeakCache, U.mixProbeCache) as well, so the render runs and the
+  // when the song reads nothing else off the pre-render; a song with the
+  // vocoder on or a sampler-taken strip needs that render's reads
+  // (U.mixProbeCache) as well, so the render runs and the
   // baked number is ignored (the measured one is the same number). One path:
   // a page cannot play a baked trim with the reads missing.
   U.songNeedsMixProbe = function (hash, forceLane) {
-    const p = U.drawSession(U.makePrng(hash), forceLane).production || {};
-    return !!(p.sat || p.comp || p.gate) || !!(U.vocoderFor && U.vocoderFor(hash, forceLane).on) || !!(U.samplerFor && U.samplerFor(hash, forceLane).n);
+    return !!(U.vocoderFor && U.vocoderFor(hash, forceLane).on) || !!(U.samplerFor && U.samplerFor(hash, forceLane).n);
   };
   U.songBusTrimDb = function (hash, forceLane, baked) {
     const key = hash + "|" + (forceLane || "");
@@ -18558,8 +18293,8 @@
   // ---- state ----
   // v4: no style. Each layer carries its own hidden lanes (ln: the books its
   // pattern draws from; pl: the patch books' lane weights), drawn at random
-  // and saved. prl: the production room of a v1-v3 link's style, so an old
-  // jam keeps its room; null = the jam's one room (PLATE, below).
+  // and saved. prl: a v1-v3 link's style, which keeps its layers' books and
+  // lock family (its room went with the rooms, effects slice 2).
   var G = { bpm: 112, key: 0, mode: "major", hs: 1, A: "sp.h.pop_axis", B: null, sec: "A", L: [], n: 1, sw: 0, swb: "l", fam: null, prl: null };
   G.B = deriveB(G.A, G.hs); G.C = deriveC(G.A, G.B, G.hs);
   // v4 (Jeff 10/28): swing is one global control, the clock's, saved in the
@@ -18594,18 +18329,6 @@
     if (!G.fam || !lockedLayers().length) G.fam = anyLane();
     return G.fam;
   }
-
-  // Drum layers play with no room (Jeff 10/28, after playing it: "the snare
-  // sounds metallic"). The production draw above is one fixed draw per style
-  // and lands on prod.gated_room for new wave, synth pop, synth R&B and funk,
-  // so every kit went through the gated room and a 2.4x plate send: the
-  // snare's 5-16 kHz ring ran 350-400 ms against ~30 ms on the rig's per-hit
-  // pages, the path Jeff approved (harness/jam-snare.mjs, files/unison/
-  // jam-player-2026-10-28/RESULT-snare.md). The engine's dry_board (+66 ms of
-  // ring, saturated snare) and close_dry (+0.21 tail tonality on the 808, the
-  // plate's combs) still sat over the rig; no room puts the page's snares on
-  // the rig's numbers. Plate sends 0, no gate, no echo, no saturation.
-  var DRY_KIT = { id: "jam.dry_kit", send: 0, wet: 0, damp: 3000 };
 
   // ---- one strip, one section, rendered by the engine ----
   // ---- v2: pattern variety (Jeff 10/28: "maybe a little more variety on patterning?") ----
@@ -18818,18 +18541,13 @@
   }
   // the harnesses pass a lane on g (v3's call shape); the page passes the layer's
   function laneOf(g, opt) { return (opt && opt.ln) || g.lane || "synthPop"; }
-  // v4: the one room for pitched layers. With no style, a draw per hidden lane
-  // would put one layer in five through hip-hop's tape slap (echo and
-  // saturation on bass, lead, chords and guitar) next to the others' gated
-  // room, so a board would mix rooms. One fixed room instead: the one v3
-  // played for four styles of five (prod.gated_room; on a pitched strip it is
-  // the plate at send 0.85, plus, since stage 2 pass 5, chorus I on the bass and
-  // on chord layers (compA) whose voice does not print its own BBD, i.e. not the
-  // Juno; the gate and its sends are the snare's and toms'). The engine's plate wash was measured first (harness/jam-levels.mjs,
-  // 10/29): it lifts pitched layers 0.8-4.5 dB by reverb alone (pads +3.2/+4.5,
-  // leads +3.4/+4.3, brass +3.0), which would void LEVEL_DB; this room keeps
-  // every layer where v3 measured it. Drums stay dry (DRY_KIT).
-  var PLATE = U.PRODUCTION_STYLES.filter(function (x) { return x.id === "prod.gated_room"; })[0];
+  // Effects slice 2 (2026-11-18, Asana 1220328751228343): no room. Each
+  // layer's strips draw their own effects (production.js U.drawStripFx) on
+  // the layer's own fx seed (seedHash(patch, "fx")), kit strips included
+  // (Jeff 11/17: "All effects should apply everywhere."). The jam's room
+  // (gated_room's plate and chorus on pitched layers, the drums dry) retired
+  // with the styles.
+  function layerFxDraw(patch) { return U.drawStripFx(seedHash(patch, "fx")); }
   function vrOf(v) { return v >= 3 ? 2 : v >= 1 ? 1 : 0; }
 
   function buildSheet(g, sec, inst, pat, patch, v, opt) {
@@ -18873,7 +18591,7 @@
     if (opt && opt.pn && /^kit:\d+$/.test(opt.pn)) patchH = seedHash(+opt.pn.slice(4), "kit");
     var PR = U.makePrng(patchH);
     s.panel808 = U.draw808Panel(PR); s.panelLinn = U.drawLinnPanel(PR); s.polySeed = PR.ri(1, 2147483646);
-    s.production = d.cls === "drums" ? DRY_KIT : g.prl ? U.drawProduction(U.makePrng(seedHash(1, "prod")), g.prl) : PLATE;
+    s.stripFx = layerFxDraw(patch);
     s.productionDetail = U.drawProductionDetail(seedHash(1, "prod"));
     if (s.bassVoice === "bassguitar") { s.bassPlayer = U.drawBassPlayer(player, lane); s.bassBook = U.drawBassBook(patchH, s); }
     if (inst === "rgtr") { s.gtrPlayer = U.drawGtrPlayer(player, lane); s.gtrBook = U.drawGtrBook(patchH, s); }
@@ -18890,7 +18608,7 @@
     if (Object.keys(by.obxa).length) s.obxaPatches = by.obxa;
     if (Object.keys(by.minimoog).length) s.minimoogPatches = by.minimoog;
     if (Object.keys(by.fm).length) s.fmPatches = by.fm;
-    s.satPeaks = null; s.satProbe = false;
+    s.satProbe = false;
     s.jamPicked = !!(opt && opt.pn && applyPick(inst, s, opt.pn, patchH));
     // the vocoder insert (2026-11-05, vocoder.js): the lead layer draws it on
     // its own patch seed's production fork against the page's room and the
@@ -19394,7 +19112,6 @@
       src.start(at, off);
       var o = { src: src, g: gn, at: at, off: off, end: at + hit.buf.duration - off, cs: cs, key: key, dry: isDry ? hit : null };
       l.srcs.push(o); l.used[key] = (l.used[key] || 0) + 1;
-      if (isDry) scheduleGate(l, o);
       src.onended = (function (o, l) { return function () { l.used[o.key]--; if (!l.used[o.key]) delete l.used[o.key];
         var i = l.srcs.indexOf(o); if (i > -1) l.srcs.splice(i, 1); try { o.g.disconnect(); } catch (e) {} }; })(o, l);
       starts.push({ layer: l.id, at: at, off: off, bar0: at - off + LEAD, t0: ep.t0, barSec: bs, v: v, sec: ep.sec });
@@ -19548,14 +19265,14 @@
     var o = { b: G.bpm, k: G.key, m: G.mode === "minor" ? 1 : 0, h: G.hs, A: G.A, B: G.B, C: G.C, s: G.sec,
       w: G.sw, wb: G.swb, f: G.fam ? U.LANES.indexOf(G.fam) : -1,
       L: G.L.map(function (l) { var a = [l.inst, l.pat, l.patch, l.vr, l.mute ? 1 : 0, l.oct || 0, l.db || 0, l.pn || "", U.LANES.indexOf(l.ln), U.LANES.indexOf(l.pl)];
-        if (l.px && Object.keys(l.px).length) a.push(l.px);   // [10] the production module's overrides
+        if (l.px && Object.keys(l.px).length) a.push(l.px);   // [10] the production module's overrides (slice 2: { strip: { fc, fe } })
         if (l.rt === "draw" || l.rt === "draw3") { if (a.length < 11) a.push(0); a.push(l.rt === "draw3" ? 2 : 1); }   // [11] around the root: 1 = the layer's draw (slices 1-2), 2 = with slice 3's roots and voicing; absent = up
         return a; }) };
     if (G.prl) o.p = G.prl;
     // effects slice 1: moved pans, per layer index (absent = every strip as drawn)
     var q = G.L.map(function (l) { return l.pan && Object.keys(l.pan).length ? l.pan : 0; });
     if (q.some(Boolean)) o.q = q;
-    if (G.px && (G.px.st || Object.keys(G.px.R).length)) o.x = { s: G.px.st, R: G.px.R };   // the Room
+    if (G.px && G.px.R.bus && Object.keys(G.px.R.bus).length) o.x = { R: { bus: G.px.R.bus } };   // the Master card
     var s = btoa(JSON.stringify(o)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
     try { history.replaceState(null, "", "#j=" + s); } catch (e) { location.hash = "j=" + s; }
   }
@@ -19588,7 +19305,9 @@
         G.L.push({ id: G.n++, inst: a[0], pat: +a[1] || 1, patch: +a[2] || 1, vr: Math.max(0, Math.min(2, +a[3] || 0)), mute: !!a[4],
           oct: clampOct(a[0], a[5]), db: Math.max(DB_MIN, Math.min(DB_MAX, Math.round(+a[6] || 0))), pn: typeof a[7] === "string" && a[7] ? a[7] : null,
           ln: lane(a[8]), pl: lane(a[9]), rt: a[11] === 2 ? "draw3" : a[11] === 1 ? "draw" : "up" });
-        var px = a[10] && typeof a[10] === "object" ? a[10] : null;
+        // slice 2: only the per-strip effects' overrides (fc chorus, fe echo);
+        // a link from before (saturation, plate, sends, the old chorus) loads as drawn
+        var px = a[10] && typeof a[10] === "object" ? pxClean(a[10]) : null;
         if (px) { G.L[G.L.length - 1].px = px; G.L[G.L.length - 1].live = true; }
       });
       if (Array.isArray(o.q)) o.q.forEach(function (pn, i) {
@@ -19596,9 +19315,11 @@
         var ok = {}; for (var k in pn) if (typeof pn[k] === "number" && isFinite(pn[k])) ok[k] = Math.max(-1, Math.min(1, pn[k]));
         if (Object.keys(ok).length) { l.pan = ok; l.live = true; }
       });
-      if (o.x && typeof o.x === "object") {
-        G.px = { st: styleById(o.x.s) ? o.x.s : null, R: o.x.R && typeof o.x.R === "object" ? o.x.R : {} };
-        if (G.px.st || Object.keys(G.px.R).length) G.L.forEach(function (l) { if (roomApplies(l)) l.live = true; });
+      // the Master card's bus (o.x.R.bus); a link's old Room (style, plate,
+      // echo, gated room) is gone with the room and loads as drawn
+      if (o.x && typeof o.x === "object" && o.x.R && o.x.R.bus && typeof o.x.R.bus === "object") {
+        G.px = { st: null, R: { bus: o.x.R.bus } };
+        G.L.forEach(function (l) { l.live = true; });
       }
       // a v4 link saved with the lock off can carry bass and drums on different
       // lanes: they take its family (or the first one's lane), patterns kept
@@ -19746,50 +19467,37 @@
     if (st !== $("status").textContent) setStatus(st);
   }
 
-  // ---- production controls (Jeff 11/07 by voice, Asana 1220326834393543) ----
+  // ---- production controls (Jeff 11/07 by voice; effects slice 2, 2026-11-18) ----
   // A layer whose Production module is opened goes LIVE. It renders once more
   // "dry": each of its strips tapped at the engine's insert point (after the
-  // trim, the high-pass and the player's board; before every production
-  // insert, the fader and the sends), one channel pair per strip. The realtime
-  // context then plays it through a desk of its own that the engine builds
-  // (U.createDesk, then U.applyProduction on a style made from the controls),
-  // so every switch and slider moves the engine's own nodes while it plays: no
-  // second DSP, no re-render. Untouched controls are the drawn room. Ranges are
-  // the spans the engine's tables use (U.PRODUCTION_STYLES, U.SAT_STAGE,
-  // U.CHORUS, U.GATE_CLOSE_CLAMP, U.BUS_TRIM_MAX_DB). The amp and pedal chain
-  // and the vocoder stay printed in the dry render (they sit before the tap).
-  var PXS = U.PRODUCTION_STYLES;
-  function pxSpan(v) { v = v.filter(function (x) { return typeof x === "number" && isFinite(x); }); return v.length ? [Math.min.apply(null, v), Math.max.apply(null, v)] : null; }
-  function pxVals(o) { return o ? Object.keys(o).map(function (k) { return o[k]; }) : []; }
-  function pxAll(f) { var out = []; PXS.forEach(function (s) { var x = f(s); if (x != null) out = out.concat(x); }); return out; }
+  // trim, the high-pass, the player's board and the vocoder; before the
+  // strip's effects chain, the fader and the pan), one channel pair per
+  // strip. The realtime context then plays it through a desk of its own that
+  // the engine builds (U.createDesk, then U.buildStripFx with every menu
+  // effect on every strip, the undrawn ones switched off), so every switch
+  // and slider moves the engine's own nodes (block.set) while it plays: no
+  // second DSP, no re-render. Untouched controls are the strip's draw. Ranges
+  // are the engine's spans (U.CHORUS_SPAN, U.ECHO_SPAN, U.BUS_TRIM_MAX_DB).
+  // The amp and pedal chain and the vocoder stay printed in the dry render.
   var PXR = {
-    send: pxSpan(pxAll(function (s) { return s.send; })), wet: pxSpan(pxAll(function (s) { return s.wet; })), damp: pxSpan(pxAll(function (s) { return s.damp; })),
-    drive: pxSpan(pxAll(function (s) { return pxVals(s.sat); })), lp: pxSpan(pxVals(U.SAT_STAGE.lpHz)),
-    crate: pxSpan(pxVals(U.CHORUS.modes).map(function (m) { return m.rate; })), cdepth: pxSpan(pxVals(U.CHORUS.modes).map(function (m) { return m.depth * 1000; })),
-    efb: pxSpan(pxAll(function (s) { return s.echo ? s.echo.fb : null; })), elp: pxSpan(pxAll(function (s) { return s.echo ? s.echo.lp : null; })),
-    esend: pxSpan(pxAll(function (s) { return s.echo ? pxVals(s.echo.send) : null; })),
-    gwet: pxSpan(pxAll(function (s) { return s.gate ? s.gate.wet : null; })), gsend: pxSpan(pxAll(function (s) { return s.gate ? pxVals(s.gate.send) : null; })),
-    gclose: [U.GATE_CLOSE_CLAMP[0] * 1000, U.GATE_CLOSE_CLAMP[1] * 1000], bus: [-U.BUS_TRIM_MAX_DB, U.BUS_TRIM_MAX_DB],
+    crate: U.CHORUS_SPAN.rate, cdepth: [U.CHORUS_SPAN.depth[0] * 1000, U.CHORUS_SPAN.depth[1] * 1000],
+    efb: U.ECHO_SPAN.fb, elp: U.ECHO_SPAN.lp, emix: U.ECHO_SPAN.mix, bus: [-U.BUS_TRIM_MAX_DB, U.BUS_TRIM_MAX_DB],
   };
-  // which effects the engine puts on which strip, in any style
-  var PXFX = { sat: {}, ch: {}, ec: {}, gt: {}, lean: {} };
-  PXS.forEach(function (s) {
-    var k;
-    for (k in s.sat || {}) PXFX.sat[k] = 1;
-    for (k in s.chorus || {}) PXFX.ch[k] = 1;
-    if (s.echo) for (k in s.echo.send) PXFX.ec[k] = 1;
-    if (s.gate) for (k in s.gate.send) PXFX.gt[k] = 1;
-    for (k in s.sendByRole || {}) (PXFX.lean[k] = PXFX.lean[k] || [1]).push(s.sendByRole[k]);
-  });
   var ROLE_BY = {}; U.DESK_ROLES.forEach(function (r) { ROLE_BY[r.id] = r; });
   var STRIP_NAME = { kick: "Kick", snare: "Snare", hats: "Hats", tomsFills: "Toms and fills", ePerc: "Electronic perc", percTime: "Perc", percAccent: "Perc accent",
     bass: "Bass", compA: "Chords", compB: "Chords B", rhythmGtr: "Guitar", pad: "Pad", arp: "Arp", lead: "Lead", counter: "Riff", color: "Brass" };
-  var STYLE_LABEL = { "prod.dry_board": "Dry board", "prod.plate_wash": "Plate wash", "prod.gated_room": "Gated room", "prod.tape_slap": "Tape slap", "prod.close_dry": "Close and dry", "prod.dub_chamber": "Dub chamber" };
   var CH_MODE = { 1: "I", 2: "II", 3: "I+II" };
+  var EC_TIME = [["slap", "Slap"], ["8th", "8th"], ["dotted8", "Dotted 8th"], ["quarter", "Quarter"]];
   function PX() { return G.px || (G.px = { st: null, R: {} }); }
-  function pxAny(f) { for (var i = 0; i < PXS.length; i++) { var x = f(PXS[i]); if (x != null) return x; } return null; }
   function layerStrips(l) { var d = INST_BY[l.inst]; return d.strips.concat(d.fill ? [d.fill] : []); }
-  function styleById(id) { return PXS.filter(function (s) { return s.id === id; })[0] || null; }
+  // a link's l.px, slice 2's keys only (fc, fe per strip)
+  function pxClean(px) {
+    var o = {}, n = 0;
+    for (var id in px) { var X = px[id]; if (!X || typeof X !== "object" || !ROLE_BY[id]) continue;
+      var y = {}; if (X.fc && typeof X.fc === "object") y.fc = X.fc; if (X.fe && typeof X.fe === "object") y.fe = X.fe;
+      if (y.fc || y.fe) { o[id] = y; n++; } }
+    return n ? o : null;
+  }
   // ---- stereo placement (effects slice 1, 2026-11-17): the jam's one pan
   // draw (desk.js U.drawPan, its own seed), each layer's strips at their drawn
   // place (the same place for two layers on one strip: a baked render is
@@ -19800,188 +19508,116 @@
   function panOf(l, id) { return l.pan && typeof l.pan[id] === "number" ? l.pan[id] : drawnPanOf(l, id); }
   function layerPan(l) { var o = { strips: {}, toms: jamPan().toms }; layerStrips(l).forEach(function (id) { o.strips[id] = panOf(l, id); }); return o; }
   function panTxt(p) { var v = Math.round(Math.abs(p) * 100); return v === 0 ? "C" : (p < 0 ? "L" : "R") + v; }
-  function drawnRoom() { return G.prl ? U.drawProduction(U.makePrng(seedHash(1, "prod")), G.prl) : PLATE; }
-  function drawnStyle(l) { return INST_BY[l.inst].cls === "drums" ? DRY_KIT : drawnRoom(); }
-  function baseStyle(l) { return (PX().st && styleById(PX().st)) || drawnStyle(l); }
-  function roomBase() { return (PX().st && styleById(PX().st)) || drawnRoom(); }
-  // the jam room keeps the drums dry (DRY_KIT); a chosen style takes every layer
-  function roomApplies(l) { return !!(PX().st && styleById(PX().st)) || INST_BY[l.inst].cls !== "drums"; }
-  function pxDetail() { return U.drawProductionDetail(seedHash(1, "prod")); }
-  function closeMs(bpm) { return 1000 * Math.min(U.GATE_CLOSE_CLAMP[1], Math.max(U.GATE_CLOSE_CLAMP[0], U.GATE_CLOSE_BEATS * 60 / (bpm || G.bpm))); }
+  // what a strip drew (the layer's fx draw), and every menu effect's settings
+  // whether drawn or not (the uniforms are read either way), so a switched-on
+  // effect starts from the strip's own draw
+  function layerFx(l) { if (!l.fxDraw || l.fxDraw.patch !== l.patch) l.fxDraw = { patch: l.patch, d: layerFxDraw(l.patch) }; return l.fxDraw.d; }
+  function fxSettings(l, id, fx) {
+    var d = layerFx(l), got = (d.strips[id] || {})[fx];
+    return { drawn: !!got, p: got || d.all[id][fx] };
+  }
   function roomEff() {
-    var b = roomBase(), R = PX().R, e = b.echo, gt = b.gate;
-    var d = {
-      pl: { on: true, send: b.send, wet: b.wet, damp: b.damp },
-      ec: { on: !!e, time: e ? (e.time === "fork" ? pxDetail().echoTime || "dotted8" : e.time) : "slap", fb: e ? e.fb : PXR.efb[0], lp: e ? e.lp : PXR.elp[1] },
-      gt: { on: !!gt, wet: gt ? gt.wet : PXR.gwet[0], close: closeMs(), toms: gt ? gt.keys.indexOf("tomsFills") > -1 : true },
-      bus: { db: 0, glue: true, lim: true },
-    };
-    for (var g in d) if (R[g]) for (var k in R[g]) d[g][k] = R[g][k];
+    var d = { bus: { db: 0, glue: true, lim: true } }, R = PX().R;
+    if (R.bus) for (var k in R.bus) d.bus[k] = R.bus[k];
     return d;
   }
-  function stripEff(l, id, room) {
-    var b = baseStyle(l), X = (l.px || {})[id] || {}, rApp = roomApplies(l), d = {};
-    room = room || roomEff();
-    if (PXFX.sat[id]) { var sd = (b.sat || {})[id], d0 = sd != null ? sd : PXR.drive[0]; d.sat = { on: sd != null, d: d0, lp: U.SAT_STAGE.lpHz[d0] || PXR.lp[1] }; }
-    if (PXFX.ch[id]) { var cm = (b.chorus || {})[id], m = U.CHORUS.modes[cm || 1]; d.ch = { on: cm != null, rate: m.rate, depth: m.depth * 1000 }; }
-    if (rApp && ROLE_BY[id] && ROLE_BY[id].send > 0) d.pl = { on: true, lean: (b.sendByRole || {})[id] || 1 };
-    if (rApp && PXFX.ec[id]) { var es = b.echo ? b.echo.send[id] : null; d.ec = { on: es != null || (!b.echo && room.ec.on), send: es != null ? es : pxAny(function (s) { return s.echo && s.echo.send[id] != null ? s.echo.send[id] : null; }) }; }
-    if (rApp && PXFX.gt[id]) { var gs = b.gate ? b.gate.send[id] : null; d.gt = { on: gs != null || (!b.gate && room.gt.on), send: gs != null ? gs : pxAny(function (s) { return s.gate && s.gate.send[id] != null ? s.gate.send[id] : null; }) }; }
-    for (var g in d) if (X[g]) for (var k in X[g]) d[g][k] = X[g][k];
-    return d;
-  }
-  function satMakeup(id, d, info) {   // the engine's makeup table, read between its two drives
-    var st = U.SAT_STAGE, L = U.SAT_STAGE.makeupDb[id] || {}, keys = Object.keys(st.lpHz).map(Number).sort(function (a, b) { return a - b; });
-    var at = function (k) { var bv = ((st.makeupByVoice || {})[id] || {})[k], v = id === "bass" && info ? info.bassVoice : null; return bv && v in bv ? bv[v] : L[k] || 0; };
-    var a = keys[0], b = keys[keys.length - 1], t = b > a ? Math.max(0, Math.min(1, (d - a) / (b - a))) : 0;
-    return at(a) + (at(b) - at(a)) * t;
-  }
-  function qd(d) { return Math.round(d * 20) / 20; }
-  function effStyle(l, room) {
-    var b = baseStyle(l), rApp = roomApplies(l), st = { id: "jam.live", send: rApp ? room.pl.send : b.send, wet: rApp ? room.pl.wet : b.wet, damp: rApp ? room.pl.damp : b.damp };
-    var ch = {}, es = {}, gs = {}, nC = 0, nE = 0, nG = 0, info = l.lvInfo || { prints: {} };
-    layerStrips(l).forEach(function (id) {
-      var e = stripEff(l, id, room);
-      if (e.ch && e.ch.on && !info.prints[id]) { ch[id] = { rate: e.ch.rate, depth: e.ch.depth / 1000 }; nC++; }
-      if (e.ec && e.ec.on) { es[id] = e.ec.send; nE++; }
-      if (e.gt && e.gt.on) { gs[id] = e.gt.send; nG++; }
-    });
-    if (nC) st.chorusP = ch;
-    if (rApp && room.ec.on && nE) st.echo = { time: room.ec.time, fb: room.ec.fb, lp: room.ec.lp, send: es };
-    if (rApp && room.gt.on && nG) st.gate = { wet: room.gt.wet, send: gs, keys: room.gt.toms ? ["snare", "tomsFills"] : ["snare"] };
-    return st;
+  // the strip's effective chorus and echo: the draw, then the module's overrides
+  function stripEff(l, id) {
+    var X = (l.px || {})[id] || {}, c = fxSettings(l, id, "chorus"), e = fxSettings(l, id, "echo");
+    var ch = { on: c.drawn, drawn: c.drawn, mode: c.p.mode, rate: c.p.rate, depth: c.p.depth * 1000, wetHpHz: c.p.wetHpHz };
+    var ec = { on: e.drawn, drawn: e.drawn, time: e.p.time, fb: e.p.fb, lp: e.p.lp, mix: e.p.mix, hpHz: e.p.hpHz };
+    var k; for (k in X.fc || {}) ch[k] = X.fc[k]; for (k in X.fe || {}) ec[k] = X.fe[k];
+    return { ch: ch, ec: ec };
   }
   function pxSig(l, room) {
-    var st = effStyle(l, room), sat = [];
-    layerStrips(l).forEach(function (id) { var e = stripEff(l, id, room); if (e.sat && e.sat.on) sat.push(id); });
-    return JSON.stringify([sat, st.chorusP ? Object.keys(st.chorusP).map(function (k) { return k + st.chorusP[k].depth; }) : 0,
-      st.echo ? Object.keys(st.echo.send) : 0, st.gate ? Object.keys(st.gate.send) : 0, room.bus.glue, room.bus.lim, l.lvInfoKey || "", layerStrips(l).map(function (id) { return panOf(l, id) > 0 ? 1 : 0; })]);
+    return JSON.stringify([room.bus.glue, room.bus.lim, l.lvInfoKey || "", layerStrips(l).map(function (id) { return panOf(l, id) > 0 ? 1 : 0; })]);
   }
   function isLive(l) { return !!l.live; }
   function dkey(g, sec, l, v) { return bkey(g, sec, l, v) + "#dry"; }
-  // the dry render: the layer's own sheet through the engine's realizer, each
-  // strip tapped at its insert (a muted strip taps silence), on 2 channels a strip
-  var TAP_STYLE = { id: "jam.tap", send: 0, wet: 0, damp: 3000, chorus: { compA: 1, pad: 1, counter: 1, bass: 1 } };
+  // the dry render: the layer's own sheet through the engine's realizer, no
+  // strip effects, each strip tapped after its vocoder or at its insert (a
+  // muted strip taps silence), on 2 channels a strip
   function renderSheetDry(s, pat, v, oct, strips) {
     var n = strips.length, len = Math.ceil((LEAD + s.lengthSec + TAIL) * RATE);
     var c = new OAC(2 * n, len, RATE);
-    // the chorus on every chorus strip is only there so the engine says which
-    // voices print their own BBD (analogpoly.js steps the insert aside); the
-    // tap sits before it
-    s.production = TAP_STYLE;
-    var hits = null, sp = U.scheduleProductionGate, rz;
-    U.scheduleProductionGate = function (desk, h) { hits = h; return sp.apply(this, arguments); };
-    try { rz = realize(c, s, pat, v, oct); } finally { U.scheduleProductionGate = sp; }
+    s.stripFx = { cohesion: "dry", strips: {}, all: {} };
+    var rz = realize(c, s, pat, v, oct);
     var desk = rz.desk;
     if (desk.masterTrim) desk.masterTrim.disconnect();
     try { c.destination.channelInterpretation = "discrete"; } catch (e) {}
     var mg = c.createChannelMerger(2 * n); mg.connect(c.destination);
-    var info = { prints: {}, bassVoice: s.bassVoice, voices: s.voices };
+    var info = { bassVoice: s.bassVoice, voices: s.voices };
     strips.forEach(function (id, i) {
       var st = desk.strips[id];
-      info.prints[id] = !!(st.chorus && st.chorus.bypassed);
       var tap = c.createGain(); tap.channelCount = 2; tap.channelCountMode = "explicit"; tap.channelInterpretation = "speakers";
       tap.gain.value = st.fader.gain.value > 0 ? 1 : 0;
       if (st.vocoder) { st.vocoder.output.disconnect(); st.vocoder.output.connect(tap); }
       else { st.insert.disconnect(); st.insert.connect(tap); }
       var spl = c.createChannelSplitter(2); tap.connect(spl); spl.connect(mg, 0, 2 * i); spl.connect(mg, 1, 2 * i + 1);
     });
-    return { stats: rz.stats, done: c.startRendering().then(function (buf) { void desk; return { buf: buf, hits: hits, info: info }; }) };
+    return { stats: rz.stats, done: c.startRendering().then(function (buf) { void desk; return { buf: buf, hits: null, info: info }; }) };
   }
   // ---- the live desk ----
   function ensureLive(l) {
     if (l.lv) return l.lv.inp;
     var strips = layerStrips(l), n = strips.length, inp = ctx.createChannelSplitter(2 * n), mergers = {};
     strips.forEach(function (id, i) { var m = ctx.createChannelMerger(2); inp.connect(m, 2 * i, 0); inp.connect(m, 2 * i + 1, 1); mergers[id] = m; });
-    l.lv = { inp: inp, mergers: mergers, desk: null, out: null, sig: null, lfo: {}, sends: { echo: {}, gate: {} } };
+    l.lv = { inp: inp, mergers: mergers, desk: null, out: null, sig: null };
     buildLive(l);
     return inp;
   }
-  // the engine's desk for a live layer, in context c, feeding out
+  // the engine's desk for a live layer, in context c, feeding out: every
+  // menu effect built on every strip (U.buildStripFx, the engine's chain
+  // order), each set to the strip's effective settings; an effect that is
+  // off is wet 0 and makeup 0 dB, the strip as without it
   function makeLiveDesk(c, l, room, out) {
-    var strips = layerStrips(l), st = effStyle(l, room), info = l.lvInfo || { prints: {} };
-    var saved = U.DESK_ROLES, D;
+    var strips = layerStrips(l), saved = U.DESK_ROLES, D;
     U.DESK_ROLES = saved.filter(function (r) { return strips.indexOf(r.id) > -1; });
     try { D = U.createDesk(c, out, { busTrimDb: room.bus.db }); } finally { U.DESK_ROLES = saved; }
     D.applyLaneMix(l.ln || G.lane || "synthPop");
-    D.applyPan(layerPan(l));   // before the room: a chorus mirrors right of centre
-    var sends = { echo: {}, gate: {} }, so = D.sendTo;
-    D.sendTo = function (fx, id, a) { var g = so.call(D, fx, id, a); (fx === D.echo ? sends.echo : sends.gate)[id] = g; return g; };
-    // saturation first, the engine's insert at any drive (desk.saturate); the
-    // chorus then lands after it, as applyProduction orders them
-    strips.forEach(function (id) {
-      var e = stripEff(l, id, room);
-      if (e.sat && e.sat.on) D.saturate(id, qd(e.sat.d), U.SAT_STAGE.bias, e.sat.lp, satMakeup(id, e.sat.d, info), 1);
-    });
-    var lfo = {}, order = [], mk = U.makeChorusBlock, C = U.CHORUS, tmp = [], ci = 0;
-    if (st.chorusP) { st.chorus = {}; Object.keys(st.chorusP).forEach(function (id) { var k = "jx_" + id; C.modes[k] = st.chorusP[id]; st.chorus[id] = k; tmp.push(k); order.push(id); }); }
-    U.makeChorusBlock = function () { var b = mk.apply(this, arguments); lfo[order[ci++]] = b.lfo; return b; };
+    D.applyPan(layerPan(l));   // before the chain: a chorus mirrors right of centre
     var bpm = (curEpoch() || { g: G }).g.bpm || G.bpm;
-    try {
-      U.applyProduction(D, st, { bpm: bpm, productionDetail: pxDetail(), satPeaks: null, satProbe: false, bassVoice: info.bassVoice, voices: info.voices || {}, sampler: null, vocoder: null });
-    } finally { U.makeChorusBlock = mk; tmp.forEach(function (k) { delete C.modes[k]; }); }
+    strips.forEach(function (id) {
+      var e = stripEff(l, id);
+      U.buildStripFx(D, id, { chorus: { mode: e.ch.mode, rate: e.ch.rate, depth: e.ch.depth / 1000, wetHpHz: e.ch.wetHpHz },
+        echo: { time: e.ec.time, fb: e.ec.fb, lp: e.ec.lp, mix: e.ec.mix, hpHz: e.ec.hpHz } }, { bpm: bpm });
+      fxApply(D, id, e, bpm, null);
+    });
     // glue and limiter in or out
     if (!room.bus.glue || !room.bus.lim) {
       D.busTrim.disconnect(); if (D.glue) D.glue.disconnect(); if (D.limiter) D.limiter.disconnect();
       var chain = [D.busTrim]; if (room.bus.glue) chain.push(D.glue); if (room.bus.lim) chain.push(D.limiter); chain.push(D.masterTrim);
       for (var i = 0; i + 1 < chain.length; i++) chain[i].connect(chain[i + 1]);
     }
-    return { D: D, lfo: lfo, sends: sends };
+    return { D: D };
+  }
+  // the strip's effective settings onto its blocks (block.set), at `at` (s) or now
+  function fxApply(D, id, e, bpm, at) {
+    var fx = (D.strips[id] && D.strips[id].fx) || {};
+    if (fx.chorus) fx.chorus.set({ on: e.ch.on, mode: e.ch.mode, rate: e.ch.rate, depth: e.ch.depth / 1000, makeupDb: U.chorusMakeupDb(id, e.ch.mode) }, at);
+    if (fx.echo) fx.echo.set({ on: e.ec.on, time: e.ec.time, sec: U.echoSeconds(e.ec.time, bpm), fb: e.ec.fb, lp: e.ec.lp, mix: e.ec.mix,
+      makeupDb: U.echoMakeupDb(id, e.ec) }, at);
   }
   function buildLive(l) {
     var lv = l.lv, strips = layerStrips(l), room = roomEff(), out = ctx.createGain();
     out.gain.value = 0;
-    var mdk = makeLiveDesk(ctx, l, room, out), D = mdk.D, lfo = mdk.lfo, sends = mdk.sends;
+    var D = makeLiveDesk(ctx, l, room, out).D;
     var old = lv.out, now = ctx.currentTime;
     strips.forEach(function (id) { try { lv.mergers[id].disconnect(); } catch (e) {} lv.mergers[id].connect(D.strips[id].insert); });
     out.connect(l.out || master);
     out.gain.setValueAtTime(0, now); out.gain.linearRampToValueAtTime(1, now + 0.02);
     if (old) { old.gain.cancelScheduledValues(now); old.gain.setValueAtTime(old.gain.value, now); old.gain.linearRampToValueAtTime(0, now + 0.03); setTimeout(function () { try { old.disconnect(); } catch (e) {} }, 400); }
-    lv.desk = D; lv.out = out; lv.lfo = lfo; lv.sends = sends; lv.sig = pxSig(l, room);
+    lv.desk = D; lv.out = out; lv.sig = pxSig(l, room);
     pxParams(l, room);
-    (l.srcs || []).forEach(function (o) { if (o.dry) scheduleGate(l, o); });
   }
   function setP(p, v) { if (!p || !isFinite(v)) return; p.cancelScheduledValues(ctx.currentTime); p.setTargetAtTime(v, ctx.currentTime, 0.015); }
   function pxParams(l, room) {
     var lv = l.lv, D = lv && lv.desk; if (!D) return;
     room = room || roomEff();
-    var b = baseStyle(l), rApp = roomApplies(l), info = l.lvInfo || {};
-    var scale = rApp ? (room.pl.on ? room.pl.send : 0) : b.send;
-    layerStrips(l).forEach(function (id) {
-      var s = D.strips[id], e = stripEff(l, id, room);
-      var lean = e.pl ? (e.pl.on ? e.pl.lean : 0) : ((b.sendByRole || {})[id] || 1);
-      setP(s.send.gain, s.houseSend * scale * lean);
-      if (s.sat && e.sat) {
-        var dq = qd(e.sat.d);
-        if (s.sat.drive !== dq) { try { s.sat.sh.curve = U.saturationCurve(dq, U.SAT_STAGE.bias); s.sat.drive = dq; } catch (err) { lv.sig = null; } }
-        setP(s.sat.lp.frequency, e.sat.lp);
-        setP(s.sat.post.gain, U.SAT_SPAN * Math.pow(10, satMakeup(id, e.sat.d, info) / 20));
-      }
-      if (lv.lfo[id] && e.ch) setP(lv.lfo[id].frequency, e.ch.rate);
-      if (lv.sends.echo[id] && e.ec) setP(lv.sends.echo[id].gain, e.ec.send);
-      if (lv.sends.gate[id] && e.gt) setP(lv.sends.gate[id].gain, e.gt.send);
-    });
-    setP(D.plate.wet.gain, rApp ? (room.pl.on ? room.pl.wet : 0) : b.wet);
-    D.plate.damps.forEach(function (f) { setP(f.frequency, rApp ? room.pl.damp : b.damp); });
-    if (D.echo && rApp) {
-      var bpm = (curEpoch() || { g: G }).g.bpm || G.bpm, sec = U.echoSeconds(room.ec.time, bpm);
-      setP(D.echo.delay.delayTime, sec); setP(D.echo.wowDepth.gain, U.ECHO_WOW * sec);
-      setP(D.echo.fb.gain, room.ec.fb); setP(D.echo.lp.frequency, room.ec.lp);
-    }
-    if (D.gated && rApp) {
-      setP(D.gated.wet.gain, room.gt.wet);
-      D.gated.hold = room.gt.close / 1000 - U.GATE_RELEASE; D.gated.release = U.GATE_RELEASE;
-      D.gated.keys = room.gt.toms ? ["snare", "tomsFills"] : ["snare"];
-    }
+    var bpm = (curEpoch() || { g: G }).g.bpm || G.bpm;
+    layerStrips(l).forEach(function (id) { fxApply(D, id, stripEff(l, id), bpm, ctx.currentTime); });
     setP(D.busTrim.gain, Math.pow(10, room.bus.db / 20));
     layerStrips(l).forEach(function (id) { if (D.strips[id]) D.setPan(id, panOf(l, id), ctx.currentTime); });
-  }
-  // the gated room opens on this loop's hits (the engine's schedule, per loop)
-  function scheduleGate(l, o) {
-    var D = l.lv && l.lv.desk; if (!D || !D.gated || !o.dry || !o.dry.hits) return;
-    var t = [], now = ctx.currentTime;
-    D.gated.keys.forEach(function (id) { (o.dry.hits[id] || []).forEach(function (x) { var rt = o.at + x - o.off; if (x >= o.off - 1e-4 && rt < o.end && rt > now) t.push(rt); }); });
-    if (t.length) D.gated.schedule(t, D.gated.hold, D.gated.release);
   }
   function pxUpdate(l) {
     if (!l.lv || !l.lv.desk || !ctx) return;
@@ -19997,9 +19633,9 @@
     var l = G.L[li], g = gSnap(), opt = lOpt(l);
     return render(g, sec, l.inst, l.pat, l.patch, v, opt).then(function (b) {
       return render(g, sec, l.inst, l.pat, l.patch, v, Object.assign({ dry: true }, opt)).then(function (dry) {
-        var baked = b.buf, keep = l.lvInfo; l.lvInfo = dry.info;
+        var baked = b.buf;
         var c = new OAC(2, baked.length, RATE), out = c.createGain(); out.connect(c.destination);
-        var mdk = makeLiveDesk(c, l, roomEff(), out); l.lvInfo = keep;
+        var mdk = makeLiveDesk(c, l, roomEff(), out);
         var strips = layerStrips(l), n = strips.length, src = c.createBufferSource(); src.buffer = dry.buf;
         var sp = c.createChannelSplitter(2 * n); src.connect(sp);
         strips.forEach(function (id, i) { var m = c.createChannelMerger(2); sp.connect(m, 2 * i, 0); sp.connect(m, 2 * i + 1, 1); m.connect(mdk.D.strips[id].insert); });
@@ -20043,107 +19679,54 @@
     box.appendChild(b);
     return b;
   }
-  function pxSet(l, id, g, k, v) {   // a strip override
-    l.px = l.px || {}; var X = l.px[id] = l.px[id] || {}; X[g] = X[g] || {}; X[g][k] = v; if (!(g === "ch" && k === "depth")) pxUpdate(l);
+  function pxSet(l, id, g, k, v) {   // a strip override: g "fc" (chorus) or "fe" (echo)
+    l.px = l.px || {}; var X = l.px[id] = l.px[id] || {}; X[g] = X[g] || {}; X[g][k] = v; pxUpdate(l);
   }
   function pxReset(l, id, g) { if (l.px && l.px[id]) { delete l.px[id][g]; if (!Object.keys(l.px[id]).length) delete l.px[id]; } pxUpdate(l); save(); pxRedraw(l); }
   function pxRedraw(l) { if (l.pxEl) { var p = l.pxEl.parentNode, n = pxBuild(l); if (p) p.replaceChild(n, l.pxEl); l.pxEl = n; } }
+  // the drawn settings in words, for the strip's header
+  function fxLine(l, id) {
+    var a = [], c = fxSettings(l, id, "chorus"), e = fxSettings(l, id, "echo");
+    if (c.drawn) a.push("chorus " + CH_MODE[c.p.mode] + " " + f2(c.p.rate) + " Hz " + fMs(c.p.depth * 1000));
+    if (e.drawn) a.push("echo " + (EC_TIME.filter(function (t) { return t[0] === e.p.time; })[0] || [0, e.p.time])[1].toLowerCase() + ", feedback " + f2(e.p.fb) + ", mix " + f2(e.p.mix));
+    return "Drew: " + (a.length ? a.join("; ") : "dry");
+  }
   function pxBuild(l) {
-    var box = el("div", "pxmod"), room = roomEff(), b = baseStyle(l), d = INST_BY[l.inst];
+    var box = el("div", "pxmod"), d = INST_BY[l.inst];
     box.addEventListener("touchstart", pxHoldOn, { passive: true }); box.addEventListener("touchend", pxHoldOff); box.addEventListener("touchcancel", pxHoldOff);
     box.addEventListener("mousedown", pxHoldOn); box.addEventListener("mouseup", pxHoldOff);
     var hd = el("div", "pxtitle"); hd.appendChild(el("span", null, "Production · " + d.label));
     var cl = el("button", "pxclose", "Close"); cl.onclick = function () { l.pxOpen = false; drawLayers(); }; hd.appendChild(cl); box.appendChild(hd);
     var dryReady = !!cache[dkey(gSnap(), G.sec, l, 0)];
-    box.appendChild(el("div", "pxnote", (dryReady ? "Live: every control plays now. " : "Preparing the live room (one render)… controls take effect when it lands. ") +
-      "Room: " + (STYLE_LABEL[b.id] || (b.id === DRY_KIT.id ? "dry kit (the jam keeps drums dry; pick a style in Room)" : b.id)) + "."));
+    box.appendChild(el("div", "pxnote", (dryReady ? "Live: every control plays now. " : "Preparing the live desk (one render)… controls take effect when it lands. ") +
+      "Each strip draws its own effects (cohesion " + layerFx(l).cohesion + "); glue, limiter and loudness are on the Master card."));
     if (d.id === "rgtr" || d.id === "bgtr") box.appendChild(el("div", "pxnote", "Amp and pedals: printed in the sound for now (" + (l.patchName || "drawn chain") + ")."));
-    var strips = layerStrips(l), multi = strips.length > 1;
-    strips.forEach(function (id) {
-      var e = stripEff(l, id, room), info = l.lvInfo || { prints: {} };
-      if (!e.sat && !e.ch && !e.pl && !e.ec && !e.gt) return;
-      if (multi) box.appendChild(el("div", "pxstrip", STRIP_NAME[id] || id));
-      var tog = function (g) { return function () { pxSet(l, id, g, "on", !stripEff(l, id)[g].on); save(); pxRedraw(l); }; };
+    layerStrips(l).forEach(function (id) {
+      var e = stripEff(l, id);
+      var sh = el("div", "pxstrip", (STRIP_NAME[id] || id)); sh.setAttribute("data-strip", id); box.appendChild(sh);
+      box.appendChild(el("div", "pxnote pxdrew", fxLine(l, id)));
+      var tog = function (g, k) { return function () { pxSet(l, id, g, "on", !stripEff(l, id)[k].on); save(); pxRedraw(l); }; };
       var rs = function (g) { return function () { pxReset(l, id, g); }; };
       var set = function (g, k) { return function (v) { pxSet(l, id, g, k, v); }; };
-      if (e.sat) {
-        var bs = pxBlock(box, "Saturation", e.sat.on, tog("sat"), rs("sat"));
-        pxSlider(bs, "Drive", PXR.drive, e.sat.d, 0.05, f2, set("sat", "d"));
-        pxSlider(bs, "High roll-off", PXR.lp, e.sat.lp, 100, fHz, set("sat", "lp"));
-      }
-      if (e.ch) {
-        var pr = info.prints[id];
-        var bc = pxBlock(box, "Chorus", e.ch.on && !pr, pr ? function () {} : tog("ch"), rs("ch"), pr ? "This patch prints its own Juno chorus, so the insert steps aside (the engine never stacks two)." : null);
-        if (!pr) {
-          pxSlider(bc, "Rate", PXR.crate, e.ch.rate, 0.01, function (x) { return (+x).toFixed(2) + " Hz"; }, set("ch", "rate"));
-          pxSlider(bc, "Depth (applies on release)", PXR.cdepth, e.ch.depth, 0.01, fMs, set("ch", "depth"));
-          var ms = el("div", "pxmodes"); ms.appendChild(el("span", null, "Juno modes"));
-          Object.keys(U.CHORUS.modes).forEach(function (k) { var m = U.CHORUS.modes[k], bb = el("button", null, CH_MODE[k] || k);
-            bb.onclick = function () { pxSet(l, id, "ch", "rate", m.rate); pxSet(l, id, "ch", "depth", m.depth * 1000); pxSet(l, id, "ch", "on", true); save(); pxRedraw(l); }; ms.appendChild(bb); });
-          bc.appendChild(ms);
-        }
-      }
-      if (e.pl) {
-        var lr = pxSpan(PXFX.lean[id] || [1]);
-        var bp = pxBlock(box, "Plate send", e.pl.on, tog("pl"), rs("pl"));
-        pxSlider(bp, "Lean (x the room's send)", lr, e.pl.lean, 0.05, function (x) { return "x" + f2(x); }, set("pl", "lean"));
-      }
-      if (e.ec) {
-        var be = pxBlock(box, "Tape echo send", e.ec.on, tog("ec"), rs("ec"), room.ec.on ? null : "The room's tape echo is off; turn it on in Room.");
-        pxSlider(be, "Send", PXR.esend, e.ec.send, 0.01, f2, set("ec", "send"));
-      }
-      if (e.gt) {
-        var bg = pxBlock(box, "Gated room send", e.gt.on, tog("gt"), rs("gt"), room.gt.on ? null : "The gated room is off; turn it on in Room.");
-        pxSlider(bg, "Send", PXR.gsend, e.gt.send, 0.01, f2, set("gt", "send"));
-      }
+      var bc = pxBlock(box, "Chorus" + (e.ch.drawn ? "" : " (not drawn)"), e.ch.on, tog("fc", "ch"), rs("fc"));
+      bc.setAttribute("data-fx", id + ":chorus");
+      var ms = el("div", "pxmodes"); ms.appendChild(el("span", null, "Mode"));
+      Object.keys(U.CHORUS.modes).forEach(function (k) { var m = U.CHORUS.modes[k], bb = el("button", +k === +e.ch.mode ? "on" : "", CH_MODE[k] || k);
+        bb.onclick = function () { pxSet(l, id, "fc", "mode", +k); pxSet(l, id, "fc", "rate", m.rate); pxSet(l, id, "fc", "depth", m.depth * 1000); save(); pxRedraw(l); }; ms.appendChild(bb); });
+      bc.appendChild(ms);
+      pxSlider(bc, "Rate", PXR.crate, e.ch.rate, 0.01, function (x) { return (+x).toFixed(2) + " Hz"; }, set("fc", "rate"));
+      pxSlider(bc, "Depth", PXR.cdepth, e.ch.depth, 0.01, fMs, set("fc", "depth"));
+      var be = pxBlock(box, "Tape echo" + (e.ec.drawn ? "" : " (not drawn)"), e.ec.on, tog("fe", "ec"), rs("fe"));
+      be.setAttribute("data-fx", id + ":echo");
+      var tr = el("div", "pxmodes"); tr.appendChild(el("span", null, "Time"));
+      EC_TIME.forEach(function (t) { var bb = el("button", e.ec.time === t[0] ? "on" : "", t[1]); bb.onclick = function () { pxSet(l, id, "fe", "time", t[0]); save(); pxRedraw(l); }; tr.appendChild(bb); });
+      be.appendChild(tr);
+      pxSlider(be, "Feedback", PXR.efb, e.ec.fb, 0.01, f2, set("fe", "fb"));
+      pxSlider(be, "Mix", PXR.emix, e.ec.mix, 0.01, f2, set("fe", "mix"));
+      pxSlider(be, "Tape low-pass", PXR.elp, e.ec.lp, 50, fHz, set("fe", "lp"));
     });
-    var no = el("div", "pxnote", "Not here yet: the kit-bus compressor (built, no style takes it), the amp and pedal settings, the vocoder.");
-    box.appendChild(no);
+    box.appendChild(el("div", "pxnote", "More effects arrive one at a time (filter and EQ, flanger, phaser, reverbs, tremolo and auto-pan, reverse swell)."));
     return box;
-  }
-  // the Room: style, the shared sends, the master
-  function roomSet(g, k, v) { var R = PX().R; R[g] = R[g] || {}; R[g][k] = v; G.L.forEach(function (l) { if (roomApplies(l)) goLive(l); }); pxUpdateAll(); }
-  function roomReset(g) { delete PX().R[g]; pxUpdateAll(); save(); roomDraw(); }
-  var roomOpen = false;
-  function roomDraw() {
-    var bar = $("roomBar"); if (!bar) return;
-    bar.innerHTML = "";
-    var bt = el("button", "roomBtn" + (roomOpen ? " on" : ""), roomOpen ? "Room ▴" : "Room ▾ (style, sends)");
-    bt.onclick = function () { roomOpen = !roomOpen; roomDraw(); };
-    bar.appendChild(bt);
-    if (!roomOpen) return;
-    var box = el("div", "pxmod room"), room = roomEff(), sty = PX().st;
-    box.addEventListener("touchstart", pxHoldOn, { passive: true }); box.addEventListener("touchend", pxHoldOff); box.addEventListener("touchcancel", pxHoldOff);
-    var hd = el("div", "pxtitle"); hd.appendChild(el("span", null, "Room"));
-    var cl = el("button", "pxclose", "Close"); cl.onclick = function () { roomOpen = false; roomDraw(); }; hd.appendChild(cl); box.appendChild(hd);
-    var sr = el("div", "pxstyle"), sel = el("select");
-    var dr = drawnRoom(), o0 = el("option", null, "As drawn: " + (STYLE_LABEL[dr.id] || dr.id) + (G.prl ? "" : " (jam room), drums dry")); o0.value = ""; sel.appendChild(o0);
-    PXS.forEach(function (s) { var o = el("option", null, STYLE_LABEL[s.id] || s.id); o.value = s.id; sel.appendChild(o); });
-    sel.value = sty || "";
-    // a new style re-draws the chain: every override goes, the sliders follow the style
-    sel.onchange = function () { PX().st = sel.value || null; PX().R = {}; G.L.forEach(function (l) { l.px = null; goLive(l); }); pxUpdateAll(); save(); roomDraw(); G.L.forEach(pxRedraw); };
-    sr.appendChild(el("span", null, "Style")); sr.appendChild(sel); box.appendChild(sr);
-    box.appendChild(el("div", "pxnote", "Touching the Room puts every layer live (one render each). " + (sty ? "" : "In the jam room the drums stay dry; pick a style to send them too.")));
-    var tg = function (g) { return function () { roomSet(g, "on", !room[g].on); save(); roomDraw(); G.L.forEach(pxRedraw); }; };
-    var st = function (g, k) { return function (v) { roomSet(g, k, v); }; };
-    var bp = pxBlock(box, "Plate", room.pl.on, tg("pl"), function () { roomReset("pl"); });
-    pxSlider(bp, "Send (every strip)", PXR.send, room.pl.send, 0.01, f2, st("pl", "send"));
-    pxSlider(bp, "Return", PXR.wet, room.pl.wet, 0.01, f2, st("pl", "wet"));
-    pxSlider(bp, "Damping", PXR.damp, room.pl.damp, 50, fHz, st("pl", "damp"));
-    var be = pxBlock(box, "Tape echo", room.ec.on, tg("ec"), function () { roomReset("ec"); });
-    var tr = el("div", "pxmodes"); tr.appendChild(el("span", null, "Time"));
-    [["slap", "Slap"], ["dotted8", "Dotted 8th"], ["quarter", "Quarter"]].forEach(function (t) {
-      var bb = el("button", room.ec.time === t[0] ? "on" : "", t[1]); bb.onclick = function () { roomSet("ec", "time", t[0]); save(); roomDraw(); }; tr.appendChild(bb); });
-    be.appendChild(tr);
-    pxSlider(be, "Feedback", PXR.efb, room.ec.fb, 0.01, f2, st("ec", "fb"));
-    pxSlider(be, "Loop low-pass", PXR.elp, room.ec.lp, 50, fHz, st("ec", "lp"));
-    var bg = pxBlock(box, "Gated room", room.gt.on, tg("gt"), function () { roomReset("gt"); }, "Opens on each snare hit (and the toms when they key it), then shuts.");
-    pxSlider(bg, "Return", PXR.gwet, room.gt.wet, 0.01, f2, st("gt", "wet"));
-    pxSlider(bg, "Gate close", PXR.gclose, room.gt.close, 5, fMs, st("gt", "close"));
-    var tk = el("div", "pxmodes"); tk.appendChild(el("span", null, "Toms key the gate"));
-    var tb = el("button", room.gt.toms ? "on" : "", room.gt.toms ? "On" : "Off"); tb.onclick = function () { roomSet("gt", "toms", !room.gt.toms); save(); roomDraw(); }; tk.appendChild(tb); bg.appendChild(tk);
-    box.appendChild(el("div", "pxnote", "Glue, limiter and loudness moved to the Master card above the layers."));
-    bar.appendChild(box);
   }
   // THE MASTER CARD (effects slice 1, 2026-11-17, Asana 1220328751228343):
   // above the layers, what stays above the strips once the room is gone
@@ -20232,7 +19815,7 @@
     else window.prompt("Copy this link", url);
   };
   var loaded = load();
-  drawAll(); save(); roomDraw();
+  drawAll(); save();
   requestAnimationFrame(frame);
   if (loaded && G.L.length) setStatus("tap PLAY to hear the saved jam");
 
@@ -20240,7 +19823,7 @@
   window.__jam = { G: G, starts: starts, renderLog: renderLog, epochs: function () { return epochs; }, cache: cache,
     cacheStats: cacheStats, ctx: function () { return ctx; }, playing: function () { return playing; }, busy: function () { return busy; },
     LEAD: LEAD, BARS: BARS, SWING: SWING, LOCKED: LOCKED, drawA: drawA, PROG_BY: PROG_BY, newPattern: newPattern, drawTempo: drawTempo, MAXL: MAXL, RATE: RATE, render: render, buildSheet: buildSheet, renderSheet: renderSheet, masterChain: masterChain, LEVEL_DB: LEVEL_DB, pickIds: pickIds, capture: capture, captureEvents: captureEvents, variantFor: variantFor, variantsFor: variantsFor, STRIPS: function (id) { return INST_BY[id].strips.concat(INST_BY[id].fill ? [INST_BY[id].fill] : []); }, INST_IDS: INST.map(function (d) { return d.id; }),
-    px: { PXR: PXR, PXFX: PXFX, PX: PX, roomEff: roomEff, stripEff: stripEff, effStyle: effStyle, goLive: goLive, pxUpdateAll: pxUpdateAll, roomDraw: roomDraw, layerStrips: layerStrips, renderSheetDry: renderSheetDry, pxProof: pxProof, dkey: dkey, gSnap: gSnap },
+    px: { save: save, PXR: PXR, PX: PX, roomEff: roomEff, stripEff: stripEff, layerFx: layerFx, fxSettings: fxSettings, pxSet: pxSet, pxRedraw: pxRedraw, goLive: goLive, pxUpdateAll: pxUpdateAll, layerStrips: layerStrips, renderSheetDry: renderSheetDry, pxProof: pxProof, dkey: dkey, gSnap: gSnap },
     pan: { jamPan: jamPan, panOf: panOf, drawnPanOf: drawnPanOf, masterDraw: masterDraw } };
 })();
 </script>
