@@ -274,10 +274,10 @@
 <div id="masterCard"></div>
 <div id="layers"></div>
 <div id="add" class="row"><div class="lbl">Add a layer<button id="palRnd" title="add a random instrument (one you don't have yet, while any are left)">Random</button></div><div id="pal"></div></div>
-<footer title="engine @ae00ed8 · built 2026-11-18">Unison jam &middot; every sound is synthesized in this page by the engine at ae00ed8</footer>
+<footer title="engine @0b9a0c3 · built 2026-11-18">Unison jam &middot; every sound is synthesized in this page by the engine at 0b9a0c3</footer>
 
 <script>
-/* ===== src/core/prng.js @ ae00ed8 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/prng.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
 // prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
 // token hash, consumed in canonical draw order (Technical Architecture v1.2).
 //
@@ -350,7 +350,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/core/mix.js @ ae00ed8 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/mix.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
 // mix.js — the fan-in ≤2 summing rule, as a primitive.
 //
 // Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
@@ -519,7 +519,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/desk/desk.js @ ae00ed8 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/desk/desk.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
 // desk.js — the 24-track desk as a running audio graph.
 //
 // The desk is the data structure, not a metaphor (Composition Brief 2 / Tech
@@ -921,6 +921,214 @@
     return { input, output: out, dry, wet, lfos, combs, sums, pre, hp, selD, selN, kind: "reverb" };
   };
 
+  // ---- EFFECTS SLICE 3b (2026-11-18, Asana 1220328751228343): the rest of
+  // what Jeff kept 11/17. Each builder returns { input, output, ... }; the
+  // makeup sits on the input (the envelope filter's on its output, so the
+  // follower reads the strip as it is). Native nodes only, fan-in <= 2.
+
+  // FLANGER: the chorus block plus feedback. Per side one swept delay in a
+  // feedback loop (cin = side input + feedback, fan-in 2), one LFO in
+  // opposite polarity per side (mirrored right of centre, as the chorus).
+  // A delay inside a cycle cannot go under one render quantum (128 frames,
+  // 2.9 ms at 44.1k): the sweep's bottom parks there, as it did on the
+  // audition page (U.makeFlanger has the same loop), which is what he heard.
+  // p { rate, centre (s), depth (s), fb, wet, wetHpHz, mirrored }
+  U.makeFlangerInsert = function (ctx, p) {
+    const input = ctx.createGain(); input.gain.value = Math.pow(10, (p.makeupDb || 0) / 20);
+    const dry = ctx.createGain(); dry.gain.value = 1;
+    const wet = ctx.createGain(); wet.gain.value = p.wet;
+    const out = ctx.createGain(); out.gain.value = 1;
+    input.connect(dry); dry.connect(out);
+    const lfo = ctx.createOscillator(); lfo.type = "triangle"; lfo.frequency.value = p.rate; lfo.start(0);
+    const mono = ctx.createGain(); mono.channelCount = 1; mono.channelCountMode = "explicit"; mono.channelInterpretation = "speakers";
+    input.connect(mono);
+    const mg = ctx.createChannelMerger(2), sides = [];
+    [0, 1].forEach(function (side) {
+      const cin = ctx.createGain(); cin.gain.value = 1;
+      const d = ctx.createDelay(0.05); d.delayTime.value = p.centre;
+      const fb = ctx.createGain(); fb.gain.value = p.fb;
+      const dep = ctx.createGain(); dep.gain.value = (side === 0) !== !!p.mirrored ? p.depth : -p.depth;
+      mono.connect(cin); fb.connect(cin); cin.connect(d); d.connect(fb);
+      lfo.connect(dep); dep.connect(d.delayTime);
+      // the loop's normalisation: the wet's level at fb held near fb 0
+      const nrm = ctx.createGain(); nrm.gain.value = Math.sqrt(1 - p.fb * p.fb);
+      d.connect(nrm); nrm.connect(mg, 0, side);
+      sides.push({ d, fb, dep, nrm });
+    });
+    let wetIn = mg;
+    if (p.wetHpHz > 0) { const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = p.wetHpHz; hp.Q.value = 0.5; mg.connect(hp); wetIn = hp; }
+    wetIn.connect(wet); wet.connect(out);
+    return { input, output: out, dry, wet, lfo, sides, kind: "flanger" };
+  };
+
+  // PHASER: 4 or 6 second-order allpass stages (the era's ladder), one LFO
+  // through one depth gain onto each stage (U.makePhaser's spread, extended
+  // to six); out = dry (1 - mix/2) + wet mix, as the audition page. The
+  // FEEDBACK: Web Audio cannot close a loop without a delay of at least one
+  // render quantum (2.9 ms), which would comb instead of resonate, so the
+  // feedback's audible result (sharper, deeper notches) is built as the
+  // stages' Q: q = 0.6 at fb 0 (the page's sound, what he heard) up to 1.6
+  // at fb 0.5. p { stages, rate, baseHz, depthHz, fb, mix }
+  U.PHASER_MULT = [1, 1.6, 2.6, 4.1, 6.5, 10.3];
+  U.phaserQ = function (fb) { return 0.6 + 2 * fb; };
+  U.makePhaserInsert = function (ctx, p) {
+    const input = ctx.createGain(); input.gain.value = Math.pow(10, (p.makeupDb || 0) / 20);
+    const lfo = ctx.createOscillator(); lfo.type = "triangle"; lfo.frequency.value = p.rate; lfo.start(0);
+    const dep = ctx.createGain(); dep.gain.value = p.depthHz;
+    lfo.connect(dep);
+    let tail = input; const aps = [];
+    for (let k = 0; k < p.stages; k++) {
+      const m = U.PHASER_MULT[k];
+      const ap = ctx.createBiquadFilter(); ap.type = "allpass"; ap.frequency.value = p.baseHz * m; ap.Q.value = U.phaserQ(p.fb);
+      const dm = ctx.createGain(); dm.gain.value = m;
+      dep.connect(dm); dm.connect(ap.frequency);
+      tail.connect(ap); tail = ap; aps.push(ap);
+    }
+    const dry = ctx.createGain(); dry.gain.value = 1 - p.mix / 2;
+    const wet = ctx.createGain(); wet.gain.value = p.mix;
+    const out = ctx.createGain(); out.gain.value = 1;
+    input.connect(dry); dry.connect(out);
+    tail.connect(wet); wet.connect(out);
+    return { input, output: out, dry, wet, lfo, dep, aps, kind: "phaser" };
+  };
+
+  // ENVELOPE FILTER AND EQ (the filter slot, at the head of the chain).
+  // kind "env": the audition page's envelope filter made native: the strip's
+  // own level rectified (|x|) and smoothed (2-pole low-pass, U.ENVF.followHz)
+  // drives a resonant low-pass's cutoff from 300 Hz up to `hi` on the page's
+  // curve, fc = lo (hi/lo)^(v^0.8), v the level against `ref` (the strip's
+  // loudest follower reading, measured per song on the pre-render, as the
+  // page normalised to the stem's peak). Q in the page's linear terms (2-6),
+  // set as dB on the native filter. A dry blend under it (the page was wet
+  // only): out = dry (1 - mix) + filtered mix.
+  // kind "tilt": a low shelf and a high shelf at 1 kHz in opposite
+  // directions, +db brighter. kind "phone": 400 Hz to 3 kHz, amt of the part.
+  // p { kind, hi, q, mix, ref | db | amt, makeupDb }
+  U.ENVF = { lo: 300, followHz: 12, refFallback: 0.25, span: 4 };
+  // the follower's map: v (the level against ref, clamped 0..1) to v^0.8;
+  // a gain of 1200 log2(hi/lo) turns it into cents on the filter's detune,
+  // so fc = lo (hi/lo)^(v^0.8) and `hi` moves live on a gain
+  const envfCurve = (function () { const N = 2049, c = new Float32Array(N); for (let i = 0; i < N; i++) { const v = Math.max(0, Math.min(1, 2 * i / (N - 1) - 1)); c[i] = Math.pow(v, 0.8); } return c; })();
+  const absCurve = (function () { const N = 2049, c = new Float32Array(N); for (let i = 0; i < N; i++) c[i] = Math.abs(2 * i / (N - 1) - 1); return c; })();
+  U.envfCents = function (hi) { return 1200 * Math.log2(hi / U.ENVF.lo); };
+  U.makeFilterInsert = function (ctx, p) {
+    const input = ctx.createGain(); input.gain.value = 1;
+    const out = ctx.createGain(); out.gain.value = Math.pow(10, (p.makeupDb || 0) / 20);
+    const b = { input, output: out, kind: "filter", sub: p.kind };
+    if (p.kind === "tilt") {
+      const ls = ctx.createBiquadFilter(); ls.type = "lowshelf"; ls.frequency.value = 1000; ls.gain.value = -p.db;
+      const hs = ctx.createBiquadFilter(); hs.type = "highshelf"; hs.frequency.value = 1000; hs.gain.value = p.db;
+      input.connect(ls); ls.connect(hs); hs.connect(out);
+      return Object.assign(b, { ls, hs });
+    }
+    const dry = ctx.createGain(), wet = ctx.createGain();
+    input.connect(dry); dry.connect(out);
+    if (p.kind === "phone") {
+      const hp = ctx.createBiquadFilter(), lp = ctx.createBiquadFilter();
+      hp.type = "highpass"; hp.frequency.value = 400; hp.Q.value = 0.9; lp.type = "lowpass"; lp.frequency.value = 3000; lp.Q.value = 0.9;
+      dry.gain.value = 1 - p.amt; wet.gain.value = p.amt;
+      input.connect(hp); hp.connect(lp); lp.connect(wet); wet.connect(out);
+      return Object.assign(b, { dry, wet, hp, lp });
+    }
+    // env: the follower, mono, then the cutoff map onto the filter's detune
+    const E = U.ENVF;
+    const mono = ctx.createGain(); mono.channelCount = 1; mono.channelCountMode = "explicit"; mono.channelInterpretation = "speakers";
+    const pre = ctx.createGain(); pre.gain.value = 1 / E.span;
+    const rect = ctx.createWaveShaper(); rect.curve = absCurve; rect.oversample = "none";
+    const f1 = ctx.createBiquadFilter(); f1.type = "lowpass"; f1.frequency.value = E.followHz; f1.Q.value = -3.01;
+    const norm = ctx.createGain(); norm.gain.value = E.span / Math.max(1e-4, p.ref || E.refFallback);
+    const map = ctx.createWaveShaper(); map.curve = envfCurve; map.oversample = "none";
+    const cents = ctx.createGain(); cents.gain.value = U.envfCents(p.hi);
+    const lpf = ctx.createBiquadFilter(); lpf.type = "lowpass"; lpf.frequency.value = E.lo; lpf.detune.value = 0; lpf.Q.value = 20 * Math.log10(p.q);
+    input.connect(mono); mono.connect(pre); pre.connect(rect); rect.connect(f1); f1.connect(norm); norm.connect(map); map.connect(cents); cents.connect(lpf.detune);
+    dry.gain.value = 1 - p.mix; wet.gain.value = p.mix;
+    input.connect(lpf); lpf.connect(wet); wet.connect(out);
+    return Object.assign(b, { dry, wet, lpf, cents, norm });
+  };
+  // The follower's loudest reading on a strip's signal (the pre-render's
+  // tap), for `ref`: |max(L, R)| through a 2-pole low-pass at followHz, in JS.
+  U.envfRefFromSignal = function (L, R, sr) {
+    const w = 2 * Math.PI * U.ENVF.followHz / sr, al = Math.sin(w) / (2 * Math.SQRT1_2), cw = Math.cos(w), a0 = 1 + al;
+    const b0 = (1 - cw) / 2 / a0, b1 = (1 - cw) / a0, b2 = b0, a1 = -2 * cw / a0, a2 = (1 - al) / a0;
+    let x1 = 0, x2 = 0, y1 = 0, y2 = 0, top = 0;
+    for (let i = 0; i < L.length; i++) { const x = 0.5 * Math.abs(L[i] + R[i]), y = b0 * x + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2; x2 = x1; x1 = x; y2 = y1; y1 = y; if (y > top) top = y; }
+    return top > 1e-5 ? Math.round(top * 1e5) / 1e5 : null;
+  };
+
+  // TREMOLO AND AUTO-PAN (the last insert before the fader). Tremolo: a VCA,
+  // gain 1 - depth/2 + (depth/2) sin(2 pi rate t). Auto-pan: an equal-power
+  // balance swing around the strip's pan (the strip's own pan follows): the
+  // LFO through two shaper curves, gL = sqrt2 cos((w a + 1) pi/4), gR = sqrt2
+  // sin(...), a the LFO, so the stereo of an upstream chorus or reverb rides
+  // along. The low end does not swing: a Linkwitz-Riley crossover at
+  // U.TREM.xoverHz (4th order, sums flat) sends the band below it straight
+  // through (the top pro's rule: auto-pan on the bass or the kick must not
+  // pull the low end across the field). p { kind, rate (Hz), depth }
+  U.TREM = { xoverHz: 150 };
+  U.makeTremoloInsert = function (ctx, p) {
+    const input = ctx.createGain(); input.gain.value = Math.pow(10, (p.makeupDb || 0) / 20);
+    const out = ctx.createGain(); out.gain.value = 1;
+    const lfo = ctx.createOscillator(); lfo.type = "sine"; lfo.frequency.value = p.rate; lfo.start(0);
+    if (p.kind === "trem") {
+      const vca = ctx.createGain(); vca.gain.value = 1 - p.depth / 2;
+      const dep = ctx.createGain(); dep.gain.value = p.depth / 2;
+      lfo.connect(dep); dep.connect(vca.gain);
+      input.connect(vca); vca.connect(out);
+      return { input, output: out, lfo, vca, dep, kind: "tremolo" };
+    }
+    const X = U.TREM.xoverHz, bq = (type) => { const f = ctx.createBiquadFilter(); f.type = type; f.frequency.value = X; f.Q.value = Math.SQRT1_2; return f; };
+    const l1 = bq("lowpass"), l2 = bq("lowpass"), h1 = bq("highpass"), h2 = bq("highpass");
+    input.connect(l1); l1.connect(l2); l2.connect(out);
+    input.connect(h1); h1.connect(h2);
+    const sp = ctx.createChannelSplitter(2), mg = ctx.createChannelMerger(2);
+    h2.connect(sp);
+    const N = 2049, cL = new Float32Array(N), cR = new Float32Array(N);
+    for (let i = 0; i < N; i++) { const a = 2 * i / (N - 1) - 1, th = (a + 1) * Math.PI / 4; cL[i] = Math.SQRT2 * Math.cos(th); cR[i] = Math.SQRT2 * Math.sin(th); }
+    const width = ctx.createGain(); width.gain.value = p.depth;   // the swing, live on a gain
+    lfo.connect(width);
+    const gs = [cL, cR].map(function (curve, side) {
+      const sh = ctx.createWaveShaper(); sh.curve = curve; sh.oversample = "none";
+      const g = ctx.createGain(); g.gain.value = 0;
+      width.connect(sh); sh.connect(g.gain);
+      sp.connect(g, side); g.connect(mg, 0, side);
+      return { sh, g };
+    });
+    mg.connect(out);
+    return { input, output: out, lfo, gs, width, kind: "tremolo" };
+  };
+
+  // PING-PONG ECHO: the tape echo's stereo variant. The strip folded to mono
+  // feeds the first side's delay; each repeat crosses to the other side
+  // through the loop's tape low-pass and high-pass at fb; the first repeat
+  // lands on the side away from the strip's pan. Each side's wet at sqrt2 so
+  // the repeats carry the straight echo's energy (one channel, not two): the
+  // straight echo's makeup holds. p as makeEchoInsert plus `first` (0 L, 1 R)
+  U.makePingPongInsert = function (ctx, p) {
+    const input = ctx.createGain(); input.gain.value = Math.pow(10, (p.makeupDb || 0) / 20);
+    const dry = ctx.createGain(); dry.gain.value = 1;
+    const out = ctx.createGain(); out.gain.value = 1;
+    input.connect(dry); dry.connect(out);
+    const mono = ctx.createGain(); mono.channelCount = 1; mono.channelCountMode = "explicit"; mono.channelInterpretation = "speakers";
+    input.connect(mono);
+    const wow = ctx.createOscillator(); wow.type = "sine"; wow.frequency.value = 0.6; wow.start(0);
+    const wowDepth = ctx.createGain(); wowDepth.gain.value = (p.wow || 0) * p.sec; wow.connect(wowDepth);
+    const mk = function () {
+      const cin = ctx.createGain(), d = ctx.createDelay(2.0); d.delayTime.value = p.sec; wowDepth.connect(d.delayTime);
+      const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = p.lp; lp.Q.value = 0.5;
+      const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = p.hpHz > 0 ? p.hpHz : 140; hp.Q.value = 0.5;
+      const fb = ctx.createGain(); fb.gain.value = p.fb;
+      cin.connect(d); d.connect(lp); lp.connect(hp); hp.connect(fb);
+      return { cin, d, lp, hp, fb };
+    };
+    const A = mk(), B = mk();
+    mono.connect(A.cin); A.fb.connect(B.cin); B.fb.connect(A.cin);
+    const wet = ctx.createGain(); wet.gain.value = p.wet * Math.SQRT2;
+    const mg = ctx.createChannelMerger(2), first = p.first ? 1 : 0;
+    A.hp.connect(mg, 0, first); B.hp.connect(mg, 0, 1 - first);
+    mg.connect(wet); wet.connect(out);
+    return { input, output: out, wet, A, B, wow, wowDepth, kind: "echo", ping: true };
+  };
+
   // ---- STEREO PLACEMENT (effects slice 1, 2026-11-17, Asana 1220328751228343;
   // spec: files/unison/effects-menu-2026-11-08/PROPOSAL.md §3, Jeff 11/08:
   // "Balance = levels + pan per strip"). p in [-1, 1], -1 hard left.
@@ -1125,7 +1333,7 @@
         // channel count otherwise flips as hits start and end, and a delay
         // line downstream of that flip did not render bit-identically across
         // pages (verify.mjs, bdf0ea39, 2026-11-18). L = R on a mono strip.
-        if (name === "chorus" || name === "echo" || name === "reverb" || name === "reverse") { block.input.channelCount = 2; block.input.channelCountMode = "explicit"; block.input.channelInterpretation = "speakers"; }
+        if (name === "chorus" || name === "echo" || name === "reverb" || name === "reverse" || name === "flanger" || name === "phaser" || name === "filter" || name === "tremolo") { block.input.channelCount = 2; block.input.channelCountMode = "explicit"; block.input.channelInterpretation = "speakers"; }
         tail.disconnect(s.fader);
         tail.connect(block.input);
         block.output.connect(s.fader);
@@ -1159,17 +1367,34 @@
       // The tape echo as the strip's insert (U.makeEchoInsert). Before the
       // fader and the pan, so the repeats sit where the strip sits.
       // p { sec, fb, lp, mix, hpHz, wow, time }.
-      fxEcho(roleId, p, makeupDb) {
-        const b = U.makeEchoInsert(ctx, { sec: p.sec, fb: p.fb, lp: p.lp, wet: p.mix, wow: p.wow, hpHz: p.hpHz, makeupDb });
+      fxEcho(roleId, p, makeupDb, opts) {
+        const live = !!(opts && opts.live), s = strips[roleId];
+        // ping-pong (slice 3b): the stereo variant, first repeat away from
+        // the strip's pan. Live (the jam) builds both in series, one silent,
+        // so the switch retunes the same nodes.
+        const ppP = { sec: p.sec, fb: p.fb, lp: p.lp, wet: p.mix, wow: p.wow, hpHz: p.hpHz, first: s && s.pan > 0 ? 0 : 1 };
+        let b;
+        if (p.ping && !live) {
+          b = U.makePingPongInsert(ctx, Object.assign({ makeupDb }, ppP));
+          b.pp = b; b.straight = null;
+        } else {
+          b = U.makeEchoInsert(ctx, { sec: p.sec, fb: p.fb, lp: p.lp, wet: p.mix, wow: p.wow, hpHz: p.hpHz, makeupDb });
+          b.straight = b;
+          if (live) { const pp = U.makePingPongInsert(ctx, Object.assign({}, ppP, { wet: 0 })); b.output.connect(pp.input); b.output = pp.output; b.pp = pp; }
+          else b.pp = null;
+        }
         b.params = Object.assign({}, p); b.makeupDb = makeupDb; b.on = true;
         b.set = function (q, at) {
           const t = typeof at === "number" ? at : null, put = (prm, v) => { if (t == null) prm.value = v; else { prm.cancelScheduledValues(t); prm.setTargetAtTime(v, t, 0.02); } };
           Object.assign(this.params, q || {});
           if (q && "on" in q) this.on = !!q.on;
           if (q && "makeupDb" in q) this.makeupDb = q.makeupDb;
-          const e = b.echo, P = this.params;
-          put(e.delay.delayTime, P.sec); put(e.wowDepth.gain, (P.wow || 0) * P.sec); put(e.fb.gain, P.fb); put(e.lp.frequency, P.lp);
-          put(e.wet.gain, this.on ? P.mix : 0); put(b.input.gain, this.on ? Math.pow(10, this.makeupDb / 20) : 1);
+          const P = this.params, ping = !!P.ping;
+          if (b.straight) { const e = b.straight.echo; put(e.delay.delayTime, P.sec); put(e.wowDepth.gain, (P.wow || 0) * P.sec); put(e.fb.gain, P.fb); put(e.lp.frequency, P.lp);
+            put(e.wet.gain, this.on && !ping ? P.mix : 0); }
+          if (b.pp) { const pp = b.pp; [pp.A, pp.B].forEach((x) => { put(x.d.delayTime, P.sec); put(x.fb.gain, P.fb); put(x.lp.frequency, P.lp); });
+            put(pp.wowDepth.gain, (P.wow || 0) * P.sec); put(pp.wet.gain, this.on && ping ? P.mix * Math.SQRT2 : 0); }
+          put(b.input.gain, this.on ? Math.pow(10, this.makeupDb / 20) : 1);
         };
         return this.fxSplice(roleId, "echo", b);
       },
@@ -1218,6 +1443,101 @@
         // live: on/off only (the swell exists only where the pre-render made it)
         b.set = function (q) { if (q && "on" in q && sw) { this.on = !!q.on; wet.gain.value = this.on ? p.wet * mk : 0; input.gain.value = this.on ? mk : 1; } };
         return this.fxSplice(roleId, "reverse", b);
+      },
+      // ---- effects slice 3b (production.js U.FLANGER, U.PHASER, U.FILTER,
+      // U.TREMOLO). Each block's set() moves it live on the same nodes (the
+      // jam); off = the strip exactly as without it.
+      fxFlanger(roleId, p, makeupDb) {
+        const s = strips[roleId], m = !!(s && s.pan > 0);
+        const b = U.makeFlangerInsert(ctx, Object.assign({}, p, { makeupDb, mirrored: m }));
+        b.params = Object.assign({}, p); b.makeupDb = makeupDb; b.on = true; b.mirrored = m;
+        b.set = function (q, at) {
+          const t = typeof at === "number" ? at : null, put = (prm, v) => { if (t == null) prm.value = v; else { prm.cancelScheduledValues(t); prm.setTargetAtTime(v, t, 0.02); } };
+          Object.assign(this.params, q || {});
+          if (q && "on" in q) this.on = !!q.on;
+          if (q && "makeupDb" in q) this.makeupDb = q.makeupDb;
+          const P = this.params;
+          put(b.lfo.frequency, P.rate);
+          b.sides.forEach((x, side) => { put(x.d.delayTime, P.centre); put(x.fb.gain, P.fb); put(x.nrm.gain, Math.sqrt(1 - P.fb * P.fb)); put(x.dep.gain, (side === 0) !== this.mirrored ? P.depth : -P.depth); });
+          put(b.wet.gain, this.on ? P.wet : 0); put(b.input.gain, this.on ? Math.pow(10, this.makeupDb / 20) : 1);
+        };
+        return this.fxSplice(roleId, "flanger", b);
+      },
+      fxPhaser(roleId, p, makeupDb, opts) {
+        const live = !!(opts && opts.live);
+        // the stage count is built as drawn (4 or 6); live, rate, depth,
+        // feedback (the stages' Q) and mix move on these nodes
+        const b = U.makePhaserInsert(ctx, Object.assign({}, p, { makeupDb }));
+        b.params = Object.assign({}, p); b.makeupDb = makeupDb; b.on = true; b.live = live;
+        b.set = function (q, at) {
+          const t = typeof at === "number" ? at : null, put = (prm, v) => { if (t == null) prm.value = v; else { prm.cancelScheduledValues(t); prm.setTargetAtTime(v, t, 0.02); } };
+          Object.assign(this.params, q || {});
+          if (q && "on" in q) this.on = !!q.on;
+          if (q && "makeupDb" in q) this.makeupDb = q.makeupDb;
+          const P = this.params;
+          put(b.lfo.frequency, P.rate); put(b.dep.gain, P.depthHz);
+          b.aps.forEach((ap, k) => { put(ap.frequency, P.baseHz * U.PHASER_MULT[k]); put(ap.Q, U.phaserQ(P.fb)); });
+          put(b.dry.gain, this.on ? 1 - P.mix / 2 : 1); put(b.wet.gain, this.on ? P.mix : 0);
+          put(b.input.gain, this.on ? Math.pow(10, this.makeupDb / 20) : 1);
+        };
+        return this.fxSplice(roleId, "phaser", b);
+      },
+      // the filter slot, at the head of the chain (production.js splices it
+      // first). Live: the three kinds in series, the two not chosen neutral
+      // (a 0 dB shelf, a 0 telephone amount, a 0 envelope mix pass the strip).
+      fxFilter(roleId, p, makeupDb, opts) {
+        const live = !!(opts && opts.live);
+        let b;
+        if (!live) { b = U.makeFilterInsert(ctx, Object.assign({}, p, { makeupDb })); b.parts = { [p.kind]: b }; }
+        else {
+          const T = U.makeFilterInsert(ctx, { kind: "tilt", db: 0 }), P = U.makeFilterInsert(ctx, { kind: "phone", amt: 0 });
+          const E = U.makeFilterInsert(ctx, { kind: "env", hi: p.hi || 1600, q: p.q || 4, mix: 0, ref: p.ref, makeupDb });
+          T.output.connect(P.input); P.output.connect(E.input);
+          b = { input: T.input, output: E.output, kind: "filter", parts: { tilt: T, phone: P, env: E } };
+        }
+        b.params = Object.assign({}, p); b.makeupDb = makeupDb; b.on = true;
+        b.set = function (q, at) {
+          const t = typeof at === "number" ? at : null, put = (prm, v) => { if (t == null) prm.value = v; else { prm.cancelScheduledValues(t); prm.setTargetAtTime(v, t, 0.02); } };
+          Object.assign(this.params, q || {});
+          if (q && "on" in q) this.on = !!q.on;
+          if (q && "makeupDb" in q) this.makeupDb = q.makeupDb;
+          const P = this.params, on = this.on, X = b.parts;
+          if (X.tilt) { const d = on && P.kind === "tilt" ? P.db : 0; put(X.tilt.ls.gain, -d); put(X.tilt.hs.gain, d); }
+          if (X.phone) { const a = on && P.kind === "phone" ? P.amt : 0; put(X.phone.dry.gain, 1 - a); put(X.phone.wet.gain, a); }
+          if (X.env) { const mx = on && P.kind === "env" ? P.mix : 0; put(X.env.dry.gain, 1 - mx); put(X.env.wet.gain, mx);
+            if (P.hi) put(X.env.cents.gain, U.envfCents(P.hi)); if (P.q) put(X.env.lpf.Q, 20 * Math.log10(P.q)); }
+          put(b.output.gain, on ? Math.pow(10, this.makeupDb / 20) : 1);
+        };
+        return this.fxSplice(roleId, "filter", b);
+      },
+      // tremolo or auto-pan, the last insert before the fader. Live: the
+      // tremolo's VCA then the auto-pan's swing in series, the one not
+      // chosen at depth 0.
+      fxTremolo(roleId, p, makeupDb, opts) {
+        const live = !!(opts && opts.live);
+        let b;
+        if (!live) { b = U.makeTremoloInsert(ctx, Object.assign({}, p, { makeupDb })); b.parts = { [p.kind]: b }; }
+        else {
+          const T = U.makeTremoloInsert(ctx, { kind: "trem", rate: p.rate, depth: 0, makeupDb }), A = U.makeTremoloInsert(ctx, { kind: "pan", rate: p.rate, depth: 0 });
+          // the auto-pan's crossover is an allpass even at width 0, so a live
+          // strip not on auto-pan takes the bypass (exact)
+          const byp = ctx.createGain(), sel = ctx.createGain(), sum = ctx.createGain();
+          T.output.connect(byp); T.output.connect(A.input); A.output.connect(sel); byp.connect(sum); sel.connect(sum);
+          b = { input: T.input, output: sum, kind: "tremolo", parts: { trem: T, pan: A }, byp, sel };
+        }
+        b.params = Object.assign({}, p); b.makeupDb = makeupDb; b.on = true;
+        b.set = function (q, at) {
+          const t = typeof at === "number" ? at : null, put = (prm, v) => { if (t == null) prm.value = v; else { prm.cancelScheduledValues(t); prm.setTargetAtTime(v, t, 0.02); } };
+          Object.assign(this.params, q || {});
+          if (q && "on" in q) this.on = !!q.on;
+          if (q && "makeupDb" in q) this.makeupDb = q.makeupDb;
+          const P = this.params, X = b.parts, on = this.on;
+          if (X.trem) { const d = on && P.kind === "trem" ? P.depth : 0; put(X.trem.lfo.frequency, P.rate); put(X.trem.vca.gain, 1 - d / 2); put(X.trem.dep.gain, d / 2); }
+          if (X.pan) { put(X.pan.lfo.frequency, P.rate); put(X.pan.width.gain, on && P.kind === "pan" ? P.depth : 0); }
+          if (b.byp) { const ap = on && P.kind === "pan"; put(b.byp.gain, ap ? 0 : 1); put(b.sel.gain, ap ? 1 : 0); }
+          put(b.input.gain, on ? Math.pow(10, this.makeupDb / 20) : 1);
+        };
+        return this.fxSplice(roleId, "tremolo", b);
       },
       // The vocoder (2026-11-05, vocoder.js): the formant bank at the head of
       // the lead's chain (it is the voice; the menu's effects follow it).
@@ -1287,7 +1607,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/production.js @ ae00ed8 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/production.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
 // production.js — the per-strip effects (effects slice 2, 2026-11-18, Asana
 // 1220328751228343; spec: files/unison/effects-menu-2026-11-08/PROPOSAL.md §2
 // and Jeff's 11/17 rule, "All effects should apply everywhere. All
@@ -1307,9 +1627,10 @@
 // The guitar's and the bass's pedals (desk.board) are the instrument, drawn
 // with the patch, ahead of this chain; they are not on this menu.
 //
-// CHAIN ORDER, every strip (slice 2 builds it with the two kept effects that
-// existed; the empty slots fill in slice 3):
-//     [filter / EQ slot] → modulation (chorus) → echo → reverb → fader → pan
+// CHAIN ORDER, every strip (complete at slice 3b, 2026-11-18):
+//     [envelope filter / EQ] → modulation (chorus, flanger or phaser: one at
+//     most) → echo (straight or ping-pong) → reverb → [reverse swell] →
+//     tremolo / auto-pan → fader → pan
 // The vocoder (vocoder.js) is part of the lead's voice and sits ahead of the
 // chain. Nothing here reads a lane, a style, a part or a patch: no per-part
 // table, no never list, no dryness floor (Jeff 11/17).
@@ -1320,13 +1641,25 @@
   // The menu in chain order. A new effect appends to its slot; each strip's
   // draw reads a fixed block per menu entry (U.FX_UNIFORMS), so adding an
   // entry at the end of the menu moves no earlier draw on any strip.
-  U.FX_MENU = ["chorus", "echo", "reverb", "reverse"];
+  U.FX_MENU = ["chorus", "echo", "reverb", "reverse", "flanger", "phaser", "filter", "tremolo"];
+  // The chain's order (U.buildStripFx builds in this order; the menu above
+  // is the draw's order, which only ever appends).
+  U.FX_CHAIN = ["filter", "chorus", "flanger", "phaser", "echo", "reverb", "reverse", "tremolo"];
+  // ONE MODULATION EFFECT PER STRIP (the 11/08 proposal's chain rule, "one
+  // modulation effect at most"; Jeff has not spoken to it): chorus, flanger
+  // and phaser each roll on their own chance; when more than one comes up,
+  // the strip keeps one, picked on its own sub-stream ("production.fx.<id>.mod")
+  // in proportion to their chances.
+  U.FX_MOD = ["chorus", "flanger", "phaser"];
   // One chance per effect, the same on every strip. MORGAN'S GUESS (slice 2,
   // 2026-11-18), not measured and not Jeff's: chorus 0.30, echo 0.25. His ear
   // sets them at slice 4. Reverb 0.30: MORGAN'S GUESS too (slice 3a,
   // 2026-11-18), the same on every strip, kit strips included.
   // Reverse swell 0.05: the 11/08 proposal's own guess, labeled so.
-  U.FX_CHANCE = { chorus: 0.30, echo: 0.25, reverb: 0.30, reverse: 0.05 };
+  // Slice 3b (2026-11-18), all MORGAN'S GUESSES, the same on every strip,
+  // kit strips included: flanger 0.10, phaser 0.10, envelope filter and EQ
+  // 0.10, tremolo and auto-pan 0.08.
+  U.FX_CHANCE = { chorus: 0.30, echo: 0.25, reverb: 0.30, reverse: 0.05, flanger: 0.10, phaser: 0.10, filter: 0.10, tremolo: 0.08 };
   // The per-song cohesion dial (PROPOSAL.md §2): drawn per song, the same
   // distribution on every song, so not a style bias. `scale` multiplies every
   // chance; `cap` is the most effects one strip may carry.
@@ -1368,12 +1701,48 @@
   // through the loop's tape low-pass 2.8-3.6 kHz and its high-pass, mix
   // 0.18-0.30, wow 0.3% of the time. The spans of the old styles' echoes
   // (tape_slap, dub_chamber). As an insert it sits ahead of the pan, so it
-  // follows the strip into the stereo field. Ping-pong is slice 3.
+  // follows the strip into the stereo field. PING-PONG (slice 3b): 15% of
+  // drawn echoes on every strip (the proposal's figure, MORGAN'S GUESS, its
+  // lead-and-counter scoping dropped), the stereo variant (desk.js
+  // U.makePingPongInsert), the same makeup.
   U.ECHO_SLAP = 0.105;
   U.ECHO_WOW = 0.003;   // wow depth, a share of the delay time
   U.ECHO_TIMES = ["slap", "8th", "dotted8", "quarter"];
   U.ECHO_SPAN = { fb: [0.18, 0.42], lp: [2800, 3600], mix: [0.18, 0.30] };
   U.ECHO_LOOP_HP = 140;
+  U.ECHO_PING = 0.15;
+
+  // FLANGER (slice 3b): the chorus block plus feedback (desk.js
+  // U.makeFlangerInsert), the 11/08 proposal's spans: delay 0.5 to 5 ms (the
+  // sweep's centre and swing drawn so it stays inside), rate 0.1 to 0.5 Hz,
+  // feedback 0.3 to 0.7, wet 0.5. Jeff kept it at the page's Heavy (rate
+  // 0.45, feedback 0.7) and the kit flanger at Light (0.12, 0.3): the span
+  // covers both. Bass-register strips high-pass the wet at 250 Hz, as the
+  // chorus. Wet opposite polarity per side, mirrored right of centre.
+  U.FLANGER = { rate: [0.1, 0.5], centre: [0.0015, 0.0035], lo: 0.0005, hi: 0.005, swing: [0.5, 1], fb: [0.3, 0.7], wet: 0.5 };
+  // PHASER (slice 3b): 4 or 6 allpass stages, rate 0.2 to 1.5 Hz, feedback 0
+  // to 0.5 (built as the stages' Q, desk.js). Jeff kept it at the page's
+  // Light (rate 0.25, swing 150 Hz, mix 0.4, no feedback), so the draw is
+  // centred there: rate 0.2 x 7.5^(u^2) (median 0.33 Hz), feedback 0.5 u^2
+  // (median 0.125), swing 110-190 Hz, mix 0.3-0.5, base 300 Hz.
+  U.PHASER = { stages: [4, 6], rate: [0.2, 1.5], fbMax: 0.5, baseHz: 300, depthHz: [110, 190], mix: [0.3, 0.5] };
+  // ENVELOPE FILTER AND EQ (slice 3b), the filter slot at the head of the
+  // chain. Kinds MORGAN'S GUESS: envelope filter 0.5, tilt 0.4, telephone
+  // 0.1. Jeff kept the row at the page's Heavy (Telephone showing): the
+  // envelope filter's top 1.6-2.5 kHz and Q 4-6 (Medium to Heavy), a dry
+  // blend 0.1-0.4 under it (the page was wet only); tilt 1 to 3 dB either
+  // way around 1 kHz; telephone 0.7-1.0 of the part.
+  U.FILTER = { kinds: ["env", "tilt", "phone"], weights: [0.5, 0.4, 0.1], hi: [1600, 2500], q: [4, 6], mix: [0.6, 0.9], tiltDb: [1, 3], amt: [0.7, 1.0] };
+  // TREMOLO AND AUTO-PAN (slice 3b), the last insert before the fader: rate
+  // 2 to 7 Hz or a tempo division (half and half), depth 0.3 to 0.8, mono
+  // tremolo or left-right auto-pan half and half (MORGAN'S GUESSES). The
+  // arp's auto-pan (slice 1's leftover) is this draw: no special case.
+  U.TREMOLO = { hz: [2, 7], divs: ["quarter", "8th", "8th3"], depth: [0.3, 0.8] };
+  U.tremoloHz = function (p, bpm) {
+    if (!p.div) return p.hz;
+    const beat = 60 / (bpm || 120);
+    return p.div === "quarter" ? 1 / beat : p.div === "8th" ? 2 / beat : 3 / beat;
+  };
 
   // REVERB (effects slice 3a, 2026-11-18): the audition page's reverb, what
   // Jeff kept 11/17 (room, hall, ambience; Spring was the kind showing when
@@ -1479,6 +1848,33 @@
     if (!isFinite(on)) return null;
     return Math.max(-12, Math.min(12, Math.round((off - on) * 100) / 100));
   };
+  // Slice 3b: the per-song makeup of a linear insert (flanger, phaser, the
+  // filter), from the strip's signal at the insert's input on the pre-render:
+  // the insert offline at makeup 0, the strip's ungated K-weighted energy in
+  // vs out, rounded 0.01 dB, clamped +-12. The filter's follower `ref` is
+  // read first (U.envfRefFromSignal), so the envelope filter is measured as
+  // it will play.
+  U.insertMakeupFromSignal = async function (L, R, sr, fx, p, bpm) {
+    const off = U.kWeightedMeanDb([L, R], sr);
+    if (!isFinite(off)) return null;
+    const c = new OfflineAudioContext(2, L.length, sr), b = c.createBuffer(2, L.length, sr);
+    b.copyToChannel(L, 0); b.copyToChannel(R, 1);
+    const s = c.createBufferSource(); s.buffer = b;
+    const q = Object.assign({}, p, { makeupDb: 0 });
+    const blk = fx === "filter" ? U.makeFilterInsert(c, q) : fx === "flanger" ? U.makeFlangerInsert(c, q) : U.makePhaserInsert(c, q);
+    blk.input.channelCount = 2; blk.input.channelCountMode = "explicit"; blk.input.channelInterpretation = "speakers";
+    s.connect(blk.input); blk.output.connect(c.destination); s.start(0);
+    const o = await c.startRendering(), on = U.kWeightedMeanDb([o.getChannelData(0), o.getChannelData(1)], sr);
+    if (!isFinite(on)) return null;
+    return Math.max(-12, Math.min(12, Math.round((off - on) * 100) / 100));
+  };
+  // [strip, fx] pairs of a hash that the pre-render taps for a per-song makeup
+  U.songMakeupTapsFor = function (hash, forceLane) {
+    const s = U.drawSession(U.makePrng(hash), forceLane), F = U.drawStripFx(hash), out = [];
+    for (const role of U.DESK_ROLES) { const id = role.id; if (!F.strips[id] || s.mutes[id] || U.FX_SILENT_STRIPS.indexOf(id) > -1) continue;
+      for (const fx of U.FX_SONG_MAKEUP) if (F.strips[id][fx]) out.push([id, fx]); }
+    return out;
+  };
   U.reverbStripsFor = function (hash, forceLane) {
     const s = U.drawSession(U.makePrng(hash), forceLane), F = U.drawStripFx(hash), out = [];
     for (const role of U.DESK_ROLES) { const id = role.id; if (F.strips[id] && F.strips[id].reverb && !s.mutes[id] && U.FX_SILENT_STRIPS.indexOf(id) < 0) out.push(id); }
@@ -1547,6 +1943,20 @@
     const t = U.FX_MAKEUP.verbK, r = id in t ? t[id] : t._, k = r[p.kind] != null ? r[p.kind] : t._[p.kind];
     return p.kind === "wet" ? -10 * Math.log10(k) : -10 * Math.log10(1 + k * p.wet * p.wet);
   };
+  // Slice 3b fallbacks (the jam and probes; a rendered song measures the
+  // flanger's, the phaser's and the filter's makeup per song on its own
+  // pre-render, U.insertMakeupFromSignal). The flanger's wet is normalised
+  // to the input's energy, so 1 + wet^2; the phaser's dry (1 - m/2) and
+  // allpass wet m at a random phase, (1 - m/2)^2 + m^2; the filter 0. The
+  // TREMOLO's is exact: the VCA's mean square (1 - d/2)^2 + (d/2)^2 / 2; the
+  // auto-pan is an equal-power swing, 0 dB.
+  U.fxFallbackMakeupDb = function (fx, id, p) {
+    if (fx === "flanger") return -10 * Math.log10(1 + p.wet * p.wet);
+    if (fx === "phaser") return -10 * Math.log10(Math.pow(1 - p.mix / 2, 2) + p.mix * p.mix);
+    if (fx === "tremolo") return p.kind === "trem" ? -10 * Math.log10(Math.pow(1 - p.depth / 2, 2) + p.depth * p.depth / 8) : 0;
+    return 0;
+  };
+  U.FX_SONG_MAKEUP = ["filter", "flanger", "phaser"];   // measured per song on the pre-render
   U.echoMakeupDb = function (id, p) {
     const t = U.FX_MAKEUP.echoK, k = id in t ? t[id] : t._;
     return -10 * Math.log10(1 + k * p.mix * p.mix / (1 - p.fb * p.fb));
@@ -1588,6 +1998,16 @@
         all[id][fx] = params;   // every entry's settings, drawn or not (the jam's switches start here)
         if (u[0] < p) got.push({ fx, m: u[0] / p, params });
       }
+      // one modulation effect at most (U.FX_MOD): pick on the strip's own
+      // sub-stream, in proportion to the chances
+      const um = U.forkPrng(hash, "production.fx." + id + ".mod").r();
+      const mods = got.filter((x) => U.FX_MOD.indexOf(x.fx) > -1);
+      if (mods.length > 1) {
+        const tot = mods.reduce((a, x) => a + U.FX_CHANCE[x.fx], 0);
+        let acc = 0, pick = mods[mods.length - 1];
+        for (const x of mods) { acc += U.FX_CHANCE[x.fx] / tot; if (um < acc) { pick = x; break; } }
+        for (const x of mods) if (x !== pick) got.splice(got.indexOf(x), 1);
+      }
       const keep = got.slice().sort((a, b) => a.m - b.m).slice(0, coh.cap);
       for (const x of got) if (keep.indexOf(x) > -1) rec[x.fx] = x.params;   // menu order
       strips[id] = rec;
@@ -1605,7 +2025,7 @@
     if (fx === "echo") {
       const E = U.ECHO_SPAN, sp = (a, x) => a[0] + (a[1] - a[0]) * x;
       return { time: U.ECHO_TIMES[Math.min(3, Math.floor(u[1] * 4))], fb: r4(sp(E.fb, u[2])), lp: Math.round(sp(E.lp, u[3])),
-        mix: r4(sp(E.mix, u[4])), hpHz: U.FX_LOW_STRIPS[id] ? U.FX_LOW_HP_HZ : U.ECHO_LOOP_HP };
+        mix: r4(sp(E.mix, u[4])), hpHz: U.FX_LOW_STRIPS[id] ? U.FX_LOW_HP_HZ : U.ECHO_LOOP_HP, ping: u[5] < U.ECHO_PING };
     }
     if (fx === "reverb") {
       const R = U.REVERB, sp = (a, x) => a[0] + (a[1] - a[0]) * x;
@@ -1616,6 +2036,28 @@
     if (fx === "reverse") {
       const V = U.REVERSE, sp = (a, x) => a[0] + (a[1] - a[0]) * x;
       return { wet: r4(sp(V.wetSpan, u[1])), fb: r4(sp(V.fbSpan, u[2])) };
+    }
+    const sp = (a, x) => a[0] + (a[1] - a[0]) * x;
+    if (fx === "flanger") {
+      const F = U.FLANGER, c = sp(F.centre, u[2]), room = Math.min(c - F.lo, F.hi - c);
+      return { rate: r4(sp(F.rate, u[1])), centre: +c.toFixed(6), depth: +(room * sp(F.swing, u[3])).toFixed(6), fb: r4(sp(F.fb, u[4])), wet: F.wet,
+        wetHpHz: U.FX_LOW_STRIPS[id] ? U.FX_LOW_HP_HZ : 0 };
+    }
+    if (fx === "phaser") {
+      const P = U.PHASER;
+      return { stages: u[1] < 0.5 ? 4 : 6, rate: r4(P.rate[0] * Math.pow(P.rate[1] / P.rate[0], u[2] * u[2])), fb: r4(P.fbMax * u[3] * u[3]),
+        baseHz: P.baseHz, depthHz: Math.round(sp(P.depthHz, u[4])), mix: r4(sp(P.mix, u[5])) };
+    }
+    if (fx === "filter") {
+      const F = U.FILTER; let acc = 0, kind = F.kinds[F.kinds.length - 1];
+      for (let k = 0; k < F.kinds.length; k++) { acc += F.weights[k]; if (u[1] < acc) { kind = F.kinds[k]; break; } }
+      if (kind === "env") return { kind, hi: Math.round(sp(F.hi, u[2])), q: r4(sp(F.q, u[3])), mix: r4(sp(F.mix, u[4])) };
+      if (kind === "tilt") return { kind, db: r4((u[5] < 0.5 ? 1 : -1) * sp(F.tiltDb, u[2])) };
+      return { kind, amt: r4(sp(F.amt, u[2])) };
+    }
+    if (fx === "tremolo") {
+      const T = U.TREMOLO, kind = u[1] < 0.5 ? "trem" : "pan", depth = r4(sp(T.depth, u[4]));
+      return u[2] < 0.5 ? { kind, hz: r4(sp(T.hz, u[3])), depth } : { kind, div: T.divs[Math.min(2, Math.floor(u[3] * 3))], depth };
     }
     return {};
   };
@@ -1637,11 +2079,17 @@
   };
   U.buildStripFx = function (desk, id, rec, sheet) {
     const bpm = (sheet && sheet.bpm) || 120;
-    for (const fx of U.FX_MENU) {
+    const live = !!(sheet && sheet.live);
+    const song = (fx, p) => { const m = sheet && sheet.fxMakeupDb && sheet.fxMakeupDb[id]; return m && typeof m[fx] === "number" ? m[fx] : U.fxFallbackMakeupDb(fx, id, p); };
+    for (const fx of U.FX_CHAIN) {
       const p = rec[fx];
       if (!p) continue;
-      if (fx === "chorus") desk.fxChorus(id, p, U.chorusMakeupDb(id, p.mode));
-      else if (fx === "echo") desk.fxEcho(id, Object.assign({ sec: U.echoSeconds(p.time, bpm), wow: U.ECHO_WOW }, p), U.echoMakeupDb(id, p));
+      if (fx === "filter") desk.fxFilter(id, Object.assign({ ref: sheet && sheet.filterRef ? sheet.filterRef[id] : undefined }, p), song("filter", p), { live });
+      else if (fx === "flanger") desk.fxFlanger(id, p, song("flanger", p));
+      else if (fx === "phaser") desk.fxPhaser(id, p, song("phaser", p), { live });
+      else if (fx === "tremolo") desk.fxTremolo(id, Object.assign({}, p, { rate: U.tremoloHz(p, bpm) }), U.fxFallbackMakeupDb("tremolo", id, p), { live });
+      else if (fx === "chorus") desk.fxChorus(id, p, U.chorusMakeupDb(id, p.mode));
+      else if (fx === "echo") desk.fxEcho(id, Object.assign({ sec: U.echoSeconds(p.time, bpm), wow: U.ECHO_WOW }, p), U.echoMakeupDb(id, p), { live });
       else if (fx === "reverb") desk.fxReverb(id, p, sheet && sheet.reverbMakeupDb && typeof sheet.reverbMakeupDb[id] === "number" ? sheet.reverbMakeupDb[id] : U.reverbMakeupDb(id, p), { live: !!(sheet && sheet.live) });
       else if (fx === "reverse") desk.fxReverse(id, p, sheet && sheet.reverseSwell ? sheet.reverseSwell[id] : null);
     }
@@ -1693,7 +2141,7 @@
 
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/vocoder.js @ ae00ed8 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/vocoder.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
 // vocoder.js — the production room's vocoder insert, slice 1 (2026-11-05,
 // Asana 1220085081650427; design in files/unison/vocoder-2026-11-05/RESULT.md).
 //
@@ -2026,7 +2474,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/analogpoly.js @ ae00ed8 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/analogpoly.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
 // analogpoly.js — the analog poly core: one module that builds every Juno and
 // OB-Xa voice, behind a family lock. Asana 1220084594874974, slice 1
 // (2026-11-02); the rack doc's build 3 (files/unison/rack-parts-proposal-
@@ -2651,7 +3099,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/juno.js @ ae00ed8 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/juno.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
 // juno.js — Juno-60-flavor poly voice, raw Web Audio, zero dependencies.
 // Ported from the 2026-07-21 bake-off winner (voice-raw.js), restructured to
 // live behind a desk strip: U.createJuno(ctx, strip, patchName) builds its own
@@ -3287,7 +3735,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/minimoog.js @ ae00ed8 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/minimoog.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
 // minimoog.js — Minimoog Model D-lineage mono voice, zero dependencies.
 //
 // THE MONO BASS LANE (build order 808 → Juno → Minimoog → …; it also absorbs
@@ -4125,7 +4573,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/obxa.js @ ae00ed8 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/obxa.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
 // obxa.js — Oberheim OB-Xa-lineage poly voice, zero dependencies.
 //
 // THE BRASS/PAD POLY LANE (build order 808 → Juno → Minimoog → OB-Xa → …).
@@ -4712,7 +5160,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/fm.js @ ae00ed8 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/fm.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fm.js — six-operator FM keys voice (the DX7 lineage), zero dependencies.
 //
 // THE FM LANE (build order 808 → Juno → Minimoog → OB-Xa → Linn → FM).
@@ -5868,7 +6316,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/bassguitar.js @ ae00ed8 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/bassguitar.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassguitar.js — electric bass guitar, the first session player of the human
 // rack (Rack 2), zero dependencies.
 //
@@ -6579,7 +7027,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/rhythmguitar.js @ ae00ed8 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/rhythmguitar.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
 // rhythmguitar.js — clean electric rhythm guitar, the fourth and last stop of
 // the human rack (Rack 2), zero dependencies.
 //
@@ -7355,7 +7803,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/tr808.js @ ae00ed8 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/tr808.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
 // tr808.js — THE MACHINE. A TR-808-lineage core voice: bass drum, snare,
 // closed hat, open hat, each with a front panel the token actually turns.
 //
@@ -8639,7 +9087,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/linn.js @ ae00ed8 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/linn.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
 // linn.js — THE STUDIO MACHINE. A Linn-family (LM-1 / LinnDrum lineage)
 // drum computer: the new wave / synth-pop / 80s R&B kit.
 //
@@ -9461,7 +9909,7 @@
     get EPROM_HZ() { return U.CIRCUIT_LINN.epromHz; }, get RECON_HZ() { return U.CIRCUIT_LINN.reconHz; } };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/romkits.js @ ae00ed8 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/romkits.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
 // romkits.js — THE OTHER SAMPLED MACHINE: the DMX (Oberheim lineage, 1981),
 // drum engine slice 3, 2026-11-03, Asana 1219959495948201.
 //
@@ -9817,7 +10265,7 @@
   // the lock refuses; the MCS is a kit drawn across families, which is slice 4.
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/simmons.js @ ae00ed8 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/simmons.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
 // simmons.js — THE ELECTRONIC FAMILY'S FIRST MACHINE: the Simmons toms
 // (SDS-V lineage, 1981; SDS-7, 1983), drum engine slice 3, 2026-11-03,
 // Asana 1219959495948201.
@@ -9989,7 +10437,7 @@
   U.SIMMONS_VOICES = ["tomHi", "tomMid", "tomLo"];
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drumengine.js @ ae00ed8 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drumengine.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drumengine.js — ONE DRUM ENGINE, THE MACHINES AS FAMILIES (2026-11-02,
 // drum engine slice 1, Asana 1219959495948201; the rack and parts doc,
 // 10/31).
@@ -10220,7 +10668,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drumkits.js @ ae00ed8 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drumkits.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drumkits.js — the drum engine, slice 4 (2026-11-06, Asana 1219959495948201):
 // THE KIT BOOKS and THE KIT AS A DRAW ACROSS FAMILIES.
 //
@@ -10578,7 +11026,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/sampler.js @ ae00ed8 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/sampler.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
 // sampler.js — THE SAMPLER KEYBOARD, the gap filler (2026-11-05, slice 1,
 // Asana 1220085081678265; build 7 of the 10/31 rack and parts doc; design in
 // files/unison/sampler-2026-11-05/RESULT.md in the morgan repo).
@@ -11180,7 +11628,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drums.js @ ae00ed8 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drums.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drums.js — the drum machine: 808/LM-1-flavor voices, synthesized at runtime
 // into short AudioBuffers, played back as one-shots.
 //
@@ -11595,7 +12043,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/books.js @ ae00ed8 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/books.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
 // books.js — Pattern Books v1, as data.
 //
 // This file IS the document: "Unison — Pattern Books v1 (draft)" (Morgan,
@@ -14442,7 +14890,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/bassplayer.js @ ae00ed8 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/bassplayer.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassplayer.js — the PERFORMANCE half of the bass guitar: a session player.
 //
 // Rack 2's rule (kb/projects/unison.md, 2026-07-11): every human instrument is
@@ -15037,7 +15485,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/gtrplayer.js @ ae00ed8 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/gtrplayer.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
 // gtrplayer.js — the PERFORMANCE half of the rhythm guitar: a session
 // guitarist on the rhythmGtr strip.
 //
@@ -15511,7 +15959,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/fmplayer.js @ ae00ed8 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/fmplayer.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fmplayer.js — the PERFORMANCE half of the FM keys: a session keyboard
 // player on the FM chord strips (compA's tine EP, colour's glass and brass).
 //
@@ -15652,7 +16100,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/testPhrase.js @ ae00ed8 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/testPhrase.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
 // testPhrase.js — deterministic 8-bar test phrase, ported from the bake-off
 // (phrase.js) onto the engine's canonical PRNG (core/prng.js).
 //
@@ -15746,7 +16194,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/form.js @ ae00ed8 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/form.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
 // form.js — the song's form: the book of returns (2026-10-30, Asana
 // 1220073468300418; design files/unison/structure-design-2026-10-30 in the
 // morgan repo, DESIGN.md + draw.py, transcribed here as written).
@@ -16067,7 +16515,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/session.js @ ae00ed8 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/session.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
 // session.js — the session sheet and the arrangement realizer.
 //
 // Two tiers, in this order, each on its own stream (core/prng.js):
@@ -17978,7 +18426,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/render/renderer.js @ ae00ed8 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/render/renderer.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
 // renderer.js — song assembly + the render pipeline (Technical Architecture
 // v1.2 playback model): live-first, with (a) a cheap analysis pre-render for
 // verification/metrics and (b) an on-demand full OfflineAudioContext render
@@ -18098,6 +18546,10 @@
     if (!o.preBus && mp.reverse) sheet.reverseSwell = mp.reverse;
     // the reverb's makeup per strip, measured on that pre-render (absent: the table)
     if (!o.preBus && mp.reverbMakeupDb) sheet.reverbMakeupDb = mp.reverbMakeupDb;
+    // slice 3b: the flanger's, phaser's and filter's makeup per strip, and the
+    // envelope filter's follower ref, from that pre-render (absent: fallbacks)
+    if (!o.preBus && mp.fxMakeupDb) sheet.fxMakeupDb = mp.fxMakeupDb;
+    if (!o.preBus && mp.filterRef) sheet.filterRef = mp.filterRef;
     const desk = U.createDesk(ctx, ctx.destination, { busTrimDb, preBus: !!o.preBus });
     const stats = U.realizeSession(ctx, desk, sheet, Rbars, LEAD, opts);
     return { sheet, desk, stats, busTrimDb };
@@ -18123,10 +18575,14 @@
         const o = { cohesion: f.cohesion };
         for (const id in f.strips) {
           const r = f.strips[id], a = [];
+          if (r.filter) a.push(r.filter.kind === "env" ? "envelope filter" : r.filter.kind === "tilt" ? "tilt " + (r.filter.db > 0 ? "bright" : "dark") : "telephone");
           if (r.chorus) a.push("chorus " + ["", "I", "II", "I+II"][r.chorus.mode]);
-          if (r.echo) a.push("echo " + r.echo.time);
+          if (r.flanger) a.push("flanger");
+          if (r.phaser) a.push("phaser " + r.phaser.stages);
+          if (r.echo) a.push((r.echo.ping ? "ping-pong " : "echo ") + r.echo.time);
           if (r.reverb) a.push("reverb " + r.reverb.kind);
           if (r.reverse) a.push("reverse swell");
+          if (r.tremolo) a.push(r.tremolo.kind === "pan" ? "auto-pan" : "tremolo");
           if (a.length && !(sheet.mutes && sheet.mutes[id]) && U.FX_SILENT_STRIPS.indexOf(id) < 0) o[id] = a.join(" / ");
         }
         return o;
@@ -18290,7 +18746,15 @@
     // the reverb (slice 3a): each strip that drew one, its signal at the
     // reverb's input, for the per-song makeup (U.reverbMakeupFromSignal)
     const verbIds = U.reverbStripsFor ? U.reverbStripsFor(hash, forceLane) : [];
-    const nExtra = (vocOn ? 2 : 0) + 2 * smpIds.length + 2 * revIds.length + 2 * verbIds.length;
+    // slice 3b: each [strip, fx] the flanger, phaser or filter drew, its signal
+    // at that insert's input, for the per-song makeup. An offline context
+    // holds 32 channels: taps past that, in this fixed order, take the
+    // fallback makeup (deterministic per hash).
+    const mkTapsAll = U.songMakeupTapsFor ? U.songMakeupTapsFor(hash, forceLane) : [];
+    const room = Math.floor((32 - nch - (vocOn ? 2 : 0) - 2 * smpIds.length - 2 * revIds.length - 2 * verbIds.length) / 2);
+    const mkTaps = mkTapsAll.slice(0, Math.max(0, room));
+    U.lastMakeupTapsDropped = mkTapsAll.length - mkTaps.length;
+    const nExtra = (vocOn ? 2 : 0) + 2 * smpIds.length + 2 * revIds.length + 2 * verbIds.length + 2 * mkTaps.length;
     const ctx = U.jitAttach(new OfflineAudioContext(nch + nExtra, Math.ceil(seconds * rate), rate));
     const song = U.buildSong(ctx, hash, forceLane, { preBus: true });
     const desk = song.desk;
@@ -18307,6 +18771,11 @@
       const b = desk.strips[st].fx && desk.strips[st].fx.reverb; if (!b) continue;
       const up = ctx.createGain(); up.channelCount = 2; up.channelCountMode = "explicit"; up.channelInterpretation = "speakers";
       b.input.connect(up); tapNodes.push(["verb:" + st, up]);
+    }
+    for (const [st, fx] of mkTaps) {
+      const b = desk.strips[st].fx && desk.strips[st].fx[fx]; if (!b) continue;
+      const up = ctx.createGain(); up.channelCount = 2; up.channelCountMode = "explicit"; up.channelInterpretation = "speakers";
+      b.input.connect(up); tapNodes.push(["mk:" + st + ":" + fx, up]);
     }
     const chOf = {};
     if (tapNodes.length) {
@@ -18357,6 +18826,17 @@
         for (const st of verbIds) { if (chOf["verb:" + st] === undefined) continue; const [L, R] = two("verb:" + st); const m = await U.reverbMakeupFromSignal(L, R, rate, song.sheet.stripFx.strips[st].reverb); if (m != null) out[st] = m; }
         mp.reverbMakeupDb = out;
       }
+      if (mkTaps.length && song.sheet.stripFx) {
+        const out = {}, ref = {};
+        for (const [st, fx] of mkTaps) {
+          const name = "mk:" + st + ":" + fx; if (chOf[name] === undefined) continue;
+          const [L, R] = two(name), p = Object.assign({}, song.sheet.stripFx.strips[st][fx]);
+          if (fx === "filter" && p.kind === "env") { const r = U.envfRefFromSignal(L, R, rate); if (r != null) { ref[st] = r; p.ref = r; } }
+          const m = await U.insertMakeupFromSignal(L, R, rate, fx, p);
+          if (m != null) (out[st] = out[st] || {})[fx] = m;
+        }
+        mp.fxMakeupDb = out; mp.filterRef = ref;
+      }
       U.mixProbeCache[key] = mp;
     }
     return U.integratedLufs(ch, rate);
@@ -18374,7 +18854,7 @@
   // baked number is ignored (the measured one is the same number). One path:
   // a page cannot play a baked trim with the reads missing.
   U.songNeedsMixProbe = function (hash, forceLane) {
-    return !!(U.vocoderFor && U.vocoderFor(hash, forceLane).on) || !!(U.samplerFor && U.samplerFor(hash, forceLane).n) || !!(U.reverseStripsFor && U.reverseStripsFor(hash, forceLane).length) || !!(U.reverbStripsFor && U.reverbStripsFor(hash, forceLane).length);
+    return !!(U.vocoderFor && U.vocoderFor(hash, forceLane).on) || !!(U.samplerFor && U.samplerFor(hash, forceLane).n) || !!(U.reverseStripsFor && U.reverseStripsFor(hash, forceLane).length) || !!(U.reverbStripsFor && U.reverbStripsFor(hash, forceLane).length) || !!(U.songMakeupTapsFor && U.songMakeupTapsFor(hash, forceLane).length);
   };
   U.songBusTrimDb = function (hash, forceLane, baked) {
     const key = hash + "|" + (forceLane || "");
@@ -19797,7 +20277,16 @@
   var PXR = {
     crate: U.CHORUS_SPAN.rate, cdepth: [U.CHORUS_SPAN.depth[0] * 1000, U.CHORUS_SPAN.depth[1] * 1000],
     efb: U.ECHO_SPAN.fb, elp: U.ECHO_SPAN.lp, emix: U.ECHO_SPAN.mix, rwet: U.REVERB.wetSpan, rfb: U.REVERB.wetOnlyFbSpan, bus: [-U.BUS_TRIM_MAX_DB, U.BUS_TRIM_MAX_DB],
+    // slice 3b: the engine's drawn spans (production.js)
+    frate: U.FLANGER.rate, ffb: U.FLANGER.fb, fcentre: [U.FLANGER.centre[0] * 1000, U.FLANGER.centre[1] * 1000], fdepth: [0.2, 3.0],
+    prate: U.PHASER.rate, pfb: [0, U.PHASER.fbMax], pmix: U.PHASER.mix, pdepth: U.PHASER.depthHz,
+    qhi: U.FILTER.hi, qq: U.FILTER.q, qmix: U.FILTER.mix, qdb: [-U.FILTER.tiltDb[1], U.FILTER.tiltDb[1]], qamt: U.FILTER.amt,
+    thz: U.TREMOLO.hz, tdepth: U.TREMOLO.depth,
   };
+  var FQ_KIND = [["env", "Envelope filter"], ["tilt", "Tilt"], ["phone", "Telephone"]];
+  var TR_KIND = [["trem", "Tremolo"], ["pan", "Auto-pan"]];
+  var TR_RATE = [["hz", "Free"], ["quarter", "Quarter"], ["8th", "8th"], ["8th3", "8th triplet"]];
+  var PX_KEYS = ["fc", "fe", "fr", "ff", "fp", "fq", "ft"];
   var ROLE_BY = {}; U.DESK_ROLES.forEach(function (r) { ROLE_BY[r.id] = r; });
   var STRIP_NAME = { kick: "Kick", snare: "Snare", hats: "Hats", tomsFills: "Toms and fills", ePerc: "Electronic perc", percTime: "Perc", percAccent: "Perc accent",
     bass: "Bass", compA: "Chords", compB: "Chords B", rhythmGtr: "Guitar", pad: "Pad", arp: "Arp", lead: "Lead", counter: "Riff", color: "Brass" };
@@ -19810,8 +20299,8 @@
   function pxClean(px) {
     var o = {}, n = 0;
     for (var id in px) { var X = px[id]; if (!X || typeof X !== "object" || !ROLE_BY[id]) continue;
-      var y = {}; if (X.fc && typeof X.fc === "object") y.fc = X.fc; if (X.fe && typeof X.fe === "object") y.fe = X.fe; if (X.fr && typeof X.fr === "object") y.fr = X.fr;
-      if (y.fc || y.fe || y.fr) { o[id] = y; n++; } }
+      var y = {}, any = false; PX_KEYS.forEach(function (k) { if (X[k] && typeof X[k] === "object") { y[k] = X[k]; any = true; } });
+      if (any) { o[id] = y; n++; } }
     return n ? o : null;
   }
   // ---- stereo placement (effects slice 1, 2026-11-17): the jam's one pan
@@ -19844,8 +20333,16 @@
     var ec = { on: e.drawn, drawn: e.drawn, time: e.p.time, fb: e.p.fb, lp: e.p.lp, mix: e.p.mix, hpHz: e.p.hpHz };
     // the reverb: a strip that drew none starts from its own undrawn settings
     var rv = { on: r.drawn, drawn: r.drawn, kind: r.p.kind, wet: r.p.kind === "wet" ? U.REVERB.wetSpan[1] : r.p.wet, fb: r.p.fb || U.REVERB.wetOnlyFbSpan[0] };
+    ec.ping = !!e.p.ping;
+    // slice 3b: flanger, phaser, the filter slot, tremolo / auto-pan
+    var f = fxSettings(l, id, "flanger"), ph = fxSettings(l, id, "phaser"), q = fxSettings(l, id, "filter"), t = fxSettings(l, id, "tremolo");
+    var fl = { on: f.drawn, drawn: f.drawn, rate: f.p.rate, centre: f.p.centre * 1000, depth: f.p.depth * 1000, fb: f.p.fb, wet: f.p.wet, wetHpHz: f.p.wetHpHz };
+    var pp = { on: ph.drawn, drawn: ph.drawn, stages: ph.p.stages, rate: ph.p.rate, fb: ph.p.fb, mix: ph.p.mix, depthHz: ph.p.depthHz, baseHz: ph.p.baseHz };
+    var fq = { on: q.drawn, drawn: q.drawn, kind: q.p.kind, hi: q.p.hi || 2000, q: q.p.q || 5, mix: q.p.mix || 0.75, db: q.p.db || 2, amt: q.p.amt || 0.85 };
+    var tr = { on: t.drawn, drawn: t.drawn, kind: t.p.kind, rt: t.p.div || "hz", hz: t.p.hz || 4, depth: t.p.depth };
     var k; for (k in X.fc || {}) ch[k] = X.fc[k]; for (k in X.fe || {}) ec[k] = X.fe[k]; for (k in X.fr || {}) rv[k] = X.fr[k];
-    return { ch: ch, ec: ec, rv: rv, rs: { drawn: w.drawn, wet: w.p.wet, fb: w.p.fb } };
+    for (k in X.ff || {}) fl[k] = X.ff[k]; for (k in X.fp || {}) pp[k] = X.fp[k]; for (k in X.fq || {}) fq[k] = X.fq[k]; for (k in X.ft || {}) tr[k] = X.ft[k];
+    return { ch: ch, ec: ec, rv: rv, rs: { drawn: w.drawn, wet: w.p.wet, fb: w.p.fb }, fl: fl, ph: pp, fq: fq, tr: tr };
   }
   function pxSig(l, room) {
     return JSON.stringify([room.bus.glue, room.bus.lim, l.lvInfoKey || "", layerStrips(l).map(function (id) { return panOf(l, id) > 0 ? 1 : 0; })]);
@@ -19899,8 +20396,8 @@
       var e = stripEff(l, id);
       // the reverse swell is not built live (it needs the song's pre-render)
       U.buildStripFx(D, id, { chorus: { mode: e.ch.mode, rate: e.ch.rate, depth: e.ch.depth / 1000, wetHpHz: e.ch.wetHpHz },
-        echo: { time: e.ec.time, fb: e.ec.fb, lp: e.ec.lp, mix: e.ec.mix, hpHz: e.ec.hpHz },
-        reverb: rvParams(e.rv) }, { bpm: bpm, live: true });
+        echo: { time: e.ec.time, fb: e.ec.fb, lp: e.ec.lp, mix: e.ec.mix, hpHz: e.ec.hpHz, ping: e.ec.ping },
+        reverb: rvParams(e.rv), flanger: flParams(e.fl), phaser: phParams(e.ph), filter: fqParams(e.fq), tremolo: trParams(e.tr) }, { bpm: bpm, live: true });
       fxApply(D, id, e, bpm, null);
     });
     // glue and limiter in or out
@@ -19913,12 +20410,20 @@
   }
   // the strip's effective settings onto its blocks (block.set), at `at` (s) or now
   function rvParams(rv) { return rv.kind === "wet" ? { kind: "wet", wet: 1, fb: rv.fb } : { kind: rv.kind, wet: rv.wet }; }
+  function flParams(x) { return { rate: x.rate, centre: x.centre / 1000, depth: Math.min(x.depth, x.centre - 0.05) / 1000, fb: x.fb, wet: x.wet, wetHpHz: x.wetHpHz }; }
+  function phParams(x) { return { stages: x.stages, rate: x.rate, fb: x.fb, mix: x.mix, depthHz: x.depthHz, baseHz: x.baseHz }; }
+  function fqParams(x) { return { kind: x.kind, hi: x.hi, q: x.q, mix: x.mix, db: x.db, amt: x.amt }; }
+  function trParams(x) { return x.rt === "hz" ? { kind: x.kind, hz: x.hz, depth: x.depth } : { kind: x.kind, div: x.rt, depth: x.depth }; }
   function fxApply(D, id, e, bpm, at) {
     var fx = (D.strips[id] && D.strips[id].fx) || {};
     if (fx.reverb) { var rp = rvParams(e.rv); fx.reverb.set({ on: e.rv.on, kind: rp.kind, wet: rp.wet, fb: rp.fb, makeupDb: U.reverbMakeupDb(id, rp) }, at); }
     if (fx.chorus) fx.chorus.set({ on: e.ch.on, mode: e.ch.mode, rate: e.ch.rate, depth: e.ch.depth / 1000, makeupDb: U.chorusMakeupDb(id, e.ch.mode) }, at);
-    if (fx.echo) fx.echo.set({ on: e.ec.on, time: e.ec.time, sec: U.echoSeconds(e.ec.time, bpm), fb: e.ec.fb, lp: e.ec.lp, mix: e.ec.mix,
+    if (fx.echo) fx.echo.set({ on: e.ec.on, time: e.ec.time, sec: U.echoSeconds(e.ec.time, bpm), fb: e.ec.fb, lp: e.ec.lp, mix: e.ec.mix, ping: !!e.ec.ping,
       makeupDb: U.echoMakeupDb(id, e.ec) }, at);
+    if (fx.flanger) { var fp = flParams(e.fl); fx.flanger.set(Object.assign({ on: e.fl.on, makeupDb: U.fxFallbackMakeupDb("flanger", id, fp) }, fp), at); }
+    if (fx.phaser) { var pq = phParams(e.ph); fx.phaser.set(Object.assign({ on: e.ph.on, makeupDb: U.fxFallbackMakeupDb("phaser", id, pq) }, pq), at); }
+    if (fx.filter) fx.filter.set(Object.assign({ on: e.fq.on, makeupDb: 0 }, fqParams(e.fq)), at);
+    if (fx.tremolo) { var tp = trParams(e.tr); fx.tremolo.set({ on: e.tr.on, kind: tp.kind, rate: U.tremoloHz(tp, bpm), depth: tp.depth, makeupDb: U.fxFallbackMakeupDb("tremolo", id, tp) }, at); }
   }
   function buildLive(l) {
     var lv = l.lv, strips = layerStrips(l), room = roomEff(), out = ctx.createGain();
@@ -20014,6 +20519,12 @@
     var r = fxSettings(l, id, "reverb"), w = fxSettings(l, id, "reverse");
     if (r.drawn) a.push("reverb " + (RV_KIND.filter(function (t) { return t[0] === r.p.kind; })[0] || [0, r.p.kind])[1].toLowerCase() + (r.p.kind === "wet" ? ", decay " + f2(r.p.fb) : ", wet " + f2(r.p.wet)));
     if (w.drawn) a.push("reverse swell, wet " + f2(w.p.wet));
+    var fl = fxSettings(l, id, "flanger"), ph = fxSettings(l, id, "phaser"), fq = fxSettings(l, id, "filter"), tr = fxSettings(l, id, "tremolo");
+    if (fq.drawn) a.unshift(fq.p.kind === "env" ? "envelope filter to " + fHz(fq.p.hi) + ", Q " + f2(fq.p.q) : fq.p.kind === "tilt" ? "tilt " + fDb(fq.p.db) : "telephone " + f2(fq.p.amt));
+    if (fl.drawn) a.push("flanger " + f2(fl.p.rate) + " Hz, feedback " + f2(fl.p.fb));
+    if (ph.drawn) a.push("phaser " + ph.p.stages + " stages " + f2(ph.p.rate) + " Hz, feedback " + f2(ph.p.fb));
+    if (tr.drawn) a.push((tr.p.kind === "pan" ? "auto-pan " : "tremolo ") + (tr.p.div ? (TR_RATE.filter(function (x) { return x[0] === tr.p.div; })[0] || [0, tr.p.div])[1].toLowerCase() : f2(tr.p.hz) + " Hz") + ", depth " + f2(tr.p.depth));
+    var e2 = fxSettings(l, id, "echo"); if (e2.drawn && e2.p.ping) a = a.map(function (x) { return x.indexOf("echo ") === 0 ? "ping-pong " + x : x; });
     return "Drew: " + (a.length ? a.join("; ") : "dry");
   }
   function pxBuild(l) {
@@ -20033,6 +20544,14 @@
       var tog = function (g, k) { return function () { pxSet(l, id, g, "on", !stripEff(l, id)[k].on); save(); pxRedraw(l); }; };
       var rs = function (g) { return function () { pxReset(l, id, g); }; };
       var set = function (g, k) { return function (v) { pxSet(l, id, g, k, v); }; };
+      var bq = pxBlock(box, "Filter and EQ" + (e.fq.drawn ? "" : " (not drawn)"), e.fq.on, tog("fq", "fq"), rs("fq"));
+      bq.setAttribute("data-fx", id + ":filter");
+      var kq = el("div", "pxmodes"); kq.appendChild(el("span", null, "Kind"));
+      FQ_KIND.forEach(function (t) { var bb = el("button", e.fq.kind === t[0] ? "on" : "", t[1]); bb.onclick = function () { pxSet(l, id, "fq", "kind", t[0]); save(); pxRedraw(l); }; kq.appendChild(bb); });
+      bq.appendChild(kq);
+      if (e.fq.kind === "env") { pxSlider(bq, "Opens to", PXR.qhi, e.fq.hi, 10, fHz, set("fq", "hi")); pxSlider(bq, "Resonance", PXR.qq, e.fq.q, 0.1, f2, set("fq", "q")); pxSlider(bq, "Filtered share", PXR.qmix, e.fq.mix, 0.01, f2, set("fq", "mix")); }
+      else if (e.fq.kind === "tilt") pxSlider(bq, "Tilt (+ brighter)", PXR.qdb, e.fq.db, 0.1, fDb, set("fq", "db"));
+      else pxSlider(bq, "Amount", PXR.qamt, e.fq.amt, 0.01, f2, set("fq", "amt"));
       var bc = pxBlock(box, "Chorus" + (e.ch.drawn ? "" : " (not drawn)"), e.ch.on, tog("fc", "ch"), rs("fc"));
       bc.setAttribute("data-fx", id + ":chorus");
       var ms = el("div", "pxmodes"); ms.appendChild(el("span", null, "Mode"));
@@ -20041,11 +20560,25 @@
       bc.appendChild(ms);
       pxSlider(bc, "Rate", PXR.crate, e.ch.rate, 0.01, function (x) { return (+x).toFixed(2) + " Hz"; }, set("fc", "rate"));
       pxSlider(bc, "Depth", PXR.cdepth, e.ch.depth, 0.01, fMs, set("fc", "depth"));
+      var bf = pxBlock(box, "Flanger" + (e.fl.drawn ? "" : " (not drawn)"), e.fl.on, tog("ff", "fl"), rs("ff"));
+      bf.setAttribute("data-fx", id + ":flanger");
+      pxSlider(bf, "Rate", PXR.frate, e.fl.rate, 0.01, function (x) { return (+x).toFixed(2) + " Hz"; }, set("ff", "rate"));
+      pxSlider(bf, "Feedback", PXR.ffb, e.fl.fb, 0.01, f2, set("ff", "fb"));
+      pxSlider(bf, "Delay", PXR.fcentre, e.fl.centre, 0.05, fMs, set("ff", "centre"));
+      pxSlider(bf, "Sweep", PXR.fdepth, e.fl.depth, 0.05, fMs, set("ff", "depth"));
+      var bp = pxBlock(box, "Phaser" + (e.ph.drawn ? "" : " (not drawn)"), e.ph.on, tog("fp", "ph"), rs("fp"), e.ph.stages + " stages (built as drawn)");
+      bp.setAttribute("data-fx", id + ":phaser");
+      pxSlider(bp, "Rate", PXR.prate, e.ph.rate, 0.01, function (x) { return (+x).toFixed(2) + " Hz"; }, set("fp", "rate"));
+      pxSlider(bp, "Feedback", PXR.pfb, e.ph.fb, 0.01, f2, set("fp", "fb"));
+      pxSlider(bp, "Mix", PXR.pmix, e.ph.mix, 0.01, f2, set("fp", "mix"));
       var be = pxBlock(box, "Tape echo" + (e.ec.drawn ? "" : " (not drawn)"), e.ec.on, tog("fe", "ec"), rs("fe"));
       be.setAttribute("data-fx", id + ":echo");
       var tr = el("div", "pxmodes"); tr.appendChild(el("span", null, "Time"));
       EC_TIME.forEach(function (t) { var bb = el("button", e.ec.time === t[0] ? "on" : "", t[1]); bb.onclick = function () { pxSet(l, id, "fe", "time", t[0]); save(); pxRedraw(l); }; tr.appendChild(bb); });
       be.appendChild(tr);
+      var pr = el("div", "pxmodes"); pr.appendChild(el("span", null, "Repeats"));
+      [[false, "Straight"], [true, "Ping-pong"]].forEach(function (t) { var bb = el("button", !!e.ec.ping === t[0] ? "on" : "", t[1]); bb.onclick = function () { pxSet(l, id, "fe", "ping", t[0]); save(); pxRedraw(l); }; pr.appendChild(bb); });
+      be.appendChild(pr);
       pxSlider(be, "Feedback", PXR.efb, e.ec.fb, 0.01, f2, set("fe", "fb"));
       pxSlider(be, "Mix", PXR.emix, e.ec.mix, 0.01, f2, set("fe", "mix"));
       pxSlider(be, "Tape low-pass", PXR.elp, e.ec.lp, 50, fHz, set("fe", "lp"));
@@ -20057,8 +20590,17 @@
       if (e.rv.kind === "wet") pxSlider(br, "Decay", PXR.rfb, e.rv.fb, 0.01, f2, set("fr", "fb"));
       else pxSlider(br, "Wet", PXR.rwet, e.rv.wet, 0.01, f2, set("fr", "wet"));
       if (e.rs.drawn) { var sw = el("div", "pxnote", "Reverse swell: drawn (wet " + f2(e.rs.wet) + "). It plays in the full song render only; the jam cannot play it live."); sw.setAttribute("data-fx", id + ":reverse"); box.appendChild(sw); }
+      var bt = pxBlock(box, "Tremolo and auto-pan" + (e.tr.drawn ? "" : " (not drawn)"), e.tr.on, tog("ft", "tr"), rs("ft"));
+      bt.setAttribute("data-fx", id + ":tremolo");
+      var kt = el("div", "pxmodes"); kt.appendChild(el("span", null, "Kind"));
+      TR_KIND.forEach(function (t) { var bb = el("button", e.tr.kind === t[0] ? "on" : "", t[1]); bb.onclick = function () { pxSet(l, id, "ft", "kind", t[0]); save(); pxRedraw(l); }; kt.appendChild(bb); });
+      bt.appendChild(kt);
+      var rt = el("div", "pxmodes"); rt.appendChild(el("span", null, "Rate"));
+      TR_RATE.forEach(function (t) { var bb = el("button", e.tr.rt === t[0] ? "on" : "", t[1]); bb.onclick = function () { pxSet(l, id, "ft", "rt", t[0]); save(); pxRedraw(l); }; rt.appendChild(bb); });
+      bt.appendChild(rt);
+      if (e.tr.rt === "hz") pxSlider(bt, "Speed", PXR.thz, e.tr.hz, 0.05, function (x) { return (+x).toFixed(2) + " Hz"; }, set("ft", "hz"));
+      pxSlider(bt, "Depth", PXR.tdepth, e.tr.depth, 0.01, f2, set("ft", "depth"));
     });
-    box.appendChild(el("div", "pxnote", "More effects arrive one at a time (filter and EQ, flanger, phaser, tremolo and auto-pan)."));
     return box;
   }
   // THE MASTER CARD (effects slice 1, 2026-11-17, Asana 1220328751228343):
