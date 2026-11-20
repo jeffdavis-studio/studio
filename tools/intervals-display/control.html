@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#111111">
+<link rel="icon" href="data:,">
+<title>Intervals screen control</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: #111; color: #f2f2f2;
+    font: 400 16px/1.3 -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif; -webkit-text-size-adjust: 100%; }
+  button, input { font: inherit; color: inherit; }
+  #top { position: -webkit-sticky; position: sticky; top: 0; z-index: 5; background: #111;
+    padding: 10px 12px 12px; padding-top: calc(10px + env(safe-area-inset-top)); border-bottom: 1px solid #2c2c2c; }
+  #conn { display: flex; flex-direction: row; align-items: center; height: 22px; font-size: 13px; color: #a8a8a8; }
+  #dot { flex: 0 0 10px; width: 10px; height: 10px; border-radius: 5px; background: #777; margin-right: 8px; }
+  #dot.ok { background: #3ecf6e; } #dot.bad { background: #ff5a4f; } #dot.wait { background: #e8b339; }
+  #connText { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #now { margin: 6px 0 2px; font-size: 21px; font-weight: 600; min-height: 28px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #sub { font-size: 14px; color: #a8a8a8; min-height: 19px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #note { font-size: 14px; color: #ffb4a8; min-height: 0; }
+  #note:empty { display: none; }
+  .row { display: flex; flex-direction: row; margin-top: 10px; }
+  .btn { flex: 1 1 0; min-width: 0; height: 54px; border: 1px solid #444; border-radius: 12px; background: #1e1e1e;
+    font-size: 16px; font-weight: 600; padding: 0 8px; touch-action: manipulation; cursor: pointer; }
+  .btn + .btn { margin-left: 10px; }
+  .btn:active { background: #333; }
+  .btn:disabled { opacity: .38; }
+  .btn.on { background: #f2f2f2; color: #111; border-color: #f2f2f2; }
+  #jump { flex: 1 1 0; min-width: 0; height: 54px; border: 1px solid #444; border-radius: 12px; background: #1a1a1a;
+    font-size: 18px; padding: 0 14px; margin-right: 10px; -webkit-appearance: none; appearance: none; }
+  #go { flex: 0 0 112px; width: 112px; }
+  #grid { display: grid; grid-template-columns: 1fr 1fr; grid-gap: 10px; gap: 10px; padding: 12px;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+  @media (min-width: 700px) { #grid { grid-template-columns: 1fr 1fr 1fr 1fr; } }
+  .tile { display: block; width: 100%; padding: 0; border: 2px solid #2c2c2c; border-radius: 12px; background: #1a1a1a;
+    overflow: hidden; text-align: left; touch-action: manipulation; cursor: pointer; }
+  .tile:active { border-color: #888; }
+  .tile.sel { border-color: #f2f2f2; }
+  .tile.wait { border-color: #e8b339; }
+  .pic { display: block; width: 100%; padding-top: 82.35%; position: relative; background: #000; }
+  .pic img { position: absolute; left: 0; top: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+  .meta { display: block; padding: 8px 10px 9px; }
+  .num { display: block; font-size: 17px; font-weight: 600; }
+  .who { display: block; font-size: 13px; color: #a8a8a8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-height: 17px; }
+  #empty { padding: 24px 14px; color: #a8a8a8; }
+</style>
+</head>
+<body>
+<div id="top">
+  <div id="conn"><span id="dot"></span><span id="connText">Connecting</span></div>
+  <div id="now">On screen now: checking</div>
+  <div id="sub"></div>
+  <div id="note"></div>
+  <div class="row">
+    <button class="btn" id="plot" disabled>Plot view</button>
+    <button class="btn" id="back" disabled>Back to the queue</button>
+  </div>
+  <div class="row">
+    <input id="jump" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Piece number" autocomplete="off" enterkeyhint="go">
+    <button class="btn" id="go">Show</button>
+  </div>
+</div>
+<div id="grid"></div>
+<div id="empty" hidden></div>
+<script>
+"use strict";
+/*
+  Controller for the Intervals gallery display. Open it with the same key as the screen:
+    control.html?remote=<key>      and the screen at   index.html?remote=<key>
+  Tap a piece and the screen shows it; it stays up for the screen's hold time after the last
+  action, then the screen goes back to its queue. Messages go through public ntfy relays and
+  carry a piece number and a plot view flag, nothing else.
+  Link settings: remote (the key), project, api, collector (as on the display).
+*/
+const qs = new URLSearchParams(location.search);
+const CFG = {
+  project: qs.get("project") || "0x000009bb1740eea484f7db00000a9227e578bf96-6",
+  api:     qs.get("api")     || "https://artblocks-mainnet.hasura.app/v1/graphql",
+  collector: qs.get("collector") !== "0",
+  remote:  (qs.get("remote") || "").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 64),
+};
+const RELAYS = ["https://ntfy.sh", "https://ntfy.envs.net", "https://ntfy.adminforge.de"];
+const POLL_MS = 10000, REFRESH_MS = 5 * 60000;
+const RESEND_MS = [4000, 9000];   // the same request again, in case the first was lost
+const GIVE_UP_MS = 15000;
+const $ = id => document.getElementById(id);
+
+// ---------- the collection (same source and same collector names as the display) ----------
+const tokens = new Map();   // number -> { n, img, who }
+let lastSeen = -1, apiOk = true;
+async function gql(query, variables) {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 15000);
+  try {
+    const r = await fetch(CFG.api, { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query, variables }), signal: ctl.signal });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const j = await r.json();
+    if (j.errors) throw new Error(j.errors[0].message);
+    return j.data;
+  } finally { clearTimeout(timer); }
+}
+const PLOT_PROJECT = "0x000009bb1740eea484f7db00000a9227e578bf96-6";
+const PLOT_FIRST = 2, PLOT_LAST = 7;
+const ARTIST_WALLET = "0x7d42611012fdbe366bf4a0481fc0e1abf15e245a";
+const shortAddr = addr => addr ? addr.slice(0, 7) : "";
+const FIELDS = "invocation image { url } owner_address owner { display_name }";
+const ENS_STORE = "mintdisplay:ens", ENS_KEEP_MS = 24 * 3600 * 1000;
+let ensCache = {};
+try { ensCache = JSON.parse(localStorage.getItem(ENS_STORE) || "{}") || {}; } catch (e) {}
+const ensWaiting = []; let ensBusy = false;
+function addToken(t) {
+  const addr = t.owner_address || "";
+  const named = !!(t.owner && t.owner.display_name && t.owner.display_name.trim());
+  const unsold = CFG.project === PLOT_PROJECT && t.invocation >= PLOT_FIRST && t.invocation <= PLOT_LAST && addr.toLowerCase() === ARTIST_WALLET;
+  const who = !CFG.collector ? "" : unsold ? "Available" : named ? t.owner.display_name.trim() : (ensCache[addr] && ensCache[addr].name) || shortAddr(addr);
+  const rec = { n: t.invocation, img: t.image && t.image.url, who, addr };
+  tokens.set(rec.n, rec);
+  if (!named && !unsold && addr && CFG.collector) wantEns(addr);
+  drawTile(rec);
+  return rec;
+}
+function wantEns(addr) {
+  const c = ensCache[addr];
+  if (c && Date.now() - c.at < ENS_KEEP_MS) return;
+  if (!ensWaiting.includes(addr)) ensWaiting.push(addr);
+  if (!ensBusy) ensNext();
+}
+async function getJson(url) {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 8000);
+  try { const r = await fetch(url, { signal: ctl.signal }); return r.ok ? await r.json() : (r.status === 404 ? {} : null); }
+  catch (e) { return null; } finally { clearTimeout(timer); }
+}
+async function ensNext() {
+  const addr = ensWaiting.shift();
+  if (!addr) { ensBusy = false; return; }
+  ensBusy = true;
+  let name = null, answered = false;
+  const a = await getJson("https://api.ensideas.com/ens/resolve/" + addr);
+  if (a) { answered = true; name = a.name || null; }
+  if (!a) { const b = await getJson("https://api.ensdata.net/" + addr); if (b) { answered = true; name = b.ens_primary || null; } }
+  if (answered) {
+    ensCache[addr] = { name, at: Date.now() };
+    try { localStorage.setItem(ENS_STORE, JSON.stringify(ensCache)); } catch (e) {}
+    if (name) {
+      const short = shortAddr(addr);
+      for (const rec of tokens.values()) if (rec.addr === addr && rec.who === short) { rec.who = name; drawTile(rec); }
+      render();
+    }
+  }
+  setTimeout(ensNext, 400);
+}
+async function fetchAfter(after) {
+  const out = [];
+  for (;;) {
+    const d = await gql(`query($p:String!,$n:Int!){ tokens_metadata(where:{project_id:{_eq:$p}, invocation:{_gt:$n}},
+      order_by:{invocation:asc}, limit:500){ ${FIELDS} } }`, { p: CFG.project, n: after });
+    out.push(...d.tokens_metadata);
+    if (d.tokens_metadata.length < 500) return out;
+    after = d.tokens_metadata[d.tokens_metadata.length - 1].invocation;
+  }
+}
+async function poll(all) {
+  try {
+    const fresh = await fetchAfter(all ? -1 : lastSeen);
+    for (const t of fresh) { addToken(t); lastSeen = Math.max(lastSeen, t.invocation); }
+    apiOk = true;
+  } catch (e) { apiOk = false; }
+  $("empty").hidden = tokens.size > 0;
+  $("empty").textContent = tokens.size ? "" : apiOk ? "No pieces minted yet." : "The list of pieces could not be loaded. Trying again.";
+}
+
+// ---------- the grid, newest first ----------
+const tiles = new Map();
+function drawTile(rec) {
+  let el = tiles.get(rec.n);
+  if (!el) {
+    el = document.createElement("button");
+    el.className = "tile"; el.type = "button";
+    el.innerHTML = '<span class="pic"></span><span class="meta"><span class="num"></span><span class="who"></span></span>';
+    el.querySelector(".num").textContent = "#" + rec.n;
+    el.addEventListener("click", () => send(rec.n, 0));
+    tiles.set(rec.n, el);
+    // keep the grid in descending order
+    const grid = $("grid");
+    let before = null;
+    for (const c of grid.children) { if (+c.dataset.n < rec.n) { before = c; break; } }
+    el.dataset.n = rec.n;
+    grid.insertBefore(el, before);
+  }
+  el.querySelector(".who").textContent = rec.who || "";
+  if (rec.img && el.dataset.img !== rec.img) { el.dataset.img = rec.img; loadThumb(el, rec.img, 0); }
+}
+// A still image can be a little behind a new mint: try again a few times.
+function loadThumb(el, url, tries) {
+  const im = new Image();
+  im.alt = ""; im.decoding = "async";
+  im.onload = () => { const pic = el.querySelector(".pic"); pic.textContent = ""; pic.appendChild(im); };
+  im.onerror = () => { if (tries < 20) setTimeout(() => loadThumb(el, url, tries + 1), 15000); };
+  im.src = url + (tries ? "?r=" + tries : "");
+}
+
+// ---------- the relay ----------
+const TOPIC_OUT = "ivd-" + CFG.remote + "-c", TOPIC_IN = "ivd-" + CFG.remote + "-s";
+const sources = new Map();   // relay -> EventSource
+let screen = { known: false, n: -1, p: 0, c: 0, until: 0 };   // what the screen last said
+let pending = null;          // the request waiting for the screen's answer
+let lastAnswerAt = 0, noAnswer = false, note = "";
+const msgSeen = [];
+const relayUp = () => [...sources.values()].some(es => es.readyState === 1);
+function listen(h) {
+  const old = sources.get(h);
+  if (old) old.close();
+  let es;
+  try { es = new EventSource(h + "/" + TOPIC_IN + "/sse"); } catch (e) { return; }
+  sources.set(h, es);
+  es.onopen = () => { render(); if (!screen.known && !pending) hello(); };
+  es.onmessage = ev => {
+    let id, m;
+    try { const o = JSON.parse(ev.data); id = o.id; m = JSON.parse(o.message); } catch (e) { return; }
+    if (!m || !Number.isInteger(m.n)) return;
+    // each answer arrives once per relay; act on the first copy
+    const key = m.q || id;
+    if (msgSeen.includes(key)) return;
+    msgSeen.push(key); if (msgSeen.length > 100) msgSeen.shift();
+    onScreen(m);
+  };
+  es.onerror = () => { render(); if (es.readyState === 2) setTimeout(() => { if (sources.get(h) === es) listen(h); }, 8000); };
+}
+async function post(m) {
+  const body = JSON.stringify(m);
+  const res = await Promise.all(RELAYS.map(h => {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 8000);
+    return fetch(h + "/" + TOPIC_OUT, { method: "POST", body, signal: ctl.signal }).then(r => r.ok, () => false).finally(() => clearTimeout(timer));
+  }));
+  return res.some(Boolean);
+}
+const newId = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+// n = piece number, -1 = back to the queue, -2 = ask the screen what it is showing
+function send(n, p) {
+  if (!CFG.remote) return;
+  if (pending) pending.timers.forEach(clearTimeout);
+  const m = { i: newId(), n, p: p ? 1 : 0 };
+  const mine = pending = { m, at: Date.now(), timers: [], sent: null };
+  note = ""; noAnswer = false;
+  const go = async () => { const ok = await post(m); if (pending === mine && mine.sent !== true) { mine.sent = ok; render(); } };
+  go();
+  for (const ms of RESEND_MS) mine.timers.push(setTimeout(go, ms));
+  mine.timers.push(setTimeout(() => {
+    if (pending !== mine) return;
+    pending = null; noAnswer = true;
+    note = mine.sent ? (n === -2 ? "" : "Sent, no answer from the screen.") : "Not sent. This phone is not connected.";
+    render();
+  }, GIVE_UP_MS));
+  render();
+}
+const hello = () => send(-2, 0);
+function onScreen(m) {
+  lastAnswerAt = Date.now(); noAnswer = false;
+  screen = { known: true, n: m.n, p: m.p ? 1 : 0, c: m.c ? 1 : 0, until: m.n >= 0 ? Date.now() + (m.s || 0) * 1000 : 0 };
+  if (pending && m.i === pending.m.i) {
+    pending.timers.forEach(clearTimeout);
+    note = m.e ? "The screen could not load #" + pending.m.n + "." : "";
+    pending = null;
+  } else if (!pending) note = "";
+  render();
+}
+
+// ---------- what the page says ----------
+function render() {
+  const up = relayUp(), dot = $("dot");
+  let text;
+  if (!CFG.remote) { dot.className = "bad"; text = "This link has no key, so it cannot reach the screen"; }
+  else if (!up || navigator.onLine === false) { dot.className = "bad"; text = "Not connected"; }
+  else if (noAnswer) { dot.className = "bad"; text = "No answer from the screen"; }
+  else if (!screen.known) { dot.className = "wait"; text = "Looking for the screen"; }
+  else { dot.className = "ok"; text = "Connected to the screen"; }
+  $("connText").textContent = text;
+
+  const held = screen.known && screen.n >= 0;
+  const rec = held ? tokens.get(screen.n) : null;
+  const want = pending && pending.m.n !== -2 ? pending.m : null;
+  let now = "On screen now: ", sub = "";
+  if (!screen.known) now += noAnswer || !up || !CFG.remote ? "not known" : "checking";
+  else if (held) now += "#" + screen.n + (screen.p ? ", plot view" : "");
+  else now += "the queue";
+  if (want) sub = want.n === -1 ? "Going back to the queue" : want.n === screen.n && held ? "Switching plot view" : "Sending #" + want.n + " to the screen";
+  else if (held) {
+    const left = Math.max(0, Math.ceil((screen.until - Date.now()) / 1000));
+    sub = (rec && rec.who ? rec.who + " · " : "") + (left > 0 ? "back to the queue in " + left + " s" : "going back to the queue");
+  }
+  $("now").textContent = now;
+  $("sub").textContent = sub;
+  $("note").textContent = note;
+  const plot = $("plot");
+  plot.disabled = !(held && screen.c) || !CFG.remote;
+  plot.classList.toggle("on", !!(held && screen.p));
+  plot.textContent = held && !screen.c ? "No plot view" : held && screen.p ? "Plot view: on" : "Plot view: off";
+  $("back").disabled = !held || !CFG.remote;
+  for (const [n, el] of tiles) {
+    el.classList.toggle("sel", held && n === screen.n);
+    el.classList.toggle("wait", !!want && want.n === n && !(held && n === screen.n));
+  }
+}
+$("plot").addEventListener("click", () => { if (screen.n >= 0) send(screen.n, screen.p ? 0 : 1); });
+$("back").addEventListener("click", () => send(-1, 0));
+function jump() {
+  const box = $("jump"), n = parseInt(box.value, 10);
+  if (!Number.isInteger(n) || n < 0) return;
+  box.blur();
+  if (!tokens.has(n) && n > lastSeen) { note = "#" + n + " is not minted yet."; render(); return; }
+  box.value = "";
+  send(n, 0);
+  const el = tiles.get(n);
+  if (el && el.scrollIntoView) el.scrollIntoView({ block: "center", behavior: "smooth" });
+}
+$("go").addEventListener("click", jump);
+$("jump").addEventListener("keydown", e => { if (e.key === "Enter") jump(); });
+
+// ---------- start ----------
+window.__control = { get state() { return { screen, pending: pending && pending.m, note, noAnswer, up: relayUp(), count: tokens.size, lastSeen }; } };
+if (CFG.remote) {
+  for (const h of RELAYS) listen(h);
+  // A phone drops the connection when the page is in the background: reconnect and ask again.
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible") return;
+    for (const h of RELAYS) { const es = sources.get(h); if (!es || es.readyState === 2) listen(h); }
+    hello();
+  });
+  addEventListener("online", () => { for (const h of RELAYS) listen(h); render(); });
+  addEventListener("offline", render);
+  $("conn").addEventListener("click", hello);
+}
+setInterval(render, 500);
+render();
+poll(true).then(() => { render(); setInterval(() => poll(false).then(render), POLL_MS); setInterval(() => poll(true).then(render), REFRESH_MS); });
+</script>
+</body>
+</html>

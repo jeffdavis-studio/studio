@@ -58,6 +58,11 @@
               The piece fades to black, the page reloads, a piece is back in about 3 s.
               Some browsers (Safari) keep memory from every piece shown until the page
               reloads; this gives it back. The once-a-day reload below stays as well.
+    remote    a key shared with the controller page (control.html?remote=<same key>). Without
+              it nothing below applies and no relay is contacted. With it, the controller can
+              pull any piece up on this screen and switch its plot view.
+    hold      seconds a pulled piece stays up after the last controller action (45). Then the
+              queue carries on where it was. No refresh happens while a piece is held.
 */
 const qs = new URLSearchParams(location.search);
 const num = (k, d) => { const v = parseFloat(qs.get(k)); return Number.isFinite(v) ? v : d; };
@@ -74,6 +79,8 @@ const CFG = {
   name:    qs.get("name") || "",
   settleMs: num("settle", 1.5) * 1000,
   refreshMs: Math.max(0, num("refresh", 3)) * 3600 * 1000,
+  remote:  (qs.get("remote") || "").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 64),
+  holdMs:  Math.max(5, num("hold", 45)) * 1000,
 };
 const POLL_MS = 10000;          // look for new mints
 const POLL_BACKOFF_MS = 60000;  // after an API failure
@@ -97,13 +104,15 @@ let queue = [];             // invocations waiting to show as new mints, in mint
 let bag = [];               // shuffled invocations for idle showing
 let current = null;         // { n, kind: "new" | "idle", shownAt }
 let busy = false;           // a piece is loading or fading in
+let hold = null;            // remote only: the piece pulled up by the controller; null while the queue runs
+let releasing = false;      // remote only: a hold has ended and the queue's next piece is loading under it
 let projectName = CFG.name || "Intervals";
 let apiOk = true;
 let failCount = new Map();  // invocation -> failed load attempts as a queued mint
 const bootAt = Date.now();
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
 // Read-only view for testing from the console or a harness.
-window.__display = { get state() { return { current, queue: queue.slice(), lastSeen, count: tokens.size, busy, apiOk, bag: bag.length,
+window.__display = { get state() { return { current, queue: queue.slice(), lastSeen, count: tokens.size, busy, apiOk, bag: bag.length, hold: hold && Object.assign({}, hold), releasing,
   frames: document.querySelectorAll("iframe").length, imgs: document.querySelectorAll(".layer img").length }; }, events: [] };
 const mark = (type, extra) => { window.__display.events.push(Object.assign({ t: Date.now(), type }, extra)); if (window.__display.events.length > 500) window.__display.events.shift(); };
 
@@ -276,6 +285,7 @@ function newDuration() {
 
 // Runs four times a second and decides whether it is time to change the piece.
 function tick() {
+  if (hold || releasing) return holdTick();   // remote only: the queue waits while a pulled piece is up
   if (busy) return;
   const now = Date.now();
   if (!current) return advance();
@@ -307,8 +317,8 @@ async function selfReload() {
   layer.classList.remove("on");
   mark("refresh-fade");
   await new Promise(r => setTimeout(r, FADE_MS + 100));
-  if (queue.length || !save(true)) {
-    log(queue.length ? "refresh put off: a new mint is waiting" : "refresh put off: storage unavailable");
+  if (hold || queue.length || !save(true)) {
+    log(hold ? "refresh put off: a piece is held" : queue.length ? "refresh put off: a new mint is waiting" : "refresh put off: storage unavailable");
     mark("refresh-cancel");
     layer.classList.add("on");
     await new Promise(r => setTimeout(r, FADE_MS + 100));
@@ -344,6 +354,9 @@ async function advance() {
   busy = true;
   const ok = await show(tokens.get(n), kind);
   busy = false;
+  // remote only: the controller pulled a piece up while this one was loading. Nothing was
+  // shown, so a new mint keeps its place at the head of the queue and an idle piece goes back.
+  if (ok === "held") { if (kind === "idle") bag.push(n); return; }
   if (kind === "new") {
     if (ok) { queue.shift(); failCount.delete(n); save(); }
     else {
@@ -417,6 +430,7 @@ async function show(tok, kind) {
   if (CFG.mode === "live" && tok.live && await liveReachable(tok.live)) { ok = await loadLive(back, tok.live); how = "live"; }
   if (!ok) { clearLayer(back); ok = await loadImage(back, tok.img); how = "image"; }
   if (!ok) { clearLayer(back); log("could not load #" + tok.n); mark("failed", { n: tok.n, kind }); return false; }
+  if (hold) { clearLayer(back); return "held"; }   // remote only
   // A mint that arrived while this idle piece was loading goes first; put the idle piece back.
   if (kind === "idle" && queue.length) { clearLayer(back); bag.push(tok.n); return "superseded"; }
 
@@ -442,6 +456,196 @@ async function show(tok, kind) {
   clearLayer(old);           // remove the old frame so frames never pile up
   window.focus();            // keep keys coming to this page
   return true;
+}
+
+// ---------- remote control (only with `remote` in the link) ----------
+// A controller page sends "show piece n, plot view on or off" through a public relay; this
+// page shows that piece at once on its own layer above the queue's two layers, holds it for
+// `hold` seconds after the last action, then lets the queue carry on underneath and fades
+// the held piece away. The relay is three public ntfy servers used side by side; any one of
+// them is enough. If none can be reached nothing here runs and the queue is unaffected.
+// Messages in:  { i: id, n: piece number (-1 = back to the queue, -2 = say what is showing), p: 0 | 1 }
+// Messages out: { i: id answered, n: held piece or -1, p: plot view, c: plot view possible, s: seconds left, e: 1 = could not load, q: this message's own id }
+const RELAYS = ["https://ntfy.sh", "https://ntfy.envs.net", "https://ntfy.adminforge.de"];
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+let holdLayers = [], holdFront = 0, holdBusy = false, holdWant = null, relGen = 0;
+const cmdSeen = [], cmdDone = [];
+let outSeq = 0;
+
+function holdTick() {
+  if (hold && hold.up && !holdBusy && Date.now() >= hold.until) endHold();
+}
+function relaySend(m) {
+  const body = JSON.stringify(m);
+  for (const h of RELAYS) fetch(h + "/ivd-" + CFG.remote + "-s", { method: "POST", body }).catch(() => {});
+}
+function report(i, failed) {
+  const up = hold && hold.up;
+  relaySend({ q: ++outSeq + "-" + bootAt % 100000, i: i || 0, n: up ? hold.n : -1, p: up && hold.plot ? 1 : 0, c: up && hold.canPlot ? 1 : 0,
+    s: up ? Math.max(0, Math.round((hold.until - Date.now()) / 1000)) : 0, e: failed ? 1 : 0 });
+}
+function relayListen(h) {
+  let es;
+  try { es = new EventSource(h + "/ivd-" + CFG.remote + "-c/sse"); } catch (e) { return; }
+  es.onmessage = ev => {
+    let m;
+    try { m = JSON.parse(JSON.parse(ev.data).message); } catch (e) { return; }
+    if (!m || typeof m.i !== "string" || !Number.isInteger(m.n) || m.n < -2) return;
+    // A repeat. The copies from the other relays arrive within a moment and are dropped; a later
+    // one is the controller asking again because no answer reached it, so answer again.
+    const first = cmdSeen.find(c => c.i === m.i);
+    if (first) { if (Date.now() - first.t > 2500 && cmdDone.includes(m.i)) { first.t = Date.now(); report(m.i); } return; }
+    cmdSeen.push({ i: m.i, t: Date.now() }); if (cmdSeen.length > 200) cmdSeen.shift();
+    mark("remote", { n: m.n, p: m.p ? 1 : 0 });
+    holdWant = { i: m.i, n: m.n, p: m.p ? 1 : 0 };   // the latest request wins
+    holdPump();
+  };
+  // The browser reconnects by itself unless the server refused; then try again in a while.
+  es.onerror = () => { if (es.readyState === 2) { es.close(); setTimeout(() => relayListen(h), 20000); } };
+}
+async function holdPump() {
+  if (holdBusy) return;
+  holdBusy = true;
+  while (holdWant) {
+    const w = holdWant; holdWant = null;
+    try { await holdApply(w); } catch (e) { log("remote: " + e.message); report(w.i, true); }
+    cmdDone.push(w.i); if (cmdDone.length > 200) cmdDone.shift();
+  }
+  holdBusy = false;
+}
+// A piece the page has not heard of yet (minted seconds ago). It is not added to the
+// collection here, so it still arrives through poll() and shows as a new mint in its turn.
+async function fetchOne(n) {
+  try {
+    const d = await gql(`query($p:String!,$n:Int!){ tokens_metadata(where:{project_id:{_eq:$p}, invocation:{_eq:$n}}){ ${FIELDS} } }`, { p: CFG.project, n });
+    if (!d.tokens_metadata[0]) return null;
+    const rec = addToken(d.tokens_metadata[0]);
+    tokens.delete(n);
+    return rec;
+  } catch (e) { return null; }
+}
+function setPlot(layer, on) {
+  const f = layer.querySelector("iframe");
+  try { f.contentWindow.eval("plot = " + (on ? "true" : "false") + "; redraw();"); return true; } catch (e) { return false; }
+}
+// Load a pulled piece. First choice is the generator's own page, fetched and put in a frame
+// that belongs to this page, so the plot view can be switched from here (a frame served
+// straight from the generator is another site and cannot be reached). It is the same page,
+// byte for byte. If that fails: the generator frame as usual (no plot view), then the still.
+async function loadHeld(layer, tok) {
+  if (CFG.mode === "live" && tok.live) {
+    try {
+      const ctl = new AbortController();
+      const timer = setTimeout(() => ctl.abort(), 10000);
+      let html = "";
+      try { const r = await fetch(tok.live, { signal: ctl.signal }); if (r.ok) html = await r.text(); } finally { clearTimeout(timer); }
+      if (html) {
+        const url = URL.createObjectURL(new Blob([html], { type: "text/html" }));
+        const f = document.createElement("iframe");
+        f.setAttribute("scrolling", "no");
+        f.tabIndex = -1;
+        const loaded = await new Promise(resolve => {
+          const timer2 = setTimeout(() => { f.onload = null; resolve(false); }, LIVE_TIMEOUT_MS);
+          f.onload = () => { clearTimeout(timer2); resolve(true); };
+          f.src = url;
+          layer.appendChild(f);
+        });
+        URL.revokeObjectURL(url);
+        if (loaded) {
+          // wait for the first drawn frame (at most 3 s), then one moment more for it to paint
+          for (let k = 0; k < 60; k++) { let fc = 0; try { fc = f.contentWindow.frameCount; } catch (e) {} if (fc >= 1) break; await sleep(50); }
+          await sleep(150);
+          let canPlot = false;
+          try { canPlot = typeof f.contentWindow.eval("plot") === "boolean" && typeof f.contentWindow.redraw === "function"; } catch (e) {}
+          return { how: "own", canPlot };
+        }
+      }
+    } catch (e) {}
+    clearLayer(layer);
+    if (await liveReachable(tok.live) && await loadLive(layer, tok.live)) return { how: "live", canPlot: false };
+  }
+  clearLayer(layer);
+  if (await loadImage(layer, tok.img)) return { how: "image", canPlot: false };
+  clearLayer(layer);
+  return null;
+}
+async function holdApply(w) {
+  if (w.n === -2) return report(w.i);
+  if (w.n === -1) { if (hold) endHold(w.i); else report(w.i); return; }
+  // the piece already held: only the plot view or the clock changes
+  if (hold && hold.up && hold.n === w.n) {
+    if (hold.canPlot && !!w.p !== hold.plot && setPlot(holdLayers[holdFront], w.p)) { hold.plot = !!w.p; mark("plot", { n: w.n, on: hold.plot }); }
+    hold.until = Date.now() + CFG.holdMs;
+    return report(w.i);
+  }
+  const tok = tokens.get(w.n) || await fetchOne(w.n);
+  if (!tok) return report(w.i, true);
+  const prev = hold;
+  if (!prev) {
+    relGen++;   // a hold that was ending stops ending
+    // A new mint that had been up under 10 s when it was covered goes back to the head of the queue.
+    if (current && current.kind === "new" && Date.now() - current.shownAt < 10000 && !queue.includes(current.n)) { queue.unshift(current.n); save(); }
+  }
+  hold = { n: w.n, plot: false, canPlot: false, up: false, until: Infinity };
+  const back = holdLayers[1 - holdFront], old = holdLayers[holdFront];
+  clearLayer(back);
+  const got = await loadHeld(back, tok);
+  if (!got) {
+    log("remote: could not load #" + w.n);
+    hold = prev;                                   // what was up stays up
+    if (hold) hold.until = Date.now() + CFG.holdMs;
+    return report(w.i, true);
+  }
+  hold.canPlot = got.canPlot;
+  if (w.p && got.canPlot && setPlot(back, true)) hold.plot = true;
+  const cap = document.createElement("div");
+  cap.className = "cap";
+  cap.textContent = projectName + " #" + tok.n;
+  if (CFG.collector && tok.who) { const s = document.createElement("span"); s.className = "who"; s.textContent = tok.who; cap.appendChild(s); }
+  back.appendChild(cap);
+  back.style.zIndex = 6; old.style.zIndex = 5;
+  back.getBoundingClientRect();
+  back.classList.add("on");
+  holdFront = 1 - holdFront;
+  hold.up = true;
+  hold.until = Date.now() + CFG.holdMs;
+  log("showing #" + tok.n, "held", got.how);
+  mark("show", { n: tok.n, kind: "held", how: got.how });
+  report(w.i);
+  await sleep(FADE_MS + 100);
+  old.classList.remove("on");
+  clearLayer(old);
+  window.focus();
+}
+// The hold is over (45 s without an action, or "Back to the queue"). The queue's next piece
+// loads in the usual layers underneath, then the held piece fades away over it.
+async function endHold(i) {
+  const g = ++relGen;
+  hold = null; releasing = true;
+  mark("hold-end");
+  report(i);
+  while (busy && g === relGen) await sleep(50);
+  const before = current;
+  if (g === relGen && !hold) await advance();
+  if (g === relGen && !hold) {
+    const top = holdLayers[holdFront];
+    top.classList.remove("on");
+    if (current && current !== before) current.shownAt = Date.now();   // its time starts when it can be seen
+    await sleep(FADE_MS + 100);
+    if (g === relGen && !hold) { clearLayer(holdLayers[0]); clearLayer(holdLayers[1]); }
+  }
+  if (g === relGen) releasing = false;
+}
+function startRemote() {
+  for (let k = 0; k < 2; k++) {
+    const d = document.createElement("div");
+    d.className = "layer";
+    d.style.zIndex = 5;
+    document.body.insertBefore(d, document.getElementById("shield"));
+    holdLayers.push(d);
+  }
+  for (const h of RELAYS) relayListen(h);
+  log("remote control on, hold " + CFG.holdMs / 1000 + " s");
 }
 
 // ---------- unattended running ----------
@@ -509,6 +713,7 @@ async function boot() {
   setInterval(tick, 250);
   setTimeout(poll, apiOk ? POLL_MS : 5000);
   setInterval(refresh, REFRESH_MS);
+  if (CFG.remote) startRemote();
 }
 boot();
 </script>
