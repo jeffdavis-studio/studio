@@ -138,12 +138,20 @@ async function gql(query, variables) {
     return j.data;
   } finally { clearTimeout(timer); }
 }
+// Intervals: tokens #2 to #7 are the plotted pieces, sold with the plot at the gallery.
+const PLOT_PROJECT = "0x000009bb1740eea484f7db00000a9227e578bf96-6";
+const PLOT_FIRST = 2, PLOT_LAST = 7;
+const ARTIST_WALLET = "0x7d42611012fdbe366bf4a0481fc0e1abf15e245a";
+// A collector with no name shows as the start of the address only: 0x and five characters.
+const shortAddr = addr => addr ? addr.slice(0, 7) : "";
 const FIELDS = "invocation token_id live_view_url image { url } owner_address owner { display_name }";
 function addToken(t) {
-  // Collector: the Art Blocks display name when the owner has set one, otherwise a short address.
+  // Collector: the Art Blocks display name when the owner has set one, otherwise an ENS name, otherwise a short address.
   const addr = t.owner_address || "";
   const named = !!(t.owner && t.owner.display_name && t.owner.display_name.trim());
-  const who = named ? t.owner.display_name.trim() : (ensCache[addr] && ensCache[addr].name) || (addr ? addr.slice(0, 6) + "\u2026" + addr.slice(-4) : "");
+  // The six plotted pieces read "Available" for as long as the artist's wallet still holds them.
+  const unsold = CFG.project === PLOT_PROJECT && t.invocation >= PLOT_FIRST && t.invocation <= PLOT_LAST && addr.toLowerCase() === ARTIST_WALLET;
+  const who = unsold ? "Available" : named ? t.owner.display_name.trim() : (ensCache[addr] && ensCache[addr].name) || shortAddr(addr);
   const rec = { n: t.invocation, id: t.token_id, live: t.live_view_url, img: t.image && t.image.url, who };
   tokens.set(rec.n, rec);
   if (!named && addr && CFG.collector) wantEns(addr);
@@ -183,7 +191,7 @@ async function ensNext() {
     ensCache[addr] = { name, at: Date.now() };
     try { localStorage.setItem(ENS_STORE, JSON.stringify(ensCache)); } catch (e) {}
     if (name) {
-      const short = addr.slice(0, 6) + "\u2026" + addr.slice(-4);
+      const short = shortAddr(addr);
       for (const rec of tokens.values()) if (rec.who === short) rec.who = name;
       // a caption already on screen for this collector
       for (const el of document.querySelectorAll(".cap .who")) if (el.textContent === short) el.textContent = name;
