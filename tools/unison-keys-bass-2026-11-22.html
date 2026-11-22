@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Unison — keyboards, bass and hats, before and after</title>
+<!-- Engines: before 69decc3 (main), keyboards 7c75f27 (keys-stack), bass and hats 9151337 (bass-hats) · page 084d891 · built 2026-11-22 · analysis/build-keys-bass-page.mjs -->
+<style>
+  :root{ --bg:#16161a; --panel:#1f1f25; --edge:#34343d; --ink:#e8e8ec; --dim:#8d8d99;
+    --accent:#c9a15a; --keep:#6fae78; --worse:#c46a5a; }
+  *{box-sizing:border-box}
+  html,body{overflow-x:hidden}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.45 ui-sans-serif,-apple-system,"Segoe UI",Inter,sans-serif;-webkit-text-size-adjust:100%;}
+  .wrap{max-width:640px;margin:0 auto;padding:16px 14px 80px}
+  h1{font-size:21px;font-weight:600;margin:0 0 8px}
+  .intro{margin:0 0 6px;padding-left:18px}
+  .intro li{margin:0 0 6px}
+  .how{color:var(--dim);margin:8px 0 12px}
+  .bar{position:sticky;top:0;z-index:5;background:var(--bg);padding:8px 0;display:flex;gap:8px;align-items:center;flex-wrap:wrap;border-bottom:1px solid var(--edge);margin-bottom:12px}
+  button{font:inherit;color:var(--ink);background:#2a2a32;border:1px solid var(--edge);border-radius:8px;
+    min-height:44px;min-width:44px;padding:8px 12px;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+  #copy{flex:0 0 auto;background:var(--accent);border-color:var(--accent);color:#1a1a1a;font-weight:600}
+  #stop{flex:0 0 auto}
+  #ready{flex:1 1 80px;color:var(--dim);font-size:14px}
+  #copied{flex:0 1 auto;color:var(--keep);font-size:14px}
+  #fallback{flex:1 1 100%;width:100%;font:13px ui-monospace,monospace;background:#111;color:var(--ink);border:1px solid var(--edge);border-radius:6px;padding:6px;display:none}
+  h2.sec{font-size:18px;font-weight:600;margin:22px 0 4px}
+  p.secsub{color:var(--dim);margin:0 0 10px}
+  .song{background:var(--panel);border:1px solid var(--edge);border-radius:10px;padding:12px;margin-bottom:14px}
+  .song h3{font-size:17px;font-weight:600;margin:0 0 4px}
+  .song .q{margin:0 0 8px}
+  .clips{display:flex;flex-direction:column;gap:6px}
+  .clips .play{display:flex;width:100%;text-align:left;align-items:center;gap:10px;padding:8px 12px}
+  .clips .play .tx{flex:1 1 auto;min-width:0}
+  .clips .play .ic{flex:0 0 auto;color:var(--accent)}
+  .clips .play.on{background:var(--accent);border-color:var(--accent);color:#1a1a1a;font-weight:600}
+  .clips .play.on .ic{color:#1a1a1a}
+  .row2{display:flex;gap:6px;margin-top:6px}
+  .row2 .top{flex:0 0 auto;color:var(--dim);font-size:15px}
+  .marks{display:flex;gap:4px;margin-top:10px}
+  .marks button{flex:1 1 0;min-width:0;padding:8px 2px;color:var(--dim);font-size:15px;line-height:1.15}
+  .marks button.sel{background:var(--keep);border-color:var(--keep);color:#10160f;font-weight:600}
+  .marks button.sel[data-v="2"]{background:var(--worse);border-color:var(--worse);color:#1a0f0d}
+  .marks button.sel[data-v="3"],.marks button.sel[data-v="4"]{background:#3a3a44;border-color:#5a5a66;color:var(--ink)}
+  input.note,textarea.note{display:block;width:100%;margin-top:8px;min-height:44px;font-family:inherit;font-size:16px;line-height:1.3;color:var(--ink);background:#111;border:1px solid var(--edge);border-radius:8px;padding:8px 10px}
+  textarea.note{min-height:88px;resize:vertical}
+  .foot{color:var(--dim);font-size:14px;margin:10px 0 0}
+  .sha{color:var(--dim);font-size:12px;margin:18px 0 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Keyboards, bass and hats: before and after</h1>
+  <ul class="intro" id="intro"></ul>
+  <p class="how">Tap Before or After to play. While one plays, tapping the other switches at the same spot in the bar, so you can flip back and forth. Mark each song, add a note if you like, then tap Copy link and text it back to me.</p>
+  <div class="bar">
+    <button id="copy">Copy link</button>
+    <button id="stop">Stop</button>
+    <span id="ready"></span>
+    <span id="copied"></span>
+    <input id="fallback" readonly>
+  </div>
+  <div id="list"></div>
+  <h2 class="sec">Anything else</h2>
+  <textarea class="note" id="pagenote" maxlength="600" placeholder="A note on the whole page (optional)"></textarea>
+  <p class="foot">Each clip is a few bars cut from the full song render, at the engine's own level. Playing a clip records nothing; only your marks and notes go into the link.</p>
+  <p class="sha" id="sha"></p>
+</div>
+
+<script>
+/* The keys and bass listening page (2026-11-22; Asana 1220759610549868, 1220746406848870).
+   Built by analysis/build-keys-bass-page.mjs from this template and
+   harness/keys-bass-page-2026-11-22.json. Clips are AAC files next to the page,
+   all fetched and decoded at load. One clip plays at a time, looped; tapping
+   another clip in the same card starts it at the same position.
+   Marks live in the URL hash: #v=<id>.<one digit per card, file order>
+   (0 none, 1 better, 2 worse, 3 no difference, 4 unsure; trailing zeros
+   dropped), then &n<card index>=<note> and &g=<page note>, URI-encoded.
+   harness/keys-bass-decode.mjs reads it. */
+(function(){
+  "use strict";
+  var D = {"id":"kb1","dir":"unison-keys-bass-2026-11-22","intro":["Keyboards: on about six songs in ten, the keyboards now play two to four single lines that stack up, instead of chords.","Held chords sit back under those lines and come forward in intros and breaks. The stab figures play only in intros and breaks, and the quarter-note pulse is left alone.","Bass: fewer notes at fast tempos, more notes between the eighths, follows the kick less, and changes from bar to bar much more often. Straight 8ths were 46% of bass bars and are now 24%.","Hats: straight 8ths were half of all hat bars and are now about a third. Broken, uneven patterns went from 9% of bars to 21%.","Levels: the held chord sits under the stacked lines whether or not a lead plays, and the lead sits over the lines. How far the chord sits back, and how loud the lines are against it and against a lead, are my settings. You can move any of them.","On the new bass lines, each playing style sits at the same level as that line played plainly, and a line with fewer notes is not turned up to make up for it, so a sparser bass can sound a touch lighter. That is my setting too, and you can move it."],"sections":[{"title":"1. Keyboards","sub":"Before is the old engine. After changes only the keyboards. The third clip is the keyboards on their own, at the level they sit in the mix, so it plays quietly.","cards":[{"lane":"Synth pop","bpm":122,"listen":"The keyboard stabs become one held chord, sitting back under the song.","clips":[{"label":"Before","file":"k1-before.m4a"},{"label":"After","file":"k1-after.m4a"},{"label":"After, keyboards alone","file":"k1-after-alone.m4a"}]},{"lane":"Synth pop","bpm":116,"listen":"The arpeggio used to play alone. Now a low line rocks between two notes under it.","clips":[{"label":"Before","file":"k2-before.m4a"},{"label":"After","file":"k2-after.m4a"},{"label":"After, keyboards alone","file":"k2-after-alone.m4a"}]},{"lane":"Synth pop","bpm":117,"listen":"Three single lines now. The top one runs in sixteenths against the others' eighths.","clips":[{"label":"Before","file":"k3-before.m4a"},{"label":"After","file":"k3-after.m4a"},{"label":"After, keyboards alone","file":"k3-after-alone.m4a"}]},{"lane":"New wave","bpm":117,"listen":"One keyboard line becomes four, stacked.","clips":[{"label":"Before","file":"k4-before.m4a"},{"label":"After","file":"k4-after.m4a"},{"label":"After, keyboards alone","file":"k4-after-alone.m4a"}]},{"lane":"Synth R&B","bpm":96,"listen":"Four stacked lines under a lead. The lead should ride clearly on top of them.","clips":[{"label":"Before","file":"k5-before.m4a"},{"label":"After","file":"k5-after.m4a"},{"label":"After, keyboards and lead alone","file":"k5-after-alone.m4a"}]}]}]}, SHAS = "Engines: before 69decc3 (main), keyboards 7c75f27 (keys-stack), bass and hats 9151337 (bass-hats) · page 084d891";
+  var ID = D.id, CARDS = [];
+  D.sections.forEach(function(s){ s.cards.forEach(function(c){ c.section = s; CARDS.push(c); }); });
+  function ios(){ try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) {} }
+  ios();
+
+  // ---- intro ----
+  var ul = document.getElementById("intro");
+  D.intro.forEach(function(t){ var li = document.createElement("li"); li.textContent = t; ul.appendChild(li); });
+  document.getElementById("sha").textContent = SHAS;
+
+  // ---- marks and notes in the hash ----
+  var MARKS = [["1", "Better"], ["2", "Worse"], ["3", "No difference"], ["4", "Unsure"]];
+  var marks = CARDS.map(function(){ return 0; }), notes = CARDS.map(function(){ return ""; }), gnote = "";
+  function encode(){
+    var s = "v=" + ID + "." + marks.join("").replace(/0+$/, "");
+    notes.forEach(function(n, i){ if (n) s += "&n" + i + "=" + encodeURIComponent(n); });
+    if (gnote) s += "&g=" + encodeURIComponent(gnote);
+    return s;
+  }
+  function decodeInto(h){
+    var m = /v=([a-z0-9]+)\.([0-4]*)/.exec(h || "");
+    if (!m || m[1] !== ID) return false;
+    marks = CARDS.map(function(_, i){ return +(m[2][i] || 0); });
+    notes = CARDS.map(function(_, i){ var r = new RegExp("[#&]n" + i + "=([^&]*)").exec(h); try { return r ? decodeURIComponent(r[1]) : ""; } catch (e) { return ""; } });
+    var g = /[#&]g=([^&]*)/.exec(h); try { gnote = g ? decodeURIComponent(g[1]) : ""; } catch (e) { gnote = ""; }
+    return true;
+  }
+  function save(){
+    var h = encode();
+    try { history.replaceState(null, "", "#" + h); } catch (e) { location.hash = h; }
+    try { localStorage.setItem("unison-kb-" + ID, h); } catch (e) {}
+  }
+  if (!decodeInto(location.hash)) { try { if (decodeInto(localStorage.getItem("unison-kb-" + ID))) save(); } catch (e) {} }
+
+  // ---- audio: one context, every clip decoded at load ----
+  var AC = window.AudioContext || window.webkitAudioContext, ctx = new AC(), out = ctx.createGain();
+  out.connect(ctx.destination);
+  function resume(){ ios(); if (ctx.state !== "running") { try { ctx.resume(); } catch (e) {} } }
+  ["touchend", "pointerup", "click"].forEach(function(t){ document.addEventListener(t, resume, { passive: true }); });
+  var bufs = {}, total = 0, done = 0, failed = [], readyEl = document.getElementById("ready");
+  function readyText(){ readyEl.textContent = failed.length ? (failed.length + " clips failed to load, reload the page") : (done < total ? done + " of " + total + " ready" : ""); }
+  function decode(ab){ return new Promise(function(res, rej){ var p = ctx.decodeAudioData(ab, res, rej); if (p && p.then) p.then(res, rej); }); }
+  function load(file){
+    return fetch(D.dir + "/" + file).then(function(r){ if (!r.ok) throw new Error(file + " " + r.status); return r.arrayBuffer(); })
+      .then(decode).then(function(b){ bufs[file] = b; done++; readyText(); }, function(e){ failed.push(file); readyText(); });
+  }
+  CARDS.forEach(function(c){ c.clips.forEach(function(k){ total++; }); });
+  readyText();
+  // four at a time, in page order, so the top cards are ready first
+  var queue = []; CARDS.forEach(function(c){ c.clips.forEach(function(k){ queue.push(k.file); }); });
+  function next(){ var f = queue.shift(); if (f) return load(f).then(next); }
+  for (var w = 0; w < 4; w++) next();
+
+  // playing: { card, file, btn, src, g, startAt (ctx time of offset 0), dur }
+  var playing = null;
+  function position(){ if (!playing) return 0; var p = (ctx.currentTime - playing.startAt) % playing.dur; return p < 0 ? p + playing.dur : p; }
+  function stop(){
+    if (!playing) return;
+    var n = ctx.currentTime, p = playing;
+    p.g.gain.cancelScheduledValues(n); p.g.gain.setValueAtTime(p.g.gain.value, n); p.g.gain.linearRampToValueAtTime(0, n + 0.015);
+    try { p.src.stop(n + 0.02); } catch (e) {}
+    p.btn.classList.remove("on"); p.btn.querySelector(".ic").textContent = "▶";
+    playing = null;
+  }
+  function start(ci, file, btn, offset){
+    var b = bufs[file];
+    if (!b) { readyEl.textContent = "Still loading, one moment"; return; }
+    resume();
+    var n = ctx.currentTime + 0.01, g = ctx.createGain(), src = ctx.createBufferSource();
+    src.buffer = b; src.loop = true; src.connect(g); g.connect(out);
+    g.gain.setValueAtTime(0, n); g.gain.linearRampToValueAtTime(1, n + 0.015);
+    offset = offset % b.duration;
+    src.start(n, offset);
+    playing = { card: ci, file: file, btn: btn, src: src, g: g, startAt: n - offset, dur: b.duration };
+    btn.classList.add("on"); btn.querySelector(".ic").textContent = "■";
+  }
+  function tap(ci, file, btn){
+    resume();
+    if (playing && playing.btn === btn) { stop(); return; }
+    var off = (playing && playing.card === ci) ? position() + 0.01 : 0;   // + the 10 ms start lead, so both clips sit at the same spot at the switch
+    stop();
+    start(ci, file, btn, off);
+  }
+  function fromStart(ci){
+    var c = CARDS[ci];
+    var btn = (playing && playing.card === ci) ? playing.btn : document.querySelector('.play[data-card="' + ci + '"]');
+    var file = btn.dataset.file;
+    stop(); start(ci, file, btn, 0);
+  }
+  document.getElementById("stop").onclick = function(){ stop(); };
+
+  // ---- the cards ----
+  var listEl = document.getElementById("list");
+  var ci = 0;
+  D.sections.forEach(function(s){
+    var h = document.createElement("h2"); h.className = "sec"; h.textContent = s.title; listEl.appendChild(h);
+    if (s.sub) { var p = document.createElement("p"); p.className = "secsub"; p.textContent = s.sub; listEl.appendChild(p); }
+    s.cards.forEach(function(c){
+      var i = ci++;
+      var card = document.createElement("section"); card.className = "song"; card.dataset.i = i;
+      var t = document.createElement("h3"); t.textContent = c.lane + " · " + c.bpm + " BPM"; card.appendChild(t);
+      var q = document.createElement("p"); q.className = "q"; q.textContent = c.listen; card.appendChild(q);
+      var cl = document.createElement("div"); cl.className = "clips";
+      c.clips.forEach(function(k){
+        var b = document.createElement("button"); b.className = "play"; b.dataset.card = i; b.dataset.file = k.file;
+        b.innerHTML = '<span class="tx"></span><span class="ic">▶</span>';
+        b.querySelector(".tx").textContent = k.label;
+        b.onclick = function(){ tap(i, k.file, b); };
+        cl.appendChild(b);
+      });
+      card.appendChild(cl);
+      var r2 = document.createElement("div"); r2.className = "row2";
+      var fs = document.createElement("button"); fs.className = "top"; fs.textContent = "↺ From the start"; fs.onclick = function(){ fromStart(i); };
+      r2.appendChild(fs); card.appendChild(r2);
+      var mk = document.createElement("div"); mk.className = "marks";
+      MARKS.forEach(function(m){
+        var b = document.createElement("button"); b.textContent = m[1]; b.dataset.v = m[0];
+        b.onclick = function(){ marks[i] = marks[i] === +m[0] ? 0 : +m[0]; paint(mk, marks[i]); save(); };
+        mk.appendChild(b);
+      });
+      paint(mk, marks[i]); card.appendChild(mk);
+      var nt = document.createElement("input"); nt.className = "note"; nt.type = "text"; nt.placeholder = "Note (optional)"; nt.maxLength = 300; nt.value = notes[i];
+      nt.oninput = function(){ notes[i] = nt.value; save(); };
+      card.appendChild(nt);
+      listEl.appendChild(card);
+    });
+  });
+  function paint(mk, v){ [].forEach.call(mk.children, function(b){ b.classList.toggle("sel", +b.dataset.v === v); }); }
+  var pn = document.getElementById("pagenote"); pn.value = gnote; pn.oninput = function(){ gnote = pn.value; save(); };
+
+  // ---- copy link ----
+  document.getElementById("copy").onclick = function(){
+    save();
+    var u = location.href, ok = function(){ document.getElementById("copied").textContent = "Copied"; setTimeout(function(){ document.getElementById("copied").textContent = ""; }, 2500); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(u).then(ok, fb); else fb();
+    function fb(){ var f = document.getElementById("fallback"); f.style.display = "block"; f.value = u; f.focus(); f.select(); document.getElementById("copied").textContent = "Select and copy"; }
+  };
+  // the check's hooks (harness/check-keys-bass-page.mjs)
+  window.__kb = { cards: CARDS, encode: encode, ctx: ctx, out: out, bufs: bufs, position: position,
+    now: function(){ return playing ? { card: playing.card, file: playing.file, startAt: playing.startAt, dur: playing.dur, t: ctx.currentTime } : null; },
+    ready: function(){ return { done: done, total: total, failed: failed.slice() }; } };
+})();
+</script>
+</body>
+</html>
