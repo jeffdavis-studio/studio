@@ -274,10 +274,10 @@
 <div id="masterCard"></div>
 <div id="layers"></div>
 <div id="add" class="row"><div class="lbl">Add a layer<button id="palRnd" title="add a random instrument (one you don't have yet, while any are left)">Random</button></div><div id="pal"></div></div>
-<footer title="engine @0b9a0c3 · built 2026-11-18">Unison jam &middot; every sound is synthesized in this page by the engine at 0b9a0c3</footer>
+<footer title="engine @52df558 · built 2026-11-18">Unison jam &middot; every sound is synthesized in this page by the engine at 52df558</footer>
 
 <script>
-/* ===== src/core/prng.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/prng.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
 // prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
 // token hash, consumed in canonical draw order (Technical Architecture v1.2).
 //
@@ -350,7 +350,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/core/mix.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/mix.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
 // mix.js — the fan-in ≤2 summing rule, as a primitive.
 //
 // Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
@@ -519,7 +519,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/desk/desk.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/desk/desk.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
 // desk.js — the 24-track desk as a running audio graph.
 //
 // The desk is the data structure, not a metaphor (Composition Brief 2 / Tech
@@ -926,13 +926,20 @@
   // makeup sits on the input (the envelope filter's on its output, so the
   // follower reads the strip as it is). Native nodes only, fan-in <= 2.
 
-  // FLANGER: the chorus block plus feedback. Per side one swept delay in a
-  // feedback loop (cin = side input + feedback, fan-in 2), one LFO in
-  // opposite polarity per side (mirrored right of centre, as the chorus).
-  // A delay inside a cycle cannot go under one render quantum (128 frames,
-  // 2.9 ms at 44.1k): the sweep's bottom parks there, as it did on the
-  // audition page (U.makeFlanger has the same loop), which is what he heard.
+  // FLANGER: the chorus block plus feedback, wet in opposite polarity per
+  // side (mirrored right of centre, as the chorus). THE FEEDBACK AS ITS
+  // EXPANSION: y = x(t-d) + fb y(t-d) is sum_k fb^(k-1) x(t - k d), so each
+  // side is U.FLANGER_TAPS feed-forward taps at k x the swept delay, gains
+  // fb^(k-1), summed at fan-in 2. Why not a loop: a delay inside a cycle
+  // cannot go under one render quantum (128 frames, 2.9 ms at 44.1k), so a
+  // looped flanger parks at 2.9 ms for any sweep below it (most of the 0.5-
+  // 5 ms span: a drawn 0.6-3.0 ms bass sweep was a static comb, slice 3b
+  // level.jsonl). Five taps leave fb^5 (0.17 at the top feedback) out, which
+  // softens the comb's peaks slightly. The wet is normalised to the input's
+  // energy: sqrt((1 - fb^2) / (1 - fb^(2K))).
   // p { rate, centre (s), depth (s), fb, wet, wetHpHz, mirrored }
+  U.FLANGER_TAPS = 5;
+  U.flangerNorm = function (fb) { const K = U.FLANGER_TAPS; return Math.sqrt((1 - fb * fb) / (1 - Math.pow(fb, 2 * K))); };
   U.makeFlangerInsert = function (ctx, p) {
     const input = ctx.createGain(); input.gain.value = Math.pow(10, (p.makeupDb || 0) / 20);
     const dry = ctx.createGain(); dry.gain.value = 1;
@@ -944,16 +951,17 @@
     input.connect(mono);
     const mg = ctx.createChannelMerger(2), sides = [];
     [0, 1].forEach(function (side) {
-      const cin = ctx.createGain(); cin.gain.value = 1;
-      const d = ctx.createDelay(0.05); d.delayTime.value = p.centre;
-      const fb = ctx.createGain(); fb.gain.value = p.fb;
-      const dep = ctx.createGain(); dep.gain.value = (side === 0) !== !!p.mirrored ? p.depth : -p.depth;
-      mono.connect(cin); fb.connect(cin); cin.connect(d); d.connect(fb);
-      lfo.connect(dep); dep.connect(d.delayTime);
-      // the loop's normalisation: the wet's level at fb held near fb 0
-      const nrm = ctx.createGain(); nrm.gain.value = Math.sqrt(1 - p.fb * p.fb);
-      d.connect(nrm); nrm.connect(mg, 0, side);
-      sides.push({ d, fb, dep, nrm });
+      const nrm = ctx.createGain(); nrm.gain.value = U.flangerNorm(p.fb);
+      const mix = U.chainMixer(ctx, nrm), taps = [], sgn = (side === 0) !== !!p.mirrored ? 1 : -1;
+      for (let k = 1; k <= U.FLANGER_TAPS; k++) {
+        const d = ctx.createDelay(0.05); d.delayTime.value = k * p.centre;
+        const dep = ctx.createGain(); dep.gain.value = sgn * k * p.depth;
+        const g = ctx.createGain(); g.gain.value = Math.pow(p.fb, k - 1);
+        mono.connect(d); lfo.connect(dep); dep.connect(d.delayTime); d.connect(g); mix.add(g);
+        taps.push({ d, dep, g, k });
+      }
+      nrm.connect(mg, 0, side);
+      sides.push({ taps, nrm });
     });
     let wetIn = mg;
     if (p.wetHpHz > 0) { const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = p.wetHpHz; hp.Q.value = 0.5; mg.connect(hp); wetIn = hp; }
@@ -1076,7 +1084,7 @@
       input.connect(vca); vca.connect(out);
       return { input, output: out, lfo, vca, dep, kind: "tremolo" };
     }
-    const X = U.TREM.xoverHz, bq = (type) => { const f = ctx.createBiquadFilter(); f.type = type; f.frequency.value = X; f.Q.value = Math.SQRT1_2; return f; };
+    const X = U.TREM.xoverHz, bq = (type) => { const f = ctx.createBiquadFilter(); f.type = type; f.frequency.value = X; f.Q.value = -3.01; return f; };   // Butterworth (Q in dB on a native low/high-pass)
     const l1 = bq("lowpass"), l2 = bq("lowpass"), h1 = bq("highpass"), h2 = bq("highpass");
     input.connect(l1); l1.connect(l2); l2.connect(out);
     input.connect(h1); h1.connect(h2);
@@ -1458,7 +1466,8 @@
           if (q && "makeupDb" in q) this.makeupDb = q.makeupDb;
           const P = this.params;
           put(b.lfo.frequency, P.rate);
-          b.sides.forEach((x, side) => { put(x.d.delayTime, P.centre); put(x.fb.gain, P.fb); put(x.nrm.gain, Math.sqrt(1 - P.fb * P.fb)); put(x.dep.gain, (side === 0) !== this.mirrored ? P.depth : -P.depth); });
+          b.sides.forEach((x, side) => { const sg = (side === 0) !== this.mirrored ? 1 : -1; put(x.nrm.gain, U.flangerNorm(P.fb));
+            x.taps.forEach((tp) => { put(tp.d.delayTime, tp.k * P.centre); put(tp.dep.gain, sg * tp.k * P.depth); put(tp.g.gain, Math.pow(P.fb, tp.k - 1)); }); });
           put(b.wet.gain, this.on ? P.wet : 0); put(b.input.gain, this.on ? Math.pow(10, this.makeupDb / 20) : 1);
         };
         return this.fxSplice(roleId, "flanger", b);
@@ -1607,7 +1616,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/production.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/production.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
 // production.js — the per-strip effects (effects slice 2, 2026-11-18, Asana
 // 1220328751228343; spec: files/unison/effects-menu-2026-11-08/PROPOSAL.md §2
 // and Jeff's 11/17 rule, "All effects should apply everywhere. All
@@ -1713,8 +1722,9 @@
   U.ECHO_PING = 0.15;
 
   // FLANGER (slice 3b): the chorus block plus feedback (desk.js
-  // U.makeFlangerInsert), the 11/08 proposal's spans: delay 0.5 to 5 ms (the
-  // sweep's centre and swing drawn so it stays inside), rate 0.1 to 0.5 Hz,
+  // U.makeFlangerInsert; the feedback built as five feed-forward taps, so the
+  // sweep really reaches 0.5 ms), the 11/08 proposal's spans: delay 0.5 to
+  // 5 ms (the sweep's centre and swing drawn so it stays inside), rate 0.1 to 0.5 Hz,
   // feedback 0.3 to 0.7, wet 0.5. Jeff kept it at the page's Heavy (rate
   // 0.45, feedback 0.7) and the kit flanger at Light (0.12, 0.3): the span
   // covers both. Bass-register strips high-pass the wet at 250 Hz, as the
@@ -1861,7 +1871,8 @@
     b.copyToChannel(L, 0); b.copyToChannel(R, 1);
     const s = c.createBufferSource(); s.buffer = b;
     const q = Object.assign({}, p, { makeupDb: 0 });
-    const blk = fx === "filter" ? U.makeFilterInsert(c, q) : fx === "flanger" ? U.makeFlangerInsert(c, q) : U.makePhaserInsert(c, q);
+    if (fx === "tremolo") q.rate = U.tremoloHz(p, bpm);
+    const blk = fx === "filter" ? U.makeFilterInsert(c, q) : fx === "flanger" ? U.makeFlangerInsert(c, q) : fx === "tremolo" ? U.makeTremoloInsert(c, q) : U.makePhaserInsert(c, q);
     blk.input.channelCount = 2; blk.input.channelCountMode = "explicit"; blk.input.channelInterpretation = "speakers";
     s.connect(blk.input); blk.output.connect(c.destination); s.start(0);
     const o = await c.startRendering(), on = U.kWeightedMeanDb([o.getChannelData(0), o.getChannelData(1)], sr);
@@ -1948,15 +1959,18 @@
   // pre-render, U.insertMakeupFromSignal). The flanger's wet is normalised
   // to the input's energy, so 1 + wet^2; the phaser's dry (1 - m/2) and
   // allpass wet m at a random phase, (1 - m/2)^2 + m^2; the filter 0. The
-  // TREMOLO's is exact: the VCA's mean square (1 - d/2)^2 + (d/2)^2 / 2; the
-  // auto-pan is an equal-power swing, 0 dB.
+  // TREMOLO's is the VCA's mean square (1 - d/2)^2 + (d/2)^2 / 2, the
+  // auto-pan's 0 dB (an equal-power swing). Exact only for a part with no
+  // pulse: a tempo-locked tremolo on a tempo-locked part lands every hit on
+  // the same phase (snare at a quarter, +2.4 dB over the formula, level.jsonl),
+  // so a rendered song measures the tremolo per song too.
   U.fxFallbackMakeupDb = function (fx, id, p) {
     if (fx === "flanger") return -10 * Math.log10(1 + p.wet * p.wet);
     if (fx === "phaser") return -10 * Math.log10(Math.pow(1 - p.mix / 2, 2) + p.mix * p.mix);
     if (fx === "tremolo") return p.kind === "trem" ? -10 * Math.log10(Math.pow(1 - p.depth / 2, 2) + p.depth * p.depth / 8) : 0;
     return 0;
   };
-  U.FX_SONG_MAKEUP = ["filter", "flanger", "phaser"];   // measured per song on the pre-render
+  U.FX_SONG_MAKEUP = ["filter", "flanger", "phaser", "tremolo"];   // measured per song on the pre-render
   U.echoMakeupDb = function (id, p) {
     const t = U.FX_MAKEUP.echoK, k = id in t ? t[id] : t._;
     return -10 * Math.log10(1 + k * p.mix * p.mix / (1 - p.fb * p.fb));
@@ -2087,7 +2101,7 @@
       if (fx === "filter") desk.fxFilter(id, Object.assign({ ref: sheet && sheet.filterRef ? sheet.filterRef[id] : undefined }, p), song("filter", p), { live });
       else if (fx === "flanger") desk.fxFlanger(id, p, song("flanger", p));
       else if (fx === "phaser") desk.fxPhaser(id, p, song("phaser", p), { live });
-      else if (fx === "tremolo") desk.fxTremolo(id, Object.assign({}, p, { rate: U.tremoloHz(p, bpm) }), U.fxFallbackMakeupDb("tremolo", id, p), { live });
+      else if (fx === "tremolo") desk.fxTremolo(id, Object.assign({}, p, { rate: U.tremoloHz(p, bpm) }), song("tremolo", p), { live });
       else if (fx === "chorus") desk.fxChorus(id, p, U.chorusMakeupDb(id, p.mode));
       else if (fx === "echo") desk.fxEcho(id, Object.assign({ sec: U.echoSeconds(p.time, bpm), wow: U.ECHO_WOW }, p), U.echoMakeupDb(id, p), { live });
       else if (fx === "reverb") desk.fxReverb(id, p, sheet && sheet.reverbMakeupDb && typeof sheet.reverbMakeupDb[id] === "number" ? sheet.reverbMakeupDb[id] : U.reverbMakeupDb(id, p), { live: !!(sheet && sheet.live) });
@@ -2141,7 +2155,7 @@
 
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/vocoder.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/vocoder.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
 // vocoder.js — the production room's vocoder insert, slice 1 (2026-11-05,
 // Asana 1220085081650427; design in files/unison/vocoder-2026-11-05/RESULT.md).
 //
@@ -2474,7 +2488,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/analogpoly.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/analogpoly.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
 // analogpoly.js — the analog poly core: one module that builds every Juno and
 // OB-Xa voice, behind a family lock. Asana 1220084594874974, slice 1
 // (2026-11-02); the rack doc's build 3 (files/unison/rack-parts-proposal-
@@ -3099,7 +3113,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/juno.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/juno.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
 // juno.js — Juno-60-flavor poly voice, raw Web Audio, zero dependencies.
 // Ported from the 2026-07-21 bake-off winner (voice-raw.js), restructured to
 // live behind a desk strip: U.createJuno(ctx, strip, patchName) builds its own
@@ -3735,7 +3749,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/minimoog.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/minimoog.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
 // minimoog.js — Minimoog Model D-lineage mono voice, zero dependencies.
 //
 // THE MONO BASS LANE (build order 808 → Juno → Minimoog → …; it also absorbs
@@ -4573,7 +4587,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/obxa.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/obxa.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
 // obxa.js — Oberheim OB-Xa-lineage poly voice, zero dependencies.
 //
 // THE BRASS/PAD POLY LANE (build order 808 → Juno → Minimoog → OB-Xa → …).
@@ -5160,7 +5174,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/fm.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/fm.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fm.js — six-operator FM keys voice (the DX7 lineage), zero dependencies.
 //
 // THE FM LANE (build order 808 → Juno → Minimoog → OB-Xa → Linn → FM).
@@ -6316,7 +6330,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/bassguitar.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/bassguitar.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassguitar.js — electric bass guitar, the first session player of the human
 // rack (Rack 2), zero dependencies.
 //
@@ -7027,7 +7041,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/rhythmguitar.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/rhythmguitar.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
 // rhythmguitar.js — clean electric rhythm guitar, the fourth and last stop of
 // the human rack (Rack 2), zero dependencies.
 //
@@ -7803,7 +7817,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/tr808.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/tr808.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
 // tr808.js — THE MACHINE. A TR-808-lineage core voice: bass drum, snare,
 // closed hat, open hat, each with a front panel the token actually turns.
 //
@@ -9087,7 +9101,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/linn.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/linn.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
 // linn.js — THE STUDIO MACHINE. A Linn-family (LM-1 / LinnDrum lineage)
 // drum computer: the new wave / synth-pop / 80s R&B kit.
 //
@@ -9909,7 +9923,7 @@
     get EPROM_HZ() { return U.CIRCUIT_LINN.epromHz; }, get RECON_HZ() { return U.CIRCUIT_LINN.reconHz; } };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/romkits.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/romkits.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
 // romkits.js — THE OTHER SAMPLED MACHINE: the DMX (Oberheim lineage, 1981),
 // drum engine slice 3, 2026-11-03, Asana 1219959495948201.
 //
@@ -10265,7 +10279,7 @@
   // the lock refuses; the MCS is a kit drawn across families, which is slice 4.
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/simmons.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/simmons.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
 // simmons.js — THE ELECTRONIC FAMILY'S FIRST MACHINE: the Simmons toms
 // (SDS-V lineage, 1981; SDS-7, 1983), drum engine slice 3, 2026-11-03,
 // Asana 1219959495948201.
@@ -10437,7 +10451,7 @@
   U.SIMMONS_VOICES = ["tomHi", "tomMid", "tomLo"];
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drumengine.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drumengine.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drumengine.js — ONE DRUM ENGINE, THE MACHINES AS FAMILIES (2026-11-02,
 // drum engine slice 1, Asana 1219959495948201; the rack and parts doc,
 // 10/31).
@@ -10668,7 +10682,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drumkits.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drumkits.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drumkits.js — the drum engine, slice 4 (2026-11-06, Asana 1219959495948201):
 // THE KIT BOOKS and THE KIT AS A DRAW ACROSS FAMILIES.
 //
@@ -11026,7 +11040,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/sampler.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/sampler.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
 // sampler.js — THE SAMPLER KEYBOARD, the gap filler (2026-11-05, slice 1,
 // Asana 1220085081678265; build 7 of the 10/31 rack and parts doc; design in
 // files/unison/sampler-2026-11-05/RESULT.md in the morgan repo).
@@ -11628,7 +11642,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drums.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drums.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drums.js — the drum machine: 808/LM-1-flavor voices, synthesized at runtime
 // into short AudioBuffers, played back as one-shots.
 //
@@ -12043,7 +12057,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/books.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/books.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
 // books.js — Pattern Books v1, as data.
 //
 // This file IS the document: "Unison — Pattern Books v1 (draft)" (Morgan,
@@ -14890,7 +14904,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/bassplayer.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/bassplayer.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassplayer.js — the PERFORMANCE half of the bass guitar: a session player.
 //
 // Rack 2's rule (kb/projects/unison.md, 2026-07-11): every human instrument is
@@ -15485,7 +15499,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/gtrplayer.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/gtrplayer.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
 // gtrplayer.js — the PERFORMANCE half of the rhythm guitar: a session
 // guitarist on the rhythmGtr strip.
 //
@@ -15959,7 +15973,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/fmplayer.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/fmplayer.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fmplayer.js — the PERFORMANCE half of the FM keys: a session keyboard
 // player on the FM chord strips (compA's tine EP, colour's glass and brass).
 //
@@ -16100,7 +16114,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/testPhrase.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/testPhrase.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
 // testPhrase.js — deterministic 8-bar test phrase, ported from the bake-off
 // (phrase.js) onto the engine's canonical PRNG (core/prng.js).
 //
@@ -16194,7 +16208,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/form.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/form.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
 // form.js — the song's form: the book of returns (2026-10-30, Asana
 // 1220073468300418; design files/unison/structure-design-2026-10-30 in the
 // morgan repo, DESIGN.md + draw.py, transcribed here as written).
@@ -16515,7 +16529,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/session.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/session.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
 // session.js — the session sheet and the arrangement realizer.
 //
 // Two tiers, in this order, each on its own stream (core/prng.js):
@@ -18426,7 +18440,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/render/renderer.js @ 0b9a0c3 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/render/renderer.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
 // renderer.js — song assembly + the render pipeline (Technical Architecture
 // v1.2 playback model): live-first, with (a) a cheap analysis pre-render for
 // verification/metrics and (b) an on-demand full OfflineAudioContext render
@@ -18832,7 +18846,7 @@
           const name = "mk:" + st + ":" + fx; if (chOf[name] === undefined) continue;
           const [L, R] = two(name), p = Object.assign({}, song.sheet.stripFx.strips[st][fx]);
           if (fx === "filter" && p.kind === "env") { const r = U.envfRefFromSignal(L, R, rate); if (r != null) { ref[st] = r; p.ref = r; } }
-          const m = await U.insertMakeupFromSignal(L, R, rate, fx, p);
+          const m = await U.insertMakeupFromSignal(L, R, rate, fx, p, song.sheet.bpm);
           if (m != null) (out[st] = out[st] || {})[fx] = m;
         }
         mp.fxMakeupDb = out; mp.filterRef = ref;
