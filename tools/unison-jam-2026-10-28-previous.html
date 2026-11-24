@@ -274,10 +274,10 @@
 <div id="masterCard"></div>
 <div id="layers"></div>
 <div id="add" class="row"><div class="lbl">Add a layer<button id="palRnd" title="add a random instrument (one you don't have yet, while any are left)">Random</button></div><div id="pal"></div></div>
-<footer title="engine @52df558 · built 2026-11-18">Unison jam &middot; every sound is synthesized in this page by the engine at 52df558</footer>
+<footer title="engine @26c0640 · built 2026-11-23">Unison jam &middot; every sound is synthesized in this page by the engine at 26c0640</footer>
 
 <script>
-/* ===== src/core/prng.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/prng.js @ 26c0640 — verbatim from jeffdavis-studio/unison-engine ===== */
 // prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
 // token hash, consumed in canonical draw order (Technical Architecture v1.2).
 //
@@ -350,7 +350,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/core/mix.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/mix.js @ 26c0640 — verbatim from jeffdavis-studio/unison-engine ===== */
 // mix.js — the fan-in ≤2 summing rule, as a primitive.
 //
 // Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
@@ -519,7 +519,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/desk/desk.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/desk/desk.js @ 26c0640 — verbatim from jeffdavis-studio/unison-engine ===== */
 // desk.js — the 24-track desk as a running audio graph.
 //
 // The desk is the data structure, not a metaphor (Composition Brief 2 / Tech
@@ -917,8 +917,19 @@
       R.diffusers.forEach(function (dt) { const a = apDiffuser(ctx, dt + side * 0.0003, R.apGain); x.connect(a.input); x = a.output; });
       x.connect(mg, 0, side);
     });
-    mg.connect(wet); wet.connect(out);
-    return { input, output: out, dry, wet, lfos, combs, sums, pre, hp, selD, selN, kind: "reverb" };
+    // WIDTH (effects slice 4, 2026-11-21): the two sides' clouds are
+    // decorrelated, so a full-width wet loses about 3 dB in mono and on a
+    // heavy reverb that showed at the master (two songs folded past 0.5 dB).
+    // Mid plus a reduced side, as a hardware reverb's width control:
+    // L' = (1+w)/2 L + (1-w)/2 R, R' the mirror (w = U.REVERB.width; the
+    // mid is untouched, so the mono sum of the cloud does not change).
+    const w = R.width == null ? 1 : R.width, sp = ctx.createChannelSplitter(2), mw = ctx.createChannelMerger(2);
+    const wg = [];
+    mg.connect(sp);
+    [0, 1].forEach(function (from) { [0, 1].forEach(function (to) {
+      const g = ctx.createGain(); g.gain.value = from === to ? (1 + w) / 2 : (1 - w) / 2; sp.connect(g, from); g.connect(mw, 0, to); wg.push(g); }); });
+    mw.connect(wet); wet.connect(out);
+    return { input, output: out, dry, wet, lfos, combs, sums, pre, hp, selD, selN, wg, kind: "reverb" };
   };
 
   // ---- EFFECTS SLICE 3b (2026-11-18, Asana 1220328751228343): the rest of
@@ -1130,11 +1141,31 @@
     };
     const A = mk(), B = mk();
     mono.connect(A.cin); A.fb.connect(B.cin); B.fb.connect(A.cin);
-    const wet = ctx.createGain(); wet.gain.value = p.wet * Math.SQRT2;
-    const mg = ctx.createChannelMerger(2), first = p.first ? 1 : 0;
-    A.hp.connect(mg, 0, first); B.hp.connect(mg, 0, 1 - first);
+    // Repeats at partial width (effects slice 4, 2026-11-21): each side's
+    // repeat sits at +-U.ECHO_PING_WIDTH on the board's own equal-power law
+    // (U.panGains), not hard left and right. A hard repeat loses 3 dB in mono
+    // (one low-cohesion song with three ping-pongs folded -0.55 dB); at 0.6
+    // a repeat loses 1.0 dB. The pan law keeps each repeat's energy, so the
+    // straight echo's makeup still holds.
+    //
+    // DETERMINISM (2026-11-21, files/unison/determinism-2026-11-21): A and B
+    // are one feedback cycle, and in a cycle the side Chrome pulls first in a
+    // quantum decides which side reads the other's previous block. Each
+    // output merger input sums one gain from A and one from B, and Chrome
+    // pulls two connections on one input in an order that is not fixed (it
+    // moved with GC: three SHAs for one hash). So both sides leave the cycle
+    // through `ord` first, one merger input each (a merger pulls its inputs in
+    // index order: A, then B, every quantum), and the pan gains read its split.
+    const wet = ctx.createGain(); wet.gain.value = p.wet;
+    const mg = ctx.createChannelMerger(2), first = p.first ? 1 : 0, pw = U.ECHO_PING_WIDTH == null ? 1 : U.ECHO_PING_WIDTH;
+    const ord = ctx.createChannelMerger(2), osp = ctx.createChannelSplitter(2);
+    A.hp.connect(ord, 0, 0); B.hp.connect(ord, 0, 1); ord.connect(osp);
+    const pg = U.panGains(pw), near = [], far = [];   // pg[1] the near side's gain, pg[0] the far side's
+    [[0, first], [1, 1 - first]].forEach(function ([k, side]) {
+      const n = ctx.createGain(), f = ctx.createGain(); n.gain.value = pg[1]; f.gain.value = pg[0];
+      osp.connect(n, k); osp.connect(f, k); n.connect(mg, 0, side); f.connect(mg, 0, 1 - side); near.push(n); far.push(f); });
     mg.connect(wet); wet.connect(out);
-    return { input, output: out, wet, A, B, wow, wowDepth, kind: "echo", ping: true };
+    return { input, output: out, wet, A, B, wow, wowDepth, ord, osp, near, far, kind: "echo", ping: true };
   };
 
   // ---- STEREO PLACEMENT (effects slice 1, 2026-11-17, Asana 1220328751228343;
@@ -1401,7 +1432,7 @@
           if (b.straight) { const e = b.straight.echo; put(e.delay.delayTime, P.sec); put(e.wowDepth.gain, (P.wow || 0) * P.sec); put(e.fb.gain, P.fb); put(e.lp.frequency, P.lp);
             put(e.wet.gain, this.on && !ping ? P.mix : 0); }
           if (b.pp) { const pp = b.pp; [pp.A, pp.B].forEach((x) => { put(x.d.delayTime, P.sec); put(x.fb.gain, P.fb); put(x.lp.frequency, P.lp); });
-            put(pp.wowDepth.gain, (P.wow || 0) * P.sec); put(pp.wet.gain, this.on && ping ? P.mix * Math.SQRT2 : 0); }
+            put(pp.wowDepth.gain, (P.wow || 0) * P.sec); put(pp.wet.gain, this.on && ping ? P.mix : 0); }
           put(b.input.gain, this.on ? Math.pow(10, this.makeupDb / 20) : 1);
         };
         return this.fxSplice(roleId, "echo", b);
@@ -1616,7 +1647,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/production.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/production.js @ 26c0640 — verbatim from jeffdavis-studio/unison-engine ===== */
 // production.js — the per-strip effects (effects slice 2, 2026-11-18, Asana
 // 1220328751228343; spec: files/unison/effects-menu-2026-11-08/PROPOSAL.md §2
 // and Jeff's 11/17 rule, "All effects should apply everywhere. All
@@ -1720,6 +1751,7 @@
   U.ECHO_SPAN = { fb: [0.18, 0.42], lp: [2800, 3600], mix: [0.18, 0.30] };
   U.ECHO_LOOP_HP = 140;
   U.ECHO_PING = 0.15;
+  U.ECHO_PING_WIDTH = 0.6;   // the repeats at +-0.6 on the pan law, not hard (slice 4, the mono fold)
 
   // FLANGER (slice 3b): the chorus block plus feedback (desk.js
   // U.makeFlangerInsert; the feedback built as five feed-forward taps, so the
@@ -1782,6 +1814,7 @@
     // times; a third diffuser was tried and made the ripple worse, so two.
     extra: [0.857], modSec: 0.001, modHz: [0.31, 0.37],
     diffusers: [0.0050, 0.0031], apGain: 0.6,
+    width: 0.6,                    // the wet's stereo width (slice 4, the mono fold): mid plus 0.6 of the side
   };
   U.reverbProgram = function (p) {
     const R = U.REVERB;
@@ -2155,7 +2188,7 @@
 
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/vocoder.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/vocoder.js @ 26c0640 — verbatim from jeffdavis-studio/unison-engine ===== */
 // vocoder.js — the production room's vocoder insert, slice 1 (2026-11-05,
 // Asana 1220085081650427; design in files/unison/vocoder-2026-11-05/RESULT.md).
 //
@@ -2488,7 +2521,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/analogpoly.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/analogpoly.js @ 26c0640 — verbatim from jeffdavis-studio/unison-engine ===== */
 // analogpoly.js — the analog poly core: one module that builds every Juno and
 // OB-Xa voice, behind a family lock. Asana 1220084594874974, slice 1
 // (2026-11-02); the rack doc's build 3 (files/unison/rack-parts-proposal-
@@ -3113,7 +3146,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/juno.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/juno.js @ 26c0640 — verbatim from jeffdavis-studio/unison-engine ===== */
 // juno.js — Juno-60-flavor poly voice, raw Web Audio, zero dependencies.
 // Ported from the 2026-07-21 bake-off winner (voice-raw.js), restructured to
 // live behind a desk strip: U.createJuno(ctx, strip, patchName) builds its own
@@ -3749,7 +3782,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/minimoog.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/minimoog.js @ 26c0640 — verbatim from jeffdavis-studio/unison-engine ===== */
 // minimoog.js — Minimoog Model D-lineage mono voice, zero dependencies.
 //
 // THE MONO BASS LANE (build order 808 → Juno → Minimoog → …; it also absorbs
@@ -4587,7 +4620,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/obxa.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/obxa.js @ 26c0640 — verbatim from jeffdavis-studio/unison-engine ===== */
 // obxa.js — Oberheim OB-Xa-lineage poly voice, zero dependencies.
 //
 // THE BRASS/PAD POLY LANE (build order 808 → Juno → Minimoog → OB-Xa → …).
@@ -5174,7 +5207,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/fm.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/fm.js @ 26c0640 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fm.js — six-operator FM keys voice (the DX7 lineage), zero dependencies.
 //
 // THE FM LANE (build order 808 → Juno → Minimoog → OB-Xa → Linn → FM).
@@ -6330,7 +6363,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/bassguitar.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/bassguitar.js @ 26c0640 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassguitar.js — electric bass guitar, the first session player of the human
 // rack (Rack 2), zero dependencies.
 //
@@ -7041,7 +7074,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/rhythmguitar.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/rhythmguitar.js @ 26c0640 — verbatim from jeffdavis-studio/unison-engine ===== */
 // rhythmguitar.js — clean electric rhythm guitar, the fourth and last stop of
 // the human rack (Rack 2), zero dependencies.
 //
@@ -7817,7 +7850,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/tr808.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/tr808.js @ 26c0640 — verbatim from jeffdavis-studio/unison-engine ===== */
 // tr808.js — THE MACHINE. A TR-808-lineage core voice: bass drum, snare,
 // closed hat, open hat, each with a front panel the token actually turns.
 //
@@ -9101,7 +9134,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/linn.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/linn.js @ 26c0640 — verbatim from jeffdavis-studio/unison-engine ===== */
 // linn.js — THE STUDIO MACHINE. A Linn-family (LM-1 / LinnDrum lineage)
 // drum computer: the new wave / synth-pop / 80s R&B kit.
 //
@@ -9923,7 +9956,7 @@
     get EPROM_HZ() { return U.CIRCUIT_LINN.epromHz; }, get RECON_HZ() { return U.CIRCUIT_LINN.reconHz; } };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/romkits.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/romkits.js @ 26c0640 — verbatim from jeffdavis-studio/unison-engine ===== */
 // romkits.js — THE OTHER SAMPLED MACHINE: the DMX (Oberheim lineage, 1981),
 // drum engine slice 3, 2026-11-03, Asana 1219959495948201.
 //
@@ -10279,7 +10312,7 @@
   // the lock refuses; the MCS is a kit drawn across families, which is slice 4.
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/simmons.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/simmons.js @ 26c0640 — verbatim from jeffdavis-studio/unison-engine ===== */
 // simmons.js — THE ELECTRONIC FAMILY'S FIRST MACHINE: the Simmons toms
 // (SDS-V lineage, 1981; SDS-7, 1983), drum engine slice 3, 2026-11-03,
 // Asana 1219959495948201.
@@ -10451,7 +10484,7 @@
   U.SIMMONS_VOICES = ["tomHi", "tomMid", "tomLo"];
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drumengine.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drumengine.js @ 26c0640 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drumengine.js — ONE DRUM ENGINE, THE MACHINES AS FAMILIES (2026-11-02,
 // drum engine slice 1, Asana 1219959495948201; the rack and parts doc,
 // 10/31).
@@ -10682,7 +10715,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drumkits.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drumkits.js @ 26c0640 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drumkits.js — the drum engine, slice 4 (2026-11-06, Asana 1219959495948201):
 // THE KIT BOOKS and THE KIT AS A DRAW ACROSS FAMILIES.
 //
@@ -11040,7 +11073,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/sampler.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/sampler.js @ 26c0640 — verbatim from jeffdavis-studio/unison-engine ===== */
 // sampler.js — THE SAMPLER KEYBOARD, the gap filler (2026-11-05, slice 1,
 // Asana 1220085081678265; build 7 of the 10/31 rack and parts doc; design in
 // files/unison/sampler-2026-11-05/RESULT.md in the morgan repo).
@@ -11578,41 +11611,61 @@
     }
     return reads;
   };
+  // KEYS STAGE B (2026-11-21, Asana 1220759610549868): compA's role and mute
+  // moved (a stack line plays the arpeggio role and forces the strip up;
+  // compA otherwise plays the chords role), and the sampler's take on compA
+  // feeds two things no other strip may feel: the second-take chance of the
+  // strips after it, and the pad's voicing (derived from compA's root table,
+  // session.js vtones). So compA is decided twice: under today's role and
+  // mute (rec.strips.compA, what plays) and under the role and mute it had
+  // before the stack (counted for the later strips' chances, and recorded as
+  // rec.compAOld, which the pad's derivation reads). Every other strip is
+  // decided exactly as before.
   U.resolveSampler = function (sheet, reads) {
-    const rec = { reads, strips: {}, n: 0 };
-    let nOld = 0;
+    const rec = { reads, strips: {}, n: 0, compAOld: false };
+    const cnt = { n: 0, old: 0 };
     const books = { juno: sheet.junoPatches, obxa: sheet.obxaPatches, minimoog: sheet.minimoogPatches, fm: sheet.fmPatches };
-    for (const strip of U.ROLE_STRIPS) {
+    const decide = (strip, role, muted) => {
       const r = reads[strip];
-      if (sheet.mutes[strip]) continue;
-      const p = U.SAMPLER_SHARE_SCALE * (U.SAMPLER_STRIP_SHARE[strip] || 0) * (U.SAMPLER_LANE_WEIGHT[sheet.lane] || 1) * (nOld ? U.SAMPLER_SECOND_TAKE : 1);
+      if (muted) return null;
+      const p = U.SAMPLER_SHARE_SCALE * (U.SAMPLER_STRIP_SHARE[strip] || 0) * (U.SAMPLER_LANE_WEIGHT[sheet.lane] || 1) * (cnt.old ? U.SAMPLER_SECOND_TAKE : 1);
       if (!(r.u < p)) {
         // the acoustic band, on a strip the old draw left alone
-        const pA = U.SAMPLER_SHARE_SCALE * U.SAMPLER_ACOUSTIC_SCALE * (U.SAMPLER_ACOUSTIC_SHARE[strip] || 0) * (U.SAMPLER_ACOUSTIC_LANE_WEIGHT[sheet.lane] || 1) * (rec.n ? U.SAMPLER_SECOND_TAKE : 1);
-        if (!(r.u < p + pA)) continue;
-        if (strip === "lead" && sheet.vocoder && sheet.vocoder.on) continue;
-        const roleA = U.stripRole(strip, sheet.picks), listA = U.samplerAcousticCandidates(roleA);
-        if (!listA.length) continue;
+        const pA = U.SAMPLER_SHARE_SCALE * U.SAMPLER_ACOUSTIC_SCALE * (U.SAMPLER_ACOUSTIC_SHARE[strip] || 0) * (U.SAMPLER_ACOUSTIC_LANE_WEIGHT[sheet.lane] || 1) * (cnt.n ? U.SAMPLER_SECOND_TAKE : 1);
+        if (!(r.u < p + pA)) return null;
+        if (strip === "lead" && sheet.vocoder && sheet.vocoder.on) return null;
+        const roleA = role, listA = U.samplerAcousticCandidates(roleA);
+        if (!listA.length) return null;
         let totA = 0; for (const c of listA) totA += c.w;
         let xa = r.uni[1] * totA, pickA = listA[listA.length - 1];
         for (const c of listA) { xa -= c.w; if (xa < 0) { pickA = c; break; } }
         const ea = sheet.voices[strip], ba = books[ea], pra = ba && ba[strip];
-        rec.strips[strip] = { entry: pickA.e.id, kind: pickA.e.kind, name: pickA.e.name, role: roleA, p: p + pA, w: pickA.w / totA, u: r.u, uni: r.uni, acoustic: true,
-          from: { engine: ea, patch: pra ? pra.name : null } };
-        rec.n++;
-        continue;
+        return { acoustic: true, rec: { entry: pickA.e.id, kind: pickA.e.kind, name: pickA.e.name, role: roleA, p: p + pA, w: pickA.w / totA, u: r.u, uni: r.uni, acoustic: true,
+          from: { engine: ea, patch: pra ? pra.name : null } } };
       }
-      if (strip === "bass" && !U.samplerBassOk(sheet)) continue;
-      if (strip === "lead" && sheet.vocoder && sheet.vocoder.on) continue;
-      const role = U.stripRole(strip, sheet.picks), list = U.samplerCandidates(role, sheet.lane);
-      if (!list.length) continue;
+      if (strip === "bass" && !U.samplerBassOk(sheet)) return null;
+      if (strip === "lead" && sheet.vocoder && sheet.vocoder.on) return null;
+      const list = U.samplerCandidates(role, sheet.lane);
+      if (!list.length) return null;
       let tot = 0; for (const c of list) tot += c.w;
       let x = r.uni[0] * tot, pick = list[list.length - 1];
       for (const c of list) { x -= c.w; if (x < 0) { pick = c; break; } }
       const e = sheet.voices[strip], b = books[e], pr = b && b[strip];
-      rec.strips[strip] = { entry: pick.e.id, kind: pick.e.kind, name: pick.e.name, role, p, w: pick.w / tot, u: r.u, uni: r.uni,
-        from: { engine: e, patch: pr ? pr.name : null } };
-      rec.n++; nOld++;
+      return { acoustic: false, rec: { entry: pick.e.id, kind: pick.e.kind, name: pick.e.name, role, p, w: pick.w / tot, u: r.u, uni: r.uni,
+        from: { engine: e, patch: pr ? pr.name : null } } };
+    };
+    for (const strip of U.ROLE_STRIPS) {
+      const got = decide(strip, U.stripRole(strip, sheet.picks), sheet.mutes[strip]);
+      if (got) { rec.strips[strip] = got.rec; rec.n++; }
+      let counted = got;
+      if (strip === "compA") {
+        const pk = sheet.picks.compA, was = pk && pk.kind === "stackLine" ? pk.was : pk;
+        const oldRole = U.COMP_CHORDS_IDS[was.id] ? "chords" : "comp";
+        const oldMuted = pk && pk.kind === "stackLine" ? !!pk.wasMuted : sheet.mutes.compA;
+        counted = decide(strip, oldRole, oldMuted);
+        rec.compAOld = counted ? (counted.acoustic ? "acoustic" : "sampler") : false;
+      }
+      if (counted) { cnt.n++; if (!counted.acoustic) cnt.old++; }
     }
     return rec;
   };
@@ -11642,7 +11695,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drums.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drums.js @ 26c0640 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drums.js — the drum machine: 808/LM-1-flavor voices, synthesized at runtime
 // into short AudioBuffers, played back as one-shots.
 //
@@ -12057,7 +12110,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/books.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/books.js @ 26c0640 — verbatim from jeffdavis-studio/unison-engine ===== */
 // books.js — Pattern Books v1, as data.
 //
 // This file IS the document: "Unison — Pattern Books v1 (draft)" (Morgan,
@@ -12343,14 +12396,34 @@
       lanes: ["synthPop", "earlyHipHop", "synthRnB"] },
   ];
 
+  // Re-weighted 2026-11-21 (Asana 1220746406848870; was 26/20/14/12/14/10):
+  // the three straight-8th-grid entries (eighths, open_offbeat, electro) fall
+  // from 52 to 27 of 96 so their bars go 51% -> about 32% (the influence patches
+  // keep their own straight 8ths); sixteenths 20 -> 14, as generated bars
+  // with few gaps read as 16ths (the corrected
+  // reference read's target); hats.gen, the generated figure (U.drawHatFig),
+  // takes the difference. Offbeat and gapped keep their weight.
   U.HATS = [
+    { id: "hats.eighths",      w: 13, p: "x.x.x.x.x.x.x.x." },
+    { id: "hats.sixteenths",   w: 14, p: "xxxxxxxxxxxxxxxx" },
+    { id: "hats.offbeat",      w: 14, p: "..x...x...x...x." },
+    { id: "hats.open_offbeat", w: 7,  p: "x.o.x.o.x.o.x.o." },
+    { id: "hats.electro",      w: 7,  p: "x.x.x.o.x.x.x.o." },
+    { id: "hats.gapped",       w: 10, p: "x..xx..xx..xx..x" },
+    { id: "hats.gen",          w: 30, kind: "gen" },
+    // hats.silence (w 10) → desk mute 0.094
+  ];
+  // The table as it was before 2026-11-21, kept for the jam only: a jam link
+  // saved before the generators (no "g" in the link) draws its picks on this
+  // table with both generators off, so a saved groove plays what it played
+  // (harness/jam-page.template.html, drawPicks). Songs never read it.
+  U.HATS_V0 = [
     { id: "hats.eighths",      w: 26, p: "x.x.x.x.x.x.x.x." },
     { id: "hats.sixteenths",   w: 20, p: "xxxxxxxxxxxxxxxx" },
     { id: "hats.offbeat",      w: 14, p: "..x...x...x...x." },
     { id: "hats.open_offbeat", w: 12, p: "x.o.x.o.x.o.x.o." },
     { id: "hats.electro",      w: 14, p: "x.x.x.o.x.x.x.o." },
     { id: "hats.gapped",       w: 10, p: "x..xx..xx..xx..x" },
-    // hats.silence (w 10) → desk mute 0.094
   ];
 
   // tomsFills — fires only in fill windows. The strip always draws a real fill;
@@ -12646,8 +12719,16 @@
   // riff).
   U.ROLE_STRIPS = ["bass", "compA", "pad", "arp", "lead", "counter", "color"];
   U.COMP_CHORDS_IDS = { "comp.hold": 1, "comp.quarter_pulse": 1 };
+  // KEYS STAGE B (2026-11-21, Asana 1220759610549868): a strip carrying a
+  // stack line (picks[strip].kind "stackLine") plays the arpeggio role, so it
+  // draws its engine and patch from Jeff's single-note row (U.ROLE_ROW); the
+  // arpeggio fitness opens the Minimoog to compA and colour on those songs
+  // only (U.ENGINE_ROLE_FIT). compA takes the chords role on every other
+  // song whatever its pick: its comp figures now play only in intros and
+  // breaks and it holds everywhere else (session.js, "--- compA ---").
   U.stripRole = function (strip, picks) {
-    if (strip === "compA") return U.COMP_CHORDS_IDS[picks.compA.id] ? "chords" : "comp";
+    if (picks[strip] && picks[strip].kind === "stackLine") return "arpeggio";
+    if (strip === "compA") return "chords";
     return { bass: "bass", pad: "pad", arp: "arpeggio", counter: "arpeggio", lead: "lead", color: "color" }[strip];
   };
   // The patch gate: a patch may take a strip when its roles[role] is at or
@@ -13181,7 +13262,7 @@
   // own steps late.
   U.SEQ_RATE = { sixteenths: { n: 16, len: 1 }, eighths: { n: 8, len: 2 } };
   U.seqBar = function (s, bar, root, prevRoot, degMidi, signed) {
-    const R = U.SEQ_RATE[s.rate], A = U.ARP_MODEL, cellS = U.SEQ_CELLS[s.cell].steps, L = s.length;
+    const R = U.SEQ_RATE[s.rate], A = U.ARP_MODEL, cellS = s.steps || U.SEQ_CELLS[s.cell].steps, L = s.length;
     const f = U.SEQ_MODEL.gate.find((g) => g.id === s.gate).f, acc = s.accent == null ? null : A.ACCENT[s.accent];
     const out = [];
     for (let i = 0; i < R.n; i++) {
@@ -13314,6 +13395,198 @@
     return "layer.motor." + U.layerMotorLabel(l) + ".len" + l.length + "." + l.gate +
       (l.phase ? ".phase" + l.phase : "") + (l.accent == null ? "" : ".acc" + l.accent);
   };
+  // ---- THE STACK (keys as stacked single-note layers, stage B, 2026-11-21,
+  // Asana 1220759610549868). Jeff's ear on the reference (11/19): the synth
+  // songs are "different single keyboard lines stacking up", each "a pattern
+  // in a different patch and usually in a different octave"; chords come
+  // mostly from the rhythm guitar (decision closed 11/20). On a song whose
+  // arp strip is up the stack draws 2, 3 or 4 lines: line 1 is the arp strip
+  // as it plays (the arpeggiator or the step sequencer, untouched); line 2
+  // plays on the counter strip, line 3 on the colour strip, line 4 on compA.
+  // Lines 2 to 4 come from ONE generator with drawn parameters (Jeff 11/08:
+  // a pattern book is a rule set derived from the Reference, never a list
+  // of copied cells): a short sub-cell repeated across a cell, with an
+  // optional redrawn last four steps. Rows of RULES.md
+  // (files/unison/keys-stacked-layers-2026-11-21/RULES.md) named per table.
+  U.STACK_MODEL = {
+    // lines a song (RULES "Lines at once"): guess, Morgan (the 11/21 planning beat)
+    lines: [{ id: 2, w: 45 }, { id: 3, w: 35 }, { id: 4, w: 20 }],
+    // octave of line 2 on a two-line song (RULES "Octave distance"): guess, Morgan
+    two: [{ id: -12, w: 60 }, { id: 12, w: 40 }],
+    // the colour strip's octave on a four-line song: guess, Morgan
+    fourColor: [{ id: 12, w: 50 }, { id: 24, w: 50 }],
+    // rate (RULES "Rate": 16ths measured on 1 song, the 8th grid on 1; the split is a guess, Morgan)
+    rate: [{ id: "sixteenths", w: 60 }, { id: "eighths", w: 40 }],
+    // cell length in the line's own steps (RULES "Cell length"): guess, Morgan
+    length: [{ id: 8, w: 20 }, { id: 16, w: 50 }, { id: 32, w: 30 }],
+    // sub-cell length (RULES "Cell length", "Onsets per bar"): guess, Morgan
+    sub: [{ id: 2, w: 20 }, { id: 3, w: 15 }, { id: 4, w: 35 }, { id: 6, w: 10 }, { id: 8, w: 20 }],
+    // density, the strike chance of every sub-cell position after the first
+    // (RULES "Onsets per bar, one line"): guess, Morgan
+    density: [{ id: 0.4, w: 25 }, { id: 0.7, w: 40 }, { id: 1, w: 35 }],
+    tie: 0.15,                       // a non-strike right after a strike ties: guess, Morgan
+    // pitch-set size (RULES "Pitch-set size", "Range"): guess, Morgan
+    setSize: [{ id: 1, w: 10 }, { id: 2, w: 35 }, { id: 3, w: 35 }, { id: 4, w: 20 }],
+    // the set's anchor, 0 or 7 (the brief leaves the split open): guess, Morgan
+    anchor: [{ id: 0, w: 60 }, { id: 7, w: 40 }],
+    // the rest of the set, without replacement ("o" = 7 or 0, whichever is
+    // not in yet): guess, Morgan
+    degrees: [{ id: 4, w: 30 }, { id: "o", w: 25 }, { id: 2, w: 20 }, { id: 5, w: 10 }, { id: 3, w: 6 }, { id: 1, w: 5 }, { id: 6, w: 4 }],
+    // the last four steps of the cell drawn again: guess, Morgan
+    turn: [{ id: "none", w: 60 }, { id: "redraw", w: 40 }],
+    transpose: U.SEQ_MODEL.transpose,   // engine today (chordRoot 42 / keyRoot 18)
+    gate: U.SEQ_MODEL.gate,             // engine today
+    accent: U.SEQ_MODEL.accent,         // engine today
+    // one of its own steps late, into the other lines' gaps: guess, Morgan
+    phase: [{ id: 0, w: 70 }, { id: 1, w: 30 }],
+    BLOCK: 64,                          // uniforms a line reads per draw, fixed
+    TRIES: 8,                           // redraws before a doubled line drops
+    // the strips the lines play on, line 2 first
+    STRIPS: ["counter", "color", "compA"],
+  };
+  // a weighted pick on ONE uniform (the stack reads fixed blocks)
+  U.pickU = function (u, list) {
+    let tot = 0; for (const e of list) tot += e.w;
+    let x = u * tot;
+    for (const e of list) { if (x < e.w) return e; x -= e.w; }
+    return list[list.length - 1];
+  };
+  // THE SONG DRAW, U.forkPrng(hash, "stack"), 8 values for EVERY song in this
+  // order: lines, two-line octave, four-line colour octave, then 5 spare.
+  // Offsets are from line 1's degree 0 (the arp strip's mid register):
+  //   2 lines: counter -12 (60) or +12 (40)
+  //   3 lines: counter -12, colour +12
+  //   4 lines: counter -12, colour +12 or +24 (50 / 50), compA 0
+  U.drawStack = function (hash) {
+    const M = U.STACK_MODEL, G = U.forkPrng(hash, "stack"), u = [];
+    for (let i = 0; i < 8; i++) u.push(G.r());
+    const lines = U.pickU(u[0], M.lines).id;
+    const off = lines === 2 ? [U.pickU(u[1], M.two).id] : lines === 3 ? [-12, 12] : [-12, U.pickU(u[2], M.fourColor).id, 0];
+    return { lines, offsets: off };
+  };
+  // THE LINE: one block of BLOCK uniforms -> the line's parameters. Order in
+  // the block (fixed, every line, played or not): 0 rate, 1 length, 2 sub,
+  // 3 density, 4 set size, 5 anchor, 6-8 the set's other members, 9-32 the
+  // sub-cell's eight positions (strike, tie, pitch each), 33 turnaround,
+  // 34-45 its four positions (strike, tie, pitch each), 46 transpose, 47
+  // gate, 48 accent on, 49 accent cell, 50 phase; 51-63 spare.
+  U.stackLineParams = function (u, opts) {
+    const M = U.STACK_MODEL, o = opts || {};
+    const rate = o.rate || U.pickU(u[0], M.rate).id;
+    const length = U.pickU(u[1], M.length).id;
+    const sub = U.pickU(u[2], M.sub).id;
+    const density = o.density != null ? o.density : U.pickU(u[3], M.density).id;
+    const size = U.pickU(u[4], M.setSize).id;
+    const anchor = U.pickU(u[5], M.anchor).id;
+    const set = [anchor];
+    let pool = M.degrees.map((e) => ({ id: e.id === "o" ? 7 - anchor : e.id, w: e.w }));
+    for (let j = 0; j < size - 1; j++) {
+      const e = U.pickU(u[6 + j], pool); set.push(e.id); pool = pool.filter((x) => x !== e);
+    }
+    // per position: strike (position 0 always), tie (only right after a strike), else rest
+    const mark = (us, ut, up, first, prev) => {
+      if (first || us < density) return { m: "x", d: set[Math.floor(up * set.length)] };
+      return { m: prev === "x" && ut < M.tie ? "-" : ".", d: null };
+    };
+    const subMarks = [], subDeg = [];
+    for (let p = 0; p < sub; p++) {
+      const r = mark(u[9 + 3 * p], u[10 + 3 * p], u[11 + 3 * p], p === 0, subMarks[p - 1]);
+      subMarks.push(r.m); subDeg.push(r.d);
+    }
+    let turn = null;
+    if (U.pickU(u[33], M.turn).id === "redraw") {
+      turn = { marks: [], deg: [] };
+      for (let p = 0; p < 4; p++) {
+        // the turnaround's first step ties only after the cell's own strike there
+        const prev = p ? turn.marks[p - 1] : subMarks[(length - 5) % sub];
+        const r = mark(u[34 + 3 * p], u[35 + 3 * p], u[36 + 3 * p], false, prev);
+        turn.marks.push(r.m); turn.deg.push(r.d);
+      }
+    }
+    const transpose = U.pickU(u[46], M.transpose).id;
+    const gate = U.pickU(u[47], M.gate).id;
+    const accOn = U.pickU(u[48], M.accent).id === "cell";
+    const accent = accOn ? Math.min(U.ARP_MODEL.ACCENT.length - 1, Math.floor(u[49] * U.ARP_MODEL.ACCENT.length)) : null;
+    const phase = U.pickU(u[50], M.phase).id;
+    return { rate, length, sub, density, set, subMarks, subDeg, turn, transpose, gate, accent, phase, hold: null };
+  };
+  // the line's cell, pure: the sub-cell repeated to the cell's length, cut at
+  // its end, the turnaround over the last four steps. U.SEQ_CELLS' alphabet
+  // (degree digits, "." rest, "-" tie), so U.seqBar plays it.
+  U.stackLineCell = function (p) {
+    let s = "";
+    for (let i = 0; i < p.length; i++) { const k = i % p.sub; s += p.subMarks[k] === "x" ? String(p.subDeg[k]) : p.subMarks[k]; }
+    if (p.turn) {
+      const a = s.split("");
+      for (let j = 0; j < 4; j++) a[p.length - 4 + j] = p.turn.marks[j] === "x" ? String(p.turn.deg[j]) : p.turn.marks[j];
+      s = a.join("");
+    }
+    return s;
+  };
+  // the line as the bar plays it, in sixteenths, over `bars` bars: strike
+  // mask ("x", "-", ".") and the struck degrees in order
+  U.stackLineGrid = function (p, cell, bars) {
+    const R = U.SEQ_RATE[p.rate], L = p.length, n = 16 * (bars || 2), mask = new Array(n).fill("."), deg = [];
+    for (let i = 0; i < R.n * (bars || 2); i++) {
+      const k = (((i - (p.phase || 0)) % L) + L) % L, c = cell[k], pos = i * R.len;
+      if (c === "." ) continue;
+      if (c === "-") { mask[pos] = "-"; continue; }
+      mask[pos] = "x"; deg.push(+c);
+    }
+    return { mask: mask.join(""), deg };
+  };
+  // THE LINE DRAW, U.forkPrng(hash, "stack.line" + k): block t (t = 0 the
+  // first draw, 1.. a redraw) is the fork's values t*BLOCK .. t*BLOCK+63.
+  U.drawStackLine = function (hash, k, tries, opts) {
+    const M = U.STACK_MODEL, G = U.forkPrng(hash, "stack.line" + k), out = [];
+    for (let t = 0; t < (tries || 1); t++) {
+      const u = []; for (let i = 0; i < M.BLOCK; i++) u.push(G.r());
+      const p = U.stackLineParams(u, opts); p.steps = U.stackLineCell(p); out.push(p);
+    }
+    return out;
+  };
+  // A LINE TOUCHES HOME (keys stage B3, 2026-11-21, Asana 1220759610549868;
+  // Jeff 11/19: the stacked lines are a lot of the sound, so each one has to
+  // sit in the key). Lines 2 to 4 strike degree 0 or 7 at least once in their
+  // sub-cell. A figure that does not has its pitch per strike drawn again
+  // from `uh` (the line's own fork, TRIES rows of 8 uniforms, one per
+  // sub-cell position), up to TRIES times; then position 0 (always a strike)
+  // takes the set's own 0 or 7 (its anchor, set[0]). Mutates p, rewrites
+  // p.steps. Returns 0 (already home), 1..TRIES (the redraw that got home)
+  // or -1 (forced). The turnaround is left as drawn.
+  U.STACK_HOME = [0, 7];
+  U.stackLineHome = function (p, uh) {
+    const M = U.STACK_MODEL, struck = [];
+    for (let q = 0; q < p.sub; q++) if (p.subMarks[q] === "x") struck.push(q);
+    const home = () => struck.some((q) => U.STACK_HOME.includes(p.subDeg[q]));
+    let r = 0;
+    if (!home()) {
+      for (r = 1; r <= M.TRIES; r++) {
+        for (const q of struck) p.subDeg[q] = p.set[Math.floor(uh[(r - 1) * 8 + q] * p.set.length)];
+        if (home()) break;
+      }
+      if (r > M.TRIES) { p.subDeg[0] = p.set[0]; r = -1; }
+    } else r = 0;
+    p.steps = U.stackLineCell(p);
+    return r;
+  };
+  // A LINE'S RHYTHM DRAWN AGAIN (keys stage B3): the block positions that set
+  // the rhythm (0 rate, 1 length, 2 sub, 3 density, each sub-cell position's
+  // strike and tie, 33 turnaround on, the turnaround's strikes and ties, 50
+  // phase) come from `ur`; the pitches, transpose, gate and accent stay the
+  // line's own (`u`). Pure: returns a new block.
+  U.STACK_RHYTHM_U = (function () {
+    const a = [0, 1, 2, 3, 33, 50];
+    for (let q = 0; q < 8; q++) a.push(9 + 3 * q, 10 + 3 * q);
+    for (let q = 0; q < 4; q++) a.push(34 + 3 * q, 35 + 3 * q);
+    return a;
+  })();
+  U.stackLineRhythmMix = function (u, ur) {
+    const v = u.slice();
+    for (const i of U.STACK_RHYTHM_U) v[i] = ur[i];
+    return v;
+  };
+
   // THE HOOK HANDOFF (rack and parts doc: "the motor runs it in the verse,
   // the lead states it in the chorus"). U.motorFigure(sheet), pure, reads
   // sheet.motor (layer one: the machine the arp strip plays) and the song's
@@ -14902,9 +15175,224 @@
     }
     return out;
   };
+  // ---- the bass and hat figure generators (2026-11-21, Asana 1220746406848870) ----
+  // Jeff's 11/08 principle: a pattern book is a rule set derived from the
+  // Reference, never a list of its patterns. These two generators draw a
+  // figure from parameters, each on its own fork, so no song-stream draw moves.
+  // Targets from the corrected reference read (morgan repo
+  // files/unison/bass-hat-patterns-2026-11-22/RESULT.md "Targets"): straight-8th
+  // bass bars 46% -> about 27%, top three figures under 40%, 16ths between the
+  // 8ths 16% -> 20% of bass notes, notes a bar down about 15% and no denser
+  // when fast, kick steps with a bass note 86% -> 72%, root 86% -> 70%,
+  // bar-to-bar change 18% -> 44%; straight-8th hat bars 51% -> 32%, irregular
+  // 9% -> 22%. Every number below with no reference figure behind it is a
+  // guess, Morgan, for Jeff to tune by ear.
+  U.BASS_FIG = {
+    // the plain kinds whose rhythm the generator supplies, and the share of
+    // their songs that take it (guess, Morgan: sized to the census targets).
+    // The identity kinds keep their own rule: sub808, pedal and oneNote (the
+    // pitch is the sound), seq16 (the sequencer), riffHook (the hook) and
+    // octaveSlide (the idiom is the rhythm). The walk takes the generated
+    // rhythm on its first three beats and keeps its walk into the change.
+    share: { rootEighths: 0.45, rootQuarters: 0.5, octaveAlt: 0.45, octavePush: 0.45, synco16: 0.45, walk: 0.45 },
+    // fast songs get simpler: the share rises from 120 BPM to x shareFast at
+    // 140 and up (the reference's notes a bar fall with tempo; the engine's rose)
+    shareFast: 1.6,
+    // octave kinds keep their octave pitch idiom: the generator gives rhythm only
+    octaveKinds: { octaveAlt: 1, octavePush: 1 },
+    // notes a bar: drawn in [lo, hi] at or under 100 BPM, scaled down to
+    // `fast` x at 135 BPM and up (the reference plays fewer notes as the tempo
+    // rises: 5.8 under 100, 4.5 at 125 and up, as read; guess, Morgan, on the slope)
+    notes: [2.5, 7.5], fast: 0.5,
+    // weight of a strike on the beat, the offbeat 8th and the 16ths between,
+    // each drawn in its range (guess, Morgan)
+    wBeat: [0.15, 0.5], wOff8: [0.8, 1.6], wSix: [0.35, 1.1],
+    // chance a kick step carries a bass note (reference corrected 62%, the
+    // engine 86%; guess, Morgan, on the spread)
+    lock: [0.1, 0.55],
+    // anticipation of the next bar's beat 1 at a phrase end: kept rare (the
+    // corrected read does not clear its own error, so the census stays near 1%)
+    antSongs: 0.15, ant: [0.2, 0.6],
+    // figure length in bars and phrase form (guess, Morgan)
+    len: [{ v: 1, w: 20 }, { v: 2, w: 40 }, { v: 4, w: 40 }],
+    form: [{ v: "AA", w: 40 }, { v: "AB", w: 35 }, { v: "AAAB", w: 25 }],
+    // pitch: a strike after the first stays on the root (or its octave) with
+    // this chance, else a move weighted toward the 5th and the step into the
+    // next root (guess, Morgan; reference root share 60% corrected)
+    keep: [0, 0.3], octShare: 0.2,
+    moves: [{ v: "5", w: 4 }, { v: "7", w: 2 }, { v: "4", w: 1.5 }, { v: "2", w: 1 }],
+    approachW: 3,
+    TRIES: 8,
+  };
+  const figPick = (list, u) => { let t = 0; for (const e of list) t += e.w; let x = u * t; for (const e of list) { if (x < e.w) return e.v; x -= e.w; } return list[list.length - 1].v; };
+  const figLerp = (r, u) => r[0] + u * (r[1] - r[0]);
+  const figCat = (k) => (k % 4 === 0 ? 0 : k % 2 === 0 ? 1 : 2);
+  // one bar's strike steps: step 0 always, kick steps by the lock chance, the
+  // rest by weighted sampling without replacement (one uniform a step), from
+  // step `from` on (a B bar keeps A's strikes before it)
+  function figBarSteps(p, u, kick, n, from, keepSteps) {
+    const on = new Set(keepSteps || []);
+    if (from === 0) on.add(0);
+    for (let k = Math.max(1, from); k < 16; k++) if (kick[k] === "x" && u[k] < p.lock) on.add(k);
+    const key = [];
+    for (let k = Math.max(1, from); k < 16; k++) if (!on.has(k)) key.push([Math.pow(u[16 + k] || 1e-9, 1 / p.w[figCat(k)]), k]);
+    key.sort((a, b) => b[0] - a[0]);
+    const want = Math.max(1, Math.round(n * (16 - from) / 16)) - [...on].filter((k) => k >= from).length;
+    for (let j = 0; j < want && j < key.length; j++) on.add(key[j][1]);
+    return [...on].sort((a, b) => a - b);
+  }
+  // pitch symbols: R root, O octave, 5, 7 (the flat 7th or the 7th, as the
+  // scale has it), 4, 2, A (a scale step into the next bar's root)
+  function figBarPitches(p, steps, u, from, keepSyms) {
+    const M = U.BASS_FIG, out = [];
+    steps.forEach((k, j) => {
+      if (k < from && keepSyms) { out.push(keepSyms[j]); return; }
+      if (j === 0 && k === 0) { out.push("R"); return; }
+      const a = u[32 + k], b = u[48 + k];
+      if (a < p.keep) { out.push(b < M.octShare ? "O" : "R"); return; }
+      const last = j === steps.length - 1 && k >= 12;
+      const list = last ? M.moves.concat([{ v: "A", w: M.approachW }]) : M.moves;
+      out.push(figPick(list, b));
+    });
+    return out;
+  }
+  U.figureGuardOk = function (bars) {
+    const G = U.BASS_TECHNIQUE_GUARD || { minGapSteps: 0.5, maxEv: 16, minEv: 1 };
+    for (const b of bars) {
+      if (b.steps.length < G.minEv || b.steps.length > G.maxEv) return false;
+      for (let j = 1; j < b.steps.length; j++) if (b.steps[j] - b.steps[j - 1] < G.minGapSteps) return false;
+    }
+    return true;
+  };
+  // THE DRAW, U.forkPrng(hash, "bassfig"): 16 song values, then one figure
+  // block of 4 bars x 64 + 64 for B, read for EVERY song whether used or not;
+  // a figure the guard rejects is drawn again from the next block.
+  // o = { kind, bpm, kick (16-char kick pattern) }. Returns { on, ... }.
+  U.drawBassFig = function (hash, o) {
+    const M = U.BASS_FIG, G = U.forkPrng(hash, "bassfig"), s = [];
+    for (let i = 0; i < 16; i++) s.push(G.r());
+    const blk = () => { const a = []; for (let i = 0; i < 5 * 64; i++) a.push(G.r()); return a; };
+    let B0 = blk();
+    const share = Math.min(1, (M.share[o.kind] || 0) * (1 + (M.shareFast - 1) * Math.max(0, Math.min(1, ((o.bpm || 110) - 120) / 20))));
+    const fastMul = 1 - (1 - M.fast) * Math.max(0, Math.min(1, ((o.bpm || 110) - 100) / 35));
+    const p = {
+      notes: +(figLerp(M.notes, s[1]) * fastMul).toFixed(2),
+      w: [figLerp(M.wBeat, s[2]), figLerp(M.wOff8, s[3]), figLerp(M.wSix, s[4])].map((x) => +x.toFixed(3)),
+      lock: +figLerp(M.lock, s[5]).toFixed(3),
+      ant: s[6] < M.antSongs ? +figLerp(M.ant, s[7]).toFixed(3) : 0,
+      len: figPick(M.len, s[8]), form: figPick(M.form, s[9]),
+      keep: +figLerp(M.keep, s[10]).toFixed(3), bBeats: s[11] < 0.5 ? 1 : 2,
+    };
+    const rec = { on: s[0] < share, kind: o.kind, octave: !!M.octaveKinds[o.kind], params: p, tries: 0 };
+    if (!rec.on) return rec;
+    const kick = (o.kick || "x...x...x...x...").padEnd(16, ".");
+    for (let t = 0; t < M.TRIES; t++) {
+      const U0 = t === 0 ? B0 : blk();
+      const bars = [];
+      for (let j = 0; j < p.len; j++) {
+        const u = U0.slice(j * 64, j * 64 + 64);
+        const st = figBarSteps(p, u, kick, p.notes, 0);
+        bars.push({ steps: st, syms: figBarPitches(p, st, u, 0) });
+      }
+      // B: A's last bar with its last one or two beats redrawn
+      const last = bars[p.len - 1], from = 16 - 4 * p.bBeats, ub = U0.slice(4 * 64, 5 * 64);
+      const keepSt = last.steps.filter((k) => k < from);
+      const bst = figBarSteps(p, ub, kick, p.notes, from, keepSt);
+      const B = { steps: bst, syms: figBarPitches(p, bst, ub, from, last.syms) };
+      rec.tries = t + 1;
+      if (U.figureGuardOk(bars.concat([B]))) { rec.bars = bars; rec.B = B; rec.phraseBars = p.len * p.form.length; return rec; }
+    }
+    rec.on = false; rec.rejected = true;
+    return rec;
+  };
+  // which figure bar plays at a bar's place in its section; anticipation at
+  // the phrase's last bar (decided per phrase from the hash, not the stream)
+  U.bassFigBar = function (F, idx) {
+    const pos = idx % F.phraseBars, item = Math.floor(pos / F.params.len), j = pos % F.params.len;
+    const isB = F.params.form[item] === "B" && j === F.params.len - 1;
+    return { bar: isB ? F.B : F.bars[j], phraseEnd: pos === F.phraseBars - 1, phrase: Math.floor(idx / F.phraseBars) };
+  };
+
+  U.HAT_FIG = {
+    // base grid: 8ths (with gaps and 16th pairs or runs) or 16ths (with gaps)
+    // (guess, Morgan)
+    base16: 0.35,
+    gaps8: [0, 7], adds8: [0, 5],        // on the 8ths base: 8th steps dropped, 16ths added
+    gaps16: [2, 10],                      // on the 16ths base: steps dropped
+    run: 0.3,                            // an added 16th joins its neighbour as a pair or run
+    open: [{ v: "none", w: 60 }, { v: "electro", w: 25 }, { v: "offbeat", w: 15 }],
+    lastBeat: [0.2, 0.7],                // chance the phrase's last bar redraws its last beat
+    // brief 1B (2026-11-22, Asana 1220746406848870): a share of generated songs
+    // play a half-bar cell twice. Reference hat bars whose halves differ in at
+    // most one step: 41% as read (a floor: the reading breaks repeats), 56%
+    // corrected; the full-bar draw 13%; target 38.8% +-3 (morgan repo
+    // files/unison/bass-hat-patterns-2026-11-22/RESULT-1B.md)
+    cell: 0.35,                          // share of generated songs on the cell (tuned to that target on census samples)
+    cellVary: 0.4,                       // chance a cell song's second half varies (guess, Morgan)
+    vary: [{ v: "add", w: 40 }, { v: "drop", w: 30 }, { v: "beat", w: 30 }], // one step added, one dropped, or its last beat redrawn (guess, Morgan)
+  };
+  // THE DRAW, U.forkPrng(hash, "hatfig"): a fixed block of 8 + 2 x 32 + 8
+  // values (the last 8, the half-bar cell, added 2026-11-22 at the block's end
+  // so every other draw reads what it did).
+  U.drawHatFig = function (hash) {
+    const M = U.HAT_FIG, G = U.forkPrng(hash, "hatfig"), s = [], a = [], b = [], c = [];
+    for (let i = 0; i < 8; i++) s.push(G.r());
+    for (let i = 0; i < 32; i++) a.push(G.r());
+    for (let i = 0; i < 32; i++) b.push(G.r());
+    for (let i = 0; i < 8; i++) c.push(G.r());
+    const base16 = s[0] < M.base16, open = figPick(M.open, s[3]);
+    const order = (u, ks) => ks.map((k) => [u[k], k]).sort((x, y) => x[0] - y[0]).map((x) => x[1]);
+    const build = (u, from, keep) => {
+      const on = new Set((keep || []).filter((k) => k < from));
+      if (base16) {
+        for (let k = from; k < 16; k++) on.add(k);
+        const g = Math.round(figLerp(M.gaps16, s[1]) * (16 - from) / 16);
+        for (const k of order(u, [...Array(16 - from).keys()].map((x) => x + from)).slice(0, g)) on.delete(k);
+      } else {
+        for (let k = from; k < 16; k += 2) on.add(k);
+        const g = Math.round(figLerp(M.gaps8, s[1]) * (16 - from) / 16);
+        for (const k of order(u, [...Array(8).keys()].map((x) => 2 * x).filter((k) => k >= from)).slice(0, g)) on.delete(k);
+        const n = Math.round(figLerp(M.adds8, s[2]) * (16 - from) / 16);
+        let added = 0;
+        for (const k of order(u.slice(16).concat(u.slice(0, 16)), [...Array(8).keys()].map((x) => 2 * x + 1).filter((k) => k >= from))) {
+          if (added >= n) break;
+          on.add(k); added++;
+          if (u[16 + k] < M.run && k + 1 < 16 && !on.has(k + 1)) on.add(k + 1);
+        }
+      }
+      let p = "";
+      for (let k = 0; k < 16; k++) {
+        const isOpen = on.has(k) && ((open === "electro" && (k === 6 || k === 14)) || (open === "offbeat" && k % 4 === 2));
+        p += isOpen ? "o" : on.has(k) ? "x" : ".";
+      }
+      return p;
+    };
+    let A = build(a, 0), cell = null;
+    if (c[0] < M.cell) {
+      // the cell: the full-bar draw's first half (its second if the first is
+      // empty), played twice; the second half may vary by one step or redraw
+      // its last beat (each step on at the cell's own density)
+      const half = /[xo]/.test(A.slice(0, 8)) ? A.slice(0, 8) : A.slice(8);
+      const two = [...(half + half)], vary = c[1] < M.cellVary ? figPick(M.vary, c[2]) : "none";
+      const openAt = (k) => (open === "electro" && (k === 6 || k === 14)) || (open === "offbeat" && k % 4 === 2);
+      const pick = (ks) => ks[Math.min(ks.length - 1, Math.floor(c[3] * ks.length))];
+      const offs = [...Array(8).keys()].map((x) => x + 8).filter((k) => two[k] === "."), ons = [...Array(8).keys()].map((x) => x + 8).filter((k) => two[k] !== ".");
+      if (vary === "add" && offs.length) { const k = pick(offs); two[k] = openAt(k) ? "o" : "x"; }
+      else if (vary === "drop" && ons.length > 1) two[pick(ons)] = ".";
+      else if (vary === "beat") {
+        const dens = [...half].filter((x) => x !== ".").length / 8;
+        for (let k = 12; k < 16; k++) two[k] = c[4 + k - 12] < dens ? (openAt(k) ? "o" : "x") : ".";
+      }
+      A = two.join(""); cell = { half, vary };
+    }
+    const aSteps = [...A].map((c, k) => (c !== "." ? k : -1)).filter((k) => k >= 0);
+    const B = build(b, 12, aSteps);
+    return { A, B, base16, open, cell, lastBeat: +figLerp(M.lastBeat, s[4]).toFixed(3), lastOn: s[5] < figLerp(M.lastBeat, s[4]) };
+  };
+
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/bassplayer.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/bassplayer.js @ 26c0640 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassplayer.js — the PERFORMANCE half of the bass guitar: a session player.
 //
 // Rack 2's rule (kb/projects/unison.md, 2026-07-11): every human instrument is
@@ -15322,11 +15810,40 @@
   // (folded into the chain's output level: the amp's outDb or the board's
   // level block, so the compressor never sees it), on the strip's trim on di.
   // Nothing with U.BASS_TECHNIQUE_OFF.
-  U.bassTechniqueLevel = function (book) {
+  // On a generated figure (sheet.bassFig.on, books.js U.drawBassFig) the
+  // kind's cell was measured on the kind's own figure, not the generated one,
+  // so the technique sits off the written playing OF THE SAME FIGURE. The
+  // target is the table's own: each technique at the level of the written
+  // playing of the figure it plays. The figure's density is left alone: a
+  // sparser figure is not turned up to match the old line (fewer notes at
+  // fast tempos is a target). One number per technique, ADDED to the kind's
+  // cell. MEASURED 2026-11-22 (bass-hats stage 3, Asana 1220746406848870):
+  // the level harness's --techniques --check on 17 generated-figure
+  // bass-guitar songs (seed 4, 3 per kind) before any column read fingerFunk
+  // -0.13, slap -1.08, rootPump -2.02, reggae +0.83 dB against the written
+  // playing; value = -gap rounded to 0.1, fingerFunk none (inside 0.2 of
+  // zero), reggae none (inside the table's ±1 dB rule). morgan repo
+  // files/unison/bass-hat-patterns-2026-11-22/RESULT-3.md.
+  U.BASS_TECHNIQUE_FIG_DB = { slap: 1.1, rootPump: 2.0 };
+  // the generated bass figure is the sheet's own: on, and the bass pick in
+  // play is the one it was drawn for (pick omitted: the sheet's pick). A jam
+  // bar spliced from another draw plays its own kind's written line.
+  U.bassFigOwn = (sheet, pick) => {
+    const F = sheet && sheet.bassFig;
+    if (!F || !F.on) return false;
+    const pk = pick === undefined ? sheet.picks && sheet.picks.bass : pick;
+    return F.pickId === undefined || (!!pk && pk.id === F.pickId);
+  };
+  U.bassTechniqueLevel = function (book, sheet, pick) {
     const t = book && book.technique, ch = book && book.chain;
-    if (!t || U.BASS_TECHNIQUE_OFF || !t.levelDb) return { trimDb: 0, chain: ch };
-    if (ch && ch.id !== "di") return { trimDb: 0, chain: Object.assign({}, ch, { levelDb: +((ch.levelDb || 0) + t.levelDb).toFixed(2) }) };
-    return { trimDb: t.levelDb, chain: ch };
+    // not on the "octave" style: it rewrites any written figure into root-octave
+    // 8ths (U.bassStyleBar), so the line it plays is the one it always played;
+    // not on a spliced pick (U.bassFigOwn), which plays its kind's written line
+    const fig = t && U.bassFigOwn(sheet, pick) && book.style !== "octave" ? (U.BASS_TECHNIQUE_FIG_DB[t.id] || 0) : 0;
+    const db = t ? +((t.levelDb || 0) + fig).toFixed(2) : 0;
+    if (!t || U.BASS_TECHNIQUE_OFF || !db) return { trimDb: 0, chain: ch };
+    if (ch && ch.id !== "di") return { trimDb: 0, chain: Object.assign({}, ch, { levelDb: +((ch.levelDb || 0) + db).toFixed(2) }) };
+    return { trimDb: db, chain: ch };
   };
   // the technique in play on a song (null = the written playing)
   U.bassTechniqueOn = (book) => (!U.BASS_TECHNIQUE_OFF && book && book.technique && book.technique.record.applied ? book.technique : null);
@@ -15430,14 +15947,17 @@
       const octKind = c.kind === "octaveAlt" || c.kind === "octavePush";
       const climbing = t.climbBars && t.climbBars.indexOf(c.bar) >= 0;
       const out = [];
-      for (let i = 0; i < 16; i += 2) {
+      // on a generated figure (U.drawBassFig) the pump plays the figure's
+      // strikes, so the rhythm is the figure's; otherwise every 8th, as before
+      const grid = c.fig ? [...new Set(evs.filter((e) => !e.mute).map((e) => e.i))] : [0, 2, 4, 6, 8, 10, 12, 14];
+      for (const i of grid) {
         const r = R.r();
         if (climbing && i >= 8) continue;
         const w = evs.find((e) => e.i === i);
         let midi = root;
         if (octKind && w && w.midi === root + 12) midi = root + 12;
         else if (!octKind && i % 4 === 2 && r < d.density) midi = root + 12;
-        out.push({ i, midi, vel: i === 0 ? 0.9 : 0.86, dur: 1.7 });
+        out.push({ i, midi, vel: i === 0 ? 0.9 : 0.86, dur: c.fig ? Math.min(1.7, (evs.find((e) => e.i === i) || { dur: 1.7 }).dur) : 1.7 });
       }
       if (climbing) {
         const cl = climb(c, Math.floor(d.seven), 4 + Math.floor(R.r() * 5));
@@ -15499,7 +16019,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/gtrplayer.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/gtrplayer.js @ 26c0640 — verbatim from jeffdavis-studio/unison-engine ===== */
 // gtrplayer.js — the PERFORMANCE half of the rhythm guitar: a session
 // guitarist on the rhythmGtr strip.
 //
@@ -15973,7 +16493,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/fmplayer.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/fmplayer.js @ 26c0640 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fmplayer.js — the PERFORMANCE half of the FM keys: a session keyboard
 // player on the FM chord strips (compA's tine EP, colour's glass and brass).
 //
@@ -16114,7 +16634,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/testPhrase.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/testPhrase.js @ 26c0640 — verbatim from jeffdavis-studio/unison-engine ===== */
 // testPhrase.js — deterministic 8-bar test phrase, ported from the bake-off
 // (phrase.js) onto the engine's canonical PRNG (core/prng.js).
 //
@@ -16208,7 +16728,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/form.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/form.js @ 26c0640 — verbatim from jeffdavis-studio/unison-engine ===== */
 // form.js — the song's form: the book of returns (2026-10-30, Asana
 // 1220073468300418; design files/unison/structure-design-2026-10-30 in the
 // morgan repo, DESIGN.md + draw.py, transcribed here as written).
@@ -16529,7 +17049,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/session.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/session.js @ 26c0640 — verbatim from jeffdavis-studio/unison-engine ===== */
 // session.js — the session sheet and the arrangement realizer.
 //
 // Two tiers, in this order, each on its own stream (core/prng.js):
@@ -17032,20 +17552,6 @@
     if (!R.hash) throw new Error("drawSession: the padVoice fork needs the stream's hash (U.makePrng)");
     const padRoll = U.forkPrng(R.hash, "padVoice").r();
     const padVoice = polyVoice === "obxa" && padRoll < U.OBXA_PAD_SHARE ? "obxa" : "juno";
-    // THE ROLE DRAW (2026-11-01, Asana 1220084766500650, the lock out): each
-    // pitched strip draws its own engine, by role fitness x the lane pull
-    // (U.ENGINE_ROLE_FIT, U.LANE_PULL, U.BASS_PULL, books.js). One roll per
-    // strip from its own FORK, U.forkPrng(hash, "roleDraw." + strip), read in
-    // U.ROLE_STRIPS order for EVERY song whether or not the strip is up, so a
-    // mute retune never moves another strip and tier 1 stays 86 draws. Draws
-    // 20 and 30 and the moogRoles and padVoice forks are still read above;
-    // they are recorded as sheet.legacy (the census's before) and decide
-    // nothing: the builders read sheet.voices.
-    const voices = {};
-    for (const strip of U.ROLE_STRIPS) {
-      const VG = U.forkPrng(R.hash, "roleDraw." + strip);
-      voices[strip] = U.pickWeighted(VG, U.roleEngineList(strip, U.stripRole(strip, picks), lane, picks)).id;
-    }
     // THE MOTOR, slice 1: the arpeggiator (2026-11-01, Asana
     // 1220084594858479). The arp strip's figure is one setting of the
     // arpeggiator model (U.ARP_MODEL, U.drawArpMotor, books.js), read from
@@ -17070,7 +17576,11 @@
     // (the interlock is two layers or none) AND the layer draw says two.
     motor.layer = U.drawLayerMotor(R.hash, motor);
     motor.eligible = { silence: picks.counter.kind === "silence", counterUp: !counterStripMuted, arpUp: !mutes.arp };
-    motor.layer2 = motor.eligible.silence && motor.eligible.counterUp && motor.eligible.arpUp && motor.layer.layers === "two";
+    // KEYS STAGE B (2026-11-21): the old rule (layer two heard only where the
+    // counter drew silence) is gone; the stack below owns the counter strip's
+    // line. U.drawLayerMotor still runs for every song (the motor's filter
+    // row is drawn there); its layer fields are recorded and inert.
+    motor.layer2 = false;
     const legacy = { bassVoice, polyVoice, padRoll, moogRolls: { lead: leadVoice, counter: counterVoice, arp: arpVoice }, padVoice, arpKind: picks.arp.kind };
     // P.arp is the motor's alias from here on: kind = the derived label
     // ("arp16.up.oct2", U.arpMotorLabel), id = the full setting
@@ -17086,13 +17596,107 @@
     // THE HOOK HANDOFF: the motor's figure as the melody engine will read it
     // (U.motorFigure, books.js). Data only, no draw: nothing yields to it yet.
     motor.handoff = U.motorFigure({ motor, harmony });
-    // Layer two takes the counter's silence back: the strip comes up and
-    // P.counter is the layer's alias (machine "seq", layer 2, motor = the
-    // layer setting), which the counter builder reads. Every other song's
-    // counter is exactly slice 2's (answer, or silence = the desk mute).
-    if (motor.layer2) {
-      mutes.counter = false;
-      picks.counter = { id: U.layerMotorId(motor.layer), kind: U.layerMotorLabel(motor.layer), machine: "seq", layer: 2, motor: motor.layer };
+    // KEYS AS STACKED SINGLE-NOTE LAYERS (stage B, 2026-11-21, Asana
+    // 1220759610549868; U.STACK_MODEL, books.js). A song whose arp strip is up
+    // carries a stack of 2, 3 or 4 lines (U.drawStack, fork "stack", read for
+    // EVERY song). Line 1 is the arp strip as it plays. Lines 2 to 4 play on
+    // the counter, colour and compA strips (U.STACK_MODEL.STRIPS), each from
+    // its own fork "stack.line" + k (U.drawStackLine). A strip carrying a line
+    // comes up whatever its own mute draw and plays no usual part on that
+    // song; picks[strip] is the line's alias (kind "stackLine", line k, motor
+    // = the line's setting, offset = semitones from line 1's degree 0, was =
+    // the strip's own pick). Drawn before the role draw: U.stripRole reads it.
+    // Do not double: a line whose two-bar strike mask and pitch-class
+    // sequence equal an earlier line's (line 1 read from what the arp strip
+    // plays over the first chord, U.motorFigure) is drawn again from the next
+    // block of its fork, up to U.STACK_MODEL.TRIES times, then dropped
+    // (stack.dropped). At most one line a song is full (a strike on every
+    // sixteenth): a later full line is drawn again at density medium. A line
+    // at offset 0 shares line 1's octave, so it takes the other division
+    // from line 1 (triplets count as sixteenths) and a one-bar strike mask
+    // different from line 1's.
+    const stack = U.drawStack(R.hash);
+    stack.drawn = stack.lines; stack.on = !mutes.arp;
+    stack.lines = []; stack.dropped = []; stack.redraws = 0;
+    {
+      const M = U.STACK_MODEL, f1 = motor.handoff;
+      const two = (str) => (str.length >= 32 ? str.slice(0, 32) : (str + str).slice(0, 32));
+      const deg1 = f1.bars === 1 ? f1.degrees.concat(f1.degrees) : f1.degrees;
+      const rate1 = (motor.machine === "seq" ? motor.seq.rate : motor.arp.rate) === "eighths" ? "eighths" : "sixteenths";
+      const xs = (m) => m.replace(/-/g, ".");
+      const done = [{ k: 1, mask: xs(two(f1.rhythm)), pcs: deg1.map((d) => ((d % 7) + 7) % 7).join(","), full: !/[^x]/.test(two(f1.rhythm)) }];
+      const n = stack.on ? stack.drawn : 1;
+      stack.homeRedrawn = 0; stack.homeForced = 0; stack.rhythmRedraws = 0; stack.maskDropped = [];
+      for (let k = 2; k <= 4; k++) {
+        const off = stack.offsets[k - 2], strip = M.STRIPS[k - 2];
+        // every line's fork is read for every song (a fixed number of
+        // blocks): TRIES+1 line blocks, then (stage B3) TRIES rhythm blocks
+        // and 2*TRIES+1 home blocks (TRIES rows of 8 uniforms each, one per
+        // candidate: the line blocks first, then the rhythm redraws)
+        const G = U.forkPrng(R.hash, "stack.line" + k), blocks = [], rblocks = [], hblocks = [];
+        const read = (arr, n) => { for (let t = 0; t < n; t++) { const u = []; for (let i = 0; i < M.BLOCK; i++) u.push(G.r()); arr.push(u); } };
+        read(blocks, M.TRIES + 1); read(rblocks, M.TRIES); read(hblocks, 2 * M.TRIES + 1);
+        if (k > n) continue;
+        const opts = off === 0 ? { rate: rate1 === "sixteenths" ? "eighths" : "sixteenths" } : {};
+        // one candidate from a block: the full-line fallback, then the
+        // home rule (B3 rule a) on candidate c's home block
+        const make = (u, c) => {
+          let p = U.stackLineParams(u, opts); p.steps = U.stackLineCell(p);
+          let g = U.stackLineGrid(p, p.steps, 2), full = p.rate === "sixteenths" && !/[^x]/.test(g.mask);
+          if (full && done.some((d) => d.full)) { p = U.stackLineParams(u, Object.assign({}, opts, { density: 0.7 })); p.steps = U.stackLineCell(p); }
+          const home = U.stackLineHome(p, hblocks[c]);
+          g = U.stackLineGrid(p, p.steps, 2); full = p.rate === "sixteenths" && !/[^x]/.test(g.mask);
+          const mask = xs(g.mask), pcs = g.deg.map((d) => d % 7).join(",");
+          return { p, mask, pcs, full, home };
+        };
+        const clash = (c) => done.some((d) => d.mask === c.mask && d.pcs === c.pcs)
+          || (off === 0 && c.mask.slice(0, 16) === done[0].mask.slice(0, 16))
+          || (c.full && done.some((d) => d.full));
+        // B3 rule b: no two of lines 2 to 4 share a two-bar strike mask,
+        // whatever their pitches
+        const sameMask = (c) => done.some((d) => d.k >= 2 && d.mask === c.mask);
+        let got = null, gone = false;
+        for (let t = 0; t <= M.TRIES && !got && !gone; t++) {
+          const c = make(blocks[t], t);
+          if (clash(c)) { stack.redraws++; continue; }
+          if (!sameMask(c)) { got = { c, t, r: 0 }; break; }
+          // the later line's rhythm drawn again from its own fork, up to
+          // TRIES times, its pitches kept; then the line drops
+          for (let r = 0; r < M.TRIES && !got; r++) {
+            stack.rhythmRedraws++;
+            const c2 = make(U.stackLineRhythmMix(blocks[t], rblocks[r]), M.TRIES + 1 + r);
+            if (!clash(c2) && !sameMask(c2)) got = { c: c2, t, r: r + 1 };
+          }
+          if (!got) gone = true;
+        }
+        if (got) {
+          const c = got.c;
+          if (c.home > 0) stack.homeRedrawn++; else if (c.home < 0) stack.homeForced++;
+          stack.lines.push({ k, strip, offset: off, motor: c.p, mask: c.mask, full: c.full, tries: got.t, rhythmTries: got.r, home: c.home });
+          done.push({ k, mask: c.mask, pcs: c.pcs, full: c.full });
+        } else { stack.dropped.push(k); if (gone) stack.maskDropped.push(k); }
+      }
+      stack.count = stack.on ? 1 + stack.lines.length : 0;
+    }
+    for (const L of stack.lines) {
+      const wasMuted = !!mutes[L.strip];
+      mutes[L.strip] = false;
+      picks[L.strip] = { id: "stack.line" + L.k + "." + L.motor.rate + ".len" + L.motor.length + ".sub" + L.motor.sub + "." + L.motor.steps + (L.offset ? (L.offset > 0 ? ".up" : ".down") + Math.abs(L.offset) : ""),
+        kind: "stackLine", line: L.k, motor: L.motor, offset: L.offset, was: picks[L.strip], wasMuted };
+    }
+    // THE ROLE DRAW (2026-11-01, Asana 1220084766500650, the lock out): each
+    // pitched strip draws its own engine, by role fitness x the lane pull
+    // (U.ENGINE_ROLE_FIT, U.LANE_PULL, U.BASS_PULL, books.js). One roll per
+    // strip from its own FORK, U.forkPrng(hash, "roleDraw." + strip), read in
+    // U.ROLE_STRIPS order for EVERY song whether or not the strip is up, so a
+    // mute retune never moves another strip and tier 1 stays 86 draws. Draws
+    // 20 and 30 and the moogRoles and padVoice forks are still read above;
+    // they are recorded as sheet.legacy (the census's before) and decide
+    // nothing: the builders read sheet.voices.
+    const voices = {};
+    for (const strip of U.ROLE_STRIPS) {
+      const VG = U.forkPrng(R.hash, "roleDraw." + strip);
+      voices[strip] = U.pickWeighted(VG, U.roleEngineList(strip, U.stripRole(strip, picks), lane, picks)).id;
     }
     // THE MELODY ENGINE, slice 1 (2026-11-03, Asana 1220085081631862): the
     // song's motif, its development plan over the form, its dials and the
@@ -17129,6 +17733,24 @@
       b.fillWindow = b.last && i < bars.length - 1 && form.fill[b.sectionIndex];
     }
 
+    // the bass and hat figure generators (2026-11-21, Asana 1220746406848870):
+    // own forks ("bassfig", "bassfig.ant", "hatfig"), drawn for every song,
+    // after the influence patches so the picks they read are final
+    const bassFig = U.drawBassFig(R.hash, { kind: picks.bass && picks.bass.kind, bpm, kick: picks.kick && picks.kick.p });
+    // the pick the figure was drawn for (U.bassFigOwn: a jam bar spliced from
+    // another draw plays its own kind's written line)
+    bassFig.pickId = picks.bass ? picks.bass.id : null;
+    {
+      const GA = U.forkPrng(R.hash, "bassfig.ant"), ua = bars.map(() => GA.r()), ub = bars.map(() => GA.r());
+      bassFig.antBars = {};
+      if (bassFig.on && bassFig.params.ant > 0) bars.forEach((b, i) => {
+        if (i + 1 < bars.length && U.bassFigBar(bassFig, b.indexInSection).phraseEnd && ua[i] < bassFig.params.ant) bassFig.antBars[i] = ub[i] < 0.5 ? 14 : 15;
+      });
+    }
+    const hatFig = U.drawHatFig(R.hash);
+    hatFig.on = !!(picks.hats && picks.hats.kind === "gen");
+    // pages and harnesses read picks.hats.p: a generated song shows its A bar
+    if (hatFig.on) picks.hats = Object.assign({}, picks.hats, { p: hatFig.A });
     const barSec = 4 * (60 / bpm);
     return {
       lane, laneLabel: U.LANE_LABEL[lane], bpm, swing, tonicPc, mode,
@@ -17148,6 +17770,8 @@
       voices, legacy,
       // the motor (2026-11-01): sheet.motor.arp, the arpeggiator's setting
       motor,
+      // keys stage B (2026-11-21): sheet.stack = { drawn (2-4), offsets, on (arp strip up), count (lines kept, line 1 included), lines: [{ k, strip, offset, motor, mask, full, tries }], dropped, redraws }
+      stack,
       // the melody engine (2026-11-03): sheet.melody = { motif, plan, home,
       // dials, handoff, label, table }
       melody,
@@ -17156,6 +17780,8 @@
       // around the root (2026-11-13): sheet.around = { bass, arp, approach, lead, counter, seq, drawn }
       around,
       masks: { bass: bassMask, comp: compMask, lead: leadPhrase, counter: counterPhrase, gtr: gtrMask },
+      // sheet.bassFig = { on, kind, octave, params, bars: [{ steps, syms }], B, phraseBars, antBars }; sheet.hatFig = { on, A, B, open, lastOn }
+      bassFig, hatFig,
       bars, totalBars: bars.length, barSec, lengthSec: bars.length * barSec,
       kit: U.LANE_FEEL[lane].kit,
     };
@@ -17446,13 +18072,97 @@
   // brief's 1 dB line, so it comes down by that.
   U.HOOK_TRIM_DB = -1.5;
 
-  U.stripTrimDb = function (engine, strip, key, picks) {
+  // THE STACK LINE LEVEL (keys stage B2, 2026-11-21, Asana 1220759610549868):
+  // dB on a stack line's strip trim, on top of the counter row it reads, by
+  // the strip that carries the line (colour also by the line's octave offset).
+  // Read only when the strip carries a stack line. MEASURED by
+  // files/unison/keys-stacked-layers-2026-11-21/scripts/b2-levels.mjs (morgan
+  // repo): 9 stack songs, each line's strip solo against line 1 (the arp
+  // strip) on the same song, gated integrated loudness at the song's own bus
+  // trim. Median gaps before the table: counter -1.9 dB (n 9, range -4.3 to
+  // +3.6), colour +12 -1.5 to +1.5 (n 5, median about 0), the
+  // one colour +24 line +6.6 (4c71336b, Juno arp patch two octaves up), compA
+  // +1.0 (n 3, -0.6 to +4.6). Engines on the counter differ by 0.8 dB (Juno
+  // -1.6, Minimoog -0.9), under the 2 dB that would key it by engine. The
+  // spread inside a strip (counter 7.9 dB) is the line's density, not its
+  // strip; the table centres it and does not narrow it (RESULT-B2.md).
+  U.STACK_LINE_LEVEL_DB = { counter: 2.0, color: { "24": -6.5, "*": 0 }, compA: -1.0 };
+  // THE HELD CHORD SITS BACK (keys stage B3, Jeff 11/19 on the Reference:
+  // the chords sit in the background and hold; they come forward only in
+  // intros and breakdowns): a held compA chord outside an intro or break,
+  // in dB. guess, Morgan (BRIEF-B3 step 2a; Jeff tunes it by ear).
+  // -8 -> -12 (landing L1, BRIEF-L1 step 3a): at -8 the held chord still
+  // sat at or above the line group on 5 of the 6 songs where compA holds
+  // (RESULT-B3.md). Same mechanism, same bars. guess, Morgan.
+  U.HELD_CHORD_BACK_DB = -12;
+  // THE HELD CHORD FOLLOWS THE LINES DOWN (landing L2, BRIEF-L2 step 2): on
+  // a stack song whose lead strip is up (not muted), the held chord takes
+  // the same U.STACK_GROUP_LEAD_DB the line group takes in U.stackGroupDb
+  // (same test, same mutes argument), so the chord's distance under the
+  // lines does not depend on whether a lead plays. At L1 the lines came down
+  // 3 dB on lead songs and the chord did not (7fd532cd held only 2.20 dB
+  // under the group, RESULT-L1.md). A caller without mutes gets no lead
+  // term; a song with no stack is unchanged. guess, Morgan, 11/22.
+  U.heldChordBackDb = function (picks, mutes) {
+    const line = (s) => picks && picks[s] && picks[s].kind === "stackLine";
+    const stack = line("counter") || line("color") || line("compA");
+    return U.HELD_CHORD_BACK_DB + (stack && mutes && picks.lead && !mutes.lead ? U.STACK_GROUP_LEAD_DB : 0);
+  };
+  // THE STACK COMES FORWARD (keys stage B3, BRIEF-B3 step 2b, 2c): on a
+  // stack song every line (line 1 on the arp strip included) takes one group
+  // gain by the song's line count, so the lines soloed together sit about
+  // 12 dB under the full mix; lines 2 to 4 also take a term by their density
+  // (the strike chance the line drew: 0.4 sparse, 0.7 medium, 1 full).
+  // MEASURED (morgan repo files/unison/keys-stacked-layers-2026-11-21/
+  // scripts/b3-levels.mjs + b3-analyze.py, RESULT-B3.md), 7 of the 9 stack
+  // songs at 8c4c048, the line group solo against the mix, gated integrated
+  // loudness: group under mix 12.4 to 19.5 dB; gain needed to reach 12, by
+  // line count, medians 2 lines 6.8 (n 2), 3 lines 4.2 (n 2), 4 lines 1.7
+  // (n 3). 2 and 4 differ by over 3 dB, so one constant per line count,
+  // +0.2 for the bus trim taking back part of the rise. guess, Morgan, on
+  // 7 songs; Jeff tunes by ear. Density: each line's solo against line 1
+  // with the B2 table in, medians by density -1.1 (0.4, n 2), -0.1 (0.7,
+  // n 8), +1.3 (1, n 5) around an overall +0.1; the term centres them. The
+  // counter's spread is still 4.3 dB after it (5.5 before), over the 4 dB
+  // line: recorded, no per-song makeup (BRIEF-B3 2c).
+  U.STACK_GROUP_DB = { "2": 7.0, "3": 4.5, "4": 2.0 };
+  U.STACK_DENSITY_DB = { "0.4": 1.0, "0.7": 0, "1": -1.0 };
+  // THE LEAD STAYS ON TOP (landing L1, BRIEF-L1 step 3b): on a stack song
+  // whose lead strip is up (not muted), the whole line group sits this much
+  // lower, per song, not per bar; a song with no lead is unchanged. At B3's
+  // table the lead sat under 3 dB over the group on part of every lead song
+  // (7fd532cd median 2.1 dB, RESULT-B3.md). guess, Morgan. The mutes come
+  // in as the third argument; a caller without them gets no lead term.
+  U.STACK_GROUP_LEAD_DB = -3;
+  U.stackGroupDb = function (strip, picks, mutes) {
+    if (!picks) return 0;
+    const line = (s) => picks[s] && picks[s].kind === "stackLine";
+    if (!line("counter") && !line("color") && !line("compA")) return 0;
+    const n = 1 + ["counter", "color", "compA"].filter(line).length;
+    const G = (typeof U.STACK_GROUP_DB === "number" ? U.STACK_GROUP_DB : (U.STACK_GROUP_DB[String(n)] || 0))
+      + (mutes && picks.lead && !mutes.lead ? U.STACK_GROUP_LEAD_DB : 0);
+    if (strip === "arp") return G;
+    if (!line(strip)) return 0;
+    const d = picks[strip].motor && picks[strip].motor.density, t = U.STACK_DENSITY_DB[String(d)];
+    return G + (t || 0);
+  };
+
+  U.stripTrimDb = function (engine, strip, key, picks, mutes) {
+    // a stack line (keys stage B, 2026-11-21) on the colour or compA strip
+    // reads the counter's measured row for its engine (the single-note row
+    // the counter's line already plays at), plus its strip's line level
+    let lineDb = U.stackGroupDb(strip, picks, mutes);
+    if (picks && picks[strip] && picks[strip].kind === "stackLine") {
+      const t = U.STACK_LINE_LEVEL_DB[strip];
+      lineDb += typeof t === "number" ? t : t == null ? 0 : (t[String(Math.abs(picks[strip].offset || 0))] != null ? t[String(Math.abs(picks[strip].offset || 0))] : t["*"]);
+      strip = "counter";
+    }
     const row = (U.ENGINE_STRIP_TRIM_DB[engine] || {})[strip] || {};
     const v = row[key];
     if (v == null) throw new Error("stripTrimDb: no measured trim for " + engine + "/" + strip + "/" + key);
-    if (typeof v === "number") return v;
+    if (typeof v === "number") return v + lineDb;
     const pk = picks[strip], k = strip === "compA" ? pk.id : pk.kind || pk.id;
-    return v[k] != null ? v[k] : v["*"];
+    return (v[k] != null ? v[k] : v["*"]) + lineDb;
   };
 
   // THE PATCH DRAW BY ROLE (2026-11-01, Asana 1220084766500650): on a strip
@@ -17501,18 +18211,33 @@
     if (!out.length) throw new Error("rolePatchList: " + engine + " has no kept patch on the " + row + " row for " + role);
     return out;
   };
+  // Keys stage B (2026-11-21): each line of a stack has its own patch. The
+  // lines draw in line order (arp, counter, colour, compA) after the other
+  // strips; a line whose drawn patch (engine + patch) equals an earlier
+  // line's takes the next pick on its own fork (up to 16), then the next
+  // eligible patch in list order. sheet.stackPatchRedraws counts them.
   U.drawRolePatches = function (hash, sheet) {
-    const out = {};
-    for (const strip of U.ROLE_STRIPS) {
+    const out = {}, st = sheet.stack, lineStrips = st && st.on ? ["arp"].concat(st.lines.map((L) => L.strip)) : [];
+    const order = U.ROLE_STRIPS.filter((x) => lineStrips.indexOf(x) < 0).concat(lineStrips), taken = [];
+    let redraws = 0;
+    for (const strip of order) {
       const engine = sheet.voices[strip];
       if (sheet.mutes[strip] || !U.ROLE_BOOKS[engine]) continue;
       const RB = U.ROLE_BOOKS[engine], role = U.stripRole(strip, sheet.picks);
       const G = U.forkPrng(hash, RB.fork + strip);
-      const pick = U.pickWeighted(G, U.rolePatchList(engine, role, sheet.lane));
+      const list = U.rolePatchList(engine, role, sheet.lane), isLine = lineStrips.indexOf(strip) >= 0;
+      let pick = U.pickWeighted(G, list);
+      if (isLine) {
+        const dup = (a) => taken.indexOf(engine + "/" + a.name) >= 0;
+        for (let t = 0; t < 16 && dup(pick.a); t++) { pick = U.pickWeighted(G, list); redraws++; }
+        if (dup(pick.a)) { const alt = list.find((c) => c.w > 0 && !dup(c.a)); if (alt) pick = alt; }
+        taken.push(engine + "/" + pick.a.name);
+      }
       const u = {};
       for (const k in pick.a.range) u[k] = G.r();
       out[strip] = { engine, name: pick.a.name, role: pick.key, part: role, params: U[RB.resolve](pick.a, u) };
     }
+    if (st) st.patchRedraws = redraws;
     return out;
   };
 
@@ -17720,7 +18445,7 @@
     const createStandIn = (strip, house) => {
       const e = sheet.voices[strip], rec = recOf(strip), st = desk.strips[strip];
       if (!rec) return U.createJuno(ctx, st, house);
-      st.trim.gain.value = Math.pow(10, (U.stripTrimDb(e, strip, rec.role, P) + (strip === "lead" && P.lead.kind === "hook" ? U.HOOK_TRIM_DB : 0)) / 20);
+      st.trim.gain.value = Math.pow(10, (U.stripTrimDb(e, strip, rec.role, P, sheet.mutes) + (strip === "lead" && P.lead.kind === "hook" ? U.HOOK_TRIM_DB : 0)) / 20);
       if (e === "juno") return U.createJuno(ctx, st, rec.params);
       if (e === "obxa") return U.createObxa(ctx, st, rec.params, null, sheet.polySeed);
       if (e === "fm") return U.createFm(ctx, st, rec.params);
@@ -17744,7 +18469,7 @@
       // where it moves a knob (reggae's darker tone); none with
       // U.BASS_TECHNIQUE_OFF
       const btech = U.bassTechniqueOn ? U.bassTechniqueOn(book) : null;
-      const btl = btech ? U.bassTechniqueLevel(book) : { trimDb: 0, chain: book && book.chain };
+      const btl = btech ? U.bassTechniqueLevel(book, sheet, P.bass) : { trimDb: 0, chain: book && book.chain };
       desk.strips.bass.trim.gain.value = Math.pow(10, (BASSGUITAR_TRIM_DB[bgVoicing] + btl.trimDb) / 20);
       bassInst = U.createBassGuitar(ctx, desk.strips.bass, book ? (btech && btech.params ? btech.params : book.params) : bgVoicing);
       // the player's board (bass books slice 1, 2026-11-05): the drawn
@@ -17862,6 +18587,20 @@
     // turns down. Unmoved bars play exactly as written.
     const regFit = (part, midi) => { if (!regMv[part]) return midi; const P = U.REGISTER_POCKETS[part]; while (midi > P[1]) midi -= 12; while (midi < P[0]) midi += 12; return midi; };
     const note = (part, t, midi, vel, dur, cut) => { inst[part].noteOn(t, regFit(part, midi), vel * lvl, dur, cut); events++; };
+    // KEYS STAGE B3 (2026-11-21, Asana 1220759610549868): the held keyboard
+    // chord (compA holding) outside an intro or break plays U.HELD_CHORD_BACK_DB
+    // under today's level, by an automation step on compA's trim at the bar
+    // (pre-insert; the faders stay unautomated). The trim's own value is read
+    // once, at the first compA bar, after the strip's instrument set it.
+    // The cut takes the lead term on a stack song with its lead up
+    // (U.heldChordBackDb, landing L2).
+    let heldBase = null;
+    const heldDb = U.heldChordBackDb(P, sheet.mutes);
+    const heldBack = (bar, back) => {
+      const st = desk.strips && desk.strips.compA; if (!st || !st.trim) return;
+      if (heldBase == null) heldBase = st.trim.gain.value;
+      st.trim.gain.setValueAtTime(heldBase * (back ? Math.pow(10, heldDb / 20) : 1), Math.max(0, stepT(bar, 0) - 0.01));
+    };
     // `accent` is the machine's accent track. The books don't carry one, so it
     // is derived the way an 808 is actually programmed: the quarter-note steps
     // of the bar get the accent. Ignored entirely by the generic kit.
@@ -17887,7 +18626,13 @@
     // stays on mRoot / mTones (physical, not scope). A strip the sampler takes
     // holds its upward moves.
     const RB = U.registerBars(sheet);
-    const rroot = (strip, deg, bar) => U.registerRoot(sheet, strip, deg, bar, { bars: RB, holdUp: !!smp[strip] });
+    // KEYS STAGE B (2026-11-21): "compA0" is compA as the sampler would have
+    // taken it before the stack (sheet.sampler.compAOld, sampler.js); only
+    // the pad's derivation from the chords' voicing reads it (vtones), so a
+    // compA that now plays a line or a different role never moves the pad.
+    const realS = (strip) => (strip === "compA0" ? "compA" : strip);
+    const holdOf = (strip) => (strip === "compA0" ? !!(sheet.sampler && sheet.sampler.compAOld) : !!smp[strip]);
+    const rroot = (strip, deg, bar) => U.registerRoot(sheet, realS(strip), deg, bar, { bars: RB, holdUp: holdOf(strip) });
     // AROUND THE ROOT (slice 2, 2026-11-13, Asana 1220328812605949): on a
     // song whose lead drew "around", the line and solo windows reach under
     // the base: to the lowest degree (at most an octave) whose note clears
@@ -17905,9 +18650,9 @@
     const RT = {};
     const NSTRIPS = { bass: 1, compA: 1, pad: 1, arp: 1, counter: 1, color: 1 };
     const croot = (strip, deg, bar) => {
-      if (!AN || !NSTRIPS[strip]) return rroot(strip, deg, bar);
+      if (!AN || !NSTRIPS[realS(strip)]) return rroot(strip, deg, bar);
       if (strip !== "bass" && !RT.bass) RT.bass = U.rootTable(sheet, "bass", chordAt, { bars: RB, holdUp: !!smp.bass });
-      const t = RT[strip] || (RT[strip] = U.rootTable(sheet, strip, chordAt, { bars: RB, holdUp: !!smp[strip], bassTable: RT.bass }));
+      const t = RT[strip] || (RT[strip] = U.rootTable(sheet, realS(strip), chordAt, { bars: RB, holdUp: holdOf(strip), bassTable: RT.bass }));
       return t[bar];
     };
     const bassRootAt = (bar) => croot("bass", chordAt(bar).deg, bar);
@@ -17917,7 +18662,7 @@
     // keeps its own shapes (mTones).
     const VS = (sheet.around && sheet.around.voicing) || "close", VT = {};
     const VSTRIPS = { compA: 1, pad: 1, color: 1 };
-    const vtab = (strip, bar) => (VT[strip] || (VT[strip] = U.voiceTable(sheet, strip, VS, (x) => croot(strip, chordAt(x).deg, x), (x) => chordAt(x).type, bassRootAt, (r, ty) => tones(r, ty, 4), sheet.around && sheet.around.key)))[bar];
+    const vtab = (strip, bar) => (VT[strip] || (VT[strip] = U.voiceTable(sheet, realS(strip), VS, (x) => croot(strip, chordAt(x).deg, x), (x) => chordAt(x).type, bassRootAt, (r, ty) => tones(r, ty, 4), sheet.around && sheet.around.key)))[bar];
     // the pad: the chords' voicing, moved by the octaves between the two
     // strips' roots, then the pad's own +12 (voiced once, so pad and chords
     // keep today's relationship and do not cross); where that leaves the
@@ -17925,8 +18670,8 @@
     const PP = U.REGISTER_POCKETS.pad, PSH = U.REGISTER_TODAY.pad.shift;
     const vtones = (strip, bar) => {
       if (strip !== "pad") return vtab(strip, bar);
-      const deg = chordAt(bar).deg, d = croot("pad", deg, bar) - croot("compA", deg, bar);
-      const v = vtab("compA", bar).map((m) => m + d);
+      const deg = chordAt(bar).deg, d = croot("pad", deg, bar) - croot("compA0", deg, bar);
+      const v = vtab("compA0", bar).map((m) => m + d);
       return v[0] + PSH > bassRootAt(bar) && v[0] + PSH >= PP[0] && v[v.length - 1] + PSH <= PP[1] ? v : vtab("pad", bar);
     };
     let leadLoW = 0;
@@ -18024,6 +18769,29 @@
       sheet.lineStats = lineScore.stats;
     }
     const arpYield = (bar) => !!(hookScore && hookScore.yieldBars[bar]);
+    // KEYS STAGE B (2026-11-21): a stack line on the counter, colour or
+    // compA strip (P[strip].kind "stackLine"), played as the counter's layer
+    // two was: U.seqBar off the song's step clock (the line's own cell,
+    // phase = steps late), degree 0 at line 1's degree 0 (the arp strip's
+    // root: the bar's chord root, or the key's root on a keyRoot line) plus
+    // the line's octave offset; the around-the-root clip on an "around"
+    // counter song, the register pocket fold (note), and a note at or under
+    // the bar's bass root sounds an octave up. Lines 2 to 4 rest in a break
+    // section. Straight to note(), never through the FM keys player: a line
+    // is a machine. The motor's filter row plays on line 2 only (as on
+    // layer two); lines 3 and 4 take none.
+    const stackLine = (strip, bar, b, sR, bRoot) => {
+      if (b.section === "break") return;
+      const L = P[strip], S = L.motor;
+      const root = (S.transpose === "chordRoot" ? sR("arp") : rroot("arp", 0, bar)) + L.offset;
+      for (const st of U.seqBar(S, bar, root, null, degMidi, AC ? { floor: U.AROUND_FLOOR.counter, bassRoot: bRoot } : null)) {
+        let m = st.midi; while (m <= bRoot) m += 12;
+        note(strip, stepT(bar, st.pos), m, st.vel, st.dur * s16, L.line === 2 ? U.motorFilterCut(sheet.motor.layer, st.pos) : undefined);
+      }
+    };
+    // comp figures and the brass offbeat play only in intro and break bars
+    const COMP_FIGURE = { "comp.stab_offbeats": 1, "comp.gate_chop": 1, "comp.rhodes_16ths": 1, "influence.dub.skank": 1 };
+    const figureBar = (b) => b.section === "intro" || b.section === "break";
 
     // ---- the bar loop. ONE draw per bar, used for every variation decision. ----
     for (let bar = 0; bar < sheet.totalBars; bar++) {
@@ -18076,9 +18844,16 @@
       }
 
       // --- hats ---
-      if (P.hats.p && on("hats", bar)) {
+      // the generated figure plays only when the hats pick is this sheet's own
+      // generated pick (a song always; the jam may splice another draw's pick
+      // into a bar, which then plays its own pattern)
+      const hatGen = sheet.hatFig.on && P.hats.kind === "gen" && P.hats.p === sheet.hatFig.A;
+      if ((P.hats.p || hatGen) && on("hats", bar)) {
+        // the generated figure holds; the phrase's last bar (every 4th of a
+        // section) may play its redrawn last beat
+        const hp = hatGen ? (sheet.hatFig.lastOn && b.indexInSection % 4 === 3 ? sheet.hatFig.B : sheet.hatFig.A) : P.hats.p;
         for (let i = 0; i < 16; i++) {
-          const c = P.hats.p[i];
+          const c = hp[i];
           if (c === ".") continue;
           // dub strip dropouts: whole bars of hats vanish
           if (infl("dropouts") && v < 0.30) break;
@@ -18158,7 +18933,45 @@
         const t3 = bTones[3] === bRoot + 12 ? bRoot - 12 : bTones[3] - 12;   // the octave below, or a seventh's tone an octave down
         const bT = !AR ? bTones : [bTones[0], bTones[1], bTones[2] - 12 >= U.BASS_FLOOR ? bTones[2] - 12 : bTones[2], t3 >= U.BASS_FLOOR ? t3 : bTones[3]];
         const oLo = lowOk ? bRoot - 12 : bRoot, oHi = lowOk ? bRoot : bRoot + 12;
-        if (k === "rootEighths") {
+        // the generated figure plays only when the bar's bass pick is this
+        // sheet's own drawn pick (a song always; the jam may splice another
+        // draw's pick into a bar, which then plays its own kind's written line)
+        const BF = U.bassFigOwn(sheet, P.bass) ? sheet.bassFig : null;
+        if (BF) {
+          // THE FIGURE GENERATOR (2026-11-21): the drawn figure's rhythm; the
+          // first strike is the root; octave kinds keep their octave figure
+          const fb = U.bassFigBar(BF, b.indexInSection).bar;
+          const fRoot = AN && bar + 1 < sheet.totalBars ? croot("bass", nch.deg, bar + 1) : rroot("bass", nch.deg, bar);
+          const inSc = (m) => { const pc = (((m - sheet.tonicPc) % 12) + 12) % 12; return scale.indexOf(pc) > -1; };
+          const snap = (m) => (inSc(m) ? m : inSc(m + 1) ? m + 1 : m - 1);
+          const up = (m) => { while (m < U.BASS_FLOOR) m += 12; return m; };
+          const pitch = (sym, j) => {
+            if (BF.octave) return j % 2 ? oHi : oLo;
+            if (sym === "R") return bRoot;
+            if (sym === "O") return bRoot + 12;
+            if (sym === "5") return bRoot + 7;
+            if (sym === "4") return snap(bRoot + 5);
+            if (sym === "2") return snap(bRoot + 2);
+            if (sym === "7") return inSc(bRoot + 10) ? bRoot + 10 : bRoot + 11;
+            if (sym === "A") return fRoot === bRoot ? bRoot + 7 : snap(fRoot + (fRoot > bRoot ? -2 : 2));
+            return bRoot;
+          };
+          const antHere = k === "walk" ? undefined : BF.antBars[bar], antPrev = k !== "walk" && bar > 0 && BF.antBars[bar - 1] != null;
+          let ev = fb.steps.map((i, j) => ({ i, sym: fb.syms[j], j }));
+          // the walk keeps its walk into the change (beat 4, below)
+          if (k === "walk") ev = ev.filter((e) => e.i < 12);
+          if (antPrev) ev = ev.filter((e) => e.i !== 0);
+          if (antHere != null) ev = ev.filter((e) => e.i < antHere);
+          ev.forEach((e, j) => {
+            const nx = j + 1 < ev.length ? ev[j + 1].i : antHere != null ? antHere : 16;
+            put(e.i, up(pitch(e.sym, e.j)), e.i === 0 ? 0.95 : e.i % 4 === 0 ? 0.85 : 0.78, Math.max(0.7, Math.min(nx - e.i, 4) - 0.3));
+          });
+          // the anticipation: the NEXT bar's root a 16th or an 8th early, held over the line
+          if (antHere != null && k !== "walk") put(antHere, up(fRoot), 0.9, 16 - antHere + 1.5);
+        }
+        if (BF && k !== "walk") {
+          // (the figure above)
+        } else if (k === "rootEighths") {
           for (let i = 0; i < 16; i += 2) put(i, bRoot, i === 0 ? 0.95 : 0.8, 1.7);
         } else if (k === "rootQuarters") {
           for (let i = 0; i < 16; i += 4) put(i, bRoot, 0.9, 3.6);
@@ -18170,7 +18983,7 @@
         } else if (k === "seq16") {
           for (let i = 0; i < 16; i++) put(i, bT[i % 4] - (i % 8 < 4 ? 0 : 0), 0.72 + (i % 4 === 0 ? 0.2 : 0), 0.9);
         } else if (k === "walk") {
-          put(0, bRoot, 0.95, 3.6); put(4, bRoot, 0.85, 3.6); put(8, bRoot, 0.85, 3.6);
+          if (!BF) { put(0, bRoot, 0.95, 3.6); put(4, bRoot, 0.85, 3.6); put(8, bRoot, 0.85, 3.6); }
           const target = AN && bar + 1 < sheet.totalBars ? croot("bass", nch.deg, bar + 1) : rroot("bass", nch.deg, bar);
           if (!AR) {
             put(12, bRoot + (target > bRoot ? 2 : -2), 0.8, 1.7);
@@ -18217,7 +19030,7 @@
           const nbRoot = AN && bar + 1 < sheet.totalBars ? croot("bass", nch.deg, bar + 1) : rroot("bass", nch.deg, bar);
           const bplayed = btq
             ? U.playBassTechniqueBar(written, { bar, s16, swing, root: bRoot, tones: bTones, nextRoot: nbRoot, nextTones: tones(nbRoot, nch.type, 4),
-              scale, tonicPc: sheet.tonicPc, idx: b.indexInSection, len: b.sectionLen, kind: k }, btq)
+              scale, tonicPc: sheet.tonicPc, idx: b.indexInSection, len: b.sectionLen, kind: k, fig: !!BF }, btq)
             : U.playBassBar(written, { bar, s16, swing }, sheet.bassPlayer);
           for (const n of bplayed) {
             const ex = {};
@@ -18235,8 +19048,16 @@
       }
 
       // --- compA ---
-      if (on("compA", bar)) {
-        const k = P.compA.kind;
+      if (on("compA", bar) && P.compA.kind === "stackLine") {
+        stackLine("compA", bar, b, sR, bRoot);
+      } else if (on("compA", bar)) {
+        // KEYS STAGE B: a comp figure plays only in an intro or break bar;
+        // every other bar holds (the draw is unchanged)
+        const k = COMP_FIGURE[P.compA.id] && !figureBar(b) ? "hold" : P.compA.kind;
+        // KEYS STAGE B3: a held chord outside an intro or break sits back
+        // U.HELD_CHORD_BACK_DB (the strip's trim, set at every compA bar, so
+        // an intro or break bar plays at today's level)
+        heldBack(bar, k === "hold" && !figureBar(b));
         // On an FM song the bar's notes are COLLECTED and the session keys
         // player plays them (U.playFmBar: timing, roll, touch, length); the
         // Juno and the OB-Xa play them as written, as before.
@@ -18381,14 +19202,8 @@
       // clock (U.seqBar, phase = steps late), degree 0 at the bar's chord
       // root (chordRoot) or the key's root (keyRoot) in the strip's mid
       // register, an octave below or above; no hold step.
-      if (on("counter", bar) && P.counter.layer === 2) {
-        const S = P.counter.motor;
-        const root = (S.transpose === "chordRoot" ? sR("counter") : rroot("counter", 0, bar)) + (S.register === "below" ? -12 : 12);
-        // around the root (slice 2): the signed cell form, clipped at the floor
-        // (slice 3, 2026-11-14) a layer-2 note at or under the bar's bass
-        // root (the "below" register doubling the bass) sounds an octave up,
-        // on every song: low doubling is reserved for a double bass's own draw
-        for (const st of U.seqBar(S, bar, root, null, degMidi, AC ? { floor: U.AROUND_FLOOR.counter, bassRoot: bRoot } : null)) note("counter", stepT(bar, st.pos), st.midi <= bRoot ? st.midi + 12 : st.midi, st.vel, st.dur * s16, U.motorFilterCut(S, st.pos));
+      if (on("counter", bar) && P.counter.kind === "stackLine") {
+        stackLine("counter", bar, b, sR, bRoot);
       } else if (on("counter", bar)) {
         // the counter's one kind since 2026-11-02 is "answer" (its silence is
         // the desk mute; the ostinato moved to the motor, U.SEQ_CELLS)
@@ -18410,7 +19225,9 @@
 
       // --- color (the ORCH5-flavor stab) ---
       // On an FM song the same session keys player plays the colour chords.
-      if (on("color", bar)) {
+      if (on("color", bar) && P.color.kind === "stackLine") {
+        stackLine("color", bar, b, sR, bRoot);
+      } else if (on("color", bar)) {
         const ev = fmKeys.color ? [] : null;
         const put = fmKeys.color
           ? (i, midi, vel, durSteps) => ev.push({ i, midi, vel, dur: durSteps })
@@ -18418,7 +19235,8 @@
         const kT = sTones("color");
         if (P.color.kind === "sectionHit") {
           if (b.indexInSection === 0) for (const m of kT) put(0, m, 0.9, 1.6);
-        } else if (P.color.kind === "brassOffbeat") {
+        } else if (P.color.kind === "brassOffbeat" && figureBar(b)) {
+          // KEYS STAGE B: the brass offbeat only in an intro or break bar
           for (const i of [6, 14]) for (const m of kT) put(i, m, 0.7, 1.2);
         }
         if (ev && ev.length) for (const n of U.playFmBar(ev, { bar, s16, swing }, sheet.fmPlayer)) note("color", stepT(bar, n.i) + n.off, n.midi, n.vel, n.dur * s16);
@@ -18440,7 +19258,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/render/renderer.js @ 52df558 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/render/renderer.js @ 26c0640 — verbatim from jeffdavis-studio/unison-engine ===== */
 // renderer.js — song assembly + the render pipeline (Technical Architecture
 // v1.2 playback model): live-first, with (a) a cheap analysis pre-render for
 // verification/metrics and (b) an on-demand full OfflineAudioContext render
@@ -19104,7 +19922,7 @@
   // pattern draws from; pl: the patch books' lane weights), drawn at random
   // and saved. prl: a v1-v3 link's style, which keeps its layers' books and
   // lock family (its room went with the rooms, effects slice 2).
-  var G = { bpm: 112, key: 0, mode: "major", hs: 1, A: "sp.h.pop_axis", B: null, sec: "A", L: [], n: 1, sw: 0, swb: "l", fam: null, prl: null };
+  var G = { bpm: 112, key: 0, mode: "major", hs: 1, A: "sp.h.pop_axis", B: null, sec: "A", L: [], n: 1, sw: 0, swb: "l", fam: null, prl: null, fg: 1 };
   G.B = deriveB(G.A, G.hs); G.C = deriveC(G.A, G.B, G.hs);
   // v4 (Jeff 10/28): swing is one global control, the clock's, saved in the
   // link. The engine's swing range (U.SONG_TEMPO.swing, the delay of every
@@ -19116,7 +19934,7 @@
   function swingPct(w) { return Math.round(50 + 50 * w) + "%"; }
 
   function swingFor(lane) { var T = U.SONG_TEMPO; return +(T.swing[0] + (T.swing[1] - T.swing[0]) * Math.min(0.6, U.LANE_FEEL[lane].swingBias)).toFixed(3); }
-  function gKey(g) { return [g.bpm, g.key, g.mode, g.lane || "", g.A, g.B, g.C || "", g.sw == null ? "" : g.sw, g.prl || ""].join("|"); }
+  function gKey(g) { return [g.bpm, g.key, g.mode, g.lane || "", g.A, g.B, g.C || "", g.sw == null ? "" : g.sw, g.prl || "", G.fg ? "" : "v0"].join("|"); }
   function gSnap() { return { bpm: G.bpm, key: G.key, mode: G.mode, A: G.A, B: G.B, C: G.C, sw: G.sw, prl: G.prl }; }
   // rt (around the root, 2026-11-13): "draw" = the layer takes the engine's
   // around draw on its pattern seed; "up" = up from the root (today's). A
@@ -19186,7 +20004,17 @@
   // salt: which of the lane's bass-guitar-safe patterns stands in for a kind
   // the bass guitar never plays (A keeps v1's choice; B and siblings move on)
   function drawPicks(seedH, lane, inst, pat, salt) {
-    var s = U.drawSession(U.makePrng(seedH), lane), P = s.picks;
+    // the bass and hat figure generators (2026-11-22): a link saved before them
+    // (no "g") draws on the old hats table with both generators off, so it
+    // plays what it played; a new session and its links (g: 1) take them
+    var s;
+    if (G.fg) s = U.drawSession(U.makePrng(seedH), lane);
+    else {
+      var H = U.HATS; U.HATS = U.HATS_V0;
+      try { s = U.drawSession(U.makePrng(seedH), lane); } finally { U.HATS = H; }
+      if (s.bassFig) s.bassFig.on = false; if (s.hatFig) s.hatFig.on = false;
+    }
+    var P = s.picks;
     if (P.pad.kind === "sectionOnly") P.pad = U.PAD[0];
     // a solo-window pick plays the solo job (the melody engine, slice 2,
     // 2026-11-04): on the page's loop (no form section index) the engine
@@ -20078,6 +20906,7 @@
         if (l.rt === "draw" || l.rt === "draw3") { if (a.length < 11) a.push(0); a.push(l.rt === "draw3" ? 2 : 1); }   // [11] around the root: 1 = the layer's draw (slices 1-2), 2 = with slice 3's roots and voicing; absent = up
         return a; }) };
     if (G.prl) o.p = G.prl;
+    if (G.fg) o.g = 1;   // the figure generators (2026-11-22): absent = a link from before them
     // effects slice 1: moved pans, per layer index (absent = every strip as drawn)
     var q = G.L.map(function (l) { return l.pan && Object.keys(l.pan).length ? l.pan : 0; });
     if (q.some(Boolean)) o.q = q;
@@ -20092,6 +20921,7 @@
       var s = m[1].replace(/-/g, "+").replace(/_/g, "/"); while (s.length % 4) s += "=";
       var o = JSON.parse(atob(s));
       if (o.b) G.bpm = Math.max(70, Math.min(160, +o.b));
+      G.fg = o.g === 1 ? 1 : 0;   // a link without "g" was saved before the figure generators
       if (o.k >= 0 && o.k < 12) G.key = o.k;
       G.mode = o.m ? "minor" : "major";
       // a v1-v3 link names its style: its layers, its lock family and its room keep it
