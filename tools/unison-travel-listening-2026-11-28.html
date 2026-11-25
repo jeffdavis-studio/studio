@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Unison travel listening</title>
+<!-- engine @8e33b55 · morgan files/unison/travel-listening-2026-11-28/scripts/build-travel-page.mjs -->
+<style>
+  :root{ --bg:#16161a; --panel:#1f1f25; --edge:#34343d; --ink:#e8e8ec; --dim:#9a9aa6;
+    --accent:#c9a15a; --keep:#6fae78; --cut:#c46a5a; }
+  *{box-sizing:border-box}
+  html,body{overflow-x:hidden}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.45 ui-sans-serif,-apple-system,"Segoe UI",Inter,sans-serif;-webkit-text-size-adjust:100%;}
+  .wrap{max-width:640px;margin:0 auto;padding:16px 14px 90px}
+  h1{font-size:22px;font-weight:600;margin:0 0 8px}
+  p{margin:0 0 10px}
+  .dim{color:var(--dim)}
+  button{font:inherit;color:var(--ink);background:#2a2a32;border:1px solid var(--edge);border-radius:8px;
+    min-height:44px;min-width:44px;padding:8px 12px;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+  .save{background:var(--panel);border:1px solid var(--edge);border-radius:10px;padding:12px;margin:12px 0}
+  .save button{display:block;width:100%;font-weight:600}
+  .save p{margin:8px 0 0;font-size:15px}
+  #savestate.ok{color:var(--keep)} #savestate.bad{color:var(--cut)}
+  .bar{position:sticky;top:0;z-index:5;background:var(--bg);padding:8px 0;border-bottom:1px solid var(--edge);margin-bottom:12px}
+  .bar .r1{display:flex;gap:8px;align-items:center}
+  #copy{flex:0 0 auto;background:var(--accent);border-color:var(--accent);color:#1a1a1a;font-weight:600}
+  #stop{flex:0 0 auto}
+  #status{flex:1 1 0;min-width:0;color:var(--dim);font-size:14px;line-height:1.25}
+  #status.ok{color:var(--keep)}
+  #fallback{display:none;width:100%;margin-top:8px;min-height:44px;font:13px ui-monospace,monospace;background:#111;color:var(--ink);border:1px solid var(--edge);border-radius:6px;padding:6px}
+  .nav{display:flex;gap:6px;margin-top:8px}
+  .nav button{flex:1 1 0;min-width:0;padding:4px 0;font-size:13px;line-height:1.2;color:var(--dim)}
+  .nav button b{display:block;font-size:15px;color:var(--ink);font-weight:600}
+  .nav button.full b{color:var(--keep)}
+  h2.sec{font-size:19px;font-weight:600;margin:30px 0 6px;scroll-margin-top:130px}
+  p.mins{color:var(--accent);font-size:14px;margin:0 0 6px}
+  p.for{margin:0 0 8px}
+  p.sub{color:var(--dim);margin:0 0 8px;font-size:15px}
+  details{margin:0 0 12px;color:var(--dim);font-size:15px}
+  details summary{min-height:44px;display:flex;align-items:center;cursor:pointer;color:var(--accent)}
+  details ul{margin:0;padding-left:18px} details li{margin:0 0 6px}
+  .song,.arch{background:var(--panel);border:1px solid var(--edge);border-radius:10px;padding:12px;margin-bottom:12px}
+  .song h3{font-size:17px;font-weight:600;margin:0 0 4px}
+  .song .q{margin:0 0 8px}
+  .clips{display:flex;flex-direction:column;gap:6px}
+  .play{display:flex;width:100%;text-align:left;align-items:center;gap:10px;padding:8px 12px}
+  .play .tx{flex:1 1 0;min-width:0}
+  .play .ic{flex:0 0 auto;color:var(--accent)}
+  .play.on{background:var(--accent);border-color:var(--accent);color:#1a1a1a;font-weight:600}
+  .play.on .ic{color:#1a1a1a}
+  .play.wait{border-color:var(--accent)}
+  .row2{display:flex;gap:6px;margin-top:6px}
+  .row2 .top{flex:0 0 auto;color:var(--dim);font-size:15px}
+  .marks{display:flex;gap:4px;margin-top:10px}
+  .marks button{flex:1 1 0;min-width:0;padding:8px 2px;color:var(--dim);font-size:15px;line-height:1.15}
+  .marks button.sel{background:var(--keep);border-color:var(--keep);color:#10160f;font-weight:600}
+  .marks button.sel[data-v="2"]{background:var(--cut);border-color:var(--cut);color:#1a0f0d}
+  .marks button.sel[data-v="3"],.marks button.sel[data-v="4"]{background:#3a3a44;border-color:#5a5a66;color:var(--ink)}
+  input.note,textarea.note{display:block;width:100%;margin-top:8px;min-height:44px;font-family:inherit;font-size:16px;line-height:1.3;color:var(--ink);background:#111;border:1px solid var(--edge);border-radius:8px;padding:8px 10px}
+  textarea.note{min-height:88px;resize:vertical}
+  .group{margin:20px 0 8px;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+  .arch .nm{font-weight:600;margin:0 0 2px}
+  .ctx{display:flex;gap:6px;align-items:center;margin-top:8px}
+  .ctx .play{flex:1 1 0;min-width:0;width:auto}
+  .seg{display:flex;gap:4px;flex:0 0 auto}
+  .seg button{padding:8px 6px;min-width:52px;color:var(--dim);font-size:15px}
+  .seg button.sel[data-v="u"]{background:#3a3a44;color:var(--ink);border-color:#5a5a66}
+  .seg button.sel[data-v="k"]{background:var(--keep);border-color:var(--keep);color:#10160f;font-weight:600}
+  .seg button.sel[data-v="c"]{background:var(--cut);border-color:var(--cut);color:#1a0f0e;font-weight:600}
+  .foot{color:var(--dim);font-size:14px;margin:14px 0 0}
+  .sha{color:var(--dim);font-size:12px;margin:18px 0 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Unison travel listening</h1>
+  <p>Everything in Unison that is waiting on your ear, on one page. About 23 minutes to play it all once, and flipping between Before and After adds to that. Six parts, and each one stands alone, so do it in pieces.</p>
+  <p class="dim">Headphones. Tap a sound to hear it and tap it again to stop. Your marks stay on this phone if the page reloads. When you stop, done or not, tap Copy link and text it to me.</p>
+  <div class="save" id="savebox">
+    <button id="save">Download for the flight</button>
+    <p id="savestate" class="dim">On wifi the page only loads a sound when you tap it. For a flight with bad wifi, tap this once before you board (about 16 MB). To be sure it took, switch to airplane mode and reload the page.</p>
+  </div>
+  <div class="bar">
+    <div class="r1">
+      <button id="copy">Copy link</button>
+      <button id="stop">Stop</button>
+      <span id="status"></span>
+    </div>
+    <input id="fallback" readonly>
+    <div class="nav" id="nav"></div>
+  </div>
+  <div id="list"></div>
+  <h2 class="sec">Anything else</h2>
+  <textarea class="note" id="pagenote" maxlength="600" placeholder="A note on the whole thing (optional)"></textarea>
+  <p class="foot">Not on this page, because you already answered them: the question of what plays the comping chords (you closed it on 11/20, and part 1 is what came out of it), and the synth patches and effects (your marks from 11/17 are built in).</p>
+  <p class="foot">Parts 1 to 3 are clips cut from full song renders at the engine's own level. Parts 4 to 6 are played live by the engine as it is today, dry, at the level the songs use. Playing a sound records nothing. Only your marks and notes go into the link.</p>
+  <p class="sha">Clips: old engine 69decc3, keyboards 7c75f27, bass and hats 9151337 (what the jam plays now). Live sounds: engine 8e33b55. Built 2026-11-25.</p>
+</div>
+
+<script>
+/* Unison travel listening (2026-11-28). Built by
+   morgan files/unison/travel-listening-2026-11-28/scripts/build-travel-page.mjs.
+   Parts 1-3: the 37 clips of the keys and bass page (tools/unison-keys-bass-2026-11-22/),
+   fetched and decoded when a card is first tapped; one card's clips are kept
+   decoded at a time. Parts 4-6: harness/review-books.js on the engine, both in
+   one script file that loads on the first tap in those parts.
+   Marks live in the URL hash:
+   #m=<id>.<sha>.<clip digits>.<drum digits>.<guitar digits>.<bass digits>
+     clip digit per card: 0 none, 1 better, 2 worse, 3 no difference, 4 unsure
+     drum digit per kit (the book's option order): groove*3 + hits (0 undecided, 1 keep, 2 cut)
+     guitar and bass digit per sound: 0 undecided, 1 keep, 2 cut
+   then &n<card index>=<note>, &d= &u= &b= (the notes under parts 4, 5, 6) and
+   &g= (the page note), URI-encoded. scripts/travel-decode.mjs reads it. */
+(function(){
+  "use strict";
+  var D = {"id":"tl1","sha":"8e33b55","cache":"unison-travel-tl1","clipDir":"unison-keys-bass-2026-11-22","engine":"unison-travel-listening-2026-11-28/engine-8e33b55-e9142f76.js","sw":"unison-travel-sw.js","swScope":"./unison-travel-listening-2026-11-28","tables":{"LINN_TRIM_DB":{"kick":3.7,"snare":5.4,"hats":-6.4,"tomsFills":4.3,"ePerc":4.3,"percTime":-5.8,"percAccent":5.9}},"clipParts":[{"title":"1. Keyboards, before and after","short":"1","listen":"Listening for: do the stacked single lines sound like what you described on 11/19, and does the held chord sit far enough back? Your mark: this build is already in the jam, so a Worse tells me to pull that change back or rework it, and a note about level moves my settings.","sub":["Before is the old engine. After changes only the keyboards. The third clip is the keyboards on their own at the level they have in the mix, so it plays quietly.","While one clip plays, tap another on the same card to switch at the same spot in the bar."],"detailTitle":"What changed","detail":["Keyboards: on about six songs in ten, the keyboards now play two to four single lines that stack up, instead of chords.","Held chords sit back under those lines and come forward in intros and breaks. The stab figures play only in intros and breaks, and the quarter-note pulse is left alone.","Levels: the held chord sits under the stacked lines whether or not a lead plays, and the lead sits over the lines. How far the chord sits back, and how loud the lines are against it and against a lead, are my settings. You can move any of them."],"cards":[{"id":"k1","lane":"Synth pop","bpm":122,"listen":"The keyboard stabs become one held chord, sitting back under the song.","clips":[{"label":"Before","file":"k1-before.m4a"},{"label":"After","file":"k1-after.m4a"},{"label":"After, keyboards alone","file":"k1-after-alone.m4a"}]},{"id":"k2","lane":"Synth pop","bpm":116,"listen":"The arpeggio used to play alone. Now a low line rocks between two notes under it.","clips":[{"label":"Before","file":"k2-before.m4a"},{"label":"After","file":"k2-after.m4a"},{"label":"After, keyboards alone","file":"k2-after-alone.m4a"}]},{"id":"k3","lane":"Synth pop","bpm":117,"listen":"Three single lines now. The top one runs in sixteenths against the others' eighths.","clips":[{"label":"Before","file":"k3-before.m4a"},{"label":"After","file":"k3-after.m4a"},{"label":"After, keyboards alone","file":"k3-after-alone.m4a"}]},{"id":"k4","lane":"New wave","bpm":117,"listen":"One keyboard line becomes four, stacked.","clips":[{"label":"Before","file":"k4-before.m4a"},{"label":"After","file":"k4-after.m4a"},{"label":"After, keyboards alone","file":"k4-after-alone.m4a"}]},{"id":"k5","lane":"Synth R&B","bpm":96,"listen":"Four stacked lines under a lead. The lead should ride clearly on top of them.","clips":[{"label":"Before","file":"k5-before.m4a"},{"label":"After","file":"k5-after.m4a"},{"label":"After, keyboards and lead alone","file":"k5-after-alone.m4a"}]}],"minutes":"About 4 minutes once through"},{"title":"2. Bass and hats, before and after","short":"2","listen":"Listening for: does the new bass, with more notes between the eighths and less tied to the kick, sound closer to the reference records, or only busier? Same question for the broken-up hats. Your mark: this is in the jam too, so a Worse tells me which song went wrong, and the note tells me whether it was the bass or the hats.","sub":["Before already has the new keyboards. After changes only the bass and hats. The third clip is the drums and bass on their own."],"detailTitle":"What changed","detail":["Bass: fewer notes at fast tempos, more notes between the eighths, follows the kick less, and changes from bar to bar much more often. Straight 8ths were 46% of bass bars and are now 24%.","Hats: straight 8ths were half of all hat bars and are now about a third. Broken, uneven patterns went from 9% of bars to 21%.","On the new bass lines, each playing style sits at the same level as that line played plainly, and a line with fewer notes is not turned up to make up for it, so a sparser bass can sound a touch lighter. That is my setting too, and you can move it."],"cards":[{"id":"b1","lane":"Synth R&B","bpm":93,"listen":"The bass leaves straight eighths for a syncopated two-bar figure. The new hat pattern has no open hats, so the hats sit lower in this one. Mark it if you miss them.","clips":[{"label":"Before","file":"b1-before.m4a"},{"label":"After","file":"b1-after.m4a"},{"label":"After, drums and bass alone","file":"b1-after-alone.m4a"}]},{"id":"b2","lane":"Funk","bpm":118,"listen":"The bass keeps its push but moves onto the sixteenths, and the hats get busier.","clips":[{"label":"Before","file":"b2-before.m4a"},{"label":"After","file":"b2-after.m4a"},{"label":"After, drums and bass alone","file":"b2-after-alone.m4a"}]},{"id":"b3","lane":"Synth pop","bpm":123,"listen":"The synth bass drops its octave eighths for a figure that hits the downbeat and leaves the bar open. The hats become a busy sixteenths line with gaps.","clips":[{"label":"Before","file":"b3-before.m4a"},{"label":"After","file":"b3-after.m4a"},{"label":"After, drums and bass alone","file":"b3-after-alone.m4a"}]},{"id":"b4","lane":"New wave","bpm":102,"listen":"The bass gets a hole on beat two, and the hats go from eighths to near-sixteenths with gaps.","clips":[{"label":"Before","file":"b4-before.m4a"},{"label":"After","file":"b4-after.m4a"},{"label":"After, drums and bass alone","file":"b4-after-alone.m4a"}]},{"id":"b5","lane":"Synth pop","bpm":133,"listen":"The bass thins to a sparse figure, and the hats play pairs of sixteenths that repeat every half bar.","clips":[{"label":"Before","file":"b5-before.m4a"},{"label":"After","file":"b5-after.m4a"},{"label":"After, drums and bass alone","file":"b5-after-alone.m4a"}]},{"id":"b6","lane":"Synth pop","bpm":133,"listen":"The walking bass takes a new rhythm with a gap on beat two, and the hats play an uneven figure.","clips":[{"label":"Before","file":"b6-before.m4a"},{"label":"After","file":"b6-after.m4a"},{"label":"After, drums and bass alone","file":"b6-after-alone.m4a"}]}],"minutes":"About 6 minutes once through"},{"title":"3. Both changes in one song","short":"3","listen":"Listening for: do the new keyboards sit well with the new bass and hats? Your mark: if parts 1 and 2 were fine and this is not, the problem is the balance between them, and that is what I adjust.","sub":["The old engine against both changes, on two songs that are not in parts 1 and 2."],"detail":[],"cards":[{"id":"t1","lane":"Funk","bpm":104,"listen":"Both changes at once: stacked keyboard lines, a new bass figure and new hats.","clips":[{"label":"Before","file":"t1-before.m4a"},{"label":"After","file":"t1-after.m4a"}]},{"id":"t2","lane":"Synth pop","bpm":109,"listen":"Both at once on a synth bass song: four keyboard lines, a new bass figure and new hats.","clips":[{"label":"Before","file":"t2-before.m4a"},{"label":"After","file":"t2-after.m4a"}]}],"minutes":"About 1 minute once through"}],"liveParts":[{"book":"drums","all":["808 boom","808 tight","808 electro","808 soft","808 crack","808 deep","808 bright","LinnDrum stock","Linn fat","Linn tight","LM-1 crunch","Linn clean 12-bit","Linn long tail","Linn gated","DMX stock","DMX boom","DMX tight","DMX dark","DMX bright","DMX fills","SDS-V","Simmons pew","Simmons flat","Simmons noisy","Simmons short","Simmons thunder","MCS"],"groupOf":["808","808","808","808","808","808","808","linn","linn","linn","linn","linn","linn","linn","dmx","dmx","dmx","dmx","dmx","dmx","simmons","simmons","simmons","simmons","simmons","simmons","mcs"],"groups":[{"id":"808","label":"Roland analog machine","members":[0,3,5,2,6,1,4]},{"id":"linn","label":"LinnDrum","members":[10,8,12,7,13,9,11]},{"id":"dmx","label":"Oberheim DMX","members":[17,15,19,14,16,18]},{"id":"simmons","label":"Simmons toms (over a plain LinnDrum kick, snare and hats)","members":[22,20,25,21,24,23]},{"id":"mcs","label":"Movement percussion computer","members":[26]}],"shown":[0,3,5,2,6,1,4,10,8,12,7,13,9,11,17,15,19,14,16,18,22,20,25,21,24,23,26],"ctx":[["groove","Groove"],["hits","Hits"]],"two":true,"title":"4. Drum kits","short":"4","monitorDb":-10,"listen":"Listening for: which kits you want in the songs. Every kit plays the same groove, then each drum on its own, so only the sound changes. Your mark: a kit you cut stops being drawn. Everything else stays.","sub":["You put the drum, guitar and bass pages on hold on 11/19 until playing style lined up with the reference. Parts 4 to 6 are the sound half only, each on one fixed part, so nothing here is playing style.","You were also thinking about choosing kicks, snares and claps drum by drum across machines instead of whole kits. This still goes kit by kit. If you like one drum in a kit you would cut, say which in the note at the end of this part."],"detailTitle":"About the kits","detail":["Within a machine the kits run dark to bright.","The Simmons kits are toms only. They sit over a plain LinnDrum kick, snare and hats, the same under each one, and Hits plays just the three toms.","The analog machine's kits are not level with each other in the songs: the boom kit plays loudest and the tight and crack kits quietest. The page keeps them that way.","By the 11/13 measurement the kits sit about half as far apart from each other as the patches in a synth book do."],"notePlaceholder":"Notes on the kits (optional). A drum you like inside a kit you would cut goes here.","minutes":"About 8 minutes once through"},{"book":"guitar","all":["The plain board (compressor and light chorus)","Clean funk","Compressed and bright","Phaser funk","Chorus new wave","Flange","Slapback","Chorus and slapback","Light drive chop","Tape echo","Sixteenth chucking","Angular stabs","Skank","Chorused arpeggio"],"groupOf":["sound","sound","sound","sound","sound","sound","sound","sound","sound","sound","playing","playing","playing","playing"],"groups":[{"id":"sound","label":"","members":[7,4,3,9,8,0,2,1,6,5]}],"shown":[7,4,3,9,8,0,2,1,6,5],"ctx":[["gtr","Play"]],"two":false,"title":"5. Rhythm guitar sounds","short":"5","monitorDb":-4,"listen":"Listening for: which pedal and amp sounds you want on the rhythm guitar. Every one plays the same part, so only the sound changes. Your mark: a sound you cut stops being drawn. Everything else stays.","sub":["The four playing styles are left off. You wanted playing lined up with the reference first, and guitar playing still can't be read off the records."],"detailTitle":"About these sounds","detail":["They run dark to bright.","By the 11/13 measurement, Clean funk and Compressed and bright are nearly the same sound. The measure can't hear a chorus sweep, so your ear outranks it.","In the songs the plain board sits quieter than the pedal sounds and the slapback a little louder than the rest. The page keeps those levels."],"notePlaceholder":"Notes on the guitar sounds (optional)","minutes":"About 2 minutes once through"},{"book":"bass","all":["Straight to tape","Compressor, direct to the desk","Compressor and chorus","Fretless chorus into a warm amp","Slow flanger on the top","The R&B date: compressor, warm amp","A little drive into a clean amp","Hard compression, bright scooped amp","Fingerstyle funk","Slap","New wave root pumping","Reggae"],"groupOf":["sound","sound","sound","sound","sound","sound","sound","sound","playing","playing","playing","playing"],"groups":[{"id":"sound","label":"","members":[5,3,7,6,0,1,2,4]}],"shown":[5,3,7,6,0,1,2,4],"ctx":[["bass","Play"]],"two":false,"title":"6. Bass guitar sounds","short":"6","monitorDb":5,"listen":"Listening for: which pedal and amp sounds you want on the bass guitar. Every one plays the same walking line, so only the sound changes. Your mark: a sound you cut stops being drawn. Everything else stays.","sub":["The four playing techniques are left off. The bass lines changed in part 2, and your marks there come first."],"detailTitle":"About these sounds","detail":["They run dark to bright.","By the 11/13 measurement, Fretless chorus into a warm amp and The R&B date are nearly the same sound. Your ear outranks the measure."],"notePlaceholder":"Notes on the bass sounds (optional)","minutes":"About 1 minute once through"}]};
+  var ID = D.id, SHA = D.sha, KEY = "unison-travel-" + ID;
+  var CARDS = [];
+  D.clipParts.forEach(function(s){ s.cards.forEach(function(c){ c.part = s; CARDS.push(c); }); });
+  var LIVE = D.liveParts;                      // [{ book, options: [{ idx, name, group, ctx }], ... }]
+  function ios(){ try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) {} }
+  ios();
+  var statusEl = document.getElementById("status"), statusTimer = 0;
+  function status(t, ok, hold){ statusEl.textContent = t; statusEl.className = ok ? "ok" : ""; clearTimeout(statusTimer); if (t && !hold) statusTimer = setTimeout(function(){ statusEl.textContent = ""; }, 4000); }
+
+  // ---- marks and notes ----------------------------------------------------
+  var marks = CARDS.map(function(){ return 0; }), notes = CARDS.map(function(){ return ""; });
+  var picks = LIVE.map(function(p){ return p.all.map(function(){ return [0, 0]; }); });
+  var pnotes = LIVE.map(function(){ return ""; }), gnote = "", PN = ["d", "u", "b"];
+  function encode(){
+    var s = "m=" + ID + "." + SHA + "." + marks.join("");
+    LIVE.forEach(function(p, k){ s += "." + picks[k].map(function(q){ return String(p.two ? q[0] * 3 + q[1] : q[0]); }).join(""); });
+    notes.forEach(function(n, i){ if (n) s += "&n" + i + "=" + encodeURIComponent(n); });
+    pnotes.forEach(function(n, k){ if (n) s += "&" + PN[k] + "=" + encodeURIComponent(n); });
+    if (gnote) s += "&g=" + encodeURIComponent(gnote);
+    return s;
+  }
+  function field(h, name){ var r = new RegExp("[#&]" + name + "=([^&]*)").exec("&" + h); try { return r ? decodeURIComponent(r[1]) : ""; } catch (e) { return ""; } }
+  function decodeInto(h){
+    h = (h || "").replace(/^#/, "");
+    var m = /(?:^|&)m=([a-z0-9]+)\.([0-9a-f]+)\.([0-4]*)\.([0-8]*)\.([0-2]*)\.([0-2]*)/.exec(h);
+    if (!m || m[1] !== ID) return false;
+    marks = CARDS.map(function(_, i){ return +(m[3][i] || 0); });
+    LIVE.forEach(function(p, k){ var s = m[4 + k]; picks[k] = p.all.map(function(_, i){ var d = +(s[i] || 0); return p.two ? [Math.floor(d / 3), d % 3] : [d, 0]; }); });
+    notes = CARDS.map(function(_, i){ return field(h, "n" + i); });
+    pnotes = LIVE.map(function(_, k){ return field(h, PN[k]); });
+    gnote = field(h, "g");
+    return true;
+  }
+  function save(){
+    var h = encode();
+    try { history.replaceState(null, "", "#" + h); } catch (e) { location.hash = h; }
+    try { localStorage.setItem(KEY, h); } catch (e) {}
+    progress();
+  }
+  (function restore(){
+    if (decodeInto(location.hash)) return;
+    try { if (decodeInto(localStorage.getItem(KEY))) return; } catch (e) {}
+    // marks he already made on the 11/22 keys and bass page, same phone, same cards
+    try {
+      var old = localStorage.getItem("unison-kb-kb1") || "", m = /v=kb1\.([0-4]*)/.exec(old);
+      if (m) { marks = CARDS.map(function(_, i){ return +(m[1][i] || 0); }); notes = CARDS.map(function(_, i){ return field(old, "n" + i); }); }
+    } catch (e) {}
+  })();
+
+  // ---- audio --------------------------------------------------------------
+  var AC = window.AudioContext || window.webkitAudioContext, ctx = null, out = null, liveOut = null;
+  function audio(){
+    ios();
+    if (!ctx) {
+      ctx = new AC(); out = ctx.createGain(); out.connect(ctx.destination);
+      var lim = ctx.createDynamicsCompressor();
+      lim.threshold.value = -3; lim.knee.value = 0; lim.ratio.value = 20; lim.attack.value = 0.002; lim.release.value = 0.12;
+      liveOut = ctx.createGain(); liveOut.connect(lim); lim.connect(ctx.destination);
+    }
+    if (ctx.state !== "running") { try { ctx.resume(); } catch (e) {} }
+    return ctx;
+  }
+  ["touchend", "pointerup", "click"].forEach(function(t){ document.addEventListener(t, function(){ if (ctx) audio(); }, { passive: true }); });
+
+  // a file: the saved copy first (Download for the flight), then the network
+  var CACHE = D.cache;
+  function getFile(url){
+    var net = function(){ return fetch(url).then(function(r){ if (!r.ok) throw new Error(url + " " + r.status); return r; }); };
+    if (!window.caches) return net();
+    return caches.open(CACHE).then(function(c){ return c.match(url); }).then(function(r){ return r || net(); }, net);
+  }
+  function decode(ab){ return new Promise(function(res, rej){ var p = ctx.decodeAudioData(ab, res, rej); if (p && p.then) p.then(res, rej); }); }
+
+  // playing: { kind: "clip" | "live", btn, stop() }
+  var playing = null, want = null;
+  function stopAll(){ want = null; if (playing) { var p = playing; playing = null; p.stop(); lit(p.btn, false); } [].forEach.call(document.querySelectorAll(".play.wait"), function(b){ b.classList.remove("wait"); b.querySelector(".ic").textContent = "▶"; }); }
+  function lit(btn, on){ btn.classList.toggle("on", on); btn.classList.remove("wait"); btn.querySelector(".ic").textContent = on ? "■" : "▶"; }
+  function waiting(btn){ [].forEach.call(document.querySelectorAll(".play.wait"), function(b){ b.classList.remove("wait"); b.querySelector(".ic").textContent = "▶"; }); btn.classList.add("wait"); btn.querySelector(".ic").textContent = "…"; }
+  document.getElementById("stop").onclick = stopAll;
+
+  // ---- parts 1-3: clips ---------------------------------------------------
+  var bufCard = -1, bufs = {}, loads = {};
+  function loadClip(ci, file){
+    if (bufCard !== ci) { bufCard = ci; bufs = {}; loads = {}; }       // one card decoded at a time
+    if (loads[file]) return loads[file];
+    return (loads[file] = getFile(D.clipDir + "/" + file).then(function(r){ return r.arrayBuffer(); }).then(decode)
+      .then(function(b){ if (bufCard === ci) bufs[file] = b; return b; }, function(e){ if (bufCard === ci) delete loads[file]; throw e; }));
+  }
+  function clipPos(){ if (!playing || playing.kind !== "clip") return 0; var p = (ctx.currentTime - playing.startAt) % playing.dur; return p < 0 ? p + playing.dur : p; }
+  function startClip(ci, file, btn, offset){
+    var b = bufs[file], n = ctx.currentTime + 0.01, g = ctx.createGain(), src = ctx.createBufferSource();
+    src.buffer = b; src.loop = true; src.connect(g); g.connect(out);
+    g.gain.setValueAtTime(0, n); g.gain.linearRampToValueAtTime(1, n + 0.015);
+    offset = offset % b.duration; src.start(n, offset);
+    playing = { kind: "clip", card: ci, file: file, btn: btn, startAt: n - offset, dur: b.duration,
+      stop: function(){ var t = ctx.currentTime; g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.linearRampToValueAtTime(0, t + 0.015); try { src.stop(t + 0.02); } catch (e) {} } };
+    lit(btn, true); status("");
+  }
+  function tapClip(ci, file, btn, fromTop){
+    audio();
+    if (!fromTop && playing && playing.btn === btn) { stopAll(); return; }
+    var off = (!fromTop && playing && playing.kind === "clip" && playing.card === ci) ? clipPos() + 0.01 : 0;
+    var tok = want = {};
+    if (bufCard === ci && bufs[file]) { stopAll(); want = tok; startClip(ci, file, btn, off); }
+    else {
+      var held = playing && playing.kind === "clip" && playing.card === ci ? playing : null;   // keep the other clip of this card playing while this one loads
+      if (!held) stopAll();
+      want = tok; waiting(btn); status("Loading the sound", false, true);
+      loadClip(ci, file).then(function(){
+        if (want !== tok) return;
+        var o = held && playing === held ? clipPos() + 0.01 : 0;
+        stopAll(); want = tok; startClip(ci, file, btn, o);
+      }, function(){ if (want === tok) { stopAll(); status("That sound did not load. Check the wifi and tap again."); } });
+    }
+    // the card's other clips, so the flip is instant
+    CARDS[ci].clips.forEach(function(k){ if (k.file !== file) loadClip(ci, k.file).catch(function(){}); });
+  }
+
+  // ---- parts 4-6: the live engine -----------------------------------------
+  var engine = null;
+  function loadEngine(){
+    if (engine) return engine;
+    return (engine = getFile(D.engine).then(function(r){ return r.text(); }).then(function(src){
+      var s = document.createElement("script"); s.text = src; document.head.appendChild(s);
+      if (!window.U || !window.REVIEW_BOOKS) throw new Error("engine did not load");
+      if (REVIEW_BOOKS.memoDrumVoices) REVIEW_BOOKS.memoDrumVoices(U);
+      LIVE.forEach(function(p){
+        var B = REVIEW_BOOKS[p.book], all = B.options(U);
+        if (all.length !== p.all.length || all.some(function(x, i){ return x.name !== p.all[i]; })) throw new Error("option list mismatch: " + p.book);
+        p.B = B; p.opts = all;
+      });
+      // warm the drum voices one kit at a time
+      var dp = LIVE[0]; if (dp.B.prepare) (function warm(i){ if (i >= dp.opts.length) return; setTimeout(function(){ try { dp.B.prepare(U, dp.opts[i]); } catch (e) {} warm(i + 1); }, 30); })(0);
+    }).catch(function(e){ engine = null; throw e; }));
+  }
+  function tapLive(p, idx, kind, btn){
+    audio();
+    if (playing && playing.btn === btn) { stopAll(); return; }
+    stopAll();
+    var tok = want = {};
+    var go = function(){
+      if (want !== tok) return;
+      var c = ctx, mon = c.createGain(), g = c.createGain();
+      mon.gain.value = Math.pow(10, p.monitorDb / 20); g.connect(mon); mon.connect(liveOut);
+      var end = p.B.perform(U, D.tables, c, g, p.opts[idx], kind, c.currentTime + 0.08);
+      var timer = setTimeout(function(){ if (playing && playing.btn === btn) stopAll(); }, (end + 0.1) * 1000);
+      playing = { kind: "live", btn: btn, stop: function(){ clearTimeout(timer); var n = c.currentTime; g.gain.cancelScheduledValues(n); g.gain.setValueAtTime(g.gain.value, n); g.gain.linearRampToValueAtTime(0, n + 0.05); setTimeout(function(){ try { mon.disconnect(); } catch (e) {} }, 200); } };
+      lit(btn, true); status("");
+    };
+    if (window.U && p.B) go();
+    else { waiting(btn); status("Loading the instruments, one moment", false, true); loadEngine().then(go, function(){ if (want === tok) { stopAll(); status("The instruments did not load. Check the wifi and tap again."); } }); }
+  }
+
+  // ---- build the page -----------------------------------------------------
+  var listEl = document.getElementById("list"), navEl = document.getElementById("nav"), PARTS = [];
+  function el(tag, cls, text){ var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function head(part){
+    var h = el("h2", "sec", part.title); listEl.appendChild(h);
+    listEl.appendChild(el("p", "mins", part.minutes));
+    listEl.appendChild(el("p", "for", part.listen));
+    (part.sub || []).forEach(function(t){ listEl.appendChild(el("p", "sub", t)); });
+    if (part.detail && part.detail.length) {
+      var d = el("details"), ul = el("ul"); d.appendChild(el("summary", "", part.detailTitle || "More"));
+      part.detail.forEach(function(t){ ul.appendChild(el("li", "", t)); }); d.appendChild(ul); listEl.appendChild(d);
+    }
+    var nb = el("button"); nb.innerHTML = "<b></b><span></span>"; nb.querySelector("b").textContent = part.short; nb.setAttribute("aria-label", part.title);
+    nb.onclick = function(){ h.scrollIntoView({ block: "start" }); };
+    navEl.appendChild(nb);
+    var rec = { part: part, nav: nb, count: null }; PARTS.push(rec); return rec;
+  }
+  function paintMarks(mk, v){ [].forEach.call(mk.children, function(b){ b.classList.toggle("sel", +b.dataset.v === v); }); }
+  function paintSeg(s, v){ [].forEach.call(s.children, function(b){ b.classList.toggle("sel", b.dataset.v === "ukc"[v]); }); }
+  var MARKS = [["1", "Better"], ["2", "Worse"], ["3", "No difference"], ["4", "Unsure"]];
+  var ci = 0;
+  D.clipParts.forEach(function(part){
+    var rec = head(part), first = ci;
+    part.cards.forEach(function(c){
+      var i = ci++;
+      var card = el("section", "song"); card.dataset.i = i;
+      card.appendChild(el("h3", "", c.lane + " · " + c.bpm + " BPM"));
+      card.appendChild(el("p", "q", c.listen));
+      var cl = el("div", "clips");
+      c.clips.forEach(function(k){
+        var b = el("button", "play"); b.dataset.card = i; b.dataset.file = k.file;
+        b.innerHTML = '<span class="tx"></span><span class="ic">▶</span>'; b.querySelector(".tx").textContent = k.label;
+        b.onclick = function(){ tapClip(i, k.file, b, false); };
+        cl.appendChild(b);
+      });
+      card.appendChild(cl);
+      var r2 = el("div", "row2"), fs = el("button", "top", "↺ From the start");
+      fs.onclick = function(){ var b = (playing && playing.kind === "clip" && playing.card === i) ? playing.btn : card.querySelector(".play"); tapClip(i, b.dataset.file, b, true); };
+      r2.appendChild(fs); card.appendChild(r2);
+      var mk = el("div", "marks");
+      MARKS.forEach(function(m){
+        var b = el("button", "", m[1]); b.dataset.v = m[0];
+        b.onclick = function(){ marks[i] = marks[i] === +m[0] ? 0 : +m[0]; paintMarks(mk, marks[i]); save(); };
+        mk.appendChild(b);
+      });
+      paintMarks(mk, marks[i]); card.appendChild(mk);
+      var nt = el("input", "note"); nt.type = "text"; nt.placeholder = "Note (optional)"; nt.maxLength = 300; nt.value = notes[i];
+      nt.oninput = function(){ notes[i] = nt.value; save(); };
+      card.appendChild(nt); listEl.appendChild(card);
+    });
+    var last = ci;
+    rec.count = function(){ var n = 0; for (var j = first; j < last; j++) if (marks[j]) n++; return [n, last - first]; };
+  });
+  LIVE.forEach(function(p, k){
+    var rec = head(p);
+    p.groups.forEach(function(gr){
+      if (gr.label) listEl.appendChild(el("div", "group", gr.label));
+      gr.members.forEach(function(idx){
+        var card = el("div", "arch"); card.dataset.book = p.book; card.dataset.i = idx;
+        card.appendChild(el("div", "nm", p.all[idx]));
+        p.ctx.forEach(function(cx, which){
+          var r = el("div", "ctx"), b = el("button", "play");
+          b.innerHTML = '<span class="tx"></span><span class="ic">▶</span>'; b.querySelector(".tx").textContent = cx[1];
+          b.dataset.book = p.book; b.dataset.i = idx; b.dataset.kind = cx[0];
+          b.onclick = function(){ tapLive(p, idx, cx[0], b); };
+          r.appendChild(b);
+          var s = el("div", "seg");
+          [["k", "keep"], ["c", "cut"], ["u", "unsure"]].forEach(function(o){
+            var sb = el("button", "", o[1]); sb.dataset.v = o[0];
+            sb.onclick = function(){ picks[k][idx][which] = "ukc".indexOf(o[0]); paintSeg(s, picks[k][idx][which]); save(); };
+            s.appendChild(sb);
+          });
+          paintSeg(s, picks[k][idx][which]); r.appendChild(s); card.appendChild(r);
+        });
+        listEl.appendChild(card);
+      });
+    });
+    var nt = el("textarea", "note"); nt.maxLength = 400; nt.placeholder = p.notePlaceholder; nt.value = pnotes[k]; nt.dataset.pn = PN[k];
+    nt.oninput = function(){ pnotes[k] = nt.value; save(); };
+    listEl.appendChild(nt);
+    rec.count = function(){ var n = 0, t = 0; picks[k].forEach(function(q, i){ if (p.shown.indexOf(i) < 0) return; t += p.ctx.length; if (q[0]) n++; if (p.ctx.length > 1 && q[1]) n++; }); return [n, t]; };
+  });
+  function progress(){ PARTS.forEach(function(r){ var c = r.count(); r.nav.querySelector("span").textContent = c[0] + " of " + c[1]; r.nav.classList.toggle("full", c[0] === c[1]); }); }
+  progress();
+  var pn = document.getElementById("pagenote"); pn.value = gnote; pn.oninput = function(){ gnote = pn.value; save(); };
+
+  // ---- copy link ----------------------------------------------------------
+  document.getElementById("copy").onclick = function(){
+    save();
+    var u = location.href, ok = function(){ status("Copied. Text it to me.", true); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(u).then(ok, fb); else fb();
+    function fb(){ var f = document.getElementById("fallback"); f.style.display = "block"; f.value = u; f.focus(); f.select(); status("Select the link and copy it", false, true); }
+  };
+
+  // ---- download for the flight --------------------------------------------
+  var saveBtn = document.getElementById("save"), saveState = document.getElementById("savestate");
+  var FILES = [D.engine]; CARDS.forEach(function(c){ c.clips.forEach(function(k){ FILES.push(D.clipDir + "/" + k.file); }); });
+  var PAGE = location.pathname;
+  function say(t, cls){ saveState.textContent = t; saveState.className = cls || "dim"; }
+  var canSave = !!(window.caches && navigator.serviceWorker && /^https?:$/.test(location.protocol));
+  if (!canSave) { saveBtn.style.display = "none"; say("Saving for offline is not available in this browser window (a Private tab can't do it), so the page needs wifi for each sound."); }
+  else {
+    navigator.serviceWorker.register(D.sw, { scope: D.swScope }).catch(function(){});
+    caches.open(CACHE).then(function(c){ return Promise.all([PAGE].concat(FILES).map(function(u){ return c.match(u); })); }).then(function(rs){
+      if (rs.every(Boolean)) { saveBtn.textContent = "Download again"; say("Saved on this phone. Every sound plays without wifi.", "ok"); }
+    }).catch(function(){});
+    saveBtn.onclick = function(){
+      saveBtn.disabled = true;
+      var all = [PAGE].concat(FILES), done = 0, bad = 0, q = all.slice();
+      say("Saving, 0 of " + all.length);
+      caches.open(CACHE).then(function(c){
+        function one(){
+          var u = q.shift(); if (!u) return Promise.resolve();
+          return fetch(u, { cache: "reload" }).then(function(r){ if (!r.ok) throw new Error(r.status); return c.put(u, r); })
+            .then(function(){ done++; }, function(){ bad++; }).then(function(){ say("Saving, " + done + " of " + all.length); return one(); });
+        }
+        return Promise.all([one(), one(), one(), one()]).then(function(){ return Promise.all(all.map(function(u){ return c.match(u); })); });
+      }).then(function(rs){
+        saveBtn.disabled = false;
+        if (!bad && rs.every(Boolean)) { saveBtn.textContent = "Download again"; say("Saved on this phone. Every sound plays without wifi. To be sure, switch to airplane mode and reload the page.", "ok"); }
+        else say("Only " + done + " of " + all.length + " saved. Check the wifi and tap again.", "bad");
+      }, function(){ saveBtn.disabled = false; say("Could not save on this phone. The page still works on wifi.", "bad"); });
+    };
+  }
+
+  // the check's hooks (scripts/check-travel-page.mjs)
+  window.__tl = { data: D, cards: CARDS, live: LIVE, encode: encode, ctx: function(){ return ctx; }, playing: function(){ return playing; }, clipPos: clipPos,
+    bufs: function(){ return Object.keys(bufs); }, loadEngine: loadEngine, audio: audio };
+})();
+</script>
+</body>
+</html>
