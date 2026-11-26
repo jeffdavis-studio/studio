@@ -274,10 +274,10 @@
 <div id="masterCard"></div>
 <div id="layers"></div>
 <div id="add" class="row"><div class="lbl">Add a layer<button id="palRnd" title="add a random instrument (one you don't have yet, while any are left)">Random</button></div><div id="pal"></div></div>
-<footer title="engine @24985a6 · built 2026-11-25">Unison jam &middot; every sound is synthesized in this page by the engine at 24985a6</footer>
+<footer title="engine @cbb9a98 · built 2026-11-26">Unison jam &middot; every sound is synthesized in this page by the engine at cbb9a98</footer>
 
 <script>
-/* ===== src/core/prng.js @ 24985a6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/prng.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
 // prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
 // token hash, consumed in canonical draw order (Technical Architecture v1.2).
 //
@@ -350,7 +350,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/core/mix.js @ 24985a6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/mix.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
 // mix.js — the fan-in ≤2 summing rule, as a primitive.
 //
 // Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
@@ -519,7 +519,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/desk/desk.js @ 24985a6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/desk/desk.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
 // desk.js — the 24-track desk as a running audio graph.
 //
 // The desk is the data structure, not a metaphor (Composition Brief 2 / Tech
@@ -1659,7 +1659,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/production.js @ 24985a6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/production.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
 // production.js — the per-strip effects (effects slice 2, 2026-11-18, Asana
 // 1220328751228343; spec: files/unison/effects-menu-2026-11-08/PROPOSAL.md §2
 // and Jeff's 11/17 rule, "All effects should apply everywhere. All
@@ -2200,7 +2200,7 @@
 
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/vocoder.js @ 24985a6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/vocoder.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
 // vocoder.js — the production room's vocoder insert, slice 1 (2026-11-05,
 // Asana 1220085081650427; design in files/unison/vocoder-2026-11-05/RESULT.md).
 //
@@ -2533,7 +2533,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/analogpoly.js @ 24985a6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/analogpoly.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
 // analogpoly.js — the analog poly core: one module that builds every Juno and
 // OB-Xa voice, behind a family lock. Asana 1220084594874974, slice 1
 // (2026-11-02); the rack doc's build 3 (files/unison/rack-parts-proposal-
@@ -3158,7 +3158,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/juno.js @ 24985a6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/juno.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
 // juno.js — Juno-60-flavor poly voice, raw Web Audio, zero dependencies.
 // Ported from the 2026-07-21 bake-off winner (voice-raw.js), restructured to
 // live behind a desk strip: U.createJuno(ctx, strip, patchName) builds its own
@@ -3794,7 +3794,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/minimoog.js @ 24985a6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/minimoog.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
 // minimoog.js — Minimoog Model D-lineage mono voice, zero dependencies.
 //
 // THE MONO BASS LANE (build order 808 → Juno → Minimoog → …; it also absorbs
@@ -4632,7 +4632,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/obxa.js @ 24985a6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/obxa.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
 // obxa.js — Oberheim OB-Xa-lineage poly voice, zero dependencies.
 //
 // THE BRASS/PAD POLY LANE (build order 808 → Juno → Minimoog → OB-Xa → …).
@@ -5219,7 +5219,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/fm.js @ 24985a6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/fm.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fm.js — six-operator FM keys voice (the DX7 lineage), zero dependencies.
 //
 // THE FM LANE (build order 808 → Juno → Minimoog → OB-Xa → Linn → FM).
@@ -6375,7 +6375,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/bassguitar.js @ 24985a6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/bassguitar.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassguitar.js — electric bass guitar, the first session player of the human
 // rack (Rack 2), zero dependencies.
 //
@@ -6643,24 +6643,25 @@
     flanger: { keys: ["rate", "delayMs", "depthMs", "fb", "mix"], range: { rate: [0.1, 0.3], delayMs: [2, 3], depthMs: [0.5, 1.0], fb: [0.2, 0.4], mix: [0.2, 0.35] }, fix: { wetHpHz: 250 } },
     overdrive: { keys: ["drive", "toneHz"], range: { drive: [1.2, 2.2], toneHz: [2000, 3200] }, fix: { hpHz: 350 } },
   };
-  // wl: lane weights; mx: × by the drawn model; vx: × by the book's voicing
-  // (after the style: thumbPop is slap). pedals: [id, {key: [lo, hi]}].
+  // wl: lane weights; mx: × by the drawn model (sound with sound). No weight
+  // reads the voicing, the style or the technique (style and sound separated
+  // 2026-11-25, Asana 1220914998049079). pedals: [id, {key: [lo, hi]}].
   U.BASS_CHAINS = {
-    di: { amp: null, pedals: [], wl: { funk: 19, synthRnB: 20, newWave: 21, synthPop: 27, earlyHipHop: 28 }, vx: { muted: 1.5 },
+    di: { amp: null, pedals: [], wl: { funk: 19, synthRnB: 20, newWave: 21, synthPop: 27, earlyHipHop: 28 },
       ref: ["Yaz — Only You", "New Order — Confusion (Instrumental) [2020 Digital Master]"], est: true, note: "straight to tape: the instrument's own DI sound, the board empty" },
-    compDi: { amp: null, pedals: [["compressor", {}]], wl: { funk: 26, synthRnB: 30, newWave: 30, synthPop: 28, earlyHipHop: 30 }, mx: { p: 1.3 }, vx: { slap: 1.3, muted: 1.4 },
+    compDi: { amp: null, pedals: [["compressor", {}]], wl: { funk: 26, synthRnB: 30, newWave: 30, synthPop: 28, earlyHipHop: 30 }, mx: { p: 1.3 },
       ref: ["Madonna — Holiday", "Shalamar — Right Here"], est: true, note: "a compressor on the strip, direct to the desk: the session default" },
-    compChorus: { amp: null, pedals: [["compressor", {}], ["chorus", {}]], wl: { funk: 6, synthRnB: 12, newWave: 16, synthPop: 14, earlyHipHop: 5 }, mx: { fretless: 1.4 }, vx: { pick: 1.2, slap: 0.5, muted: 0 },
+    compChorus: { amp: null, pedals: [["compressor", {}], ["chorus", {}]], wl: { funk: 6, synthRnB: 12, newWave: 16, synthPop: 14, earlyHipHop: 5 }, mx: { fretless: 1.4 },
       ref: ["Kajagoogoo — Too Shy", "Thompson Twins — If You Were Here"], est: true, note: "the 1983 sound: compressed, a chorus on the top of the note, the fundamental dry" },
-    chorusFretless: { amp: "tubeWarm", pedals: [["compressor", { thr: [0.12, 0.18], ratio: [2.5, 3.5] }], ["chorus", { wet: [0.35, 0.45], depthMs: [1.2, 1.8] }]], wl: { funk: 2, synthRnB: 5, newWave: 3, synthPop: 4, earlyHipHop: 2 }, mx: { fretless: 6 }, vx: { slap: 0.3, muted: 0 },
+    chorusFretless: { amp: "tubeWarm", pedals: [["compressor", { thr: [0.12, 0.18], ratio: [2.5, 3.5] }], ["chorus", { wet: [0.35, 0.45], depthMs: [1.2, 1.8] }]], wl: { funk: 2, synthRnB: 5, newWave: 3, synthPop: 4, earlyHipHop: 2 }, mx: { fretless: 6 },
       ref: ["Sade — Never As Good As the First Time", "Scritti Politti — Perfect Way"], est: true, note: "the fretless records: a light compressor, a deeper chorus, a warm amp" },
-    flange: { amp: null, pedals: [["compressor", {}], ["flanger", {}]], wl: { funk: 3, synthRnB: 3, newWave: 6, synthPop: 5, earlyHipHop: 3 }, vx: { muted: 0 },
+    flange: { amp: null, pedals: [["compressor", {}], ["flanger", {}]], wl: { funk: 3, synthRnB: 3, newWave: 6, synthPop: 5, earlyHipHop: 3 },
       ref: ["Naked Eyes — Voices in My Head (2018 Remaster)", "The Cars — A Dream Away"], est: true, note: "a slow flanger on the top of the note, for one song; the lows dry" },
     ampWarm: { amp: "tubeWarm", pedals: [["compressor", {}]], wl: { funk: 16, synthRnB: 18, newWave: 10, synthPop: 8, earlyHipHop: 12 }, mx: { p: 1.6, j: 1.2 },
       ref: ["Patrice Rushen — Feels So Real (Won't Let Go)", "Midnight Star — Freak-A-Zoid"], est: true, note: "the R&B date: compressed, the amp miked for warmth" },
-    ampDrive: { amp: "cleanSS", pedals: [["compressor", {}], ["overdrive", {}]], wl: { funk: 4, synthRnB: 2, newWave: 6, synthPop: 3, earlyHipHop: 4 }, vx: { pick: 1.8 },
+    ampDrive: { amp: "cleanSS", pedals: [["compressor", {}], ["overdrive", {}]], wl: { funk: 4, synthRnB: 2, newWave: 6, synthPop: 3, earlyHipHop: 4 },
       ref: ["Devo — Out of Sync", "Wang Chung — Dance Hall Days"], est: true, note: "a little drive on the top, the lows clean, into a clean amp: rare" },
-    compBright: { amp: "brightActive", pedals: [["compressor", { thr: [0.06, 0.1], ratio: [4, 6] }]], wl: { funk: 24, synthRnB: 12, newWave: 8, synthPop: 6, earlyHipHop: 12 }, mx: { active: 2.2 }, vx: { slap: 2, muted: 0.5 },
+    compBright: { amp: "brightActive", pedals: [["compressor", { thr: [0.06, 0.1], ratio: [4, 6] }]], wl: { funk: 24, synthRnB: 12, newWave: 8, synthPop: 6, earlyHipHop: 12 }, mx: { active: 2.2 },
       ref: ["Level 42 — Something About You", "Thompson Twins — Love Lies Bleeding"], est: true, note: "hard compression into a bright scooped amp: slap and the active bass, the Minneapolis side" },
   };
   // Measured level offsets, dB, per chain and voicing (harness/
@@ -6675,11 +6676,18 @@
   // `all` for a voicing with no cell. The muted cells pool the 3 songs here
   // with the check pass's 2 (seed 2, bass1-level-check-seed2.out): muted
   // is a synthPop-only voicing (7 % of bass-guitar songs), sd ~1 dB.
+  // compChorus, chorusFretless and flange × muted: MEASURED 2026-11-25 (style
+  // and sound separated, Asana 1220914998049079: muted had weight 0 on those
+  // three chains until then, so it fell to `all`, about 2 dB hot like every
+  // other muted cell). harness/style-sound-grid.mjs --inst bass, the written
+  // muted line of one synthPop rootQuarters song (60b59722) through each
+  // chain against di: +3.31, +1.09, +3.27 dB under `all`; cell = all − gap.
+  // One song: sd ~1 dB, as the other muted cells.
   U.BASS_CHAIN_LEVEL_DB = {
     compDi: { all: 3.5, finger: 3.6, pick: 4.4, muted: 1.6, slap: 3.6 },
-    compChorus: { all: 5.1, finger: 5.1, pick: 5.7, slap: 4.9 },
-    chorusFretless: { all: 2.7, finger: 2.6, pick: 3.5, slap: 2.5 },
-    flange: { all: 4.5, finger: 4.4, pick: 5.3, slap: 4.4 },
+    compChorus: { all: 5.1, finger: 5.1, pick: 5.7, muted: 1.8, slap: 4.9 },
+    chorusFretless: { all: 2.7, finger: 2.6, pick: 3.5, muted: 1.6, slap: 2.5 },
+    flange: { all: 4.5, finger: 4.4, pick: 5.3, muted: 1.2, slap: 4.4 },
     ampWarm: { all: 3.1, finger: 3, pick: 4.2, muted: 1.6, slap: 3.1 },
     ampDrive: { all: 4.5, finger: 4.4, pick: 6.3, muted: 2.7, slap: 4.4 },
     compBright: { all: 6, finger: 6, pick: 7.3, muted: 3.8, slap: 6 },
@@ -7086,7 +7094,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/rhythmguitar.js @ 24985a6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/rhythmguitar.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
 // rhythmguitar.js — clean electric rhythm guitar, the fourth and last stop of
 // the human rack (Rack 2), zero dependencies.
 //
@@ -7340,12 +7348,13 @@
     overdrive: { keys: ["drive", "toneHz"], range: { drive: [1.6, 2.8], toneHz: [3200, 5200] }, fix: { hpHz: 720 } },
   };
   // the chains. wl: lane weights (funk, synthRnB, newWave, synthPop,
-  // earlyHipHop); mx: × by the drawn model; vx: × by the voicing (the
-  // pattern's). pedals: [id, {key: [lo, hi]} range overrides].
+  // earlyHipHop); mx: × by the drawn model (sound with sound). No weight
+  // reads the voicing or the style (style and sound separated 2026-11-25,
+  // Asana 1220914998049079: any way of playing can go with any sound). pedals: [id, {key: [lo, hi]} range overrides].
   U.GTR_CHAINS = {
     di: { amp: null, pedals: [], wl: { funk: 15, synthRnB: 15, newWave: 12, synthPop: 18, earlyHipHop: 18 },
       ref: ["Madonna — Holiday", "Shalamar — Right Here"], est: true, note: "the DI board this guitar always had: compressor into light chorus, straight to the console" },
-    cleanFunk: { amp: "cleanBright", pedals: [["compressor", {}]], wl: { funk: 22, synthRnB: 16, newWave: 4, synthPop: 6, earlyHipHop: 14 }, mx: { strat: 1.3 }, vx: { funk: 1.5 },
+    cleanFunk: { amp: "cleanBright", pedals: [["compressor", {}]], wl: { funk: 22, synthRnB: 16, newWave: 4, synthPop: 6, earlyHipHop: 14 }, mx: { strat: 1.3 },
       ref: ["Chaka Khan — Ain't Nobody", "Shalamar — Right Here"], est: true, note: "clean funk: a compressor always on into a bright clean amp" },
     compBright: { amp: "cleanBright", pedals: [["compressor", { thr: [0.07, 0.12], ratio: [6, 10] }]], wl: { funk: 16, synthRnB: 14, newWave: 6, synthPop: 8, earlyHipHop: 12 }, mx: { tele: 1.4 },
       ref: ["Michael Jackson — Wanna Be Startin' Somethin'", "Patrice Rushen — Feels So Real (Won't Let Go)"], est: true, note: "compressed and bright: the compressor squeezed hard, every chuck the same height" },
@@ -7353,15 +7362,15 @@
       ref: ["Midnight Star — Freak-A-Zoid", "The Bar-Kays — Freakshow on the Dance Floor"], est: true, note: "phaser funk: a slow phaser on the chucks, compressed" },
     chorusNewWave: { amp: "cleanWarm", pedals: [["compressor", { thr: [0.15, 0.25], ratio: [2.5, 4] }], ["chorus", {}]], wl: { funk: 6, synthRnB: 14, newWave: 24, synthPop: 22, earlyHipHop: 6 },
       ref: ["The Cars — A Dream Away", "Wang Chung — Dance Hall Days"], est: true, note: "chorus new wave: a light compressor into a chorus, the wide clean chord" },
-    flange: { amp: "cleanBright", pedals: [["compressor", { thr: [0.15, 0.25], ratio: [2.5, 4] }], ["flanger", {}]], wl: { funk: 3, synthRnB: 5, newWave: 12, synthPop: 10, earlyHipHop: 3 }, vx: { chop: 1.4 },
+    flange: { amp: "cleanBright", pedals: [["compressor", { thr: [0.15, 0.25], ratio: [2.5, 4] }], ["flanger", {}]], wl: { funk: 3, synthRnB: 5, newWave: 12, synthPop: 10, earlyHipHop: 3 },
       ref: ["Kajagoogoo — Too Shy", "Naked Eyes — Voices in My Head (2018 Remaster)"], est: true, note: "flange: a slow flanger for one song, under the strokes" },
     slapback: { amp: "midForward", pedals: [["slapback", {}]], wl: { funk: 6, synthRnB: 6, newWave: 12, synthPop: 10, earlyHipHop: 12 }, mx: { tele: 1.5 },
       ref: ["Tom Tom Club — Genius of Love", "Devo — Out of Sync"], est: true, note: "slapback: one tape repeat behind a stab, a mid-forward amp" },
     chorusSlap: { amp: "cleanWarm", pedals: [["compressor", { thr: [0.15, 0.25], ratio: [2.5, 4] }], ["chorus", { wet: [0.2, 0.35] }], ["slapback", {}]], wl: { funk: 4, synthRnB: 8, newWave: 12, synthPop: 10, earlyHipHop: 4 },
       ref: ["Eurythmics — Love Is a Stranger", "Thompson Twins — Love on Your Side"], est: true, note: "chorus and slapback: the new-wave stab with its repeat, the compressor always on" },
-    driveChop: { amp: "midForward", pedals: [["compressor", { thr: [0.15, 0.25], ratio: [2.5, 4] }], ["overdrive", {}]], wl: { funk: 3, synthRnB: 3, newWave: 10, synthPop: 5, earlyHipHop: 8 }, mx: { humbucker: 2 }, vx: { chop: 1.5, funk: 0.6 },
+    driveChop: { amp: "midForward", pedals: [["compressor", { thr: [0.15, 0.25], ratio: [2.5, 4] }], ["overdrive", {}]], wl: { funk: 3, synthRnB: 3, newWave: 10, synthPop: 5, earlyHipHop: 8 }, mx: { humbucker: 2 },
       ref: ["The Pointer Sisters — Neutron Dance", "Steve Winwood — Valerie"], est: true, note: "light drive chop: an edge of overdrive on the eighths, never a lead tone" },
-    dubEcho: { amp: "dark", pedals: [["compressor", { thr: [0.15, 0.25], ratio: [2.5, 4] }], ["chorus", { wet: [0.15, 0.3] }], ["tapeEcho", {}]], wl: { funk: 5, synthRnB: 6, newWave: 5, synthPop: 7, earlyHipHop: 10 }, vx: { skank: 3 },
+    dubEcho: { amp: "dark", pedals: [["compressor", { thr: [0.15, 0.25], ratio: [2.5, 4] }], ["chorus", { wet: [0.15, 0.3] }], ["tapeEcho", {}]], wl: { funk: 5, synthRnB: 6, newWave: 5, synthPop: 7, earlyHipHop: 10 },
       ref: ["UB40 — Cherry Oh Baby", "Wang Chung — The Waves"], est: true, note: "tape echo: a dark amp, the skank's dotted-eighth repeats" },
   };
   // Measured level offsets, dB, per chain and voicing (the instrument's own
@@ -7862,7 +7871,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/tr808.js @ 24985a6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/tr808.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
 // tr808.js — THE MACHINE. A TR-808-lineage core voice: bass drum, snare,
 // closed hat, open hat, each with a front panel the token actually turns.
 //
@@ -9146,7 +9155,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/linn.js @ 24985a6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/linn.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
 // linn.js — THE STUDIO MACHINE. A Linn-family (LM-1 / LinnDrum lineage)
 // drum computer: the new wave / synth-pop / 80s R&B kit.
 //
@@ -9968,7 +9977,7 @@
     get EPROM_HZ() { return U.CIRCUIT_LINN.epromHz; }, get RECON_HZ() { return U.CIRCUIT_LINN.reconHz; } };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/romkits.js @ 24985a6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/romkits.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
 // romkits.js — THE OTHER SAMPLED MACHINE: the DMX (Oberheim lineage, 1981),
 // drum engine slice 3, 2026-11-03, Asana 1219959495948201.
 //
@@ -10324,7 +10333,7 @@
   // the lock refuses; the MCS is a kit drawn across families, which is slice 4.
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/simmons.js @ 24985a6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/simmons.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
 // simmons.js — THE ELECTRONIC FAMILY'S FIRST MACHINE: the Simmons toms
 // (SDS-V lineage, 1981; SDS-7, 1983), drum engine slice 3, 2026-11-03,
 // Asana 1219959495948201.
@@ -10496,7 +10505,7 @@
   U.SIMMONS_VOICES = ["tomHi", "tomMid", "tomLo"];
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drumengine.js @ 24985a6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drumengine.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drumengine.js — ONE DRUM ENGINE, THE MACHINES AS FAMILIES (2026-11-02,
 // drum engine slice 1, Asana 1219959495948201; the rack and parts doc,
 // 10/31).
@@ -10727,7 +10736,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drumkits.js @ 24985a6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drumkits.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drumkits.js — the drum engine, slice 4 (2026-11-06, Asana 1219959495948201):
 // THE KIT BOOKS and THE KIT AS A DRAW ACROSS FAMILIES.
 //
@@ -11085,7 +11094,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/sampler.js @ 24985a6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/sampler.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
 // sampler.js — THE SAMPLER KEYBOARD, the gap filler (2026-11-05, slice 1,
 // Asana 1220085081678265; build 7 of the 10/31 rack and parts doc; design in
 // files/unison/sampler-2026-11-05/RESULT.md in the morgan repo).
@@ -11707,7 +11716,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drums.js @ 24985a6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drums.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drums.js — the drum machine: 808/LM-1-flavor voices, synthesized at runtime
 // into short AudioBuffers, played back as one-shots.
 //
@@ -12122,7 +12131,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/books.js @ 24985a6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/books.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
 // books.js — Pattern Books v1, as data.
 //
 // This file IS the document: "Unison — Pattern Books v1 (draft)" (Morgan,
@@ -15404,7 +15413,7 @@
 
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/bassplayer.js @ 24985a6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/bassplayer.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassplayer.js — the PERFORMANCE half of the bass guitar: a session player.
 //
 // Rack 2's rule (kb/projects/unison.md, 2026-07-11): every human instrument is
@@ -15522,7 +15531,9 @@
     const voicing = U.BASSGUITAR_FOR_KIND(kind, lane);
     const G = U.forkPrng(hash, "bassBook");
     const MW = U.BASS_BOOK_MODEL_LANE[lane] || U.BASS_BOOK_MODEL_LANE.synthPop;
-    const model = U.pickWeighted(G, Object.keys(MW).map((id) => ({ id, w: MW[id] }))).id;
+    let model = U.pickWeighted(G, Object.keys(MW).map((id) => ({ id, w: MW[id] }))).id;
+    // level harnesses only: the same song on a given model (reads unchanged)
+    if (U.BASS_MODEL_FORCE && MW[U.BASS_MODEL_FORCE.id] != null) model = U.BASS_MODEL_FORCE.id;
     const u = G.r();
     const SW = U.BASS_BOOK_STYLE_LANE[lane] || U.BASS_BOOK_STYLE_LANE.synthPop;
     const fits = U.BASS_BOOK_STYLES.filter((s) => U.bassBookStyleFits(s, kind, voicing, model)).map((id) => ({ id, w: SW[id] }));
@@ -15533,32 +15544,34 @@
       params: U.resolveBassGuitarPatch(voicing, model, style, u) };
     // THE CHAIN (bass books slice 1, 2026-11-05, Asana 1220085081674111):
     // appended after the five reads above, which stay where they are. One
-    // read for the chain (lane × model × voicing weights, the voicing after
-    // the style), then a FIXED block of U.BASS_CHAIN_UNIFORMS uniforms, read
+    // read for the chain (lane × model weights; never the voicing or the
+    // style, 2026-11-25), then a FIXED block of U.BASS_CHAIN_UNIFORMS uniforms, read
     // whatever the chain, that its pedal settings consume in board order (so
     // a later slice appends at a fixed position). The patch is not touched:
     // the chain is board blocks only (U.applyBassChain).
     if (U.BASS_CHAINS) {
       const CW = Object.keys(U.BASS_CHAINS).map((id) => {
         const C = U.BASS_CHAINS[id];
-        const vx = (C.vx || {})[out.voicing];
-        return { id, w: (C.wl[lane] != null ? C.wl[lane] : C.wl.synthPop) * ((C.mx || {})[model] || 1) * (vx != null ? vx : 1) };
+        return { id, w: (C.wl[lane] != null ? C.wl[lane] : C.wl.synthPop) * ((C.mx || {})[model] || 1) };
       });
-      const cid = U.pickWeighted(G, CW).id;
+      let cid = U.pickWeighted(G, CW).id;
       const us = [];
       for (let k = 0; k < U.BASS_CHAIN_UNIFORMS; k++) us.push(G.r());
+      // level harnesses only: the same song through a given chain (reads unchanged)
+      if (U.BASS_CHAIN_FORCE && U.BASS_CHAINS[U.BASS_CHAIN_FORCE.id]) cid = U.BASS_CHAIN_FORCE.id;
       out.chain = U.resolveBassChain(cid, us, out.voicing);
     }
     // THE TECHNIQUE (bass books slice 2, 2026-11-05, Asana 1220085081674111):
     // appended after slice 1's reads, which stay where they are. One read for
-    // the technique (lane × kind × chain × model × voicing weights), one for
+    // the technique (lane × kind × voicing weights; never the chain or the
+    // model, 2026-11-25), one for
     // its seed, then a FIXED block of U.BASS_TECHNIQUE_UNIFORMS, read whatever
     // the technique.
     if (U.BASS_TECHNIQUES && out.chain) {
       const TW = Object.keys(U.BASS_TECHNIQUES).map((id) => {
         const T = U.BASS_TECHNIQUES[id];
         const f = (o, k) => (o && o[k] != null ? o[k] : 1);
-        return { id, w: (T.wl[lane] != null ? T.wl[lane] : T.wl.synthPop) * f(T.kx, kind) * f(T.cx, out.chain.id) * f(T.mx, model) * f(T.vx, out.voicing) };
+        return { id, w: (T.wl[lane] != null ? T.wl[lane] : T.wl.synthPop) * f(T.kx, kind) * f(T.vx, out.voicing) };
       });
       let tid = U.pickWeighted(G, TW).id;
       let tseed = G.ri(1, 2147483646);
@@ -15715,12 +15728,14 @@
   // added swing on the odd sixteenths (fraction of a sixteenth).
   U.BASS_TECHNIQUE_OFF = false;     // harnesses only: play the figure and the player as before
   U.BASS_TECHNIQUE_FORCE = null;    // harnesses only: { id, seed? }
+  U.BASS_CHAIN_FORCE = null;        // harnesses only: { id } (style-sound grid, 2026-11-25)
+  U.BASS_MODEL_FORCE = null;        // harnesses only: { id } (style-sound grid, 2026-11-25)
   U.BASS_TECHNIQUE_UNIFORMS = 8;
   U.BASS_TECHNIQUES = {
     fingerFunk: {
       wl: { funk: 46, synthRnB: 42, newWave: 12, synthPop: 15, earlyHipHop: 28 },
       kx: { synco16: 2, seq16: 2, oneNote: 2, walk: 2, riffHook: 1.5, octaveSlide: 1.5, rootEighths: 0.6, rootQuarters: 0.6, octaveAlt: 0.7, octavePush: 0.7 },
-      cx: { compBright: 1.3, compDi: 1.2 }, mx: { j: 1.3, active: 1.3 }, vx: { muted: 0.5 },
+      vx: { muted: 0.5 },
       band: { density: [0.12, 0.33], len: [0.7, 0.9], vel: [1.2, 1.4], ghost: [2, 3], push: [-3, -1], six: [0, 0], seven: [0.3, 0.9] },
       rec: { jitter: 0.8 }, lean: 0,
       ref: ["Scritti Politti — Perfect Way", "Patrice Rushen — Feels So Real"], est: true,
@@ -15728,7 +15743,7 @@
     slap: {
       wl: { funk: 36, synthRnB: 16, newWave: 5, synthPop: 5, earlyHipHop: 20 },
       kx: { synco16: 2, oneNote: 2, octaveAlt: 2, riffHook: 1.5, seq16: 1.2, octavePush: 1.2, walk: 0.5, rootEighths: 0.6, rootQuarters: 0.4, octaveSlide: 0.8 },
-      cx: { compBright: 2, chorusFretless: 0.3 }, mx: { active: 1.5, fretless: 0.2 }, vx: { slap: 1.6, muted: 0 },
+      vx: { slap: 1.6, muted: 0 },
       band: { density: [0.35, 0.8], len: [0.6, 0.8], vel: [1.3, 1.7], ghost: [1.2, 1.8], push: [-2, 0], six: [0, 0], seven: [0, 2.999] },
       rec: { jitter: 0.8 }, lean: 0,
       ref: ["Level 42 — Something About You", "Thompson Twins — Love Lies Bleeding"], est: true,
@@ -15736,7 +15751,7 @@
     rootPump: {
       wl: { funk: 6, synthRnB: 12, newWave: 46, synthPop: 40, earlyHipHop: 14 },
       kx: { rootEighths: 2, octaveAlt: 2, octavePush: 2, rootQuarters: 2, synco16: 0.5, seq16: 0.6, oneNote: 0.6, walk: 0.6, riffHook: 0.7, octaveSlide: 0.7 },
-      cx: { compChorus: 1.5, ampDrive: 1.5 }, mx: { p: 1.3, shortScale: 1.3 }, vx: { pick: 1.5, muted: 1.5 },
+      vx: { pick: 1.5, muted: 1.5 },
       band: { density: [0, 0.25], len: [0.6, 0.8], vel: [0.3, 0.5], ghost: [0, 0], push: [-1, 1], six: [0, 0.5], seven: [0, 2.999] },
       rec: { jitter: 0.6 }, lean: 0,
       ref: ["Kajagoogoo — Too Shy", "Wang Chung — Dance Hall Days"], est: true,
@@ -15744,7 +15759,7 @@
     reggae: {
       wl: { funk: 3, synthRnB: 5, newWave: 8, synthPop: 14, earlyHipHop: 20 },
       kx: { rootQuarters: 1.5, walk: 1.2 },
-      cx: { ampWarm: 1.5, di: 1.3 }, mx: {}, vx: { muted: 0, slap: 0 },
+      vx: { muted: 0, slap: 0 },
       band: { density: [2, 5.999], len: [1.1, 1.3], vel: [0.7, 1.0], ghost: [0, 0], push: [4, 8], six: [0.1, 0.4], seven: [0, 1] },
       rec: { jitter: 0.9 }, lean: 0.02, toneMul: 0.4,
       ref: ["UB40 — Cherry Oh Baby", "UB40 — Many Rivers to Cross"], est: true,
@@ -16031,7 +16046,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/gtrplayer.js @ 24985a6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/gtrplayer.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
 // gtrplayer.js — the PERFORMANCE half of the rhythm guitar: a session
 // guitarist on the rhythmGtr strip.
 //
@@ -16117,7 +16132,7 @@
     const params = U.resolveRhythmGuitarPatch(sheet.gtrVoicing, model, u, sheet.picks.rhythmGtr.id);
     // THE CHAIN (guitar books slice 1, 2026-11-04, Asana 1220085081631823):
     // appended after the model and the tone, which stay the fork's first two
-    // reads. One read for the chain (lane × model × voicing weights), then a
+    // reads. One read for the chain (lane × model weights; never the voicing, 2026-11-25), then a
     // FIXED block of U.GTR_CHAIN_UNIFORMS uniforms, read whatever the chain,
     // that its pedal settings consume in board order (so a later slice
     // appends at a fixed position). di keeps the instrument's own compressor
@@ -16125,23 +16140,25 @@
     if (!U.GTR_CHAINS) return { model, voicing: sheet.gtrVoicing, tone: +u.toFixed(4), params };
     const CW = Object.keys(U.GTR_CHAINS).map((id) => {
       const C = U.GTR_CHAINS[id];
-      return { id, w: (C.wl[sheet.lane] != null ? C.wl[sheet.lane] : C.wl.synthPop) * ((C.mx || {})[model] || 1) * ((C.vx || {})[sheet.gtrVoicing] || 1) };
+      return { id, w: (C.wl[sheet.lane] != null ? C.wl[sheet.lane] : C.wl.synthPop) * ((C.mx || {})[model] || 1) };
     });
-    const cid = U.pickWeighted(G, CW).id;
+    let cid = U.pickWeighted(G, CW).id;
     const us = [];
     for (let k = 0; k < U.GTR_CHAIN_UNIFORMS; k++) us.push(G.r());
+    // level harnesses only: the same song through a given chain (reads unchanged)
+    if (U.GTR_CHAIN_FORCE && U.GTR_CHAINS[U.GTR_CHAIN_FORCE.id]) cid = U.GTR_CHAIN_FORCE.id;
     const chain = U.resolveGtrChain(cid, us, sheet.gtrVoicing);
     if (chain.id !== "di") Object.assign(params, U.GTR_BOARD_OFF);
     const out = { model, voicing: sheet.gtrVoicing, tone: +u.toFixed(4), chain, params };
     // THE STYLE (guitar books slice 2, 2026-11-04, Asana 1220085081631823):
     // appended after slice 1's reads, which stay where they are. One read
-    // for the style (lane × pattern × chain weights), one for its seed, then
+    // for the style (lane × pattern weights; never the chain, 2026-11-25), one for its seed, then
     // a FIXED block of U.GTR_STYLE_UNIFORMS uniforms, read whatever the style.
     if (U.GTR_STYLES) {
       const pid = sheet.picks.rhythmGtr.id;
       const SW = Object.keys(U.GTR_STYLES).map((id) => {
         const S = U.GTR_STYLES[id];
-        return { id, w: (S.wl[sheet.lane] != null ? S.wl[sheet.lane] : S.wl.synthPop) * (S.px[pid] != null ? S.px[pid] : 1) * (S.cx[chain.id] != null ? S.cx[chain.id] : 1) };
+        return { id, w: (S.wl[sheet.lane] != null ? S.wl[sheet.lane] : S.wl.synthPop) * (S.px[pid] != null ? S.px[pid] : 1) };
       });
       let sid = U.pickWeighted(G, SW).id;
       let seed = G.ri(1, 2147483646);
@@ -16271,7 +16288,8 @@
   // 1220085081631823; the rack and parts doc, "The players' books": "Four
   // playing styles, each a pattern vocabulary plus a muting and dynamics
   // model plus its own micro-timing ... Sound and style draw independently
-  // with affinities"). A style is drawn on the gtrBook fork after the chain
+  // with affinities"). Since 2026-11-25 (Asana 1220914998049079) the
+  // affinities to the chain are gone: style and sound draw independently. A style is drawn on the gtrBook fork after the chain
   // (U.drawGtrBook) and played by U.playGtrStyleBar: the style turns the
   // bar's written strokes into its own (U.applyGtrStyle: the vocabulary and
   // its per-bar operators), U.playGtrBar realizes them with the record the
@@ -16285,12 +16303,12 @@
   // the drawn player record. lean: added swing on the odd sixteenths.
   U.GTR_STYLE_OFF = false;     // harnesses only: play the written pattern as before
   U.GTR_STYLE_FORCE = null;    // harnesses only: { id, seed? }
+  U.GTR_CHAIN_FORCE = null;    // harnesses only: { id } (style-sound grid, 2026-11-25)
   U.GTR_STYLE_UNIFORMS = 8;
   U.GTR_STYLES = {
     rodgers: {
       wl: { funk: 44, synthRnB: 34, newWave: 8, synthPop: 14, earlyHipHop: 24 },
       px: { "gtr.chuck16": 3, "gtr.partial16": 3, "gtr.mutedChuck16": 3, "gtr.octaveMelody": 3, "gtr.stab_sparse": 1, "gtr.skank": 0.6, "gtr.chop8": 0.5, "gtr.arp": 0.4, "gtr.palmMute8": 0.5 },
-      cx: { cleanFunk: 2, compBright: 2, phaserFunk: 2, di: 1.2, chorusNewWave: 0.6, flange: 0.6, slapback: 0.6, chorusSlap: 0.6, driveChop: 0.6, dubEcho: 0.5 },
       band: { density: [0.55, 0.95], length: [0, 0], acc: [1.2, 1.6], ghost: [1.0, 1.3], push: [-5, -3], drop: [0, 0] },
       rec: { jitter: 0.7, velSpread: 1, varP: 1 }, lean: 0,
       ref: ["Madonna — Lucky Star", "Michael Jackson — Wanna Be Startin' Somethin'"], est: true,
@@ -16298,7 +16316,6 @@
     byrne: {
       wl: { funk: 10, synthRnB: 10, newWave: 34, synthPop: 26, earlyHipHop: 14 },
       px: { "gtr.stab_sparse": 3, "gtr.chop8": 3, "gtr.partial16": 3, "gtr.chuck16": 0.6, "gtr.mutedChuck16": 0.5, "gtr.skank": 0.8, "gtr.octaveMelody": 0.5, "gtr.arp": 0.5, "gtr.palmMute8": 1 },
-      cx: { slapback: 2, chorusSlap: 2, driveChop: 2, flange: 1.6, di: 1, cleanFunk: 0.7, compBright: 0.8, phaserFunk: 0.6, chorusNewWave: 0.9, dubEcho: 0.6 },
       band: { density: [2, 5], length: [0, 0.25], acc: [1.4, 1.9], ghost: [0.2, 0.4], push: [0, 3], drop: [0, 0.1] },
       rec: { jitter: 1.5, velSpread: 1.2, varP: 1 }, lean: 0,
       ref: ["Tom Tom Club — Genius of Love", "Devo — Out of Sync"], est: true,
@@ -16306,7 +16323,6 @@
     skank: {
       wl: { funk: 10, synthRnB: 12, newWave: 20, synthPop: 22, earlyHipHop: 28 },
       px: { "gtr.skank": 3, "gtr.chop8": 3, "gtr.palmMute8": 3, "gtr.stab_sparse": 1, "gtr.partial16": 0.8, "gtr.chuck16": 0.5, "gtr.mutedChuck16": 0.4, "gtr.octaveMelody": 0.6, "gtr.arp": 0.4 },
-      cx: { dubEcho: 2.5, slapback: 2, cleanFunk: 1.6, di: 1, compBright: 1, phaserFunk: 0.8, chorusNewWave: 0.8, flange: 0.6, chorusSlap: 1, driveChop: 0.5 },
       band: { density: [0, 0.3], length: [0, 0], acc: [0.8, 1.2], ghost: [0.1, 0.3], push: [3, 6], drop: [0, 0.1] },
       rec: { jitter: 0.8, velSpread: 0.8, varP: 0.6 }, lean: 0.02,
       ref: ["UB40 — Cherry Oh Baby", "Thompson Twins — Love on Your Side"], est: true,
@@ -16314,7 +16330,6 @@
     arpeggio: {
       wl: { funk: 6, synthRnB: 14, newWave: 34, synthPop: 30, earlyHipHop: 6 },
       px: { "gtr.arp": 3, "gtr.chop8": 3, "gtr.palmMute8": 3, "gtr.octaveMelody": 3, "gtr.partial16": 0.8, "gtr.chuck16": 0.4, "gtr.mutedChuck16": 0.3, "gtr.skank": 0.6, "gtr.stab_sparse": 0.6 },
-      cx: { chorusNewWave: 2.5, chorusSlap: 2, flange: 2, dubEcho: 1.4, di: 1, cleanFunk: 0.6, compBright: 0.6, phaserFunk: 0.8, slapback: 0.8, driveChop: 0.6 },
       band: { density: [0, 0.6], length: [0.2, 0.6], acc: [0.3, 0.6], ghost: [0, 0], push: [-1, 1], drop: [0, 0] },
       rec: { jitter: 0.5, velSpread: 0.4, varP: 0 }, lean: 0,
       ref: ["The Cars — A Dream Away", "Wang Chung — Dance Hall Days"], est: true,
@@ -16345,6 +16360,20 @@
     skank: { "gtr.arp": 4.8, "gtr.chop8": 6.8, "gtr.chuck16": 2.2, "gtr.mutedChuck16": -8.6, "gtr.octaveMelody": 5.9, "gtr.palmMute8": -2.7, "gtr.partial16": 3.8, "gtr.skank": 1.2, "gtr.stab_sparse": 2.2 },
     arpeggio: { "gtr.arp": -0.3, "gtr.chop8": 1.9, "gtr.chuck16": -4.1, "gtr.mutedChuck16": -15.5, "gtr.octaveMelody": 1.0, "gtr.palmMute8": -7.4, "gtr.partial16": -3.0, "gtr.skank": -4.0, "gtr.stab_sparse": -5.9 },
   };
+  // measured per style and CHAIN, dB, added to the style's level after the
+  // board (U.gtrStyleLevel): the style against the written playing ON THE
+  // SAME CHAIN, less the written playing's own gap to di there, so the cell
+  // is the board's treatment of the style alone. MEASURED 2026-11-25 (style
+  // and sound separated, Asana 1220914998049079; harness/style-sound-grid.mjs
+  // --inst gtr, three song sets, 13 songs over 8 written patterns, 20 s, each
+  // style forced on each chain): a cell only where the mean was outside ±1 dB
+  // and more than two standard errors from 0; value = −mean, 0.1 dB. Every
+  // other cell's mean sits within ±0.9 dB (per-song sd 0.7-1.5 dB). The
+  // all-chuck line (gtr.mutedChuck16) is left out of the means: its +14.8 dB
+  // pattern trim reaches the board's compressor, every style on it lands 5-8
+  // dB low on a board, a pattern-and-chain matter recorded in the morgan repo
+  // files/unison/style-sound-2026-11-25/RESULT.md. di never has a cell.
+  U.GTR_STYLE_CHAIN_LEVEL_DB = { byrne: { compBright: 1.0, slapback: -2.3 } };
   // the guardrails (RESULT.md slice 2, Design), measured on the census
   // ghostCap: the applied ghost chance is held under it, so a song's measured
   // ghost density (a mean over a few bars' empty steps) stays under 0.6
@@ -16389,11 +16418,17 @@
   // compressor never sees it and never eats it), on the strip's trim on di
   // (the instrument's own compressor is inside its buffer, before the trim).
   // Nothing with U.GTR_STYLE_OFF.
+  // + the style's trim on that chain (U.GTR_STYLE_CHAIN_LEVEL_DB): a board
+  // treats a style's strokes its own way, and since 2026-11-25 every style
+  // meets every chain
   U.gtrStyleLevel = function (gb) {
     const st = gb && gb.style, ch = gb && gb.chain;
-    if (!st || U.GTR_STYLE_OFF || !st.levelDb) return { trimDb: 0, chain: ch };
-    if (ch && ch.amp) return { trimDb: 0, chain: Object.assign({}, ch, { levelDb: +((ch.levelDb || 0) + st.levelDb).toFixed(2) }) };
-    return { trimDb: st.levelDb, chain: ch };
+    if (!st || U.GTR_STYLE_OFF) return { trimDb: 0, chain: ch };
+    const sc = (U.GTR_STYLE_CHAIN_LEVEL_DB[st.id] || {})[ch && ch.id] || 0;
+    const db = sc ? +((st.levelDb || 0) + sc).toFixed(2) : st.levelDb;
+    if (!db) return { trimDb: 0, chain: ch };
+    if (ch && ch.amp) return { trimDb: 0, chain: Object.assign({}, ch, { levelDb: +((ch.levelDb || 0) + db).toFixed(2) }) };
+    return { trimDb: db, chain: ch };
   };
 
   // one bar's strokes in the style. written: U.gtrWritten(pattern) (the
@@ -16505,7 +16540,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/fmplayer.js @ 24985a6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/fmplayer.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fmplayer.js — the PERFORMANCE half of the FM keys: a session keyboard
 // player on the FM chord strips (compA's tine EP, colour's glass and brass).
 //
@@ -16646,7 +16681,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/testPhrase.js @ 24985a6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/testPhrase.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
 // testPhrase.js — deterministic 8-bar test phrase, ported from the bake-off
 // (phrase.js) onto the engine's canonical PRNG (core/prng.js).
 //
@@ -16740,7 +16775,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/form.js @ 24985a6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/form.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
 // form.js — the song's form: the book of returns (2026-10-30, Asana
 // 1220073468300418; design files/unison/structure-design-2026-10-30 in the
 // morgan repo, DESIGN.md + draw.py, transcribed here as written).
@@ -17061,7 +17096,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/session.js @ 24985a6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/session.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
 // session.js — the session sheet and the arrangement realizer.
 //
 // Two tiers, in this order, each on its own stream (core/prng.js):
@@ -19270,7 +19305,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/render/renderer.js @ 24985a6 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/render/renderer.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
 // renderer.js — song assembly + the render pipeline (Technical Architecture
 // v1.2 playback model): live-first, with (a) a cheap analysis pre-render for
 // verification/metrics and (b) an on-demand full OfflineAudioContext render
