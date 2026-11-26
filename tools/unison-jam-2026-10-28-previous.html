@@ -274,10 +274,10 @@
 <div id="masterCard"></div>
 <div id="layers"></div>
 <div id="add" class="row"><div class="lbl">Add a layer<button id="palRnd" title="add a random instrument (one you don't have yet, while any are left)">Random</button></div><div id="pal"></div></div>
-<footer title="engine @cbb9a98 · built 2026-11-26">Unison jam &middot; every sound is synthesized in this page by the engine at cbb9a98</footer>
+<footer title="engine @b5842e1 · built 2026-11-26">Unison jam &middot; every sound is synthesized in this page by the engine at b5842e1</footer>
 
 <script>
-/* ===== src/core/prng.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/prng.js @ b5842e1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // prng.js — Unison determinism core: ONE PRNG stream per song, seeded from the
 // token hash, consumed in canonical draw order (Technical Architecture v1.2).
 //
@@ -350,7 +350,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/core/mix.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/core/mix.js @ b5842e1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // mix.js — the fan-in ≤2 summing rule, as a primitive.
 //
 // Bake-off finding (2026-07-21, decision brief in Drive): Chrome's offline
@@ -519,7 +519,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/desk/desk.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/desk/desk.js @ b5842e1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // desk.js — the 24-track desk as a running audio graph.
 //
 // The desk is the data structure, not a metaphor (Composition Brief 2 / Tech
@@ -1659,7 +1659,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/production.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/production.js @ b5842e1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // production.js — the per-strip effects (effects slice 2, 2026-11-18, Asana
 // 1220328751228343; spec: files/unison/effects-menu-2026-11-08/PROPOSAL.md §2
 // and Jeff's 11/17 rule, "All effects should apply everywhere. All
@@ -2200,7 +2200,7 @@
 
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/production/vocoder.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/production/vocoder.js @ b5842e1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // vocoder.js — the production room's vocoder insert, slice 1 (2026-11-05,
 // Asana 1220085081650427; design in files/unison/vocoder-2026-11-05/RESULT.md).
 //
@@ -2533,7 +2533,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/analogpoly.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/analogpoly.js @ b5842e1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // analogpoly.js — the analog poly core: one module that builds every Juno and
 // OB-Xa voice, behind a family lock. Asana 1220084594874974, slice 1
 // (2026-11-02); the rack doc's build 3 (files/unison/rack-parts-proposal-
@@ -3158,7 +3158,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/juno.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/juno.js @ b5842e1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // juno.js — Juno-60-flavor poly voice, raw Web Audio, zero dependencies.
 // Ported from the 2026-07-21 bake-off winner (voice-raw.js), restructured to
 // live behind a desk strip: U.createJuno(ctx, strip, patchName) builds its own
@@ -3794,7 +3794,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/minimoog.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/minimoog.js @ b5842e1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // minimoog.js — Minimoog Model D-lineage mono voice, zero dependencies.
 //
 // THE MONO BASS LANE (build order 808 → Juno → Minimoog → …; it also absorbs
@@ -4632,7 +4632,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/obxa.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/obxa.js @ b5842e1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // obxa.js — Oberheim OB-Xa-lineage poly voice, zero dependencies.
 //
 // THE BRASS/PAD POLY LANE (build order 808 → Juno → Minimoog → OB-Xa → …).
@@ -5219,7 +5219,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/fm.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/fm.js @ b5842e1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fm.js — six-operator FM keys voice (the DX7 lineage), zero dependencies.
 //
 // THE FM LANE (build order 808 → Juno → Minimoog → OB-Xa → Linn → FM).
@@ -6375,7 +6375,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/bassguitar.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/bassguitar.js @ b5842e1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassguitar.js — electric bass guitar, the first session player of the human
 // rack (Rack 2), zero dependencies.
 //
@@ -7094,7 +7094,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/rhythmguitar.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/rhythmguitar.js @ b5842e1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // rhythmguitar.js — clean electric rhythm guitar, the fourth and last stop of
 // the human rack (Rack 2), zero dependencies.
 //
@@ -7249,6 +7249,34 @@
     chop: Object.assign({}, BASE, { pickupPos: 0.12, tone: 5000, spread: 20, stabMs: 140, chorusMix: 0.45, compRatio: 5 }),
   };
 
+  // THE STRAT'S PICKUP (2026-11-26, Asana 1220927299348740): on the
+  // Strat-style model the pickup position is a sound choice drawn on its own
+  // (U.drawGtrBook, its own fork "gtrPickup"), no longer set by the voicing.
+  // The three positions are the voicings' fitted ones (funk was fitted on the
+  // bridge, skank on the neck, chop in the middle); the voicing objects above
+  // keep theirs as panel centres for a voicing played by name, but on a drawn
+  // Strat the drawn pickup replaces them. Tele and humbucker set their own.
+  U.RHYTHMGUITAR_PICKUPS = {
+    bridge: { label: "bridge", set: { pickupPos: 0.056, pickupHz: 4200 } },
+    middle: { label: "middle", set: { pickupPos: 0.12, pickupHz: 4200 } },
+    neck: { label: "neck", set: { pickupPos: 0.16, pickupHz: 3600 } },
+  };
+  // where each voicing sat before 2026-11-26: the level below reads it (the
+  // voicing trims, GTR_TRIM_DB and the chain table, were measured there); no
+  // draw does
+  U.RHYTHMGUITAR_VOICING_PICKUP = { funk: "bridge", skank: "neck", chop: "middle" };
+  // MEASURED 2026-11-26 (harness/strat-pickup-grid.mjs, data
+  // files/unison/style-sound-2026-11-25/pickup/grid-pickup.json): how much
+  // louder each position plays than the bridge, dB, K-weighted at the insert,
+  // fitted on 15 Strat songs through the one board with no compressor
+  // (slapback: the pickup's own output, uncompressed), checked on every chain
+  // over 25 songs. A drawn pickup is levelled to its voicing's old one AT THE
+  // PICKUP, before the instrument's own compressor (the level times g and the
+  // threshold over g, which is the same thing for this detector), so every
+  // compressor after it, the instrument's on di or a board's, treats it as it
+  // treats the pickup itself. A song on its old pickup is untouched.
+  U.RHYTHMGUITAR_PICKUP_LEVEL_DB = { bridge: 0, middle: 4.0, neck: 5.1 };
+
   U.RHYTHMGUITAR_KNOBS = [
     { key: "decay", label: "string sustain", min: 0.3, max: 40, log: true, unit: "s" },
     { key: "damp", label: "string tone", min: 0, max: 0.85 },
@@ -7277,7 +7305,7 @@
   // `fit`: "fitted" against a real recording of that guitar, or "voiced".
   U.RHYTHMGUITAR_MODELS = {
     strat: { label: "Strat-style", fit: "fitted", resid: "10/03 fit; 10/05 check on a miked Strat note not comparable (amp + mic)", mul: {}, set: {}, range: { tone: [0.8, 1.2] },
-      note: "three single coils; funk on the bridge, skank on the neck, chop in the middle (the 10/03 fit: Tele and Strat strums and skanks)" },
+      note: "three single coils; the pickup position is drawn on its own (U.RHYTHMGUITAR_PICKUPS, 2026-11-26), any position with any voicing (the 10/03 fit: Tele and Strat strums and skanks)" },
     tele: { label: "Tele-style, bridge", fit: "voiced", resid: "no Tele take states its pickup", mul: { decay: 1.1 }, set: { pickupPos: 0.05, pickupHz: 4900, toneQ: 1.9 }, range: { tone: [0.8, 1.2] },
       note: "the slanted bridge single coil on every part: a sharper, higher pickup peak, a little more ring" },
     // FITTED 2026-10-05 (analysis/fit-rhythm-guitar-models.mjs, 21: a Les
@@ -7300,15 +7328,23 @@
   U.RHYTHMGUITAR_MODEL_LEVEL_DB = { tele: { funk: 0.2, skank: 2.6, chop: 1.5, "gtr.mutedChuck16": -0.6 }, humbucker: { funk: -0.4, skank: 1.9, chop: 1.0, "gtr.mutedChuck16": -0.2 } };
   // pattern (optional): a line whose level under a model differs from its
   // voicing's (the all-chuck line, gtr.mutedChuck16) has its own entry.
-  U.resolveRhythmGuitarPatch = function (voicing, model, u, pattern) {
+  // pickup (optional, Strat only): a name in U.RHYTHMGUITAR_PICKUPS (the
+  // drawn position); without it the voicing's own panel centre stands.
+  U.resolveRhythmGuitarPatch = function (voicing, model, u, pattern, pickup) {
     const M = U.RHYTHMGUITAR_MODELS[model] || U.RHYTHMGUITAR_MODELS.strat;
     const p = Object.assign({}, U.RHYTHMGUITAR_VOICINGS[voicing]);
+    const PK = pickup && U.RHYTHMGUITAR_PICKUPS[pickup];
+    if (PK && M === U.RHYTHMGUITAR_MODELS.strat) Object.assign(p, PK.set);
     for (const k in M.mul) p[k] = +(p[k] * M.mul[k]).toPrecision(4);
     for (const k in M.set) p[k] = M.set[k];
     if (u != null) for (const k in M.range) { const [lo, hi] = M.range[k]; p[k] = +(p[k] * (lo + u * (hi - lo))).toPrecision(4); }
     const L = U.RHYTHMGUITAR_MODEL_LEVEL_DB[model] || {};
     const db = (pattern && L[pattern] != null ? L[pattern] : L[voicing]) || 0;
     if (db) p.level = +(p.level * Math.pow(10, db / 20)).toPrecision(5);
+    if (PK && M === U.RHYTHMGUITAR_MODELS.strat) {
+      const PL = U.RHYTHMGUITAR_PICKUP_LEVEL_DB, pdb = (PL[U.RHYTHMGUITAR_VOICING_PICKUP[voicing]] || 0) - (PL[pickup] || 0);
+      if (pdb) { const g = Math.pow(10, pdb / 20); p.level = +(p.level * g).toPrecision(5); p.compThr = +(p.compThr / g).toPrecision(5); }
+    }
     return p;
   };
 
@@ -7871,7 +7907,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/tr808.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/tr808.js @ b5842e1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // tr808.js — THE MACHINE. A TR-808-lineage core voice: bass drum, snare,
 // closed hat, open hat, each with a front panel the token actually turns.
 //
@@ -9155,7 +9191,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/linn.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/linn.js @ b5842e1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // linn.js — THE STUDIO MACHINE. A Linn-family (LM-1 / LinnDrum lineage)
 // drum computer: the new wave / synth-pop / 80s R&B kit.
 //
@@ -9977,7 +10013,7 @@
     get EPROM_HZ() { return U.CIRCUIT_LINN.epromHz; }, get RECON_HZ() { return U.CIRCUIT_LINN.reconHz; } };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/romkits.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/romkits.js @ b5842e1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // romkits.js — THE OTHER SAMPLED MACHINE: the DMX (Oberheim lineage, 1981),
 // drum engine slice 3, 2026-11-03, Asana 1219959495948201.
 //
@@ -10333,7 +10369,7 @@
   // the lock refuses; the MCS is a kit drawn across families, which is slice 4.
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/simmons.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/simmons.js @ b5842e1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // simmons.js — THE ELECTRONIC FAMILY'S FIRST MACHINE: the Simmons toms
 // (SDS-V lineage, 1981; SDS-7, 1983), drum engine slice 3, 2026-11-03,
 // Asana 1219959495948201.
@@ -10505,7 +10541,7 @@
   U.SIMMONS_VOICES = ["tomHi", "tomMid", "tomLo"];
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drumengine.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drumengine.js @ b5842e1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drumengine.js — ONE DRUM ENGINE, THE MACHINES AS FAMILIES (2026-11-02,
 // drum engine slice 1, Asana 1219959495948201; the rack and parts doc,
 // 10/31).
@@ -10736,7 +10772,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drumkits.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drumkits.js @ b5842e1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drumkits.js — the drum engine, slice 4 (2026-11-06, Asana 1219959495948201):
 // THE KIT BOOKS and THE KIT AS A DRAW ACROSS FAMILIES.
 //
@@ -11094,7 +11130,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/sampler.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/sampler.js @ b5842e1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // sampler.js — THE SAMPLER KEYBOARD, the gap filler (2026-11-05, slice 1,
 // Asana 1220085081678265; build 7 of the 10/31 rack and parts doc; design in
 // files/unison/sampler-2026-11-05/RESULT.md in the morgan repo).
@@ -11716,7 +11752,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/instruments/drums.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/instruments/drums.js @ b5842e1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // drums.js — the drum machine: 808/LM-1-flavor voices, synthesized at runtime
 // into short AudioBuffers, played back as one-shots.
 //
@@ -12131,7 +12167,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/books.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/books.js @ b5842e1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // books.js — Pattern Books v1, as data.
 //
 // This file IS the document: "Unison — Pattern Books v1 (draft)" (Morgan,
@@ -15413,7 +15449,7 @@
 
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/bassplayer.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/bassplayer.js @ b5842e1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // bassplayer.js — the PERFORMANCE half of the bass guitar: a session player.
 //
 // Rack 2's rule (kb/projects/unison.md, 2026-07-11): every human instrument is
@@ -16046,7 +16082,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/gtrplayer.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/gtrplayer.js @ b5842e1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // gtrplayer.js — the PERFORMANCE half of the rhythm guitar: a session
 // guitarist on the rhythmGtr strip.
 //
@@ -16124,12 +16160,36 @@
     synthPop: { strat: 45, tele: 30, humbucker: 25 },
     earlyHipHop: { strat: 45, tele: 30, humbucker: 25 },
   };
+  // census 2026-11-26 (files/unison/style-sound-2026-11-25/pickup/before.json): Strat songs per lane,
+  // percent; earlyHipHop (57 Strat songs) takes all
+  U.GTR_BOOK_PICKUP_LANE = {
+    synthPop: { bridge: 25.3, middle: 52.2, neck: 22.5 },
+    newWave: { bridge: 9.9, middle: 73.6, neck: 16.5 },
+    funk: { bridge: 72.8, middle: 6.0, neck: 21.2 },
+    synthRnB: { bridge: 65.3, middle: 12.9, neck: 21.8 },
+    all: { bridge: 32.2, middle: 46.2, neck: 21.6 },
+  };
   U.drawGtrBook = function (hash, sheet) {
     const G = U.forkPrng(hash, "gtrBook");
     const MW = U.GTR_BOOK_MODEL_LANE[sheet.lane] || U.GTR_BOOK_MODEL_LANE.synthPop;
     const model = U.pickWeighted(G, Object.keys(MW).map((id) => ({ id, w: MW[id] }))).id;
     const u = G.r();
-    const params = U.resolveRhythmGuitarPatch(sheet.gtrVoicing, model, u, sheet.picks.rhythmGtr.id);
+    // THE STRAT'S PICKUP (2026-11-26, Asana 1220927299348740): a sound choice
+    // drawn on its own fork ("gtrPickup", one read, Strat songs only), by lane
+    // weight alone: never the voicing, the pattern or either style. The
+    // weights are the shares each position had across Strat songs in the
+    // 5,000-song census when the voicing set it, per lane with 100 or more
+    // Strat songs, the all-lane shares otherwise, so the mix a listener hears
+    // holds and only what it lands with changes.
+    let pickup = null;
+    if (model === "strat" && U.GTR_BOOK_PICKUP_LANE) {
+      const PW = U.GTR_BOOK_PICKUP_LANE[sheet.lane] || U.GTR_BOOK_PICKUP_LANE.all;
+      pickup = U.pickWeighted(U.forkPrng(hash, "gtrPickup"), Object.keys(PW).map((id) => ({ id, w: PW[id] }))).id;
+      // level harnesses only: the same song on a given pickup (the read is unchanged)
+      if (U.GTR_PICKUP_FORCE && U.RHYTHMGUITAR_PICKUPS[U.GTR_PICKUP_FORCE]) pickup = U.GTR_PICKUP_FORCE;
+    }
+    const params = U.resolveRhythmGuitarPatch(sheet.gtrVoicing, model, u, sheet.picks.rhythmGtr.id, pickup);
+    const pk = pickup ? { pickup } : {};
     // THE CHAIN (guitar books slice 1, 2026-11-04, Asana 1220085081631823):
     // appended after the model and the tone, which stay the fork's first two
     // reads. One read for the chain (lane × model weights; never the voicing, 2026-11-25), then a
@@ -16137,7 +16197,7 @@
     // that its pedal settings consume in board order (so a later slice
     // appends at a fixed position). di keeps the instrument's own compressor
     // and chorus; every other chain takes them from the desk's blocks.
-    if (!U.GTR_CHAINS) return { model, voicing: sheet.gtrVoicing, tone: +u.toFixed(4), params };
+    if (!U.GTR_CHAINS) return Object.assign({ model, voicing: sheet.gtrVoicing, tone: +u.toFixed(4), params }, pk);
     const CW = Object.keys(U.GTR_CHAINS).map((id) => {
       const C = U.GTR_CHAINS[id];
       return { id, w: (C.wl[sheet.lane] != null ? C.wl[sheet.lane] : C.wl.synthPop) * ((C.mx || {})[model] || 1) };
@@ -16149,7 +16209,7 @@
     if (U.GTR_CHAIN_FORCE && U.GTR_CHAINS[U.GTR_CHAIN_FORCE.id]) cid = U.GTR_CHAIN_FORCE.id;
     const chain = U.resolveGtrChain(cid, us, sheet.gtrVoicing);
     if (chain.id !== "di") Object.assign(params, U.GTR_BOARD_OFF);
-    const out = { model, voicing: sheet.gtrVoicing, tone: +u.toFixed(4), chain, params };
+    const out = Object.assign({ model, voicing: sheet.gtrVoicing, tone: +u.toFixed(4), chain, params }, pk);
     // THE STYLE (guitar books slice 2, 2026-11-04, Asana 1220085081631823):
     // appended after slice 1's reads, which stay where they are. One read
     // for the style (lane × pattern weights; never the chain, 2026-11-25), one for its seed, then
@@ -16540,7 +16600,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/fmplayer.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/fmplayer.js @ b5842e1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // fmplayer.js — the PERFORMANCE half of the FM keys: a session keyboard
 // player on the FM chord strips (compA's tine EP, colour's glass and brass).
 //
@@ -16681,7 +16741,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/testPhrase.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/testPhrase.js @ b5842e1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // testPhrase.js — deterministic 8-bar test phrase, ported from the bake-off
 // (phrase.js) onto the engine's canonical PRNG (core/prng.js).
 //
@@ -16775,7 +16835,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/form.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/form.js @ b5842e1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // form.js — the song's form: the book of returns (2026-10-30, Asana
 // 1220073468300418; design files/unison/structure-design-2026-10-30 in the
 // morgan repo, DESIGN.md + draw.py, transcribed here as written).
@@ -17096,7 +17156,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/session/session.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/session/session.js @ b5842e1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // session.js — the session sheet and the arrangement realizer.
 //
 // Two tiers, in this order, each on its own stream (core/prng.js):
@@ -19305,7 +19365,7 @@
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
-/* ===== src/render/renderer.js @ cbb9a98 — verbatim from jeffdavis-studio/unison-engine ===== */
+/* ===== src/render/renderer.js @ b5842e1 — verbatim from jeffdavis-studio/unison-engine ===== */
 // renderer.js — song assembly + the render pipeline (Technical Architecture
 // v1.2 playback model): live-first, with (a) a cheap analysis pre-render for
 // verification/metrics and (b) an on-demand full OfflineAudioContext render
